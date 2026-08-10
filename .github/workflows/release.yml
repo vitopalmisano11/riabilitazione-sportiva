@@ -10,6 +10,9 @@ on:
       - 'v*'
   workflow_dispatch:
 
+permissions:
+  contents: write # necessario per pubblicare la release
+
 jobs:
   build:
     runs-on: windows-latest
