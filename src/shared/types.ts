@@ -71,6 +71,49 @@ export type PazienteCreateInput = PazienteInput & {
   fase_corrente_id: number | null
 }
 
+export interface SedutaEsercizioInput {
+  esercizio_id: number
+  serie: string | null
+  ripetizioni: string | null
+  carico: string | null
+  nota: string | null
+}
+
+export interface SedutaInput {
+  paziente_id: number
+  data: string
+  fase_id: number | null
+  note: string | null
+  obiettivi: number[]
+  esercizi: SedutaEsercizioInput[]
+}
+
+export interface SedutaRiepilogo {
+  id: number
+  paziente_id: number
+  data: string
+  fase_nome: string | null
+  note: string | null
+  num_esercizi: number
+  obiettivi_nomi: string | null
+}
+
+export type SedutaEsercizioDettaglio = SedutaEsercizioInput & {
+  nome: string
+  categoria_nome: string
+}
+
+export interface SedutaDettaglio {
+  id: number
+  paziente_id: number
+  data: string
+  fase_id: number | null
+  fase_nome: string | null
+  note: string | null
+  obiettivi: number[]
+  esercizi: SedutaEsercizioDettaglio[]
+}
+
 export interface Api {
   patologie: {
     list(): Promise<Patologia[]>
@@ -112,6 +155,13 @@ export interface Api {
     create(data: PazienteCreateInput): Promise<number>
     update(id: number, data: PazienteInput): Promise<void>
     setPatologiaFase(id: number, patologiaId: number | null, faseId: number | null): Promise<void>
+    remove(id: number): Promise<void>
+  }
+  sedute: {
+    list(pazienteId: number): Promise<SedutaRiepilogo[]>
+    get(id: number): Promise<SedutaDettaglio>
+    create(data: SedutaInput): Promise<number>
+    update(id: number, data: SedutaInput): Promise<void>
     remove(id: number): Promise<void>
   }
 }

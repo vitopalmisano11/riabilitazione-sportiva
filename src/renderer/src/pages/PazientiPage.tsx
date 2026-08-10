@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import type { Fase, Patologia, PazienteDettaglio } from '../../../shared/types'
-import { errMsg } from '../lib'
+import type { Fase, Patologia, PazienteDettaglio, SedutaRiepilogo } from '../../../shared/types'
+import SedutaBuilder from '../components/SedutaBuilder'
+import { errMsg, formatData } from '../lib'
 
 interface NuovoForm {
   nome: string
@@ -27,6 +28,9 @@ export default function PazientiPage(): React.JSX.Element {
   const [patologie, setPatologie] = useState<Patologia[]>([])
   const [nuovo, setNuovo] = useState<NuovoForm | null>(null)
   const [nuovoFasi, setNuovoFasi] = useState<Fase[]>([])
+  const [builder, setBuilder] = useState<{ sedutaId: number | null; duplicaDa?: number } | null>(
+    null
+  )
 
   const load = async (): Promise<void> => setPazienti(await window.api.pazienti.list())
 
@@ -70,6 +74,20 @@ export default function PazientiPage(): React.JSX.Element {
     } catch (e) {
       alert(errMsg(e))
     }
+  }
+
+  if (builder && sel) {
+    return (
+      <SedutaBuilder
+        paziente={sel}
+        sedutaId={builder.sedutaId}
+        duplicaDa={builder.duplicaDa}
+        onClose={(salvata) => {
+          setBuilder(null)
+          if (salvata) void load()
+        }}
+      />
+    )
   }
 
   return (
@@ -133,6 +151,9 @@ export default function PazientiPage(): React.JSX.Element {
               setSelId(null)
               void load()
             }}
+            onNuovaSeduta={() => setBuilder({ sedutaId: null })}
+            onApriSeduta={(id) => setBuilder({ sedutaId: id })}
+            onDuplicaSeduta={(id) => setBuilder({ sedutaId: null, duplicaDa: id })}
           />
         ) : (
           <section className="card">
@@ -239,12 +260,18 @@ function SchedaPaziente({
   paziente,
   patologie,
   onChanged,
-  onDeleted
+  onDeleted,
+  onNuovaSeduta,
+  onApriSeduta,
+  onDuplicaSeduta
 }: {
   paziente: PazienteDettaglio
   patologie: Patologia[]
   onChanged: () => Promise<void> | void
   onDeleted: () => void
+  onNuovaSeduta: () => void
+  onApriSeduta: (id: number) => void
+  onDuplicaSeduta: (id: number) => void
 }): React.JSX.Element {
   const [form, setForm] = useState({
     nome: paziente.nome,
@@ -445,13 +472,83 @@ function SchedaPaziente({
         </div>
       </section>
 
-      <section className="card">
-        <h3>Diario sedute</h3>
-        <p className="hint">
-          In arrivo nel prossimo step: da qui creerai le sedute partendo dagli obiettivi della fase
-          corrente, e rivedrai lo storico giorno per giorno.
-        </p>
-      </section>
+      <DiarioCard
+        paziente={paziente}
+        onNuova={onNuovaSeduta}
+        onApri={onApriSeduta}
+        onDuplica={onDuplicaSeduta}
+      />
     </div>
+  )
+}
+
+function DiarioCard({
+  paziente,
+  onNuova,
+  onApri,
+  onDuplica
+}: {
+  paziente: PazienteDettaglio
+  onNuova: () => void
+  onApri: (id: number) => void
+  onDuplica: (id: number) => void
+}): React.JSX.Element {
+  const [sedute, setSedute] = useState<SedutaRiepilogo[]>([])
+
+  const load = async (): Promise<void> => setSedute(await window.api.sedute.list(paziente.id))
+
+  useEffect(() => {
+    void load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paziente.id])
+
+  const elimina = async (s: SedutaRiepilogo): Promise<void> => {
+    if (!confirm(`Eliminare la seduta del ${formatData(s.data)}?`)) return
+    try {
+      await window.api.sedute.remove(s.id)
+      await load()
+    } catch (e) {
+      alert(errMsg(e))
+    }
+  }
+
+  return (
+    <section className="card">
+      <div className="card-header-row">
+        <h3>Diario sedute</h3>
+        <button className="primary" onClick={onNuova}>
+          + Nuova seduta
+        </button>
+      </div>
+      {sedute.length === 0 ? (
+        <p className="hint">
+          Nessuna seduta ancora: creane una — si aprirà già sulla fase corrente del paziente.
+        </p>
+      ) : (
+        <ul className="sedute-list">
+          {sedute.map((s) => (
+            <li key={s.id}>
+              <div className="seduta-info">
+                <span className="seduta-data">{formatData(s.data)}</span>
+                <span className="seduta-meta">
+                  {s.fase_nome ?? 'senza fase'} · {s.num_esercizi}{' '}
+                  {s.num_esercizi === 1 ? 'esercizio' : 'esercizi'}
+                </span>
+                {s.obiettivi_nomi && <span className="seduta-obiettivi">{s.obiettivi_nomi}</span>}
+              </div>
+              <span className="row-actions">
+                <button onClick={() => onApri(s.id)}>Apri</button>
+                <button title="Nuova seduta partendo da questa" onClick={() => onDuplica(s.id)}>
+                  Duplica
+                </button>
+                <button className="danger" onClick={() => void elimina(s)}>
+                  Elimina
+                </button>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   )
 }

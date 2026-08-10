@@ -529,3 +529,209 @@ button.danger:hover:not(:disabled) {
 .list-top {
   margin-bottom: 10px;
 }
+
+/* ---- Builder seduta ---- */
+
+.builder-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.builder-header p {
+  margin-bottom: 0;
+}
+
+.builder-header-actions {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.data-field {
+  min-width: 150px;
+}
+
+.builder-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 440px;
+  gap: 16px;
+  align-items: start;
+}
+
+.builder-left {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.builder-right {
+  position: sticky;
+  top: 0;
+}
+
+.filtro-esercizi {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.cat-gruppo h4 {
+  margin: 12px 0 6px;
+  font-size: 13px;
+}
+
+.cat-gruppo:first-of-type h4 {
+  margin-top: 0;
+}
+
+.esercizi-proposti {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.esercizi-proposti li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 4px;
+  border-bottom: 1px solid var(--bg);
+}
+
+.esercizi-proposti li:last-child {
+  border-bottom: none;
+}
+
+.esercizi-proposti button {
+  padding: 3px 10px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.default-hint {
+  color: var(--text-dim);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.righe-seduta {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.righe-seduta li {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px;
+}
+
+.riga-testata {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.item-actions-static {
+  display: flex;
+  gap: 2px;
+}
+
+.item-actions-static button {
+  padding: 2px 7px;
+  font-size: 12px;
+  border: none;
+  background: none;
+  color: var(--text-dim);
+}
+
+.riga-params {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.riga-params label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.riga-params input {
+  padding: 5px 8px;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.riga-nota {
+  width: 100%;
+  font-size: 13px;
+}
+
+.note-seduta {
+  margin-top: 4px;
+}
+
+/* ---- Diario ---- */
+
+.card-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.card-header-row h3 {
+  margin: 0;
+}
+
+.sedute-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sedute-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 4px;
+  border-bottom: 1px solid var(--bg);
+}
+
+.sedute-list li:last-child {
+  border-bottom: none;
+}
+
+.seduta-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.seduta-data {
+  font-weight: 600;
+}
+
+.seduta-meta {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.seduta-obiettivi {
+  font-size: 12px;
+  color: var(--text-dim);
+  font-style: italic;
+}

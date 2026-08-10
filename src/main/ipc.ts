@@ -1,6 +1,11 @@
 import { ipcMain } from 'electron'
 import { getDb } from './db'
-import type { EsercizioInput, PazienteCreateInput, PazienteInput } from '../shared/types'
+import type {
+  EsercizioInput,
+  PazienteCreateInput,
+  PazienteInput,
+  SedutaInput
+} from '../shared/types'
 
 // Traduce gli errori SQLite in messaggi comprensibili per l'utente.
 function friendly(err: unknown): Error {
@@ -214,5 +219,88 @@ export function registerIpc(): void {
   })
   handle('pazienti:delete', (id: number) => {
     getDb().prepare('DELETE FROM pazienti WHERE id = ?').run(id)
+  })
+
+  // ---- Sedute ----
+  function insertFigliSeduta(sedutaId: number | bigint, input: SedutaInput): void {
+    const db = getDb()
+    const insOb = db.prepare('INSERT INTO seduta_obiettivi (seduta_id, obiettivo_id) VALUES (?, ?)')
+    for (const obId of input.obiettivi) insOb.run(sedutaId, obId)
+    const insEs = db.prepare(
+      `INSERT INTO seduta_esercizi (seduta_id, esercizio_id, serie, ripetizioni, carico, nota, ordine)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    )
+    input.esercizi.forEach((e, i) =>
+      insEs.run(sedutaId, e.esercizio_id, e.serie, e.ripetizioni, e.carico, e.nota, i)
+    )
+  }
+
+  handle('sedute:list', (pazienteId: number) =>
+    getDb()
+      .prepare(
+        `SELECT s.id, s.paziente_id, s.data, f.nome AS fase_nome, s.note,
+           (SELECT COUNT(*) FROM seduta_esercizi se WHERE se.seduta_id = s.id) AS num_esercizi,
+           (SELECT GROUP_CONCAT(o.nome, ' · ')
+              FROM seduta_obiettivi so JOIN obiettivi o ON o.id = so.obiettivo_id
+              WHERE so.seduta_id = s.id) AS obiettivi_nomi
+         FROM sedute s
+         LEFT JOIN fasi f ON f.id = s.fase_id
+         WHERE s.paziente_id = ?
+         ORDER BY s.data DESC, s.id DESC`
+      )
+      .all(pazienteId)
+  )
+  handle('sedute:get', (id: number) => {
+    const db = getDb()
+    const seduta = db
+      .prepare(
+        'SELECT s.*, f.nome AS fase_nome FROM sedute s LEFT JOIN fasi f ON f.id = s.fase_id WHERE s.id = ?'
+      )
+      .get(id)
+    if (!seduta) throw new Error('Seduta non trovata.')
+    const obiettivi = (
+      db.prepare('SELECT obiettivo_id FROM seduta_obiettivi WHERE seduta_id = ?').all(id) as {
+        obiettivo_id: number
+      }[]
+    ).map((r) => r.obiettivo_id)
+    const esercizi = db
+      .prepare(
+        `SELECT se.esercizio_id, e.nome, c.nome AS categoria_nome,
+                se.serie, se.ripetizioni, se.carico, se.nota
+         FROM seduta_esercizi se
+         JOIN esercizi e ON e.id = se.esercizio_id
+         JOIN categorie c ON c.id = e.categoria_id
+         WHERE se.seduta_id = ?
+         ORDER BY se.ordine, se.id`
+      )
+      .all(id)
+    return { ...seduta, obiettivi, esercizi }
+  })
+  handle('sedute:create', (input: SedutaInput) => {
+    const db = getDb()
+    return db.transaction(() => {
+      const sid = db
+        .prepare('INSERT INTO sedute (paziente_id, data, fase_id, note) VALUES (?, ?, ?, ?)')
+        .run(input.paziente_id, input.data, input.fase_id, input.note).lastInsertRowid
+      insertFigliSeduta(sid, input)
+      return Number(sid)
+    })()
+  })
+  handle('sedute:update', (id: number, input: SedutaInput) => {
+    const db = getDb()
+    db.transaction(() => {
+      db.prepare('UPDATE sedute SET data = ?, fase_id = ?, note = ? WHERE id = ?').run(
+        input.data,
+        input.fase_id,
+        input.note,
+        id
+      )
+      db.prepare('DELETE FROM seduta_obiettivi WHERE seduta_id = ?').run(id)
+      db.prepare('DELETE FROM seduta_esercizi WHERE seduta_id = ?').run(id)
+      insertFigliSeduta(id, input)
+    })()
+  })
+  handle('sedute:delete', (id: number) => {
+    getDb().prepare('DELETE FROM sedute WHERE id = ?').run(id)
   })
 }

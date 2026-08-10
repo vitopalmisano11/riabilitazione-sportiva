@@ -33,9 +33,11 @@ const obId = db
   .run(faseId, 'Controllo del dolore e gonfiore').lastInsertRowid
 const catId = db.prepare('INSERT INTO categorie (nome) VALUES (?)').run('Mobilizzazione').lastInsertRowid
 db.prepare('INSERT INTO obiettivo_categorie (obiettivo_id, categoria_id) VALUES (?, ?)').run(obId, catId)
-db.prepare(
-  "INSERT INTO esercizi (nome, categoria_id, serie_default, ripetizioni_default) VALUES ('Mobilizzazione rotulea', ?, '3', '10')"
-).run(catId)
+const esId = db
+  .prepare(
+    "INSERT INTO esercizi (nome, categoria_id, serie_default, ripetizioni_default) VALUES ('Mobilizzazione rotulea', ?, '3', '10')"
+  )
+  .run(catId).lastInsertRowid
 
 // UNIQUE: patologia duplicata rifiutata
 assert.throws(() => db.prepare('INSERT INTO patologie (nome) VALUES (?)').run('Ricostruzione LCA'))
@@ -52,6 +54,24 @@ const pazId = db
 assert.throws(() => db.prepare('DELETE FROM patologie WHERE id = ?').run(patId), /FOREIGN KEY/)
 assert.throws(() => db.prepare('DELETE FROM fasi WHERE id = ?').run(faseId), /FOREIGN KEY/)
 db.prepare('DELETE FROM pazienti WHERE id = ?').run(pazId)
+
+// Sedute: un esercizio usato nel diario non si può eliminare (va archiviato),
+// ma eliminare il paziente elimina in cascata sedute ed esercizi collegati
+const pazId2 = db
+  .prepare("INSERT INTO pazienti (nome, cognome) VALUES ('Anna', 'Bianchi')")
+  .run().lastInsertRowid
+const sedId = db
+  .prepare("INSERT INTO sedute (paziente_id, data, fase_id) VALUES (?, '2026-08-10', ?)")
+  .run(pazId2, faseId).lastInsertRowid
+db.prepare('INSERT INTO seduta_obiettivi (seduta_id, obiettivo_id) VALUES (?, ?)').run(sedId, obId)
+db.prepare(
+  "INSERT INTO seduta_esercizi (seduta_id, esercizio_id, serie, ripetizioni, ordine) VALUES (?, ?, '3', '10', 0)"
+).run(sedId, esId)
+assert.throws(() => db.prepare('DELETE FROM esercizi WHERE id = ?').run(esId), /FOREIGN KEY/)
+db.prepare('DELETE FROM pazienti WHERE id = ?').run(pazId2)
+assert.equal(count('sedute'), 0)
+assert.equal(count('seduta_obiettivi'), 0)
+assert.equal(count('seduta_esercizi'), 0)
 
 // CASCADE: eliminare la patologia elimina fasi, obiettivi e associazioni…
 db.prepare('DELETE FROM patologie WHERE id = ?').run(patId)

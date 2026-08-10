@@ -1,5 +1,11 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { Api, EsercizioInput, PazienteCreateInput, PazienteInput } from '../shared/types'
+import type {
+  Api,
+  EsercizioInput,
+  PazienteCreateInput,
+  PazienteInput,
+  SedutaInput
+} from '../shared/types'
 
 const invoke = (channel: string, ...args: unknown[]): Promise<never> =>
   ipcRenderer.invoke(channel, ...args) as Promise<never>
@@ -48,6 +54,13 @@ const api: Api = {
     setPatologiaFase: (id: number, patologiaId: number | null, faseId: number | null) =>
       invoke('pazienti:setPatologiaFase', id, patologiaId, faseId),
     remove: (id: number) => invoke('pazienti:delete', id)
+  },
+  sedute: {
+    list: (pazienteId: number) => invoke('sedute:list', pazienteId),
+    get: (id: number) => invoke('sedute:get', id),
+    create: (data: SedutaInput) => invoke('sedute:create', data),
+    update: (id: number, data: SedutaInput) => invoke('sedute:update', id, data),
+    remove: (id: number) => invoke('sedute:delete', id)
   }
 }
 
