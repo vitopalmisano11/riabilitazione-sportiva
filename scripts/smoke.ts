@@ -11,6 +11,8 @@ import { join } from 'node:path'
 import Database from 'better-sqlite3-multiple-ciphers'
 import { runMigrations } from '../src/main/migrations'
 import { generaDocx, generaHtml } from '../src/main/export-doc'
+import { cambiaPasswordAuth, loginAuth, recoverAuth, setupAuth } from '../src/main/auth'
+import { getDb, initDb, isPlaintextDb } from '../src/main/db'
 
 const dir = mkdtempSync(join(tmpdir(), 'riab-smoke-'))
 const db = new Database(join(dir, 'test.db'))
@@ -116,10 +118,58 @@ const html = generaHtml(pazExport, seduteExport)
 assert.ok(html.includes('Rossi') && html.includes('Seduta del 10/08/2026'))
 assert.ok(html.includes('Mobilizzazione &amp; scivolamenti rotulei')) // escaping HTML
 
+// --- Autenticazione e cifratura ---
+const dirAuth = mkdtempSync(join(tmpdir(), 'riab-auth-'))
+const authPath = join(dirAuth, 'auth.json')
+const dbPath = join(dirAuth, 'dati.db')
+
+// Database in chiaro preesistente con dati (simula la migrazione al primo setup)
+const plain = new Database(dbPath)
+plain.pragma('journal_mode = WAL')
+runMigrations(plain)
+plain.prepare('INSERT INTO categorie (nome) VALUES (?)').run('Rinforzo')
+plain.close()
+assert.ok(isPlaintextDb(dbPath))
+
+const { dekHex, recoveryKey } = setupAuth(authPath, 'password-segreta')
+assert.equal(loginAuth(authPath, 'password-segreta'), dekHex)
+assert.throws(() => loginAuth(authPath, 'password-sbagliata'), /Password errata/)
+
+// initDb cifra in place il db in chiaro e lo apre: i dati sopravvivono
+initDb(dbPath, dekHex)
+assert.equal(
+  (getDb().prepare('SELECT COUNT(*) AS n FROM categorie').get() as { n: number }).n,
+  1
+)
+getDb().close()
+assert.ok(!isPlaintextDb(dbPath))
+// senza chiave il file non è leggibile
+assert.throws(() => {
+  const senzaChiave = new Database(dbPath)
+  try {
+    senzaChiave.prepare('SELECT count(*) FROM sqlite_master').get()
+  } finally {
+    senzaChiave.close()
+  }
+})
+
+// Recovery key: accetta formattazione "sporca" e imposta una nuova password
+const dekRecuperata = recoverAuth(authPath, recoveryKey.toLowerCase().replace(/-/g, ' '), 'nuova-password')
+assert.equal(dekRecuperata, dekHex)
+assert.equal(loginAuth(authPath, 'nuova-password'), dekHex)
+assert.throws(() => loginAuth(authPath, 'password-segreta'), /Password errata/)
+
+// Cambio password: la recovery key resta valida
+cambiaPasswordAuth(authPath, 'nuova-password', 'password-numero-tre')
+assert.equal(loginAuth(authPath, 'password-numero-tre'), dekHex)
+assert.equal(recoverAuth(authPath, recoveryKey, 'password-numero-tre'), dekHex)
+
+rmSync(dirAuth, { recursive: true, force: true })
+
 void (async () => {
   const docxBuf = await generaDocx(pazExport, seduteExport)
   assert.ok(docxBuf.length > 1000 && docxBuf[0] === 0x50 && docxBuf[1] === 0x4b) // magic 'PK' (zip)
-  console.log('Smoke test OK: migrazioni, vincoli e generazione export funzionano.')
+  console.log('Smoke test OK: migrazioni, vincoli, export e cifratura funzionano.')
 })().catch((e) => {
   console.error(e)
   process.exit(1)

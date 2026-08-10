@@ -1,5 +1,13 @@
-import { ipcMain } from 'electron'
-import { getDb } from './db'
+import { app, ipcMain } from 'electron'
+import { join } from 'path'
+import { getDb, initDb } from './db'
+import {
+  authExists,
+  cambiaPasswordAuth,
+  loginAuth,
+  recoverAuth,
+  setupAuth
+} from './auth'
 import { esportaSeduta, esportaStorico, type FormatoExport } from './export'
 import type {
   EsercizioInput,
@@ -19,6 +27,9 @@ function friendly(err: unknown): Error {
       'Impossibile eliminare: questo elemento è utilizzato altrove (es. da esercizi, pazienti o sedute).'
     )
   }
+  if (msg.includes('file is not a database')) {
+    return new Error('Impossibile aprire il database: chiave non valida o file danneggiato.')
+  }
   return err instanceof Error ? err : new Error(msg)
 }
 
@@ -34,6 +45,31 @@ function handle(channel: string, fn: (...args: any[]) => unknown): void {
 }
 
 export function registerIpc(): void {
+  // ---- Autenticazione ----
+  const authPath = (): string => join(app.getPath('userData'), 'auth.json')
+  const dbPath = (): string => join(app.getPath('userData'), 'riabilitazione.db')
+
+  handle('auth:status', () => (authExists(authPath()) ? 'login' : 'setup'))
+  handle('auth:setup', (password: string) => {
+    if (password.length < 8) throw new Error('La password deve avere almeno 8 caratteri.')
+    const { dekHex, recoveryKey } = setupAuth(authPath(), password)
+    initDb(dbPath(), dekHex)
+    return recoveryKey
+  })
+  handle('auth:login', (password: string) => {
+    const dekHex = loginAuth(authPath(), password)
+    initDb(dbPath(), dekHex)
+  })
+  handle('auth:recover', (recoveryKey: string, nuovaPassword: string) => {
+    if (nuovaPassword.length < 8) throw new Error('La password deve avere almeno 8 caratteri.')
+    const dekHex = recoverAuth(authPath(), recoveryKey, nuovaPassword)
+    initDb(dbPath(), dekHex)
+  })
+  handle('auth:cambiaPassword', (vecchia: string, nuova: string) => {
+    if (nuova.length < 8) throw new Error('La nuova password deve avere almeno 8 caratteri.')
+    cambiaPasswordAuth(authPath(), vecchia, nuova)
+  })
+
   // ---- Patologie ----
   handle('patologie:list', () =>
     getDb().prepare('SELECT * FROM patologie ORDER BY nome').all()

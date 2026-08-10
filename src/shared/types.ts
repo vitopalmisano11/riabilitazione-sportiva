@@ -115,6 +115,13 @@ export interface SedutaDettaglio {
 }
 
 export interface Api {
+  auth: {
+    status(): Promise<'setup' | 'login'>
+    setup(password: string): Promise<string> // ritorna la recovery key
+    login(password: string): Promise<void>
+    recover(recoveryKey: string, nuovaPassword: string): Promise<void>
+    cambiaPassword(vecchia: string, nuova: string): Promise<void>
+  }
   patologie: {
     list(): Promise<Patologia[]>
     create(nome: string): Promise<number>

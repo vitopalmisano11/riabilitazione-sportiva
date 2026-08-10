@@ -35,12 +35,20 @@ supera con *Ulteriori informazioni → Esegui comunque*.
 - [x] 4. Builder seduta (obiettivi → categorie → esercizi → parametri)
 - [x] 5. Diario + duplica seduta
 - [x] 6. Export PDF e Word (singola seduta e intervallo)
-- [ ] 7. Login + cifratura SQLCipher (chiave derivata dalla password + recovery key)
+- [x] 7. Login + cifratura SQLCipher (chiave derivata dalla password + recovery key)
 - [ ] 8. Packaging: scelta cartella dati, installer
 
-## Dove stanno i dati
+## Dove stanno i dati e come sono protetti
 
-Per ora il database è in `%APPDATA%/riabilitazione-sportiva/riabilitazione.db`. Allo step 8 la
-cartella diventa configurabile (es. `Documenti\Riabilitazione`) per rendere banale il backup
-manuale (copia di un file). La cifratura arriva allo step 7: SQLCipher permette di cifrare il
-database esistente senza perdere i dati.
+Per ora i file sono in `%APPDATA%/riabilitazione-sportiva/`: `riabilitazione.db` (database
+cifrato) e `auth.json` (chiavi avvolte). Allo step 8 la cartella diventa configurabile
+(es. `Documenti\Riabilitazione`) per rendere banale il backup manuale — vanno copiati
+**entrambi** i file.
+
+Cifratura: il database è cifrato con SQLCipher usando una chiave casuale (DEK). La DEK è
+salvata in `auth.json` avvolta con AES-256-GCM due volte: con una chiave derivata dalla
+password di login (scrypt N=32768) e con una derivata dalla **recovery key** mostrata alla
+prima configurazione. Password dimenticata → si rientra con la recovery key. Perse entrambe →
+i dati sono irrecuperabili, per design. Il cambio password ri-avvolge solo la DEK (non ricifra
+il database) e non invalida la recovery key. Un database in chiaro preesistente viene cifrato
+in place al primo setup.

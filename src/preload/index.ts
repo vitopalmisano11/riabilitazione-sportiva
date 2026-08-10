@@ -11,6 +11,15 @@ const invoke = (channel: string, ...args: unknown[]): Promise<never> =>
   ipcRenderer.invoke(channel, ...args) as Promise<never>
 
 const api: Api = {
+  auth: {
+    status: () => invoke('auth:status'),
+    setup: (password: string) => invoke('auth:setup', password),
+    login: (password: string) => invoke('auth:login', password),
+    recover: (recoveryKey: string, nuovaPassword: string) =>
+      invoke('auth:recover', recoveryKey, nuovaPassword),
+    cambiaPassword: (vecchia: string, nuova: string) =>
+      invoke('auth:cambiaPassword', vecchia, nuova)
+  },
   patologie: {
     list: () => invoke('patologie:list'),
     create: (nome: string) => invoke('patologie:create', nome),

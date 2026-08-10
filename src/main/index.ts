@@ -1,6 +1,5 @@
 import { app, BrowserWindow } from 'electron'
 import { join } from 'path'
-import { initDb } from './db'
 import { registerIpc } from './ipc'
 
 function createWindow(): void {
@@ -25,9 +24,7 @@ function createWindow(): void {
 }
 
 app.whenReady().then(() => {
-  // Per ora il db vive nel profilo utente; la scelta della cartella (es. Documenti)
-  // arriva nello step "packaging", insieme alla cifratura SQLCipher.
-  initDb(join(app.getPath('userData'), 'riabilitazione.db'))
+  // Il database viene aperto solo dopo il login (vedi handler auth:* in ipc.ts).
   registerIpc()
   createWindow()
 
