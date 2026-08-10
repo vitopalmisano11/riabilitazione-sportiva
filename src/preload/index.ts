@@ -61,6 +61,12 @@ const api: Api = {
     create: (data: SedutaInput) => invoke('sedute:create', data),
     update: (id: number, data: SedutaInput) => invoke('sedute:update', id, data),
     remove: (id: number) => invoke('sedute:delete', id)
+  },
+  esporta: {
+    seduta: (sedutaId: number, formato: 'pdf' | 'docx') =>
+      invoke('esporta:seduta', sedutaId, formato),
+    storico: (pazienteId: number, dal: string, al: string, formato: 'pdf' | 'docx') =>
+      invoke('esporta:storico', pazienteId, dal, al, formato)
   }
 }
 

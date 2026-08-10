@@ -15,7 +15,8 @@
     "postinstall": "electron-builder install-app-deps"
   },
   "dependencies": {
-    "better-sqlite3-multiple-ciphers": "^12.2.0"
+    "better-sqlite3-multiple-ciphers": "^12.2.0",
+    "docx": "^9.7.1"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.11",

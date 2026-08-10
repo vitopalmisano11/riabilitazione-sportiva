@@ -34,7 +34,7 @@ supera con *Ulteriori informazioni → Esegui comunque*.
 - [x] 3. Pazienti: anagrafica + fase corrente persistente
 - [x] 4. Builder seduta (obiettivi → categorie → esercizi → parametri)
 - [x] 5. Diario + duplica seduta
-- [ ] 6. Export PDF e Word (singola seduta e intervallo)
+- [x] 6. Export PDF e Word (singola seduta e intervallo)
 - [ ] 7. Login + cifratura SQLCipher (chiave derivata dalla password + recovery key)
 - [ ] 8. Packaging: scelta cartella dati, installer
 

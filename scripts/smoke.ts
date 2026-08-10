@@ -10,6 +10,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import Database from 'better-sqlite3-multiple-ciphers'
 import { runMigrations } from '../src/main/migrations'
+import { generaDocx, generaHtml } from '../src/main/export-doc'
 
 const dir = mkdtempSync(join(tmpdir(), 'riab-smoke-'))
 const db = new Database(join(dir, 'test.db'))
@@ -84,4 +85,42 @@ assert.equal(count('categorie'), 1)
 
 db.close()
 rmSync(dir, { recursive: true, force: true })
-console.log('Smoke test OK: migrazioni e vincoli funzionano.')
+
+// Export: generazione HTML (per il PDF) e DOCX da dati campione
+const pazExport = {
+  nome: 'Mario',
+  cognome: 'Rossi',
+  tipo_intervento: 'Ricostruzione LCA dx',
+  data_intervento: '2026-05-01',
+  patologia_nome: 'Ricostruzione LCA'
+}
+const seduteExport = [
+  {
+    data: '2026-08-10',
+    fase_nome: 'Fase iniziale',
+    note: 'Buona risposta, <attenzione> al gonfiore',
+    obiettivi: ['Controllo del dolore e gonfiore'],
+    esercizi: [
+      {
+        nome: 'Mobilizzazione & scivolamenti rotulei',
+        categoria_nome: 'Mobilizzazione',
+        serie: '3',
+        ripetizioni: '10',
+        carico: null,
+        nota: 'lento'
+      }
+    ]
+  }
+]
+const html = generaHtml(pazExport, seduteExport)
+assert.ok(html.includes('Rossi') && html.includes('Seduta del 10/08/2026'))
+assert.ok(html.includes('Mobilizzazione &amp; scivolamenti rotulei')) // escaping HTML
+
+void (async () => {
+  const docxBuf = await generaDocx(pazExport, seduteExport)
+  assert.ok(docxBuf.length > 1000 && docxBuf[0] === 0x50 && docxBuf[1] === 0x4b) // magic 'PK' (zip)
+  console.log('Smoke test OK: migrazioni, vincoli e generazione export funzionano.')
+})().catch((e) => {
+  console.error(e)
+  process.exit(1)
+})

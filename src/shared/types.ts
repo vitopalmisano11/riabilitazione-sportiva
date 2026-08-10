@@ -164,4 +164,14 @@ export interface Api {
     update(id: number, data: SedutaInput): Promise<void>
     remove(id: number): Promise<void>
   }
+  esporta: {
+    // Ritornano il percorso del file salvato, o null se l'utente annulla.
+    seduta(sedutaId: number, formato: 'pdf' | 'docx'): Promise<string | null>
+    storico(
+      pazienteId: number,
+      dal: string,
+      al: string,
+      formato: 'pdf' | 'docx'
+    ): Promise<string | null>
+  }
 }

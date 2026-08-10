@@ -1,5 +1,6 @@
 import { ipcMain } from 'electron'
 import { getDb } from './db'
+import { esportaSeduta, esportaStorico, type FormatoExport } from './export'
 import type {
   EsercizioInput,
   PazienteCreateInput,
@@ -23,9 +24,9 @@ function friendly(err: unknown): Error {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function handle(channel: string, fn: (...args: any[]) => unknown): void {
-  ipcMain.handle(channel, (_event, ...args) => {
+  ipcMain.handle(channel, async (_event, ...args) => {
     try {
-      return fn(...args)
+      return await fn(...args)
     } catch (err) {
       throw friendly(err)
     }
@@ -303,4 +304,12 @@ export function registerIpc(): void {
   handle('sedute:delete', (id: number) => {
     getDb().prepare('DELETE FROM sedute WHERE id = ?').run(id)
   })
+
+  // ---- Export ----
+  handle('esporta:seduta', (sedutaId: number, formato: FormatoExport) =>
+    esportaSeduta(sedutaId, formato)
+  )
+  handle('esporta:storico', (pazienteId: number, dal: string, al: string, formato: FormatoExport) =>
+    esportaStorico(pazienteId, dal, al, formato)
+  )
 }

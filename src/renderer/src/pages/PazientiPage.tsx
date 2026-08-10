@@ -494,6 +494,7 @@ function DiarioCard({
   onDuplica: (id: number) => void
 }): React.JSX.Element {
   const [sedute, setSedute] = useState<SedutaRiepilogo[]>([])
+  const [periodo, setPeriodo] = useState<{ dal: string; al: string } | null>(null)
 
   const load = async (): Promise<void> => setSedute(await window.api.sedute.list(paziente.id))
 
@@ -512,13 +513,50 @@ function DiarioCard({
     }
   }
 
+  const esportaSingola = async (id: number, formato: 'pdf' | 'docx'): Promise<void> => {
+    try {
+      const path = await window.api.esporta.seduta(id, formato)
+      if (path) alert(`Seduta esportata in:\n${path}`)
+    } catch (e) {
+      alert(errMsg(e))
+    }
+  }
+
+  const esportaPeriodo = async (formato: 'pdf' | 'docx'): Promise<void> => {
+    if (!periodo) return
+    if (periodo.dal > periodo.al) {
+      alert('Intervallo non valido: la data "dal" è successiva ad "al".')
+      return
+    }
+    try {
+      const path = await window.api.esporta.storico(paziente.id, periodo.dal, periodo.al, formato)
+      if (path) {
+        setPeriodo(null)
+        alert(`Storico esportato in:\n${path}`)
+      }
+    } catch (e) {
+      alert(errMsg(e))
+    }
+  }
+
   return (
     <section className="card">
       <div className="card-header-row">
         <h3>Diario sedute</h3>
-        <button className="primary" onClick={onNuova}>
-          + Nuova seduta
-        </button>
+        <span className="row-actions">
+          {sedute.length > 0 && (
+            <button
+              onClick={() =>
+                setPeriodo({ dal: sedute[sedute.length - 1].data, al: sedute[0].data })
+              }
+            >
+              Esporta periodo…
+            </button>
+          )}
+          <button className="primary" onClick={onNuova}>
+            + Nuova seduta
+          </button>
+        </span>
       </div>
       {sedute.length === 0 ? (
         <p className="hint">
@@ -541,6 +579,12 @@ function DiarioCard({
                 <button title="Nuova seduta partendo da questa" onClick={() => onDuplica(s.id)}>
                   Duplica
                 </button>
+                <button title="Esporta in PDF" onClick={() => void esportaSingola(s.id, 'pdf')}>
+                  PDF
+                </button>
+                <button title="Esporta in Word" onClick={() => void esportaSingola(s.id, 'docx')}>
+                  Word
+                </button>
                 <button className="danger" onClick={() => void elimina(s)}>
                   Elimina
                 </button>
@@ -548,6 +592,39 @@ function DiarioCard({
             </li>
           ))}
         </ul>
+      )}
+
+      {periodo && (
+        <div className="modal-overlay" onClick={() => setPeriodo(null)}>
+          <div className="modal modal-sm" onClick={(e) => e.stopPropagation()}>
+            <h3>Esporta storico sedute</h3>
+            <div className="form-row-2">
+              <label>
+                Dal
+                <input
+                  type="date"
+                  value={periodo.dal}
+                  onChange={(e) => setPeriodo({ ...periodo, dal: e.target.value })}
+                />
+              </label>
+              <label>
+                Al
+                <input
+                  type="date"
+                  value={periodo.al}
+                  onChange={(e) => setPeriodo({ ...periodo, al: e.target.value })}
+                />
+              </label>
+            </div>
+            <div className="modal-actions">
+              <button onClick={() => setPeriodo(null)}>Annulla</button>
+              <button onClick={() => void esportaPeriodo('docx')}>Esporta Word</button>
+              <button className="primary" onClick={() => void esportaPeriodo('pdf')}>
+                Esporta PDF
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </section>
   )
