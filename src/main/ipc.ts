@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron'
 import { getDb } from './db'
-import type { EsercizioInput } from '../shared/types'
+import type { EsercizioInput, PazienteCreateInput, PazienteInput } from '../shared/types'
 
 // Traduce gli errori SQLite in messaggi comprensibili per l'utente.
 function friendly(err: unknown): Error {
@@ -160,5 +160,59 @@ export function registerIpc(): void {
   })
   handle('esercizi:delete', (id: number) => {
     getDb().prepare('DELETE FROM esercizi WHERE id = ?').run(id)
+  })
+
+  // ---- Pazienti ----
+  // La fase corrente deve appartenere alla patologia assegnata al paziente.
+  function checkFaseCoerente(patologiaId: number | null, faseId: number | null): void {
+    if (faseId == null) return
+    if (patologiaId == null) throw new Error('Imposta prima la patologia del paziente.')
+    const fase = getDb().prepare('SELECT patologia_id FROM fasi WHERE id = ?').get(faseId) as
+      | { patologia_id: number }
+      | undefined
+    if (!fase || fase.patologia_id !== patologiaId) {
+      throw new Error('La fase selezionata non appartiene alla patologia del paziente.')
+    }
+  }
+
+  handle('pazienti:list', () =>
+    getDb()
+      .prepare(
+        `SELECT p.*, pat.nome AS patologia_nome, f.nome AS fase_nome
+         FROM pazienti p
+         LEFT JOIN patologie pat ON pat.id = p.patologia_id
+         LEFT JOIN fasi f ON f.id = p.fase_corrente_id
+         ORDER BY p.cognome, p.nome`
+      )
+      .all()
+  )
+  handle('pazienti:create', (data: PazienteCreateInput) => {
+    checkFaseCoerente(data.patologia_id, data.fase_corrente_id)
+    return Number(
+      getDb()
+        .prepare(
+          `INSERT INTO pazienti (nome, cognome, tipo_intervento, data_intervento, patologia_id, fase_corrente_id)
+           VALUES (@nome, @cognome, @tipo_intervento, @data_intervento, @patologia_id, @fase_corrente_id)`
+        )
+        .run({ ...data, nome: data.nome.trim(), cognome: data.cognome.trim() }).lastInsertRowid
+    )
+  })
+  handle('pazienti:update', (id: number, data: PazienteInput) => {
+    getDb()
+      .prepare(
+        `UPDATE pazienti SET nome = @nome, cognome = @cognome,
+         tipo_intervento = @tipo_intervento, data_intervento = @data_intervento
+         WHERE id = @id`
+      )
+      .run({ ...data, nome: data.nome.trim(), cognome: data.cognome.trim(), id })
+  })
+  handle('pazienti:setPatologiaFase', (id: number, patologiaId: number | null, faseId: number | null) => {
+    checkFaseCoerente(patologiaId, faseId)
+    getDb()
+      .prepare('UPDATE pazienti SET patologia_id = ?, fase_corrente_id = ? WHERE id = ?')
+      .run(patologiaId, faseId, id)
+  })
+  handle('pazienti:delete', (id: number) => {
+    getDb().prepare('DELETE FROM pazienti WHERE id = ?').run(id)
   })
 }

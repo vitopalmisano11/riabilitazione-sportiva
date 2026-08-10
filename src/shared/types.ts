@@ -44,6 +44,33 @@ export interface EsercizioInput {
   nota_tecnica: string | null
 }
 
+export interface Paziente {
+  id: number
+  nome: string
+  cognome: string
+  tipo_intervento: string | null
+  data_intervento: string | null
+  patologia_id: number | null
+  fase_corrente_id: number | null
+}
+
+export type PazienteDettaglio = Paziente & {
+  patologia_nome: string | null
+  fase_nome: string | null
+}
+
+export interface PazienteInput {
+  nome: string
+  cognome: string
+  tipo_intervento: string | null
+  data_intervento: string | null
+}
+
+export type PazienteCreateInput = PazienteInput & {
+  patologia_id: number | null
+  fase_corrente_id: number | null
+}
+
 export interface Api {
   patologie: {
     list(): Promise<Patologia[]>
@@ -78,6 +105,13 @@ export interface Api {
     create(data: EsercizioInput): Promise<number>
     update(id: number, data: EsercizioInput): Promise<void>
     setArchiviato(id: number, archiviato: boolean): Promise<void>
+    remove(id: number): Promise<void>
+  }
+  pazienti: {
+    list(): Promise<PazienteDettaglio[]>
+    create(data: PazienteCreateInput): Promise<number>
+    update(id: number, data: PazienteInput): Promise<void>
+    setPatologiaFase(id: number, patologiaId: number | null, faseId: number | null): Promise<void>
     remove(id: number): Promise<void>
   }
 }

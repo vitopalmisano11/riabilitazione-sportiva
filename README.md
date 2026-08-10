@@ -31,7 +31,7 @@ supera con *Ulteriori informazioni → Esegui comunque*.
 
 - [x] 1. Fondamenta: progetto, database, migrazioni
 - [x] 2. Area configurazione: patologie / fasi / obiettivi / categorie / esercizi
-- [ ] 3. Pazienti: anagrafica + fase corrente persistente
+- [x] 3. Pazienti: anagrafica + fase corrente persistente
 - [ ] 4. Builder seduta (obiettivi → categorie → esercizi → parametri)
 - [ ] 5. Diario + duplica seduta
 - [ ] 6. Export PDF e Word (singola seduta e intervallo)

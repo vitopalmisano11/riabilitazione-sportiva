@@ -43,6 +43,16 @@ assert.throws(() => db.prepare('INSERT INTO patologie (nome) VALUES (?)').run('R
 // FK: una categoria con esercizi non si può eliminare
 assert.throws(() => db.prepare('DELETE FROM categorie WHERE id = ?').run(catId), /FOREIGN KEY/)
 
+// Un paziente assegnato blocca l'eliminazione di patologia e fase corrente
+const pazId = db
+  .prepare(
+    "INSERT INTO pazienti (nome, cognome, patologia_id, fase_corrente_id) VALUES ('Mario', 'Rossi', ?, ?)"
+  )
+  .run(patId, faseId).lastInsertRowid
+assert.throws(() => db.prepare('DELETE FROM patologie WHERE id = ?').run(patId), /FOREIGN KEY/)
+assert.throws(() => db.prepare('DELETE FROM fasi WHERE id = ?').run(faseId), /FOREIGN KEY/)
+db.prepare('DELETE FROM pazienti WHERE id = ?').run(pazId)
+
 // CASCADE: eliminare la patologia elimina fasi, obiettivi e associazioni…
 db.prepare('DELETE FROM patologie WHERE id = ?').run(patId)
 assert.equal(count('fasi'), 0)

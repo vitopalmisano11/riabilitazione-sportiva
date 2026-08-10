@@ -427,3 +427,105 @@ button.danger:hover:not(:disabled) {
 .placeholder {
   min-height: 120px;
 }
+
+/* ---- Pazienti ---- */
+
+.pazienti-layout {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+
+.card h3 {
+  margin: 0 0 12px;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+}
+
+.card .hint {
+  color: var(--text-dim);
+  font-style: italic;
+  font-size: 13px;
+  margin: 0;
+}
+
+.scheda {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.field input,
+.field select {
+  font-size: 14px;
+  color: var(--text);
+}
+
+.form-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.form-row-2 + .form-row-2 {
+  margin-top: 10px;
+}
+
+.scheda-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.scheda-actions .spacer {
+  flex: 1;
+}
+
+.fase-riga {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.fase-riga .hint {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+.paziente-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.paziente-sub {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.list-top {
+  margin-bottom: 10px;
+}

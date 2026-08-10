@@ -2,8 +2,9 @@ import { useState } from 'react'
 import PatologiePage from './pages/PatologiePage'
 import CategoriePage from './pages/CategoriePage'
 import EserciziPage from './pages/EserciziPage'
+import PazientiPage from './pages/PazientiPage'
 
-type Sezione = 'patologie' | 'categorie' | 'esercizi'
+type Sezione = 'patologie' | 'categorie' | 'esercizi' | 'pazienti'
 
 const SEZIONI: { key: Sezione; label: string }[] = [
   { key: 'patologie', label: 'Patologie e fasi' },
@@ -12,7 +13,7 @@ const SEZIONI: { key: Sezione; label: string }[] = [
 ]
 
 export default function App(): React.JSX.Element {
-  const [sezione, setSezione] = useState<Sezione>('patologie')
+  const [sezione, setSezione] = useState<Sezione>('pazienti')
 
   return (
     <div className="app">
@@ -32,7 +33,10 @@ export default function App(): React.JSX.Element {
         </nav>
         <div className="nav-group-label">Lavoro quotidiano</div>
         <nav>
-          <button disabled title="In arrivo nel prossimo step di sviluppo">
+          <button
+            className={sezione === 'pazienti' ? 'active' : ''}
+            onClick={() => setSezione('pazienti')}
+          >
             Pazienti e sedute
           </button>
         </nav>
@@ -41,6 +45,7 @@ export default function App(): React.JSX.Element {
         {sezione === 'patologie' && <PatologiePage />}
         {sezione === 'categorie' && <CategoriePage />}
         {sezione === 'esercizi' && <EserciziPage />}
+        {sezione === 'pazienti' && <PazientiPage />}
       </main>
     </div>
   )
