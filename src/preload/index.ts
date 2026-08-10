@@ -76,6 +76,11 @@ const api: Api = {
       invoke('esporta:seduta', sedutaId, formato),
     storico: (pazienteId: number, dal: string, al: string, formato: 'pdf' | 'docx') =>
       invoke('esporta:storico', pazienteId, dal, al, formato)
+  },
+  impostazioni: {
+    info: () => invoke('impostazioni:info'),
+    apriCartella: () => invoke('impostazioni:apriCartella'),
+    cambiaCartella: () => invoke('impostazioni:cambiaCartella')
   }
 }
 

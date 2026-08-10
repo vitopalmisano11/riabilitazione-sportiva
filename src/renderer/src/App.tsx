@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import PatologiePage from './pages/PatologiePage'
 import CategoriePage from './pages/CategoriePage'
 import EserciziPage from './pages/EserciziPage'
@@ -18,6 +18,7 @@ export default function App(): React.JSX.Element {
   const [sbloccata, setSbloccata] = useState(false)
   const [sezione, setSezione] = useState<Sezione>('pazienti')
   const [cambiaPw, setCambiaPw] = useState(false)
+  const [impostazioni, setImpostazioni] = useState(false)
 
   if (!sbloccata) {
     return <AuthGate onUnlocked={() => setSbloccata(true)} />
@@ -49,6 +50,7 @@ export default function App(): React.JSX.Element {
           ))}
         </nav>
         <div className="sidebar-footer">
+          <button onClick={() => setImpostazioni(true)}>Dati e backup</button>
           <button onClick={() => setCambiaPw(true)}>Cambia password</button>
         </div>
       </aside>
@@ -59,6 +61,50 @@ export default function App(): React.JSX.Element {
         {sezione === 'pazienti' && <PazientiPage />}
       </main>
       {cambiaPw && <CambiaPasswordModal onClose={() => setCambiaPw(false)} />}
+      {impostazioni && <ImpostazioniModal onClose={() => setImpostazioni(false)} />}
+    </div>
+  )
+}
+
+function ImpostazioniModal({ onClose }: { onClose: () => void }): React.JSX.Element {
+  const [cartella, setCartella] = useState('')
+
+  useEffect(() => {
+    void window.api.impostazioni.info().then((i) => setCartella(i.cartella))
+  }, [])
+
+  const cambia = async (): Promise<void> => {
+    try {
+      const nuova = await window.api.impostazioni.cambiaCartella()
+      if (nuova) {
+        setCartella(nuova)
+        alert(`Dati spostati in:\n${nuova}`)
+      }
+    } catch (e) {
+      alert(errMsg(e))
+    }
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal modal-sm" onClick={(e) => e.stopPropagation()}>
+        <h3>Dati e backup</h3>
+        <p className="modal-testo">
+          Tutti i dati vivono in questa cartella: <code>riabilitazione.db</code> (database
+          cifrato) e <code>auth.json</code> (chiavi di accesso). Per il backup manuale copia
+          l&apos;intera cartella — senza <code>auth.json</code> il database non è apribile.
+        </p>
+        <div className="cartella-path">{cartella}</div>
+        <div className="modal-actions">
+          <button onClick={() => void window.api.impostazioni.apriCartella()}>
+            Apri cartella
+          </button>
+          <button onClick={() => void cambia()}>Cambia cartella…</button>
+          <button className="primary" onClick={onClose}>
+            Chiudi
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

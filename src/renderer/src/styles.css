@@ -811,9 +811,35 @@ button.danger:hover:not(:disabled) {
   padding: 4px;
 }
 
+.modal-testo {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+.modal-testo code {
+  background: var(--bg);
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
+.cartella-path {
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 13px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
 .sidebar-footer {
   margin-top: auto;
   padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .sidebar-footer button {

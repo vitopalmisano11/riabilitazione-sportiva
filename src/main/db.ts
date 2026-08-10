@@ -3,6 +3,7 @@ import { closeSync, existsSync, openSync, readSync } from 'fs'
 import { runMigrations } from './migrations'
 
 let db: Database.Database | null = null
+let dekCorrente: string | null = null
 
 const HEADER_PLAINTEXT = 'SQLite format 3\u0000'
 
@@ -42,6 +43,21 @@ export function initDb(path: string, dekHex: string): void {
   conn.pragma('foreign_keys = ON')
   runMigrations(conn)
   db = conn
+  dekCorrente = dekHex
+}
+
+export function closeDb(): void {
+  if (db) {
+    db.close()
+    db = null
+  }
+}
+
+// Riapre il database in un nuovo percorso con la chiave già sbloccata
+// (usato dallo spostamento della cartella dati).
+export function riapriDb(path: string): void {
+  if (!dekCorrente) throw new Error('Database non sbloccato.')
+  initDb(path, dekCorrente)
 }
 
 export function getDb(): Database.Database {

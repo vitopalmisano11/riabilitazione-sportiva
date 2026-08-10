@@ -181,4 +181,10 @@ export interface Api {
       formato: 'pdf' | 'docx'
     ): Promise<string | null>
   }
+  impostazioni: {
+    info(): Promise<{ cartella: string }>
+    apriCartella(): Promise<void>
+    // Ritorna il nuovo percorso, o null se l'utente annulla.
+    cambiaCartella(): Promise<string | null>
+  }
 }

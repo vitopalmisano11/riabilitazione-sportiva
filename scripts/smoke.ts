@@ -13,6 +13,8 @@ import { runMigrations } from '../src/main/migrations'
 import { generaDocx, generaHtml } from '../src/main/export-doc'
 import { cambiaPasswordAuth, loginAuth, recoverAuth, setupAuth } from '../src/main/auth'
 import { getDb, initDb, isPlaintextDb } from '../src/main/db'
+import { spostaFileDati } from '../src/main/file-dati'
+import { existsSync, writeFileSync } from 'node:fs'
 
 const dir = mkdtempSync(join(tmpdir(), 'riab-smoke-'))
 const db = new Database(join(dir, 'test.db'))
@@ -165,6 +167,21 @@ assert.equal(loginAuth(authPath, 'password-numero-tre'), dekHex)
 assert.equal(recoverAuth(authPath, recoveryKey, 'password-numero-tre'), dekHex)
 
 rmSync(dirAuth, { recursive: true, force: true })
+
+// --- Spostamento cartella dati ---
+const dirA = mkdtempSync(join(tmpdir(), 'riab-cartella-a-'))
+const dirB = mkdtempSync(join(tmpdir(), 'riab-cartella-b-'))
+writeFileSync(join(dirA, 'riabilitazione.db'), 'finto-db')
+writeFileSync(join(dirA, 'auth.json'), '{}')
+spostaFileDati(dirA, dirB)
+assert.ok(!existsSync(join(dirA, 'riabilitazione.db')))
+assert.ok(existsSync(join(dirB, 'riabilitazione.db')))
+assert.ok(existsSync(join(dirB, 'auth.json')))
+// non sovrascrive una destinazione che contiene già dati
+writeFileSync(join(dirA, 'riabilitazione.db'), 'altro-db')
+assert.throws(() => spostaFileDati(dirA, dirB), /contiene già/)
+rmSync(dirA, { recursive: true, force: true })
+rmSync(dirB, { recursive: true, force: true })
 
 void (async () => {
   const docxBuf = await generaDocx(pazExport, seduteExport)

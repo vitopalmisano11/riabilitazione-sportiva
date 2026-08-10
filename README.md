@@ -36,14 +36,15 @@ supera con *Ulteriori informazioni → Esegui comunque*.
 - [x] 5. Diario + duplica seduta
 - [x] 6. Export PDF e Word (singola seduta e intervallo)
 - [x] 7. Login + cifratura SQLCipher (chiave derivata dalla password + recovery key)
-- [ ] 8. Packaging: scelta cartella dati, installer
+- [x] 8. Packaging: scelta cartella dati, installer
 
 ## Dove stanno i dati e come sono protetti
 
-Per ora i file sono in `%APPDATA%/riabilitazione-sportiva/`: `riabilitazione.db` (database
-cifrato) e `auth.json` (chiavi avvolte). Allo step 8 la cartella diventa configurabile
-(es. `Documenti\Riabilitazione`) per rendere banale il backup manuale — vanno copiati
-**entrambi** i file.
+I dati vivono nella **cartella dati**, di default `Documenti\Riabilitazione`, cambiabile
+dall'app ("Dati e backup" nella sidebar): `riabilitazione.db` (database cifrato) e
+`auth.json` (chiavi avvolte). Backup manuale = copia dell'intera cartella — servono
+**entrambi** i file. Il percorso scelto è salvato in `%APPDATA%/riabilitazione-sportiva/impostazioni.json`;
+i dati delle versioni precedenti (in `%APPDATA%`) vengono spostati automaticamente al primo avvio.
 
 Cifratura: il database è cifrato con SQLCipher usando una chiave casuale (DEK). La DEK è
 salvata in `auth.json` avvolta con AES-256-GCM due volte: con una chiave derivata dalla

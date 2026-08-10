@@ -1,6 +1,8 @@
-import { app, ipcMain } from 'electron'
+import { dialog, ipcMain, shell } from 'electron'
 import { join } from 'path'
-import { getDb, initDb } from './db'
+import { closeDb, getDb, initDb, riapriDb } from './db'
+import { cartellaDati, impostaCartellaDati } from './impostazioni'
+import { spostaFileDati } from './file-dati'
 import {
   authExists,
   cambiaPasswordAuth,
@@ -46,8 +48,8 @@ function handle(channel: string, fn: (...args: any[]) => unknown): void {
 
 export function registerIpc(): void {
   // ---- Autenticazione ----
-  const authPath = (): string => join(app.getPath('userData'), 'auth.json')
-  const dbPath = (): string => join(app.getPath('userData'), 'riabilitazione.db')
+  const authPath = (): string => join(cartellaDati(), 'auth.json')
+  const dbPath = (): string => join(cartellaDati(), 'riabilitazione.db')
 
   handle('auth:status', () => (authExists(authPath()) ? 'login' : 'setup'))
   handle('auth:setup', (password: string) => {
@@ -68,6 +70,33 @@ export function registerIpc(): void {
   handle('auth:cambiaPassword', (vecchia: string, nuova: string) => {
     if (nuova.length < 8) throw new Error('La nuova password deve avere almeno 8 caratteri.')
     cambiaPasswordAuth(authPath(), vecchia, nuova)
+  })
+
+  // ---- Impostazioni / cartella dati ----
+  handle('impostazioni:info', () => ({ cartella: cartellaDati() }))
+  handle('impostazioni:apriCartella', () => {
+    void shell.openPath(cartellaDati())
+  })
+  handle('impostazioni:cambiaCartella', async () => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+      title: 'Scegli la nuova cartella dei dati',
+      defaultPath: cartellaDati(),
+      properties: ['openDirectory', 'createDirectory']
+    })
+    if (canceled || filePaths.length === 0) return null
+    const nuova = filePaths[0]
+    const vecchia = cartellaDati()
+    if (nuova === vecchia) return nuova
+    closeDb()
+    try {
+      spostaFileDati(vecchia, nuova)
+    } catch (err) {
+      riapriDb(join(vecchia, 'riabilitazione.db'))
+      throw err
+    }
+    impostaCartellaDati(nuova)
+    riapriDb(join(nuova, 'riabilitazione.db'))
+    return nuova
   })
 
   // ---- Patologie ----
