@@ -1,0 +1,31 @@
+# Compila l'installer Windows su una macchina GitHub e lo pubblica nei Releases.
+# Uso: git tag v0.1.0 && git push --tags
+# Oppure manualmente dalla tab Actions (workflow_dispatch) — in quel caso
+# l'installer si scarica dagli artifacts del run.
+name: build-windows
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run build:win
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installer-windows
+          path: dist/*.exe
+      - name: Pubblica release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.exe
