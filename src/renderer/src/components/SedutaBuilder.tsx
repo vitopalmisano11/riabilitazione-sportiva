@@ -7,7 +7,7 @@ import type {
   SedutaEsercizioDettaglio,
   SedutaInput
 } from '../../../shared/types'
-import { ArrowDown, ArrowUp, Pencil, Plus, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, Pencil, Plus, Video, X } from 'lucide-react'
 import { toastErrore } from './Toast'
 import { errMsg, oggiIso } from '../lib'
 
@@ -123,7 +123,8 @@ export default function SedutaBuilder({
                   ripetizioni: e.ripetizioni_default,
                   carico: e.carico_default,
                   recupero: e.recupero_default,
-                  nota: null
+                  nota: null,
+                  link: e.link
                 }
               ]
             }
@@ -370,7 +371,20 @@ export default function SedutaBuilder({
                 {s.righe.map((r, idxRiga) => (
                   <li key={r.esercizio_id}>
                     <div className="riga-testata">
-                      <span className="item-nome">{r.nome}</span>
+                      <span className="item-nome">
+                        {r.nome}
+                        {r.link && (
+                          <button
+                            className="link-video"
+                            title="Apri video"
+                            onClick={() =>
+                              window.api.apriLink(r.link!).catch((err) => toastErrore(errMsg(err)))
+                            }
+                          >
+                            <Video size={14} />
+                          </button>
+                        )}
+                      </span>
                       <span className="default-hint">{r.categoria_nome}</span>
                       <span className="item-actions-static">
                         <button
@@ -456,7 +470,21 @@ export default function SedutaBuilder({
                 <ul className="esercizi-proposti">
                   {daProporre.map((e) => (
                     <li key={e.id}>
-                      <span className="item-nome">{e.nome}</span>
+                      <span className="item-nome">
+                        {e.nome}
+                        {e.link && (
+                          <button
+                            className="link-video"
+                            title="Apri video"
+                            onClick={(ev) => {
+                              ev.stopPropagation()
+                              window.api.apriLink(e.link!).catch((err) => toastErrore(errMsg(err)))
+                            }}
+                          >
+                            <Video size={14} />
+                          </button>
+                        )}
+                      </span>
                       <span className="default-hint">
                         {[nomeCategoria(e.categoria_id), [e.serie_default, e.ripetizioni_default].filter(Boolean).join(' × ')]
                           .filter(Boolean)

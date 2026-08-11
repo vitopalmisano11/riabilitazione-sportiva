@@ -52,6 +52,14 @@ function handle(channel: string, fn: (...args: any[]) => unknown): void {
 }
 
 export function registerIpc(): void {
+  // ---- Sistema ----
+  handle('apriLink', (url: string) => {
+    if (!/^https?:\/\//i.test(url)) {
+      throw new Error('Link non valido: deve iniziare con http:// o https://')
+    }
+    void shell.openExternal(url)
+  })
+
   // ---- Autenticazione ----
   const authPath = (): string => join(cartellaDati(), 'auth.json')
   const dbPath = (): string => join(cartellaDati(), 'riabilitazione.db')
@@ -285,8 +293,8 @@ export function registerIpc(): void {
     Number(
       getDb()
         .prepare(
-          `INSERT INTO esercizi (nome, categoria_id, serie_default, ripetizioni_default, carico_default, recupero_default, nota_tecnica)
-           VALUES (@nome, @categoria_id, @serie_default, @ripetizioni_default, @carico_default, @recupero_default, @nota_tecnica)`
+          `INSERT INTO esercizi (nome, categoria_id, serie_default, ripetizioni_default, carico_default, recupero_default, nota_tecnica, link)
+           VALUES (@nome, @categoria_id, @serie_default, @ripetizioni_default, @carico_default, @recupero_default, @nota_tecnica, @link)`
         )
         .run({ ...data, nome: data.nome.trim() }).lastInsertRowid
     )
@@ -297,7 +305,7 @@ export function registerIpc(): void {
         `UPDATE esercizi SET nome = @nome, categoria_id = @categoria_id,
          serie_default = @serie_default, ripetizioni_default = @ripetizioni_default,
          carico_default = @carico_default, recupero_default = @recupero_default,
-         nota_tecnica = @nota_tecnica
+         nota_tecnica = @nota_tecnica, link = @link
          WHERE id = @id`
       )
       .run({ ...data, nome: data.nome.trim(), id })
@@ -462,7 +470,7 @@ export function registerIpc(): void {
       .all(id) as { id: number; sezione_id: number | null; nome: string }[]
     const esercizi = db
       .prepare(
-        `SELECT se.esercizio_id, e.nome, c.nome AS categoria_nome,
+        `SELECT se.esercizio_id, e.nome, c.nome AS categoria_nome, e.link,
                 se.serie, se.ripetizioni, se.carico, se.recupero, se.nota, se.seduta_sezione_id
          FROM seduta_esercizi se
          JOIN esercizi e ON e.id = se.esercizio_id

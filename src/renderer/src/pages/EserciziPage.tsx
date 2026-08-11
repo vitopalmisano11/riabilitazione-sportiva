@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Video } from 'lucide-react'
 import type { Categoria, EsercizioConCategoria, EsercizioInput } from '../../../shared/types'
 import { toastErrore } from '../components/Toast'
 import { errMsg } from '../lib'
@@ -12,6 +13,7 @@ interface FormState {
   carico_default: string
   recupero_default: string
   nota_tecnica: string
+  link: string
 }
 
 const FORM_VUOTO: FormState = {
@@ -22,7 +24,15 @@ const FORM_VUOTO: FormState = {
   ripetizioni_default: '',
   carico_default: '',
   recupero_default: '',
-  nota_tecnica: ''
+  nota_tecnica: '',
+  link: ''
+}
+
+// URL vuoto -> null; senza schema -> prefissa https://
+function normalizzaLink(valore: string): string | null {
+  const v = valore.trim()
+  if (!v) return null
+  return /^https?:\/\//i.test(v) ? v : `https://${v}`
 }
 
 export default function EserciziPage(): React.JSX.Element {
@@ -69,7 +79,8 @@ export default function EserciziPage(): React.JSX.Element {
       ripetizioni_default: form.ripetizioni_default.trim() || null,
       carico_default: form.carico_default.trim() || null,
       recupero_default: form.recupero_default.trim() || null,
-      nota_tecnica: form.nota_tecnica.trim() || null
+      nota_tecnica: form.nota_tecnica.trim() || null,
+      link: normalizzaLink(form.link)
     }
     try {
       if (form.id == null) await window.api.esercizi.create(data)
@@ -174,6 +185,15 @@ export default function EserciziPage(): React.JSX.Element {
             <tr key={e.id} className={e.archiviato ? 'archiviato' : ''}>
               <td>
                 {e.nome}
+                {e.link && (
+                  <button
+                    className="link-video"
+                    title="Apri video"
+                    onClick={() => window.api.apriLink(e.link!).catch((err) => toastErrore(errMsg(err)))}
+                  >
+                    <Video size={14} />
+                  </button>
+                )}
                 {e.archiviato ? <span className="badge">archiviato</span> : null}
               </td>
               <td>{e.categoria_nome}</td>
@@ -193,7 +213,8 @@ export default function EserciziPage(): React.JSX.Element {
                       ripetizioni_default: e.ripetizioni_default ?? '',
                       carico_default: e.carico_default ?? '',
                       recupero_default: e.recupero_default ?? '',
-                      nota_tecnica: e.nota_tecnica ?? ''
+                      nota_tecnica: e.nota_tecnica ?? '',
+                      link: e.link ?? ''
                     })
                   }
                 >
@@ -283,6 +304,14 @@ export default function EserciziPage(): React.JSX.Element {
                 />
               </label>
             </div>
+            <label>
+              Link video (opzionale)
+              <input
+                value={form.link}
+                placeholder="es. https://youtube.com/watch?v=…"
+                onChange={(e) => setForm({ ...form, link: e.target.value })}
+              />
+            </label>
             <label>
               Nota tecnica
               <textarea

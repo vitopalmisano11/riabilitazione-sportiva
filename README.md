@@ -41,6 +41,15 @@ supera con *Ulteriori informazioni → Esegui comunque*.
 - Menu: "Diario pazienti" in alto; "Configurazione" in fondo, pannello unico a tab
 - Fix layout: campi che uscivano dal riquadro dello schema seduta, testo spezzato male
 
+## v1.2 (secondo giro di feedback)
+
+- Link video opzionale per esercizio: icona ▶ accanto al nome (libreria e builder),
+  apre il browser predefinito; nessun testo sottolineato
+- Configurazione ridisegnata a flusso progressivo: scegli patologia (con ricerca) →
+  fasi come riquadri affiancati → editor della fase a schede (struttura/obiettivi/test),
+  con breadcrumb per tornare indietro
+- Fix: nomi delle sezioni non si spezzano più a metà parola (colonne con larghezza minima)
+
 ## Stato di avanzamento (piano a step)
 
 - [x] 1. Fondamenta: progetto, database, migrazioni

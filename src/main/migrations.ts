@@ -144,6 +144,11 @@ const MIGRATIONS: string[] = [
   CREATE INDEX idx_sezioni_fase ON sezioni(fase_id);
   CREATE INDEX idx_test_avanzamento_fase ON test_avanzamento(fase_id);
   CREATE INDEX idx_seduta_sezioni_seduta ON seduta_sezioni(seduta_id);
+  `,
+
+  // 3 — v1.2: link video opzionale sugli esercizi
+  `
+  ALTER TABLE esercizi ADD COLUMN link TEXT;
   `
 ]
 

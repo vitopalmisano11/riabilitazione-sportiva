@@ -31,6 +31,7 @@ export interface Esercizio {
   carico_default: string | null
   recupero_default: string | null
   nota_tecnica: string | null
+  link: string | null
   archiviato: 0 | 1
 }
 
@@ -44,6 +45,7 @@ export interface EsercizioInput {
   carico_default: string | null
   recupero_default: string | null
   nota_tecnica: string | null
+  link: string | null
 }
 
 export interface Sezione {
@@ -135,6 +137,7 @@ export interface SedutaRiepilogo {
 export type SedutaEsercizioDettaglio = Omit<SedutaEsercizioInput, 'sezioneIndex'> & {
   nome: string
   categoria_nome: string
+  link: string | null
 }
 
 export interface SedutaSezioneDettaglio {
@@ -154,6 +157,8 @@ export interface SedutaDettaglio {
 }
 
 export interface Api {
+  // apre un URL http/https nel browser predefinito
+  apriLink(url: string): Promise<void>
   auth: {
     status(): Promise<'setup' | 'login'>
     setup(password: string): Promise<string> // ritorna la recovery key

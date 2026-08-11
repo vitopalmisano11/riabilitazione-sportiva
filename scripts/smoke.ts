@@ -23,7 +23,7 @@ db.pragma('foreign_keys = ON')
 
 runMigrations(db)
 runMigrations(db) // idempotente
-assert.equal(db.pragma('user_version', { simple: true }), 2)
+assert.equal(db.pragma('user_version', { simple: true }), 3)
 
 const count = (table: string): number =>
   (db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n
@@ -40,9 +40,13 @@ const catId = db.prepare('INSERT INTO categorie (nome) VALUES (?)').run('Mobiliz
 db.prepare('INSERT INTO obiettivo_categorie (obiettivo_id, categoria_id) VALUES (?, ?)').run(obId, catId)
 const esId = db
   .prepare(
-    "INSERT INTO esercizi (nome, categoria_id, serie_default, ripetizioni_default) VALUES ('Mobilizzazione rotulea', ?, '3', '10')"
+    "INSERT INTO esercizi (nome, categoria_id, serie_default, ripetizioni_default, link) VALUES ('Mobilizzazione rotulea', ?, '3', '10', 'https://esempio.it/video')"
   )
   .run(catId).lastInsertRowid
+assert.equal(
+  (db.prepare('SELECT link FROM esercizi WHERE id = ?').get(esId) as { link: string }).link,
+  'https://esempio.it/video'
+)
 
 // UNIQUE: patologia duplicata rifiutata
 assert.throws(() => db.prepare('INSERT INTO patologie (nome) VALUES (?)').run('Ricostruzione LCA'))

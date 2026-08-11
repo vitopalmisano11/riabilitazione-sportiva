@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ChevronRight, Pencil, Plus, X } from 'lucide-react'
 import type {
   Categoria,
   Fase,
@@ -14,16 +15,17 @@ import { errMsg } from '../lib'
 type Tab = 'struttura' | 'obiettivi' | 'test'
 
 const TABS: { key: Tab; label: string }[] = [
-  { key: 'struttura', label: 'Struttura seduta' },
+  { key: 'struttura', label: 'Struttura della seduta' },
   { key: 'obiettivi', label: 'Obiettivi' },
   { key: 'test', label: 'Test di avanzamento' }
 ]
 
+// Flusso progressivo: 1) scegli patologia -> 2) scegli fase -> 3) editor della fase
 export default function PatologiePage(): React.JSX.Element {
   const [patologie, setPatologie] = useState<Patologia[]>([])
-  const [selPat, setSelPat] = useState<number | null>(null)
+  const [selPatId, setSelPatId] = useState<number | null>(null)
   const [fasi, setFasi] = useState<Fase[]>([])
-  const [selFase, setSelFase] = useState<number | null>(null)
+  const [selFaseId, setSelFaseId] = useState<number | null>(null)
   const [tab, setTab] = useState<Tab>('struttura')
 
   const loadPatologie = useCallback(
@@ -31,112 +33,346 @@ export default function PatologiePage(): React.JSX.Element {
     []
   )
   const loadFasi = useCallback((): Promise<void> => {
-    if (selPat == null) {
+    if (selPatId == null) {
       setFasi([])
       return Promise.resolve()
     }
-    return window.api.fasi.list(selPat).then(setFasi)
-  }, [selPat])
+    return window.api.fasi.list(selPatId).then(setFasi)
+  }, [selPatId])
 
   useEffect(() => {
     void loadPatologie()
   }, [loadPatologie])
 
   useEffect(() => {
-    setSelFase(null)
+    setSelFaseId(null)
+    setTab('struttura')
     void loadFasi()
-  }, [selPat, loadFasi])
+  }, [selPatId, loadFasi])
+
+  const patSel = patologie.find((p) => p.id === selPatId) ?? null
+  const faseSel = fasi.find((f) => f.id === selFaseId) ?? null
 
   return (
-    <div className="page">
+    <div className="page step-flow">
       <header className="page-header">
         <h2>Patologie e fasi</h2>
         <p>
-          Per ogni fase definisci la <strong>struttura della seduta</strong> (sezioni ordinate con
-          le loro categorie di esercizi), gli <strong>obiettivi</strong> e gli eventuali{' '}
-          <strong>test di avanzamento</strong> verso la fase successiva.
+          Scegli la patologia, poi la fase: per ogni fase definisci la struttura della seduta
+          (sezioni con categorie ordinate), gli obiettivi e gli eventuali test di avanzamento.
         </p>
       </header>
-      <div className="config-patologie">
-        <CrudList
-          title="Patologie"
-          items={patologie}
-          selectedId={selPat}
-          onSelect={setSelPat}
-          onAdd={async (n) => {
-            await window.api.patologie.create(n)
-            await loadPatologie()
-          }}
-          onRename={async (id, n) => {
-            await window.api.patologie.update(id, n)
-            await loadPatologie()
-          }}
-          onDelete={async (id) => {
-            await window.api.patologie.remove(id)
-            if (selPat === id) setSelPat(null)
-            await loadPatologie()
-          }}
-          addPlaceholder="Nuova patologia…"
-          emptyHint="Es. Ricostruzione LCA"
-        />
 
-        {selPat != null ? (
-          <CrudList
-            title="Fasi"
-            items={fasi}
-            selectedId={selFase}
-            onSelect={setSelFase}
-            onAdd={async (n) => {
-              await window.api.fasi.create(selPat, n)
-              await loadFasi()
-            }}
-            onRename={async (id, n) => {
-              await window.api.fasi.update(id, n)
-              await loadFasi()
-            }}
-            onDelete={async (id) => {
-              await window.api.fasi.remove(id)
-              if (selFase === id) setSelFase(null)
-              await loadFasi()
-            }}
-            onReorder={async (ids) => {
-              await window.api.fasi.reorder(ids)
-              await loadFasi()
-            }}
-            addPlaceholder="Nuova fase…"
-            emptyHint="Es. Fase iniziale"
-          />
-        ) : (
-          <section className="crud-list placeholder">
-            <h3>Fasi</h3>
-            <p className="hint">Seleziona una patologia</p>
-          </section>
+      <div className="briciole">
+        <button
+          className="briciola"
+          disabled={patSel == null}
+          onClick={() => setSelPatId(null)}
+        >
+          Patologie
+        </button>
+        {patSel && (
+          <>
+            <ChevronRight size={14} />
+            <button
+              className="briciola"
+              disabled={faseSel == null}
+              onClick={() => setSelFaseId(null)}
+            >
+              {patSel.nome}
+            </button>
+          </>
         )}
-
-        {selFase != null ? (
-          <section className="card fase-dettaglio">
-            <div className="config-tabs">
-              {TABS.map((t) => (
-                <button
-                  key={t.key}
-                  className={tab === t.key ? 'active' : ''}
-                  onClick={() => setTab(t.key)}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
-            {tab === 'struttura' && <StrutturaTab key={selFase} faseId={selFase} />}
-            {tab === 'obiettivi' && <ObiettiviTab key={selFase} faseId={selFase} />}
-            {tab === 'test' && <TestTab key={selFase} faseId={selFase} />}
-          </section>
-        ) : (
-          <section className="card fase-dettaglio">
-            <p className="hint">Seleziona una fase per configurarla.</p>
-          </section>
+        {faseSel && (
+          <>
+            <ChevronRight size={14} />
+            <span className="briciola corrente">{faseSel.nome}</span>
+          </>
         )}
       </div>
+
+      {patSel == null ? (
+        <Step1Patologie patologie={patologie} onSelect={setSelPatId} onChanged={loadPatologie} />
+      ) : faseSel == null ? (
+        <Step2Fasi patologia={patSel} fasi={fasi} onSelect={setSelFaseId} onChanged={loadFasi} />
+      ) : (
+        <section className="card">
+          <div className="config-tabs">
+            {TABS.map((t) => (
+              <button
+                key={t.key}
+                className={tab === t.key ? 'active' : ''}
+                onClick={() => setTab(t.key)}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+          {tab === 'struttura' && <StrutturaTab key={faseSel.id} faseId={faseSel.id} />}
+          {tab === 'obiettivi' && <ObiettiviTab key={faseSel.id} faseId={faseSel.id} />}
+          {tab === 'test' && <TestTab key={faseSel.id} faseId={faseSel.id} />}
+        </section>
+      )}
     </div>
+  )
+}
+
+function Step1Patologie({
+  patologie,
+  onSelect,
+  onChanged
+}: {
+  patologie: Patologia[]
+  onSelect: (id: number) => void
+  onChanged: () => Promise<void>
+}): React.JSX.Element {
+  const [ricerca, setRicerca] = useState('')
+  const [nuova, setNuova] = useState('')
+  const [edit, setEdit] = useState<{ id: number; nome: string } | null>(null)
+
+  const q = ricerca.trim().toLowerCase()
+  const filtrate = patologie.filter((p) => q === '' || p.nome.toLowerCase().includes(q))
+
+  const run = async (fn: () => Promise<unknown>): Promise<void> => {
+    try {
+      await fn()
+    } catch (e) {
+      toastErrore(errMsg(e))
+    }
+  }
+
+  const aggiungi = (): void => {
+    const n = nuova.trim()
+    if (!n) return
+    void run(async () => {
+      await window.api.patologie.create(n)
+      setNuova('')
+      await onChanged()
+    })
+  }
+
+  const salvaRename = (): void => {
+    if (!edit || !edit.nome.trim()) return
+    void run(async () => {
+      await window.api.patologie.update(edit.id, edit.nome.trim())
+      setEdit(null)
+      await onChanged()
+    })
+  }
+
+  return (
+    <section className="card step-card">
+      <div className="step-title">
+        <span className="step-num">1</span>
+        <h3>Scegli la patologia</h3>
+      </div>
+      <input
+        type="search"
+        className="filtro-esercizi"
+        placeholder="Cerca patologia…"
+        value={ricerca}
+        onChange={(e) => setRicerca(e.target.value)}
+      />
+      <ul className="scelte-list">
+        {filtrate.map((p) => (
+          <li key={p.id} onClick={() => onSelect(p.id)}>
+            {edit?.id === p.id ? (
+              <span className="edit-row" onClick={(e) => e.stopPropagation()}>
+                <input
+                  autoFocus
+                  value={edit.nome}
+                  onChange={(e) => setEdit({ id: p.id, nome: e.target.value })}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') salvaRename()
+                    if (e.key === 'Escape') setEdit(null)
+                  }}
+                />
+                <button onClick={salvaRename}>OK</button>
+              </span>
+            ) : (
+              <>
+                <span className="item-nome">{p.nome}</span>
+                <span className="item-actions" onClick={(e) => e.stopPropagation()}>
+                  <button title="Rinomina" onClick={() => setEdit({ id: p.id, nome: p.nome })}>
+                    <Pencil size={14} />
+                  </button>
+                  <button
+                    title="Elimina"
+                    className="danger"
+                    onClick={() => {
+                      if (confirm(`Eliminare "${p.nome}" con tutte le sue fasi?`)) {
+                        void run(async () => {
+                          await window.api.patologie.remove(p.id)
+                          await onChanged()
+                        })
+                      }
+                    }}
+                  >
+                    <X size={14} />
+                  </button>
+                </span>
+                <ChevronRight size={16} className="chevron" />
+              </>
+            )}
+          </li>
+        ))}
+        {filtrate.length === 0 && (
+          <li className="empty">
+            {patologie.length === 0
+              ? 'Nessuna patologia: creane una qui sotto (es. Ricostruzione LCA).'
+              : 'Nessun risultato per la ricerca.'}
+          </li>
+        )}
+      </ul>
+      <div className="add-row">
+        <input
+          placeholder="Nuova patologia…"
+          value={nuova}
+          onChange={(e) => setNuova(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') aggiungi()
+          }}
+        />
+        <button onClick={aggiungi}>
+          <Plus size={14} /> Aggiungi
+        </button>
+      </div>
+    </section>
+  )
+}
+
+function Step2Fasi({
+  patologia,
+  fasi,
+  onSelect,
+  onChanged
+}: {
+  patologia: Patologia
+  fasi: Fase[]
+  onSelect: (id: number) => void
+  onChanged: () => Promise<void>
+}): React.JSX.Element {
+  const [nuova, setNuova] = useState('')
+  const [edit, setEdit] = useState<{ id: number; nome: string } | null>(null)
+
+  const run = async (fn: () => Promise<unknown>): Promise<void> => {
+    try {
+      await fn()
+    } catch (e) {
+      toastErrore(errMsg(e))
+    }
+  }
+
+  const aggiungi = (): void => {
+    const n = nuova.trim()
+    if (!n) return
+    void run(async () => {
+      await window.api.fasi.create(patologia.id, n)
+      setNuova('')
+      await onChanged()
+    })
+  }
+
+  const salvaRename = (): void => {
+    if (!edit || !edit.nome.trim()) return
+    void run(async () => {
+      await window.api.fasi.update(edit.id, edit.nome.trim())
+      setEdit(null)
+      await onChanged()
+    })
+  }
+
+  const muovi = (idx: number, dir: -1 | 1): void => {
+    const ids = fasi.map((f) => f.id)
+    const j = idx + dir
+    if (j < 0 || j >= ids.length) return
+    ;[ids[idx], ids[j]] = [ids[j], ids[idx]]
+    void run(async () => {
+      await window.api.fasi.reorder(ids)
+      await onChanged()
+    })
+  }
+
+  return (
+    <section className="card step-card">
+      <div className="step-title">
+        <span className="step-num">2</span>
+        <h3>Scegli la fase di &ldquo;{patologia.nome}&rdquo;</h3>
+      </div>
+      <div className="fasi-tiles">
+        {fasi.map((f, idx) => (
+          <div key={f.id} className="fase-tile" onClick={() => onSelect(f.id)}>
+            {edit?.id === f.id ? (
+              <span className="edit-row" onClick={(e) => e.stopPropagation()}>
+                <input
+                  autoFocus
+                  value={edit.nome}
+                  onChange={(e) => setEdit({ id: f.id, nome: e.target.value })}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') salvaRename()
+                    if (e.key === 'Escape') setEdit(null)
+                  }}
+                />
+                <button onClick={salvaRename}>OK</button>
+              </span>
+            ) : (
+              <>
+                <span className="fase-tile-nome">{f.nome}</span>
+                <span className="item-actions" onClick={(e) => e.stopPropagation()}>
+                  <button title="Sposta a sinistra" disabled={idx === 0} onClick={() => muovi(idx, -1)}>
+                    <ArrowLeft size={14} />
+                  </button>
+                  <button
+                    title="Sposta a destra"
+                    disabled={idx === fasi.length - 1}
+                    onClick={() => muovi(idx, 1)}
+                  >
+                    <ArrowRight size={14} />
+                  </button>
+                  <button title="Rinomina" onClick={() => setEdit({ id: f.id, nome: f.nome })}>
+                    <Pencil size={14} />
+                  </button>
+                  <button
+                    title="Elimina"
+                    className="danger"
+                    onClick={() => {
+                      if (
+                        confirm(
+                          `Eliminare la fase "${f.nome}"?\nVerranno eliminati i suoi obiettivi, sezioni e test.`
+                        )
+                      ) {
+                        void run(async () => {
+                          await window.api.fasi.remove(f.id)
+                          await onChanged()
+                        })
+                      }
+                    }}
+                  >
+                    <X size={14} />
+                  </button>
+                </span>
+              </>
+            )}
+          </div>
+        ))}
+        <div className="fase-tile fase-tile-add" onClick={(e) => e.stopPropagation()}>
+          <input
+            placeholder="Nuova fase…"
+            value={nuova}
+            onChange={(e) => setNuova(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') aggiungi()
+            }}
+          />
+          <button onClick={aggiungi}>
+            <Plus size={14} /> Aggiungi
+          </button>
+        </div>
+      </div>
+      {fasi.length === 0 && (
+        <p className="hint">Nessuna fase ancora: creala qui sopra (es. Fase iniziale).</p>
+      )}
+    </section>
   )
 }
 
@@ -230,22 +466,18 @@ function StrutturaTab({ faseId }: { faseId: number }): React.JSX.Element {
                       disabled={idx === 0}
                       onClick={() => muoviCategoria(idx, -1)}
                     >
-                      ↑
+                      <ArrowUp size={14} />
                     </button>
                     <button
                       title="Sposta giù"
                       disabled={idx === sez.categoria_ids.length - 1}
                       onClick={() => muoviCategoria(idx, 1)}
                     >
-                      ↓
+                      <ArrowDown size={14} />
                     </button>
                   </span>
                   <label>
-                    <input
-                      type="checkbox"
-                      checked
-                      onChange={() => toggleCategoria(cid, false)}
-                    />
+                    <input type="checkbox" checked onChange={() => toggleCategoria(cid, false)} />
                     {nomeCategoria(cid)}
                   </label>
                 </li>

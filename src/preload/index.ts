@@ -11,6 +11,7 @@ const invoke = (channel: string, ...args: unknown[]): Promise<never> =>
   ipcRenderer.invoke(channel, ...args) as Promise<never>
 
 const api: Api = {
+  apriLink: (url: string) => invoke('apriLink', url),
   auth: {
     status: () => invoke('auth:status'),
     setup: (password: string) => invoke('auth:setup', password),
