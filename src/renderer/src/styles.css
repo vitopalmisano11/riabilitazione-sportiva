@@ -223,6 +223,12 @@ button.danger:hover:not(:disabled) {
   padding: 24px 28px;
 }
 
+/* Contenuto centrato nella finestra massimizzata, con larghezza di lettura sensata */
+.page {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
 .page-header h2 {
   margin: 0 0 6px;
   font-size: 23px;
@@ -283,6 +289,11 @@ button.danger:hover:not(:disabled) {
 
 .config-tabs-top {
   margin-bottom: 18px;
+}
+
+.config-wrapper {
+  max-width: 1280px;
+  margin: 0 auto;
 }
 
 /* min 300px per colonna: i nomi delle sezioni non si spezzano più a metà parola */
@@ -358,7 +369,8 @@ button.danger:hover:not(:disabled) {
 /* ---- Configurazione a step (patologia -> fase -> editor) ---- */
 
 .step-flow {
-  max-width: 880px;
+  max-width: 920px;
+  margin: 0 auto;
 }
 
 .briciole {
@@ -867,8 +879,8 @@ button.danger:hover:not(:disabled) {
 
 .pazienti-layout {
   display: grid;
-  grid-template-columns: 300px 1fr;
-  gap: 16px;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 18px;
   align-items: start;
 }
 
@@ -992,7 +1004,8 @@ button.danger:hover:not(:disabled) {
 }
 
 .builder-col {
-  max-width: 980px;
+  max-width: 1020px;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: 16px;
