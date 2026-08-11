@@ -63,33 +63,27 @@ export default function PatologiePage(): React.JSX.Element {
         </p>
       </header>
 
-      <div className="briciole">
-        <button
-          className="briciola"
-          disabled={patSel == null}
-          onClick={() => setSelPatId(null)}
-        >
-          Patologie
-        </button>
-        {patSel && (
-          <>
-            <ChevronRight size={14} />
-            <button
-              className="briciola"
-              disabled={faseSel == null}
-              onClick={() => setSelFaseId(null)}
-            >
-              {patSel.nome}
-            </button>
-          </>
-        )}
-        {faseSel && (
-          <>
-            <ChevronRight size={14} />
-            <span className="briciola corrente">{faseSel.nome}</span>
-          </>
-        )}
-      </div>
+      {patSel && (
+        <div className="briciole">
+          <button className="briciola" onClick={() => setSelPatId(null)}>
+            Patologie
+          </button>
+          <ChevronRight size={16} />
+          <button
+            className="briciola"
+            disabled={faseSel == null}
+            onClick={() => setSelFaseId(null)}
+          >
+            {patSel.nome}
+          </button>
+          {faseSel && (
+            <>
+              <ChevronRight size={16} />
+              <span className="briciola corrente">{faseSel.nome}</span>
+            </>
+          )}
+        </div>
+      )}
 
       {patSel == null ? (
         <Step1Patologie patologie={patologie} onSelect={setSelPatId} onChanged={loadPatologie} />
@@ -194,7 +188,7 @@ function Step1Patologie({
                 <span className="item-nome">{p.nome}</span>
                 <span className="item-actions" onClick={(e) => e.stopPropagation()}>
                   <button title="Rinomina" onClick={() => setEdit({ id: p.id, nome: p.nome })}>
-                    <Pencil size={14} />
+                    <Pencil size={16} />
                   </button>
                   <button
                     title="Elimina"
@@ -208,10 +202,10 @@ function Step1Patologie({
                       }
                     }}
                   >
-                    <X size={14} />
+                    <X size={16} />
                   </button>
                 </span>
-                <ChevronRight size={16} className="chevron" />
+                <ChevronRight size={18} className="chevron" />
               </>
             )}
           </li>
@@ -234,7 +228,7 @@ function Step1Patologie({
           }}
         />
         <button onClick={aggiungi}>
-          <Plus size={14} /> Aggiungi
+          <Plus size={16} /> Aggiungi
         </button>
       </div>
     </section>
@@ -320,17 +314,17 @@ function Step2Fasi({
                 <span className="fase-tile-nome">{f.nome}</span>
                 <span className="item-actions" onClick={(e) => e.stopPropagation()}>
                   <button title="Sposta a sinistra" disabled={idx === 0} onClick={() => muovi(idx, -1)}>
-                    <ArrowLeft size={14} />
+                    <ArrowLeft size={16} />
                   </button>
                   <button
                     title="Sposta a destra"
                     disabled={idx === fasi.length - 1}
                     onClick={() => muovi(idx, 1)}
                   >
-                    <ArrowRight size={14} />
+                    <ArrowRight size={16} />
                   </button>
                   <button title="Rinomina" onClick={() => setEdit({ id: f.id, nome: f.nome })}>
-                    <Pencil size={14} />
+                    <Pencil size={16} />
                   </button>
                   <button
                     title="Elimina"
@@ -348,7 +342,7 @@ function Step2Fasi({
                       }
                     }}
                   >
-                    <X size={14} />
+                    <X size={16} />
                   </button>
                 </span>
               </>
@@ -365,7 +359,7 @@ function Step2Fasi({
             }}
           />
           <button onClick={aggiungi}>
-            <Plus size={14} /> Aggiungi
+            <Plus size={16} /> Aggiungi
           </button>
         </div>
       </div>
@@ -466,14 +460,14 @@ function StrutturaTab({ faseId }: { faseId: number }): React.JSX.Element {
                       disabled={idx === 0}
                       onClick={() => muoviCategoria(idx, -1)}
                     >
-                      <ArrowUp size={14} />
+                      <ArrowUp size={16} />
                     </button>
                     <button
                       title="Sposta giù"
                       disabled={idx === sez.categoria_ids.length - 1}
                       onClick={() => muoviCategoria(idx, 1)}
                     >
-                      <ArrowDown size={14} />
+                      <ArrowDown size={16} />
                     </button>
                   </span>
                   <label>

@@ -34,7 +34,7 @@ export default function App(): React.JSX.Element {
       <aside className="sidebar">
         <h1>
           <span className="logo-badge">
-            <HeartPulse size={18} />
+            <HeartPulse size={20} />
           </span>
           Riabilitazione
         </h1>
@@ -44,7 +44,7 @@ export default function App(): React.JSX.Element {
             className={sezione === 'pazienti' ? 'active' : ''}
             onClick={() => setSezione('pazienti')}
           >
-            <Users size={16} />
+            <Users size={18} />
             Pazienti e sedute
           </button>
         </nav>
@@ -53,15 +53,15 @@ export default function App(): React.JSX.Element {
             className={sezione === 'configurazione' ? 'active' : ''}
             onClick={() => setSezione('configurazione')}
           >
-            <Settings size={15} />
+            <Settings size={17} />
             Configurazione
           </button>
           <button onClick={() => setImpostazioni(true)}>
-            <FolderCog size={15} />
+            <FolderCog size={17} />
             Dati e backup
           </button>
           <button onClick={() => setCambiaPw(true)}>
-            <KeyRound size={15} />
+            <KeyRound size={17} />
             Cambia password
           </button>
         </div>

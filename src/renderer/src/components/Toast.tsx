@@ -41,7 +41,7 @@ export default function ToastHost(): React.JSX.Element {
     <div className="toast-host">
       {toasts.map((t) => (
         <div key={t.id} className={`toast ${t.tipo}`}>
-          {t.tipo === 'ok' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+          {t.tipo === 'ok' ? <CheckCircle2 size={20} /> : <AlertCircle size={20} />}
           <span>{t.testo}</span>
         </div>
       ))}

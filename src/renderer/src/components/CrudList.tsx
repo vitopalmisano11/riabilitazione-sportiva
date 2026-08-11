@@ -105,14 +105,14 @@ export default function CrudList({
                   {onReorder && (
                     <>
                       <button title="Sposta su" disabled={idx === 0} onClick={() => move(idx, -1)}>
-                        <ArrowUp size={14} />
+                        <ArrowUp size={16} />
                       </button>
                       <button
                         title="Sposta giù"
                         disabled={idx === items.length - 1}
                         onClick={() => move(idx, 1)}
                       >
-                        <ArrowDown size={14} />
+                        <ArrowDown size={16} />
                       </button>
                     </>
                   )}
@@ -123,7 +123,7 @@ export default function CrudList({
                       setEditNome(item.nome)
                     }}
                   >
-                    <Pencil size={14} />
+                    <Pencil size={16} />
                   </button>
                   <button
                     title="Elimina"
@@ -132,7 +132,7 @@ export default function CrudList({
                       if (confirm(`Eliminare "${item.nome}"?`)) void run(() => onDelete(item.id))
                     }}
                   >
-                    <X size={14} />
+                    <X size={16} />
                   </button>
                 </span>
               </>

@@ -27,8 +27,8 @@ body {
   margin: 0;
   background: var(--bg);
   user-select: none;
-  font-size: 15px;
-  line-height: 1.45;
+  font-size: 16px;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -60,7 +60,7 @@ select {
   user-select: text;
   font: inherit;
   color: inherit;
-  padding: 9px 12px;
+  padding: 10px 14px;
   border: 1px solid var(--border-forte);
   border-radius: var(--radius-sm);
   background: var(--surface);
@@ -82,9 +82,18 @@ textarea::placeholder {
   color: #9aa6b5;
 }
 
+input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  accent-color: var(--accent);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
 button {
   font: inherit;
-  padding: 8px 14px;
+  padding: 9px 16px;
   border: 1px solid var(--border-forte);
   border-radius: var(--radius-sm);
   background: var(--surface);
@@ -148,7 +157,7 @@ button.danger:hover:not(:disabled) {
 }
 
 .sidebar {
-  width: 230px;
+  width: 252px;
   flex-shrink: 0;
   background: linear-gradient(180deg, #18202b 0%, #1c2634 100%);
   color: #e6eaf0;
@@ -159,7 +168,7 @@ button.danger:hover:not(:disabled) {
 }
 
 .sidebar h1 {
-  font-size: 18px;
+  font-size: 19px;
   margin: 0 8px 20px;
   font-weight: 600;
   display: flex;
@@ -169,9 +178,9 @@ button.danger:hover:not(:disabled) {
 }
 
 .logo-badge {
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
   background: linear-gradient(135deg, #3b82f6, #1e40af);
   display: inline-flex;
   align-items: center;
@@ -182,7 +191,7 @@ button.danger:hover:not(:disabled) {
 }
 
 .nav-group-label {
-  font-size: 12px;
+  font-size: 13px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: #8d99a8;
@@ -198,11 +207,11 @@ button.danger:hover:not(:disabled) {
 .sidebar nav button {
   text-align: left;
   justify-content: flex-start;
-  gap: 9px;
+  gap: 10px;
   background: none;
   border: none;
   color: #cbd4de;
-  padding: 9px 10px;
+  padding: 11px 12px;
   border-radius: var(--radius-sm);
 }
 
@@ -220,7 +229,7 @@ button.danger:hover:not(:disabled) {
 .content {
   flex: 1;
   overflow: auto;
-  padding: 24px 28px;
+  padding: 30px 36px;
 }
 
 /* Contenuto centrato nella finestra massimizzata, con larghezza di lettura sensata */
@@ -231,7 +240,7 @@ button.danger:hover:not(:disabled) {
 
 .page-header h2 {
   margin: 0 0 6px;
-  font-size: 23px;
+  font-size: 26px;
   font-weight: 650;
   letter-spacing: -0.01em;
 }
@@ -321,7 +330,7 @@ button.danger:hover:not(:disabled) {
 }
 
 .sotto-titolo {
-  font-size: 12px;
+  font-size: 13px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-dim);
@@ -362,7 +371,7 @@ button.danger:hover:not(:disabled) {
 }
 
 .test-valore {
-  width: 140px;
+  width: 160px;
   flex-shrink: 0;
 }
 
@@ -387,7 +396,7 @@ button.danger:hover:not(:disabled) {
   padding: 4px 9px;
   border-radius: 6px;
   color: var(--accent);
-  font-size: 15px;
+  font-size: 16px;
 }
 
 .briciola:hover:not(:disabled) {
@@ -410,22 +419,22 @@ button.danger:hover:not(:disabled) {
 }
 
 .step-num {
-  width: 26px;
-  height: 26px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   background: var(--accent);
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   flex-shrink: 0;
 }
 
 .step-title h3 {
   margin: 0;
-  font-size: 16px;
+  font-size: 17px;
 }
 
 .scelte-list {
@@ -519,7 +528,7 @@ button.danger:hover:not(:disabled) {
 
 .fase-tile-nome {
   font-weight: 600;
-  font-size: 16px;
+  font-size: 17px;
   overflow-wrap: break-word;
   min-width: 0;
 }
@@ -566,13 +575,13 @@ button.danger:hover:not(:disabled) {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 14px;
+  padding: 16px;
   box-shadow: var(--shadow-sm);
 }
 
 .crud-list h3 {
   margin: 0 0 10px;
-  font-size: 15px;
+  font-size: 16px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--text-dim);
@@ -592,7 +601,7 @@ button.danger:hover:not(:disabled) {
   align-items: center;
   justify-content: space-between;
   gap: 6px;
-  padding: 7px 8px;
+  padding: 9px 10px;
   border-radius: var(--radius);
 }
 
@@ -613,7 +622,7 @@ button.danger:hover:not(:disabled) {
 .crud-list .hint {
   color: var(--text-dim);
   font-style: italic;
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .item-nome {
@@ -635,7 +644,7 @@ button.danger:hover:not(:disabled) {
 
 .item-actions button {
   padding: 3px 6px;
-  font-size: 13px;
+  font-size: 14px;
   border: none;
   background: none;
   color: var(--text-dim);
@@ -708,7 +717,7 @@ button.danger:hover:not(:disabled) {
   align-items: center;
   gap: 6px;
   color: var(--text-dim);
-  font-size: 15px;
+  font-size: 16px;
 }
 
 .data-table {
@@ -728,13 +737,13 @@ button.danger:hover:not(:disabled) {
 .data-table th,
 .data-table td {
   text-align: left;
-  padding: 10px 12px;
+  padding: 12px 14px;
   border-bottom: 1px solid var(--border);
   vertical-align: top;
 }
 
 .data-table th {
-  font-size: 13px;
+  font-size: 14px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--text-dim);
@@ -747,7 +756,7 @@ button.danger:hover:not(:disabled) {
 
 .data-table td.nota {
   color: var(--text-dim);
-  font-size: 14px;
+  font-size: 15px;
   max-width: 280px;
 }
 
@@ -764,7 +773,7 @@ button.danger:hover:not(:disabled) {
 
 .badge {
   margin-left: 8px;
-  font-size: 12px;
+  font-size: 13px;
   background: var(--border);
   border-radius: 10px;
   padding: 2px 8px;
@@ -778,7 +787,7 @@ button.danger:hover:not(:disabled) {
 .row-actions button {
   margin-left: 4px;
   padding: 4px 9px;
-  font-size: 14px;
+  font-size: 15px;
 }
 
 /* ---- Modal ---- */
@@ -798,8 +807,8 @@ button.danger:hover:not(:disabled) {
 .modal {
   background: var(--surface);
   border-radius: 14px;
-  padding: 22px;
-  width: 560px;
+  padding: 26px;
+  width: 620px;
   max-width: calc(100vw - 48px);
   max-height: calc(100vh - 48px);
   overflow: auto;
@@ -835,21 +844,21 @@ button.danger:hover:not(:disabled) {
 }
 
 .modal-sm {
-  width: 420px;
+  width: 470px;
 }
 
 .modal label {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-size: 14px;
+  font-size: 15px;
   color: var(--text-dim);
 }
 
 .modal label input,
 .modal label select,
 .modal label textarea {
-  font-size: 15px;
+  font-size: 16px;
   color: var(--text);
 }
 
@@ -879,7 +888,7 @@ button.danger:hover:not(:disabled) {
 
 .pazienti-layout {
   display: grid;
-  grid-template-columns: 320px minmax(0, 1fr);
+  grid-template-columns: 340px minmax(0, 1fr);
   gap: 18px;
   align-items: start;
 }
@@ -888,13 +897,13 @@ button.danger:hover:not(:disabled) {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 16px;
+  padding: 20px;
   box-shadow: var(--shadow-sm);
 }
 
 .card h3 {
   margin: 0 0 12px;
-  font-size: 15px;
+  font-size: 16px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--text-dim);
@@ -903,7 +912,7 @@ button.danger:hover:not(:disabled) {
 .card .hint {
   color: var(--text-dim);
   font-style: italic;
-  font-size: 14px;
+  font-size: 15px;
   margin: 0;
 }
 
@@ -917,13 +926,13 @@ button.danger:hover:not(:disabled) {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-size: 14px;
+  font-size: 15px;
   color: var(--text-dim);
 }
 
 .field input,
 .field select {
-  font-size: 15px;
+  font-size: 16px;
   color: var(--text);
 }
 
@@ -957,7 +966,7 @@ button.danger:hover:not(:disabled) {
 .fase-riga .hint {
   margin: 0;
   color: var(--text-dim);
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .paziente-item {
@@ -970,7 +979,7 @@ button.danger:hover:not(:disabled) {
 }
 
 .paziente-sub {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-dim);
 }
 
@@ -1030,7 +1039,7 @@ button.danger:hover:not(:disabled) {
   margin: 0;
   flex: 1;
   min-width: 0;
-  font-size: 15px;
+  font-size: 16px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--accent);
@@ -1051,7 +1060,7 @@ button.danger:hover:not(:disabled) {
   color: var(--accent);
   border-radius: 20px;
   padding: 4px 12px;
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .chip.raggiunto {
@@ -1089,13 +1098,13 @@ button.danger:hover:not(:disabled) {
 
 .esercizi-proposti button {
   padding: 3px 10px;
-  font-size: 14px;
+  font-size: 15px;
   white-space: nowrap;
 }
 
 .default-hint {
   color: var(--text-dim);
-  font-size: 13px;
+  font-size: 14px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1132,7 +1141,7 @@ button.danger:hover:not(:disabled) {
 
 .item-actions-static button {
   padding: 3px 6px;
-  font-size: 13px;
+  font-size: 14px;
   border: none;
   background: none;
   color: var(--text-dim);
@@ -1158,14 +1167,14 @@ button.danger:hover:not(:disabled) {
   display: flex;
   flex-direction: column;
   gap: 3px;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-dim);
   min-width: 0;
 }
 
 .riga-params input {
   padding: 5px 8px;
-  font-size: 15px;
+  font-size: 16px;
   color: var(--text);
   min-width: 0;
   width: 100%;
@@ -1174,7 +1183,7 @@ button.danger:hover:not(:disabled) {
 .riga-nota {
   width: 100%;
   min-width: 0;
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .note-seduta {
@@ -1225,12 +1234,12 @@ button.danger:hover:not(:disabled) {
 }
 
 .seduta-meta {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-dim);
 }
 
 .seduta-obiettivi {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-dim);
   font-style: italic;
 }
@@ -1252,8 +1261,8 @@ button.danger:hover:not(:disabled) {
 .auth-card {
   background: var(--surface);
   border-radius: 18px;
-  padding: 34px;
-  width: 440px;
+  padding: 38px;
+  width: 480px;
   max-width: calc(100vw - 48px);
   display: flex;
   flex-direction: column;
@@ -1263,9 +1272,9 @@ button.danger:hover:not(:disabled) {
 }
 
 .auth-logo {
-  width: 52px;
-  height: 52px;
-  border-radius: 14px;
+  width: 56px;
+  height: 56px;
+  border-radius: 15px;
   background: linear-gradient(135deg, #3b82f6, #1e40af);
   display: flex;
   align-items: center;
@@ -1277,13 +1286,13 @@ button.danger:hover:not(:disabled) {
 
 .auth-card h1 {
   margin: 0;
-  font-size: 22px;
+  font-size: 24px;
 }
 
 .auth-card p {
   margin: 0;
   color: var(--text-dim);
-  font-size: 15px;
+  font-size: 16px;
 }
 
 .auth-form {
@@ -1294,13 +1303,13 @@ button.danger:hover:not(:disabled) {
 
 .auth-error {
   color: var(--danger) !important;
-  font-size: 14px;
+  font-size: 15px;
   margin: 0;
 }
 
 .recovery-key {
   font-family: Consolas, 'Courier New', monospace;
-  font-size: 17px;
+  font-size: 18px;
   letter-spacing: 1px;
   background: var(--accent-soft);
   border: 1px dashed var(--accent);
@@ -1320,14 +1329,14 @@ button.danger:hover:not(:disabled) {
   border: none;
   color: var(--accent);
   cursor: pointer;
-  font-size: 14px;
+  font-size: 15px;
   padding: 4px;
 }
 
 .modal-testo {
   margin: 0;
   color: var(--text-dim);
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .modal-testo code {
@@ -1338,7 +1347,7 @@ button.danger:hover:not(:disabled) {
 
 .cartella-path {
   font-family: Consolas, 'Courier New', monospace;
-  font-size: 14px;
+  font-size: 15px;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -1360,7 +1369,7 @@ button.danger:hover:not(:disabled) {
   background: none;
   border: 1px solid #3a4756;
   color: #8d99a8;
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .sidebar-footer button:hover {
@@ -1400,7 +1409,7 @@ button.danger:hover:not(:disabled) {
   color: #f1f5f9;
   border-radius: 12px;
   padding: 12px 16px;
-  font-size: 14.5px;
+  font-size: 15.5px;
   box-shadow: var(--shadow-lg);
   animation: toast-in 0.25s ease-out;
 }

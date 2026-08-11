@@ -191,7 +191,7 @@ export default function EserciziPage(): React.JSX.Element {
                     title="Apri video"
                     onClick={() => window.api.apriLink(e.link!).catch((err) => toastErrore(errMsg(err)))}
                   >
-                    <Video size={14} />
+                    <Video size={16} />
                   </button>
                 )}
                 {e.archiviato ? <span className="badge">archiviato</span> : null}

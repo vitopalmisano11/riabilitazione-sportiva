@@ -66,7 +66,7 @@ export default function AuthGate({ onUnlocked }: { onUnlocked: () => void }): Re
     <div className="auth-screen">
       <div className="auth-card">
         <div className="auth-logo">
-          <HeartPulse size={26} />
+          <HeartPulse size={30} />
         </div>
         {modo === 'setup' && (
           <>

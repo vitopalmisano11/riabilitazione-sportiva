@@ -348,20 +348,20 @@ export default function SedutaBuilder({
               )}
               <span className="item-actions-static">
                 <button title="Sposta su" disabled={idxSez === 0} onClick={() => muoviSezione(idxSez, -1)}>
-                  <ArrowUp size={14} />
+                  <ArrowUp size={16} />
                 </button>
                 <button
                   title="Sposta giù"
                   disabled={idxSez === sezioni.length - 1}
                   onClick={() => muoviSezione(idxSez, 1)}
                 >
-                  <ArrowDown size={14} />
+                  <ArrowDown size={16} />
                 </button>
                 <button title="Rinomina" onClick={() => setEditSez({ idx: idxSez, nome: s.nome })}>
-                  <Pencil size={14} />
+                  <Pencil size={16} />
                 </button>
                 <button title="Rimuovi sezione" className="danger" onClick={() => rimuoviSezione(idxSez)}>
-                  <X size={14} />
+                  <X size={16} />
                 </button>
               </span>
             </div>
@@ -381,7 +381,7 @@ export default function SedutaBuilder({
                               window.api.apriLink(r.link!).catch((err) => toastErrore(errMsg(err)))
                             }
                           >
-                            <Video size={14} />
+                            <Video size={16} />
                           </button>
                         )}
                       </span>
@@ -392,21 +392,21 @@ export default function SedutaBuilder({
                           disabled={idxRiga === 0}
                           onClick={() => muoviRiga(idxSez, idxRiga, -1)}
                         >
-                          <ArrowUp size={14} />
+                          <ArrowUp size={16} />
                         </button>
                         <button
                           title="Sposta giù"
                           disabled={idxRiga === s.righe.length - 1}
                           onClick={() => muoviRiga(idxSez, idxRiga, 1)}
                         >
-                          <ArrowDown size={14} />
+                          <ArrowDown size={16} />
                         </button>
                         <button
                           title="Rimuovi"
                           className="danger"
                           onClick={() => rimuoviRiga(idxSez, idxRiga)}
                         >
-                          <X size={14} />
+                          <X size={16} />
                         </button>
                       </span>
                     </div>
@@ -481,7 +481,7 @@ export default function SedutaBuilder({
                               window.api.apriLink(e.link!).catch((err) => toastErrore(errMsg(err)))
                             }}
                           >
-                            <Video size={14} />
+                            <Video size={16} />
                           </button>
                         )}
                       </span>
@@ -491,7 +491,7 @@ export default function SedutaBuilder({
                           .join(' · ')}
                       </span>
                       <button onClick={() => aggiungi(idxSez, e)}>
-                        <Plus size={14} /> Aggiungi
+                        <Plus size={16} /> Aggiungi
                       </button>
                     </li>
                   ))}
