@@ -7,25 +7,40 @@ import { join } from 'path'
 import { spostaFileDati } from './file-dati'
 
 interface Impostazioni {
-  cartellaDati: string
+  cartellaDati?: string
+  cartellaExport?: string
 }
 
 const percorsoFile = (): string => join(app.getPath('userData'), 'impostazioni.json')
 
-export function cartellaDati(): string {
-  let dir: string | null = null
+function leggi(): Impostazioni {
   try {
-    dir = (JSON.parse(readFileSync(percorsoFile(), 'utf-8')) as Impostazioni).cartellaDati || null
+    return JSON.parse(readFileSync(percorsoFile(), 'utf-8')) as Impostazioni
   } catch {
-    // file assente o illeggibile: si usa il default
+    return {}
   }
-  if (!dir) dir = join(app.getPath('documents'), 'Riabilitazione')
+}
+
+function salva(patch: Impostazioni): void {
+  writeFileSync(percorsoFile(), JSON.stringify({ ...leggi(), ...patch }, null, 2))
+}
+
+export function cartellaDati(): string {
+  const dir = leggi().cartellaDati || join(app.getPath('documents'), 'Riabilitazione')
   mkdirSync(dir, { recursive: true })
   return dir
 }
 
 export function impostaCartellaDati(dir: string): void {
-  writeFileSync(percorsoFile(), JSON.stringify({ cartellaDati: dir }, null, 2))
+  salva({ cartellaDati: dir })
+}
+
+export function cartellaExport(): string {
+  return leggi().cartellaExport || app.getPath('documents')
+}
+
+export function impostaCartellaExport(dir: string): void {
+  salva({ cartellaExport: dir })
 }
 
 // Migrazione una tantum: le versioni precedenti salvavano db e auth in userData.

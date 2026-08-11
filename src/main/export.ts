@@ -1,8 +1,9 @@
 // Export sedute in PDF (via finestra nascosta + printToPDF) e Word (docx).
 import { app, BrowserWindow, dialog, shell } from 'electron'
 import { unlink, writeFile } from 'fs/promises'
-import { join } from 'path'
+import { dirname, join } from 'path'
 import { getDb } from './db'
+import { cartellaExport, impostaCartellaExport } from './impostazioni'
 import {
   generaDocx,
   generaHtml,
@@ -43,16 +44,31 @@ function leggiSeduta(id: number): DatiSedutaExport & { paziente_id: number } {
       )
       .all(id) as { nome: string }[]
   ).map((r) => r.nome)
+  const sezioniRows = db
+    .prepare('SELECT id, nome FROM seduta_sezioni WHERE seduta_id = ? ORDER BY ordine, id')
+    .all(id) as { id: number; nome: string }[]
+  type RigaEsercizio = DatiSedutaExport['sezioni'][number]['esercizi'][number] & {
+    seduta_sezione_id: number | null
+  }
   const esercizi = db
     .prepare(
-      `SELECT e.nome, c.nome AS categoria_nome, se.serie, se.ripetizioni, se.carico, se.nota
+      `SELECT e.nome, c.nome AS categoria_nome, se.serie, se.ripetizioni, se.carico, se.recupero, se.nota, se.seduta_sezione_id
        FROM seduta_esercizi se
        JOIN esercizi e ON e.id = se.esercizio_id
        JOIN categorie c ON c.id = e.categoria_id
        WHERE se.seduta_id = ? ORDER BY se.ordine, se.id`
     )
-    .all(id) as DatiSedutaExport['esercizi']
-  return { ...s, obiettivi, esercizi }
+    .all(id) as RigaEsercizio[]
+  const spoglia = ({ seduta_sezione_id: _ignora, ...resto }: RigaEsercizio) => resto
+  const sezioni = sezioniRows
+    .map((sez) => ({
+      nome: sez.nome as string | null,
+      esercizi: esercizi.filter((e) => e.seduta_sezione_id === sez.id).map(spoglia)
+    }))
+    .filter((sez) => sez.esercizi.length > 0)
+  const orfani = esercizi.filter((e) => e.seduta_sezione_id == null).map(spoglia)
+  if (orfani.length > 0) sezioni.push({ nome: null, esercizi: orfani })
+  return { ...s, obiettivi, sezioni }
 }
 
 function slug(s: string): string {
@@ -84,7 +100,7 @@ async function salvaExport(
 ): Promise<string | null> {
   const { canceled, filePath } = await dialog.showSaveDialog({
     title: 'Esporta',
-    defaultPath: join(app.getPath('documents'), `${nomeBase}.${formato}`),
+    defaultPath: join(cartellaExport(), `${nomeBase}.${formato}`),
     filters:
       formato === 'pdf'
         ? [{ name: 'PDF', extensions: ['pdf'] }]
@@ -96,6 +112,7 @@ async function salvaExport(
   } else {
     await htmlToPdf(generaHtml(paziente, sedute), filePath)
   }
+  impostaCartellaExport(dirname(filePath)) // ricorda l'ultima cartella scelta
   shell.showItemInFolder(filePath)
   return filePath
 }

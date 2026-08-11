@@ -1,7 +1,12 @@
 import { dialog, ipcMain, shell } from 'electron'
 import { join } from 'path'
 import { closeDb, getDb, initDb, riapriDb } from './db'
-import { cartellaDati, impostaCartellaDati } from './impostazioni'
+import {
+  cartellaDati,
+  cartellaExport,
+  impostaCartellaDati,
+  impostaCartellaExport
+} from './impostazioni'
 import { spostaFileDati } from './file-dati'
 import {
   authExists,
@@ -73,7 +78,17 @@ export function registerIpc(): void {
   })
 
   // ---- Impostazioni / cartella dati ----
-  handle('impostazioni:info', () => ({ cartella: cartellaDati() }))
+  handle('impostazioni:info', () => ({ cartella: cartellaDati(), cartellaExport: cartellaExport() }))
+  handle('impostazioni:cambiaCartellaExport', async () => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+      title: "Scegli la cartella di destinazione per l'export",
+      defaultPath: cartellaExport(),
+      properties: ['openDirectory', 'createDirectory']
+    })
+    if (canceled || filePaths.length === 0) return null
+    impostaCartellaExport(filePaths[0])
+    return filePaths[0]
+  })
   handle('impostazioni:apriCartella', () => {
     void shell.openPath(cartellaDati())
   })
@@ -164,21 +179,81 @@ export function registerIpc(): void {
     const stmt = db.prepare('UPDATE obiettivi SET ordine = ? WHERE id = ?')
     db.transaction(() => ids.forEach((id, i) => stmt.run(i, id)))()
   })
-  handle('obiettivi:categorie', (obiettivoId: number) =>
-    (getDb()
-      .prepare('SELECT categoria_id FROM obiettivo_categorie WHERE obiettivo_id = ?')
-      .all(obiettivoId) as { categoria_id: number }[]).map((r) => r.categoria_id)
+
+  // ---- Sezioni (struttura della seduta per fase) ----
+  handle('sezioni:list', (faseId: number) => {
+    const db = getDb()
+    const sezioni = db
+      .prepare('SELECT * FROM sezioni WHERE fase_id = ? ORDER BY ordine, id')
+      .all(faseId) as { id: number }[]
+    const catStmt = db.prepare(
+      'SELECT categoria_id FROM sezione_categorie WHERE sezione_id = ? ORDER BY ordine, categoria_id'
+    )
+    return sezioni.map((s) => ({
+      ...s,
+      categoria_ids: (catStmt.all(s.id) as { categoria_id: number }[]).map((r) => r.categoria_id)
+    }))
+  })
+  handle('sezioni:create', (faseId: number, nome: string) => {
+    const db = getDb()
+    const { next } = db
+      .prepare('SELECT COALESCE(MAX(ordine), -1) + 1 AS next FROM sezioni WHERE fase_id = ?')
+      .get(faseId) as { next: number }
+    return Number(
+      db.prepare('INSERT INTO sezioni (fase_id, nome, ordine) VALUES (?, ?, ?)')
+        .run(faseId, nome.trim(), next).lastInsertRowid
+    )
+  })
+  handle('sezioni:update', (id: number, nome: string) => {
+    getDb().prepare('UPDATE sezioni SET nome = ? WHERE id = ?').run(nome.trim(), id)
+  })
+  handle('sezioni:delete', (id: number) => {
+    getDb().prepare('DELETE FROM sezioni WHERE id = ?').run(id)
+  })
+  handle('sezioni:reorder', (ids: number[]) => {
+    const db = getDb()
+    const stmt = db.prepare('UPDATE sezioni SET ordine = ? WHERE id = ?')
+    db.transaction(() => ids.forEach((id, i) => stmt.run(i, id)))()
+  })
+  handle('sezioni:setCategorie', (sezioneId: number, categoriaIds: number[]) => {
+    const db = getDb()
+    db.transaction(() => {
+      db.prepare('DELETE FROM sezione_categorie WHERE sezione_id = ?').run(sezioneId)
+      const ins = db.prepare(
+        'INSERT INTO sezione_categorie (sezione_id, categoria_id, ordine) VALUES (?, ?, ?)'
+      )
+      categoriaIds.forEach((cid, i) => ins.run(sezioneId, cid, i))
+    })()
+  })
+
+  // ---- Test di avanzamento (per fase) ----
+  handle('testAvanzamento:list', (faseId: number) =>
+    getDb()
+      .prepare('SELECT * FROM test_avanzamento WHERE fase_id = ? ORDER BY ordine, id')
+      .all(faseId)
   )
-  handle('obiettivi:setCategoria', (obiettivoId: number, categoriaId: number, attiva: boolean) => {
-    if (attiva) {
-      getDb()
-        .prepare('INSERT OR IGNORE INTO obiettivo_categorie (obiettivo_id, categoria_id) VALUES (?, ?)')
-        .run(obiettivoId, categoriaId)
-    } else {
-      getDb()
-        .prepare('DELETE FROM obiettivo_categorie WHERE obiettivo_id = ? AND categoria_id = ?')
-        .run(obiettivoId, categoriaId)
-    }
+  handle('testAvanzamento:create', (faseId: number, nome: string) => {
+    const db = getDb()
+    const { next } = db
+      .prepare(
+        'SELECT COALESCE(MAX(ordine), -1) + 1 AS next FROM test_avanzamento WHERE fase_id = ?'
+      )
+      .get(faseId) as { next: number }
+    return Number(
+      db.prepare('INSERT INTO test_avanzamento (fase_id, nome, ordine) VALUES (?, ?, ?)')
+        .run(faseId, nome.trim(), next).lastInsertRowid
+    )
+  })
+  handle('testAvanzamento:update', (id: number, nome: string) => {
+    getDb().prepare('UPDATE test_avanzamento SET nome = ? WHERE id = ?').run(nome.trim(), id)
+  })
+  handle('testAvanzamento:delete', (id: number) => {
+    getDb().prepare('DELETE FROM test_avanzamento WHERE id = ?').run(id)
+  })
+  handle('testAvanzamento:reorder', (ids: number[]) => {
+    const db = getDb()
+    const stmt = db.prepare('UPDATE test_avanzamento SET ordine = ? WHERE id = ?')
+    db.transaction(() => ids.forEach((id, i) => stmt.run(i, id)))()
   })
 
   // ---- Categorie ----
@@ -210,8 +285,8 @@ export function registerIpc(): void {
     Number(
       getDb()
         .prepare(
-          `INSERT INTO esercizi (nome, categoria_id, serie_default, ripetizioni_default, carico_default, nota_tecnica)
-           VALUES (@nome, @categoria_id, @serie_default, @ripetizioni_default, @carico_default, @nota_tecnica)`
+          `INSERT INTO esercizi (nome, categoria_id, serie_default, ripetizioni_default, carico_default, recupero_default, nota_tecnica)
+           VALUES (@nome, @categoria_id, @serie_default, @ripetizioni_default, @carico_default, @recupero_default, @nota_tecnica)`
         )
         .run({ ...data, nome: data.nome.trim() }).lastInsertRowid
     )
@@ -221,7 +296,8 @@ export function registerIpc(): void {
       .prepare(
         `UPDATE esercizi SET nome = @nome, categoria_id = @categoria_id,
          serie_default = @serie_default, ripetizioni_default = @ripetizioni_default,
-         carico_default = @carico_default, nota_tecnica = @nota_tecnica
+         carico_default = @carico_default, recupero_default = @recupero_default,
+         nota_tecnica = @nota_tecnica
          WHERE id = @id`
       )
       .run({ ...data, nome: data.nome.trim(), id })
@@ -286,18 +362,75 @@ export function registerIpc(): void {
   handle('pazienti:delete', (id: number) => {
     getDb().prepare('DELETE FROM pazienti WHERE id = ?').run(id)
   })
+  handle('pazienti:obiettiviRaggiunti', (pazienteId: number) =>
+    (
+      getDb()
+        .prepare('SELECT obiettivo_id FROM paziente_obiettivi WHERE paziente_id = ?')
+        .all(pazienteId) as { obiettivo_id: number }[]
+    ).map((r) => r.obiettivo_id)
+  )
+  handle('pazienti:setObiettivoRaggiunto', (pazienteId: number, obiettivoId: number, raggiunto: boolean) => {
+    if (raggiunto) {
+      getDb()
+        .prepare(
+          `INSERT OR IGNORE INTO paziente_obiettivi (paziente_id, obiettivo_id, raggiunto_il)
+           VALUES (?, ?, date('now'))`
+        )
+        .run(pazienteId, obiettivoId)
+    } else {
+      getDb()
+        .prepare('DELETE FROM paziente_obiettivi WHERE paziente_id = ? AND obiettivo_id = ?')
+        .run(pazienteId, obiettivoId)
+    }
+  })
+  handle('pazienti:testValori', (pazienteId: number, faseId: number) =>
+    getDb()
+      .prepare(
+        `SELECT t.id AS test_id, t.nome,
+                COALESCE(pt.eseguito, 0) AS eseguito,
+                pt.valore
+         FROM test_avanzamento t
+         LEFT JOIN paziente_test pt ON pt.test_id = t.id AND pt.paziente_id = ?
+         WHERE t.fase_id = ?
+         ORDER BY t.ordine, t.id`
+      )
+      .all(pazienteId, faseId)
+  )
+  handle('pazienti:setTestValore', (pazienteId: number, testId: number, eseguito: boolean, valore: string | null) => {
+    getDb()
+      .prepare(
+        `INSERT INTO paziente_test (paziente_id, test_id, eseguito, valore)
+         VALUES (?, ?, ?, ?)
+         ON CONFLICT(paziente_id, test_id) DO UPDATE SET eseguito = excluded.eseguito, valore = excluded.valore`
+      )
+      .run(pazienteId, testId, eseguito ? 1 : 0, valore)
+  })
 
   // ---- Sedute ----
   function insertFigliSeduta(sedutaId: number | bigint, input: SedutaInput): void {
     const db = getDb()
-    const insOb = db.prepare('INSERT INTO seduta_obiettivi (seduta_id, obiettivo_id) VALUES (?, ?)')
-    for (const obId of input.obiettivi) insOb.run(sedutaId, obId)
+    const insSez = db.prepare(
+      'INSERT INTO seduta_sezioni (seduta_id, sezione_id, nome, ordine) VALUES (?, ?, ?, ?)'
+    )
+    const sezioneIds = input.sezioni.map(
+      (s, i) => Number(insSez.run(sedutaId, s.sezione_id, s.nome.trim(), i).lastInsertRowid)
+    )
     const insEs = db.prepare(
-      `INSERT INTO seduta_esercizi (seduta_id, esercizio_id, serie, ripetizioni, carico, nota, ordine)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO seduta_esercizi (seduta_id, esercizio_id, serie, ripetizioni, carico, recupero, nota, ordine, seduta_sezione_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     input.esercizi.forEach((e, i) =>
-      insEs.run(sedutaId, e.esercizio_id, e.serie, e.ripetizioni, e.carico, e.nota, i)
+      insEs.run(
+        sedutaId,
+        e.esercizio_id,
+        e.serie,
+        e.ripetizioni,
+        e.carico,
+        e.recupero,
+        e.nota,
+        i,
+        e.sezioneIndex != null ? (sezioneIds[e.sezioneIndex] ?? null) : null
+      )
     )
   }
 
@@ -324,23 +457,36 @@ export function registerIpc(): void {
       )
       .get(id)
     if (!seduta) throw new Error('Seduta non trovata.')
-    const obiettivi = (
-      db.prepare('SELECT obiettivo_id FROM seduta_obiettivi WHERE seduta_id = ?').all(id) as {
-        obiettivo_id: number
-      }[]
-    ).map((r) => r.obiettivo_id)
+    const sezioniRows = db
+      .prepare('SELECT id, sezione_id, nome FROM seduta_sezioni WHERE seduta_id = ? ORDER BY ordine, id')
+      .all(id) as { id: number; sezione_id: number | null; nome: string }[]
     const esercizi = db
       .prepare(
         `SELECT se.esercizio_id, e.nome, c.nome AS categoria_nome,
-                se.serie, se.ripetizioni, se.carico, se.nota
+                se.serie, se.ripetizioni, se.carico, se.recupero, se.nota, se.seduta_sezione_id
          FROM seduta_esercizi se
          JOIN esercizi e ON e.id = se.esercizio_id
          JOIN categorie c ON c.id = e.categoria_id
          WHERE se.seduta_id = ?
          ORDER BY se.ordine, se.id`
       )
-      .all(id)
-    return { ...seduta, obiettivi, esercizi }
+      .all(id) as ({ seduta_sezione_id: number | null } & Record<string, unknown>)[]
+
+    const sezioni = sezioniRows.map((s) => ({
+      sezione_id: s.sezione_id,
+      nome: s.nome,
+      esercizi: esercizi
+        .filter((e) => e.seduta_sezione_id === s.id)
+        .map(({ seduta_sezione_id: _ignora, ...resto }) => resto)
+    }))
+    // esercizi senza sezione (sedute della v1): raggruppati in una sezione unica
+    const orfani = esercizi
+      .filter((e) => e.seduta_sezione_id == null)
+      .map(({ seduta_sezione_id: _ignora, ...resto }) => resto)
+    if (orfani.length > 0) {
+      sezioni.push({ sezione_id: null, nome: 'Esercizi', esercizi: orfani })
+    }
+    return { ...seduta, sezioni }
   })
   handle('sedute:create', (input: SedutaInput) => {
     const db = getDb()
@@ -363,6 +509,7 @@ export function registerIpc(): void {
       )
       db.prepare('DELETE FROM seduta_obiettivi WHERE seduta_id = ?').run(id)
       db.prepare('DELETE FROM seduta_esercizi WHERE seduta_id = ?').run(id)
+      db.prepare('DELETE FROM seduta_sezioni WHERE seduta_id = ?').run(id)
       insertFigliSeduta(id, input)
     })()
   })

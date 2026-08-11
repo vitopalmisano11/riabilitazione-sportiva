@@ -27,6 +27,20 @@ L'installer Windows si costruisce automaticamente con GitHub Actions: pubblicand
 scaricare. L'eseguibile non è firmato: al primo avvio Windows SmartScreen mostra un avviso, si
 supera con *Ulteriori informazioni → Esegui comunque*.
 
+## v1.1 (feedback dal primo utilizzo)
+
+- Struttura della seduta per fase: sezioni ordinate (es. Riscaldamento, Rinforzo) con
+  categorie associate e ordinabili; usata come template alla creazione della seduta e
+  modificabile nella singola seduta (aggiungi/rinomina/riordina/rimuovi sezioni)
+- Obiettivi con stato persistente "raggiunto" sul paziente (barrati ma visibili),
+  non più selezionati a ogni seduta
+- Checklist "Test di avanzamento" per fase (informativa, non blocca il cambio fase),
+  con valore registrato per paziente
+- Campo "recupero" per esercizio (default in libreria + per seduta, tra carico e note)
+- Cartella di destinazione export configurabile e memorizzata (ultima usata)
+- Menu: "Diario pazienti" in alto; "Configurazione" in fondo, pannello unico a tab
+- Fix layout: campi che uscivano dal riquadro dello schema seduta, testo spezzato male
+
 ## Stato di avanzamento (piano a step)
 
 - [x] 1. Fondamenta: progetto, database, migrazioni

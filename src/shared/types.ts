@@ -29,6 +29,7 @@ export interface Esercizio {
   serie_default: string | null
   ripetizioni_default: string | null
   carico_default: string | null
+  recupero_default: string | null
   nota_tecnica: string | null
   archiviato: 0 | 1
 }
@@ -41,7 +42,32 @@ export interface EsercizioInput {
   serie_default: string | null
   ripetizioni_default: string | null
   carico_default: string | null
+  recupero_default: string | null
   nota_tecnica: string | null
+}
+
+export interface Sezione {
+  id: number
+  fase_id: number
+  nome: string
+  ordine: number
+}
+
+// categoria_ids è ordinato secondo la sequenza riabilitativa scelta
+export type SezioneConCategorie = Sezione & { categoria_ids: number[] }
+
+export interface TestAvanzamento {
+  id: number
+  fase_id: number
+  nome: string
+  ordine: number
+}
+
+export interface TestValore {
+  test_id: number
+  nome: string
+  eseguito: 0 | 1
+  valore: string | null
 }
 
 export interface Paziente {
@@ -76,7 +102,15 @@ export interface SedutaEsercizioInput {
   serie: string | null
   ripetizioni: string | null
   carico: string | null
+  recupero: string | null
   nota: string | null
+  // indice nella lista sezioni della seduta; null = fuori sezione (dati vecchi)
+  sezioneIndex: number | null
+}
+
+export interface SedutaSezioneInput {
+  sezione_id: number | null // riferimento alla sezione del template, se derivata da esso
+  nome: string
 }
 
 export interface SedutaInput {
@@ -84,7 +118,7 @@ export interface SedutaInput {
   data: string
   fase_id: number | null
   note: string | null
-  obiettivi: number[]
+  sezioni: SedutaSezioneInput[]
   esercizi: SedutaEsercizioInput[]
 }
 
@@ -98,9 +132,15 @@ export interface SedutaRiepilogo {
   obiettivi_nomi: string | null
 }
 
-export type SedutaEsercizioDettaglio = SedutaEsercizioInput & {
+export type SedutaEsercizioDettaglio = Omit<SedutaEsercizioInput, 'sezioneIndex'> & {
   nome: string
   categoria_nome: string
+}
+
+export interface SedutaSezioneDettaglio {
+  sezione_id: number | null
+  nome: string
+  esercizi: SedutaEsercizioDettaglio[]
 }
 
 export interface SedutaDettaglio {
@@ -110,8 +150,7 @@ export interface SedutaDettaglio {
   fase_id: number | null
   fase_nome: string | null
   note: string | null
-  obiettivi: number[]
-  esercizi: SedutaEsercizioDettaglio[]
+  sezioni: SedutaSezioneDettaglio[]
 }
 
 export interface Api {
@@ -141,8 +180,22 @@ export interface Api {
     update(id: number, nome: string): Promise<void>
     remove(id: number): Promise<void>
     reorder(ids: number[]): Promise<void>
-    categorie(obiettivoId: number): Promise<number[]>
-    setCategoria(obiettivoId: number, categoriaId: number, attiva: boolean): Promise<void>
+  }
+  sezioni: {
+    list(faseId: number): Promise<SezioneConCategorie[]>
+    create(faseId: number, nome: string): Promise<number>
+    update(id: number, nome: string): Promise<void>
+    remove(id: number): Promise<void>
+    reorder(ids: number[]): Promise<void>
+    // sostituisce l'elenco ordinato delle categorie associate alla sezione
+    setCategorie(sezioneId: number, categoriaIds: number[]): Promise<void>
+  }
+  testAvanzamento: {
+    list(faseId: number): Promise<TestAvanzamento[]>
+    create(faseId: number, nome: string): Promise<number>
+    update(id: number, nome: string): Promise<void>
+    remove(id: number): Promise<void>
+    reorder(ids: number[]): Promise<void>
   }
   categorie: {
     list(): Promise<Categoria[]>
@@ -163,6 +216,17 @@ export interface Api {
     update(id: number, data: PazienteInput): Promise<void>
     setPatologiaFase(id: number, patologiaId: number | null, faseId: number | null): Promise<void>
     remove(id: number): Promise<void>
+    // obiettivi raggiunti (stato persistente sul paziente)
+    obiettiviRaggiunti(pazienteId: number): Promise<number[]>
+    setObiettivoRaggiunto(pazienteId: number, obiettivoId: number, raggiunto: boolean): Promise<void>
+    // test di avanzamento della fase, con stato/valore del paziente
+    testValori(pazienteId: number, faseId: number): Promise<TestValore[]>
+    setTestValore(
+      pazienteId: number,
+      testId: number,
+      eseguito: boolean,
+      valore: string | null
+    ): Promise<void>
   }
   sedute: {
     list(pazienteId: number): Promise<SedutaRiepilogo[]>
@@ -182,9 +246,10 @@ export interface Api {
     ): Promise<string | null>
   }
   impostazioni: {
-    info(): Promise<{ cartella: string }>
+    info(): Promise<{ cartella: string; cartellaExport: string }>
     apriCartella(): Promise<void>
-    // Ritorna il nuovo percorso, o null se l'utente annulla.
+    // Ritornano il nuovo percorso, o null se l'utente annulla.
     cambiaCartella(): Promise<string | null>
+    cambiaCartellaExport(): Promise<string | null>
   }
 }

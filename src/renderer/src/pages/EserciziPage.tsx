@@ -9,6 +9,7 @@ interface FormState {
   serie_default: string
   ripetizioni_default: string
   carico_default: string
+  recupero_default: string
   nota_tecnica: string
 }
 
@@ -19,6 +20,7 @@ const FORM_VUOTO: FormState = {
   serie_default: '',
   ripetizioni_default: '',
   carico_default: '',
+  recupero_default: '',
   nota_tecnica: ''
 }
 
@@ -65,6 +67,7 @@ export default function EserciziPage(): React.JSX.Element {
       serie_default: form.serie_default.trim() || null,
       ripetizioni_default: form.ripetizioni_default.trim() || null,
       carico_default: form.carico_default.trim() || null,
+      recupero_default: form.recupero_default.trim() || null,
       nota_tecnica: form.nota_tecnica.trim() || null
     }
     try {
@@ -160,6 +163,7 @@ export default function EserciziPage(): React.JSX.Element {
             <th>Serie</th>
             <th>Ripetizioni</th>
             <th>Carico</th>
+            <th>Recupero</th>
             <th>Nota tecnica</th>
             <th></th>
           </tr>
@@ -175,6 +179,7 @@ export default function EserciziPage(): React.JSX.Element {
               <td>{e.serie_default ?? '—'}</td>
               <td>{e.ripetizioni_default ?? '—'}</td>
               <td>{e.carico_default ?? '—'}</td>
+              <td>{e.recupero_default ?? '—'}</td>
               <td className="nota">{e.nota_tecnica ?? ''}</td>
               <td className="row-actions">
                 <button
@@ -186,6 +191,7 @@ export default function EserciziPage(): React.JSX.Element {
                       serie_default: e.serie_default ?? '',
                       ripetizioni_default: e.ripetizioni_default ?? '',
                       carico_default: e.carico_default ?? '',
+                      recupero_default: e.recupero_default ?? '',
                       nota_tecnica: e.nota_tecnica ?? ''
                     })
                   }
@@ -203,7 +209,7 @@ export default function EserciziPage(): React.JSX.Element {
           ))}
           {visibili.length === 0 && (
             <tr>
-              <td colSpan={7} className="empty">
+              <td colSpan={8} className="empty">
                 Nessun esercizio. Crea le categorie, poi aggiungi qui gli esercizi.
               </td>
             </tr>
@@ -265,6 +271,14 @@ export default function EserciziPage(): React.JSX.Element {
                   value={form.carico_default}
                   placeholder="es. 10 kg, elastico verde"
                   onChange={(e) => setForm({ ...form, carico_default: e.target.value })}
+                />
+              </label>
+              <label>
+                Recupero (default)
+                <input
+                  value={form.recupero_default}
+                  placeholder="es. 1 min, 90 sec"
+                  onChange={(e) => setForm({ ...form, recupero_default: e.target.value })}
                 />
               </label>
             </div>

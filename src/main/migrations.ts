@@ -86,6 +86,64 @@ const MIGRATIONS: string[] = [
   CREATE INDEX idx_esercizi_categoria ON esercizi(categoria_id);
   CREATE INDEX idx_sedute_paziente ON sedute(paziente_id);
   CREATE INDEX idx_seduta_esercizi_seduta ON seduta_esercizi(seduta_id);
+  `,
+
+  // 2 — v1.1: struttura seduta per fase (sezioni), test di avanzamento,
+  //     obiettivi raggiunti persistenti sul paziente, campo recupero
+  `
+  ALTER TABLE esercizi ADD COLUMN recupero_default TEXT;
+  ALTER TABLE seduta_esercizi ADD COLUMN recupero TEXT;
+
+  CREATE TABLE sezioni (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    fase_id INTEGER NOT NULL REFERENCES fasi(id) ON DELETE CASCADE,
+    nome TEXT NOT NULL,
+    ordine INTEGER NOT NULL DEFAULT 0
+  );
+
+  CREATE TABLE sezione_categorie (
+    sezione_id INTEGER NOT NULL REFERENCES sezioni(id) ON DELETE CASCADE,
+    categoria_id INTEGER NOT NULL REFERENCES categorie(id) ON DELETE CASCADE,
+    ordine INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (sezione_id, categoria_id)
+  );
+
+  CREATE TABLE test_avanzamento (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    fase_id INTEGER NOT NULL REFERENCES fasi(id) ON DELETE CASCADE,
+    nome TEXT NOT NULL,
+    ordine INTEGER NOT NULL DEFAULT 0
+  );
+
+  CREATE TABLE paziente_obiettivi (
+    paziente_id INTEGER NOT NULL REFERENCES pazienti(id) ON DELETE CASCADE,
+    obiettivo_id INTEGER NOT NULL REFERENCES obiettivi(id) ON DELETE CASCADE,
+    raggiunto_il TEXT,
+    PRIMARY KEY (paziente_id, obiettivo_id)
+  );
+
+  CREATE TABLE paziente_test (
+    paziente_id INTEGER NOT NULL REFERENCES pazienti(id) ON DELETE CASCADE,
+    test_id INTEGER NOT NULL REFERENCES test_avanzamento(id) ON DELETE CASCADE,
+    eseguito INTEGER NOT NULL DEFAULT 0,
+    valore TEXT,
+    PRIMARY KEY (paziente_id, test_id)
+  );
+
+  CREATE TABLE seduta_sezioni (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    seduta_id INTEGER NOT NULL REFERENCES sedute(id) ON DELETE CASCADE,
+    sezione_id INTEGER REFERENCES sezioni(id) ON DELETE SET NULL,
+    nome TEXT NOT NULL,
+    ordine INTEGER NOT NULL DEFAULT 0
+  );
+
+  ALTER TABLE seduta_esercizi ADD COLUMN seduta_sezione_id INTEGER
+    REFERENCES seduta_sezioni(id) ON DELETE SET NULL;
+
+  CREATE INDEX idx_sezioni_fase ON sezioni(fase_id);
+  CREATE INDEX idx_test_avanzamento_fase ON test_avanzamento(fase_id);
+  CREATE INDEX idx_seduta_sezioni_seduta ON seduta_sezioni(seduta_id);
   `
 ]
 

@@ -6,12 +6,15 @@ import PazientiPage from './pages/PazientiPage'
 import AuthGate from './components/AuthGate'
 import { errMsg } from './lib'
 
-type Sezione = 'patologie' | 'categorie' | 'esercizi' | 'pazienti'
+type Sezione = 'pazienti' | 'configurazione'
 
-const SEZIONI: { key: Sezione; label: string }[] = [
+type TabConfig = 'patologie' | 'categorie' | 'esercizi' | 'export'
+
+const TAB_CONFIG: { key: TabConfig; label: string }[] = [
   { key: 'patologie', label: 'Patologie e fasi' },
   { key: 'categorie', label: 'Categorie esercizi' },
-  { key: 'esercizi', label: 'Libreria esercizi' }
+  { key: 'esercizi', label: 'Libreria esercizi' },
+  { key: 'export', label: 'Export' }
 ]
 
 export default function App(): React.JSX.Element {
@@ -28,7 +31,7 @@ export default function App(): React.JSX.Element {
     <div className="app">
       <aside className="sidebar">
         <h1>Riabilitazione</h1>
-        <div className="nav-group-label">Lavoro quotidiano</div>
+        <div className="nav-group-label">Diario pazienti</div>
         <nav>
           <button
             className={sezione === 'pazienti' ? 'active' : ''}
@@ -37,31 +40,84 @@ export default function App(): React.JSX.Element {
             Pazienti e sedute
           </button>
         </nav>
-        <div className="nav-group-label">Configurazione</div>
-        <nav>
-          {SEZIONI.map((s) => (
-            <button
-              key={s.key}
-              className={sezione === s.key ? 'active' : ''}
-              onClick={() => setSezione(s.key)}
-            >
-              {s.label}
-            </button>
-          ))}
-        </nav>
         <div className="sidebar-footer">
+          <button
+            className={sezione === 'configurazione' ? 'active' : ''}
+            onClick={() => setSezione('configurazione')}
+          >
+            Configurazione
+          </button>
           <button onClick={() => setImpostazioni(true)}>Dati e backup</button>
           <button onClick={() => setCambiaPw(true)}>Cambia password</button>
         </div>
       </aside>
       <main className="content">
-        {sezione === 'patologie' && <PatologiePage />}
-        {sezione === 'categorie' && <CategoriePage />}
-        {sezione === 'esercizi' && <EserciziPage />}
         {sezione === 'pazienti' && <PazientiPage />}
+        {sezione === 'configurazione' && <ConfigurazionePage />}
       </main>
       {cambiaPw && <CambiaPasswordModal onClose={() => setCambiaPw(false)} />}
       {impostazioni && <ImpostazioniModal onClose={() => setImpostazioni(false)} />}
+    </div>
+  )
+}
+
+function ConfigurazionePage(): React.JSX.Element {
+  const [tab, setTab] = useState<TabConfig>('patologie')
+
+  return (
+    <div className="config-wrapper">
+      <div className="config-tabs config-tabs-top">
+        {TAB_CONFIG.map((t) => (
+          <button key={t.key} className={tab === t.key ? 'active' : ''} onClick={() => setTab(t.key)}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+      {tab === 'patologie' && <PatologiePage />}
+      {tab === 'categorie' && <CategoriePage />}
+      {tab === 'esercizi' && <EserciziPage />}
+      {tab === 'export' && <ExportConfigPage />}
+    </div>
+  )
+}
+
+function ExportConfigPage(): React.JSX.Element {
+  const [cartella, setCartella] = useState('')
+
+  useEffect(() => {
+    void window.api.impostazioni.info().then((i) => setCartella(i.cartellaExport))
+  }, [])
+
+  const cambia = async (): Promise<void> => {
+    try {
+      const nuova = await window.api.impostazioni.cambiaCartellaExport()
+      if (nuova) setCartella(nuova)
+    } catch (e) {
+      alert(errMsg(e))
+    }
+  }
+
+  return (
+    <div className="page">
+      <header className="page-header">
+        <h2>Export</h2>
+        <p>
+          Cartella di destinazione proposta quando esporti una seduta o uno storico in PDF/Word.
+          Puoi comunque cambiarla di volta in volta nella finestra di salvataggio: l&apos;ultima
+          cartella usata viene ricordata.
+        </p>
+      </header>
+      <div className="single-col">
+        <section className="card">
+          <h3>Cartella di destinazione</h3>
+          <div className="cartella-path">{cartella}</div>
+          <div className="modal-actions">
+            <button className="primary" onClick={() => void cambia()}>
+              Cambia cartella…
+            </button>
+          </div>
+        </section>
+      </div>
     </div>
   )
 }

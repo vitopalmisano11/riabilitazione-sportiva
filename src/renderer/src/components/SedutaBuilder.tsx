@@ -16,7 +16,11 @@ interface Props {
   onClose: (salvata: boolean) => void
 }
 
-type Riga = SedutaEsercizioDettaglio
+interface SezioneBuilder {
+  sezione_id: number | null
+  nome: string
+  righe: SedutaEsercizioDettaglio[]
+}
 
 export default function SedutaBuilder({
   paziente,
@@ -29,24 +33,26 @@ export default function SedutaBuilder({
   const [faseId, setFaseId] = useState<number | null>(paziente.fase_corrente_id)
   const [faseNome, setFaseNome] = useState<string | null>(paziente.fase_nome)
   const [note, setNote] = useState('')
+  const [sezioni, setSezioni] = useState<SezioneBuilder[]>([])
   const [obiettivi, setObiettivi] = useState<Obiettivo[]>([])
-  const [obCats, setObCats] = useState<Record<number, number[]>>({})
-  const [selOb, setSelOb] = useState<number[]>([])
-  const [righe, setRighe] = useState<Riga[]>([])
+  const [raggiunti, setRaggiunti] = useState<number[]>([])
+  const [templateCats, setTemplateCats] = useState<Record<number, number[]>>({})
   const [libreria, setLibreria] = useState<EsercizioConCategoria[]>([])
   const [categorie, setCategorie] = useState<Categoria[]>([])
-  const [ricerca, setRicerca] = useState('')
-  const [fuoriSchema, setFuoriSchema] = useState('')
+  const [ricerche, setRicerche] = useState<Record<number, string>>({})
+  const [nuovaSezione, setNuovaSezione] = useState('')
 
   useEffect(() => {
     void (async () => {
       try {
-        const [lib, cats] = await Promise.all([
+        const [lib, cats, ragg] = await Promise.all([
           window.api.esercizi.list(false),
-          window.api.categorie.list()
+          window.api.categorie.list(),
+          window.api.pazienti.obiettiviRaggiunti(paziente.id)
         ])
         setLibreria(lib)
         setCategorie(cats)
+        setRaggiunti(ragg)
 
         let fase = paziente.fase_corrente_id
         let faseN: string | null = paziente.fase_nome
@@ -54,27 +60,26 @@ export default function SedutaBuilder({
           const s = await window.api.sedute.get(sedutaId)
           setData(s.data)
           setNote(s.note ?? '')
-          setSelOb(s.obiettivi)
-          setRighe(s.esercizi)
+          setSezioni(s.sezioni.map((sz) => ({ ...sz, righe: sz.esercizi })))
           fase = s.fase_id
           faseN = s.fase_nome
         } else if (duplicaDa != null) {
           const s = await window.api.sedute.get(duplicaDa)
-          setRighe(s.esercizi)
-          setSelOb(s.obiettivi) // filtrati sotto rispetto alla fase corrente
+          setSezioni(s.sezioni.map((sz) => ({ ...sz, righe: sz.esercizi })))
         }
         setFaseId(fase)
         setFaseNome(faseN)
 
         if (fase != null) {
-          const obs = await window.api.obiettivi.list(fase)
+          const [obs, template] = await Promise.all([
+            window.api.obiettivi.list(fase),
+            window.api.sezioni.list(fase)
+          ])
           setObiettivi(obs)
-          const entries = await Promise.all(
-            obs.map(async (o) => [o.id, await window.api.obiettivi.categorie(o.id)] as const)
-          )
-          setObCats(Object.fromEntries(entries))
-          if (sedutaId == null && duplicaDa != null) {
-            setSelOb((prev) => prev.filter((id) => obs.some((o) => o.id === id)))
+          setTemplateCats(Object.fromEntries(template.map((t) => [t.id, t.categoria_ids])))
+          if (sedutaId == null && duplicaDa == null) {
+            // nuova seduta: struttura di default dal template della fase
+            setSezioni(template.map((t) => ({ sezione_id: t.id, nome: t.nome, righe: [] })))
           }
         }
         setPronto(true)
@@ -86,68 +91,108 @@ export default function SedutaBuilder({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const catAttive = useMemo(() => {
-    const ids: number[] = []
-    for (const o of obiettivi) {
-      if (!selOb.includes(o.id)) continue
-      for (const c of obCats[o.id] ?? []) if (!ids.includes(c)) ids.push(c)
-    }
-    return ids
-  }, [obiettivi, selOb, obCats])
+  const totaleEsercizi = useMemo(
+    () => sezioni.reduce((n, s) => n + s.righe.length, 0),
+    [sezioni]
+  )
 
-  const perCategoria = useMemo(() => {
-    const q = ricerca.trim().toLowerCase()
-    return catAttive.map((cid) => ({
-      id: cid,
-      nome: categorie.find((c) => c.id === cid)?.nome ?? '?',
-      esercizi: libreria.filter(
-        (e) => e.categoria_id === cid && (q === '' || e.nome.toLowerCase().includes(q))
+  const nomeCategoria = (cid: number): string => categorie.find((c) => c.id === cid)?.nome ?? '?'
+
+  // Esercizi proposti per una sezione: quelli delle sue categorie (nell'ordine configurato)
+  const proposte = (s: SezioneBuilder): EsercizioConCategoria[] => {
+    if (s.sezione_id == null) return []
+    const cats = templateCats[s.sezione_id] ?? []
+    return cats.flatMap((cid) => libreria.filter((e) => e.categoria_id === cid))
+  }
+
+  const aggiungi = (idx: number, e: EsercizioConCategoria): void => {
+    setSezioni(
+      sezioni.map((s, i) =>
+        i === idx && !s.righe.some((r) => r.esercizio_id === e.id)
+          ? {
+              ...s,
+              righe: [
+                ...s.righe,
+                {
+                  esercizio_id: e.id,
+                  nome: e.nome,
+                  categoria_nome: e.categoria_nome,
+                  serie: e.serie_default,
+                  ripetizioni: e.ripetizioni_default,
+                  carico: e.carico_default,
+                  recupero: e.recupero_default,
+                  nota: null
+                }
+              ]
+            }
+          : s
       )
-    }))
-  }, [catAttive, categorie, libreria, ricerca])
-
-  const giaAggiunti = useMemo(() => new Set(righe.map((r) => r.esercizio_id)), [righe])
-
-  const risultatiFuori = useMemo(() => {
-    const q = fuoriSchema.trim().toLowerCase()
-    if (q.length < 2) return []
-    return libreria
-      .filter((e) => e.nome.toLowerCase().includes(q) && !giaAggiunti.has(e.id))
-      .slice(0, 8)
-  }, [fuoriSchema, libreria, giaAggiunti])
-
-  const aggiungi = (e: EsercizioConCategoria): void => {
-    if (giaAggiunti.has(e.id)) return
-    setRighe([
-      ...righe,
-      {
-        esercizio_id: e.id,
-        nome: e.nome,
-        categoria_nome: e.categoria_nome,
-        serie: e.serie_default,
-        ripetizioni: e.ripetizioni_default,
-        carico: e.carico_default,
-        nota: null
-      }
-    ])
+    )
   }
 
   const updateRiga = (
-    idx: number,
-    campo: 'serie' | 'ripetizioni' | 'carico' | 'nota',
+    idxSez: number,
+    idxRiga: number,
+    campo: 'serie' | 'ripetizioni' | 'carico' | 'recupero' | 'nota',
     valore: string
   ): void => {
-    setRighe(righe.map((r, i) => (i === idx ? { ...r, [campo]: valore } : r)))
+    setSezioni(
+      sezioni.map((s, i) =>
+        i === idxSez
+          ? { ...s, righe: s.righe.map((r, j) => (j === idxRiga ? { ...r, [campo]: valore } : r)) }
+          : s
+      )
+    )
   }
 
-  const rimuovi = (idx: number): void => setRighe(righe.filter((_, i) => i !== idx))
+  const rimuoviRiga = (idxSez: number, idxRiga: number): void => {
+    setSezioni(
+      sezioni.map((s, i) =>
+        i === idxSez ? { ...s, righe: s.righe.filter((_, j) => j !== idxRiga) } : s
+      )
+    )
+  }
 
-  const muovi = (idx: number, dir: -1 | 1): void => {
+  const muoviRiga = (idxSez: number, idxRiga: number, dir: -1 | 1): void => {
+    setSezioni(
+      sezioni.map((s, i) => {
+        if (i !== idxSez) return s
+        const j = idxRiga + dir
+        if (j < 0 || j >= s.righe.length) return s
+        const righe = [...s.righe]
+        ;[righe[idxRiga], righe[j]] = [righe[j], righe[idxRiga]]
+        return { ...s, righe }
+      })
+    )
+  }
+
+  const muoviSezione = (idx: number, dir: -1 | 1): void => {
     const j = idx + dir
-    if (j < 0 || j >= righe.length) return
-    const next = [...righe]
+    if (j < 0 || j >= sezioni.length) return
+    const next = [...sezioni]
     ;[next[idx], next[j]] = [next[j], next[idx]]
-    setRighe(next)
+    setSezioni(next)
+  }
+
+  const rimuoviSezione = (idx: number): void => {
+    const s = sezioni[idx]
+    if (
+      s.righe.length > 0 &&
+      !confirm(`Rimuovere la sezione "${s.nome}" e i suoi ${s.righe.length} esercizi da questa seduta?`)
+    ) {
+      return
+    }
+    setSezioni(sezioni.filter((_, i) => i !== idx))
+  }
+
+  // window.prompt non è supportato in Electron: rename inline della sezione
+  const [editSez, setEditSez] = useState<{ idx: number; nome: string } | null>(null)
+
+  const aggiungiSezione = (): void => {
+    const nome = nuovaSezione.trim()
+    if (!nome) return
+    setSezioni([...sezioni, { sezione_id: null, nome, righe: [] }])
+    setNuovaSezione('')
   }
 
   const salva = async (): Promise<void> => {
@@ -155,7 +200,7 @@ export default function SedutaBuilder({
       alert('Imposta la data della seduta.')
       return
     }
-    if (righe.length === 0) {
+    if (totaleEsercizi === 0) {
       alert('Aggiungi almeno un esercizio alla seduta.')
       return
     }
@@ -164,14 +209,18 @@ export default function SedutaBuilder({
       data,
       fase_id: faseId,
       note: note.trim() || null,
-      obiettivi: selOb,
-      esercizi: righe.map((r) => ({
-        esercizio_id: r.esercizio_id,
-        serie: r.serie?.trim() || null,
-        ripetizioni: r.ripetizioni?.trim() || null,
-        carico: r.carico?.trim() || null,
-        nota: r.nota?.trim() || null
-      }))
+      sezioni: sezioni.map((s) => ({ sezione_id: s.sezione_id, nome: s.nome })),
+      esercizi: sezioni.flatMap((s, i) =>
+        s.righe.map((r) => ({
+          esercizio_id: r.esercizio_id,
+          serie: r.serie?.trim() || null,
+          ripetizioni: r.ripetizioni?.trim() || null,
+          carico: r.carico?.trim() || null,
+          recupero: r.recupero?.trim() || null,
+          nota: r.nota?.trim() || null,
+          sezioneIndex: i
+        }))
+      )
     }
     try {
       if (sedutaId == null) await window.api.sedute.create(input)
@@ -191,7 +240,7 @@ export default function SedutaBuilder({
   }
 
   return (
-    <div className="page">
+    <div className="page builder-col">
       <header className="page-header builder-header">
         <div>
           <h2>
@@ -221,125 +270,126 @@ export default function SedutaBuilder({
         </div>
       </header>
 
-      <div className="builder-layout">
-        <div className="builder-left">
-          <section className="card">
-            <h3>Obiettivi della fase</h3>
-            {faseId == null ? (
-              <p className="hint">
-                Il paziente non ha una fase corrente: impostala nella sua scheda per vedere gli
-                obiettivi. Puoi comunque aggiungere esercizi con la ricerca in libreria qui sotto.
-              </p>
-            ) : obiettivi.length === 0 ? (
-              <p className="hint">
-                Questa fase non ha obiettivi: definiscili in &ldquo;Patologie e fasi&rdquo;.
-              </p>
-            ) : (
-              <ul className="checkbox-list">
-                {obiettivi.map((o) => (
-                  <li key={o.id}>
-                    <label>
-                      <input
-                        type="checkbox"
-                        checked={selOb.includes(o.id)}
-                        onChange={(e) =>
-                          setSelOb(
-                            e.target.checked
-                              ? [...selOb, o.id]
-                              : selOb.filter((id) => id !== o.id)
+      {faseId != null && obiettivi.length > 0 && (
+        <section className="card obiettivi-info">
+          <h3>Obiettivi da lavorare</h3>
+          <div className="chips">
+            {obiettivi.map((o) => (
+              <span
+                key={o.id}
+                className={raggiunti.includes(o.id) ? 'chip raggiunto' : 'chip'}
+                title={raggiunti.includes(o.id) ? 'Obiettivo raggiunto' : 'Da lavorare'}
+              >
+                {o.nome}
+              </span>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {sezioni.length === 0 && (
+        <section className="card">
+          <p className="hint">
+            {faseId == null
+              ? 'Il paziente non ha una fase corrente: imposta la fase nella sua scheda, oppure aggiungi sezioni manualmente qui sotto.'
+              : 'Questa fase non ha una struttura di seduta configurata: definiscila in "Patologie e fasi" oppure aggiungi le sezioni manualmente qui sotto.'}
+          </p>
+        </section>
+      )}
+
+      {sezioni.map((s, idxSez) => {
+        const ricerca = (ricerche[idxSez] ?? '').trim().toLowerCase()
+        const inSezione = new Set(s.righe.map((r) => r.esercizio_id))
+        const daProporre =
+          ricerca.length >= 2
+            ? libreria.filter((e) => e.nome.toLowerCase().includes(ricerca) && !inSezione.has(e.id)).slice(0, 8)
+            : proposte(s).filter((e) => !inSezione.has(e.id))
+        return (
+          <section key={idxSez} className="card sezione-card">
+            <div className="sezione-testata">
+              {editSez?.idx === idxSez ? (
+                <span className="edit-row">
+                  <input
+                    autoFocus
+                    value={editSez.nome}
+                    onChange={(e) => setEditSez({ idx: idxSez, nome: e.target.value })}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && editSez.nome.trim()) {
+                        setSezioni(
+                          sezioni.map((x, i) =>
+                            i === idxSez ? { ...x, nome: editSez.nome.trim() } : x
                           )
-                        }
-                      />
-                      {o.nome}
-                    </label>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+                        )
+                        setEditSez(null)
+                      }
+                      if (e.key === 'Escape') setEditSez(null)
+                    }}
+                  />
+                  <button
+                    onClick={() => {
+                      if (editSez.nome.trim()) {
+                        setSezioni(
+                          sezioni.map((x, i) =>
+                            i === idxSez ? { ...x, nome: editSez.nome.trim() } : x
+                          )
+                        )
+                      }
+                      setEditSez(null)
+                    }}
+                  >
+                    OK
+                  </button>
+                </span>
+              ) : (
+                <h3>{s.nome}</h3>
+              )}
+              <span className="item-actions-static">
+                <button title="Sposta su" disabled={idxSez === 0} onClick={() => muoviSezione(idxSez, -1)}>
+                  ↑
+                </button>
+                <button
+                  title="Sposta giù"
+                  disabled={idxSez === sezioni.length - 1}
+                  onClick={() => muoviSezione(idxSez, 1)}
+                >
+                  ↓
+                </button>
+                <button title="Rinomina" onClick={() => setEditSez({ idx: idxSez, nome: s.nome })}>
+                  ✎
+                </button>
+                <button title="Rimuovi sezione" className="danger" onClick={() => rimuoviSezione(idxSez)}>
+                  ✕
+                </button>
+              </span>
+            </div>
 
-          {catAttive.length > 0 && (
-            <section className="card">
-              <h3>Esercizi proposti</h3>
-              <input
-                type="search"
-                className="filtro-esercizi"
-                placeholder="Filtra esercizi…"
-                value={ricerca}
-                onChange={(e) => setRicerca(e.target.value)}
-              />
-              {perCategoria.map((cat) => (
-                <div key={cat.id} className="cat-gruppo">
-                  <h4>{cat.nome}</h4>
-                  {cat.esercizi.length === 0 ? (
-                    <p className="hint">Nessun esercizio in questa categoria.</p>
-                  ) : (
-                    <ul className="esercizi-proposti">
-                      {cat.esercizi.map((e) => (
-                        <li key={e.id}>
-                          <span className="item-nome">{e.nome}</span>
-                          <span className="default-hint">
-                            {[e.serie_default, e.ripetizioni_default].filter(Boolean).join(' × ')}
-                          </span>
-                          <button disabled={giaAggiunti.has(e.id)} onClick={() => aggiungi(e)}>
-                            {giaAggiunti.has(e.id) ? '✓' : '+ Aggiungi'}
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              ))}
-            </section>
-          )}
-
-          <section className="card">
-            <h3>Aggiungi dalla libreria</h3>
-            <input
-              type="search"
-              className="filtro-esercizi"
-              placeholder="Cerca in tutta la libreria (min 2 lettere)…"
-              value={fuoriSchema}
-              onChange={(e) => setFuoriSchema(e.target.value)}
-            />
-            {risultatiFuori.length > 0 && (
-              <ul className="esercizi-proposti">
-                {risultatiFuori.map((e) => (
-                  <li key={e.id}>
-                    <span className="item-nome">{e.nome}</span>
-                    <span className="default-hint">{e.categoria_nome}</span>
-                    <button onClick={() => aggiungi(e)}>+ Aggiungi</button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-        </div>
-
-        <div className="builder-right">
-          <section className="card">
-            <h3>Schema della seduta ({righe.length})</h3>
-            {righe.length === 0 ? (
-              <p className="hint">Seleziona gli obiettivi e aggiungi gli esercizi.</p>
-            ) : (
+            {s.righe.length > 0 && (
               <ul className="righe-seduta">
-                {righe.map((r, idx) => (
+                {s.righe.map((r, idxRiga) => (
                   <li key={r.esercizio_id}>
                     <div className="riga-testata">
                       <span className="item-nome">{r.nome}</span>
                       <span className="default-hint">{r.categoria_nome}</span>
                       <span className="item-actions-static">
-                        <button title="Sposta su" disabled={idx === 0} onClick={() => muovi(idx, -1)}>
+                        <button
+                          title="Sposta su"
+                          disabled={idxRiga === 0}
+                          onClick={() => muoviRiga(idxSez, idxRiga, -1)}
+                        >
                           ↑
                         </button>
                         <button
                           title="Sposta giù"
-                          disabled={idx === righe.length - 1}
-                          onClick={() => muovi(idx, 1)}
+                          disabled={idxRiga === s.righe.length - 1}
+                          onClick={() => muoviRiga(idxSez, idxRiga, 1)}
                         >
                           ↓
                         </button>
-                        <button title="Rimuovi" className="danger" onClick={() => rimuovi(idx)}>
+                        <button
+                          title="Rimuovi"
+                          className="danger"
+                          onClick={() => rimuoviRiga(idxSez, idxRiga)}
+                        >
                           ✕
                         </button>
                       </span>
@@ -349,21 +399,31 @@ export default function SedutaBuilder({
                         Serie
                         <input
                           value={r.serie ?? ''}
-                          onChange={(e) => updateRiga(idx, 'serie', e.target.value)}
+                          onChange={(e) => updateRiga(idxSez, idxRiga, 'serie', e.target.value)}
                         />
                       </label>
                       <label>
                         Ripetizioni
                         <input
                           value={r.ripetizioni ?? ''}
-                          onChange={(e) => updateRiga(idx, 'ripetizioni', e.target.value)}
+                          onChange={(e) =>
+                            updateRiga(idxSez, idxRiga, 'ripetizioni', e.target.value)
+                          }
                         />
                       </label>
                       <label>
                         Carico
                         <input
                           value={r.carico ?? ''}
-                          onChange={(e) => updateRiga(idx, 'carico', e.target.value)}
+                          onChange={(e) => updateRiga(idxSez, idxRiga, 'carico', e.target.value)}
+                        />
+                      </label>
+                      <label>
+                        Recupero
+                        <input
+                          value={r.recupero ?? ''}
+                          placeholder={'es. 1′'}
+                          onChange={(e) => updateRiga(idxSez, idxRiga, 'recupero', e.target.value)}
                         />
                       </label>
                     </div>
@@ -371,24 +431,84 @@ export default function SedutaBuilder({
                       className="riga-nota"
                       placeholder="Nota per questo esercizio…"
                       value={r.nota ?? ''}
-                      onChange={(e) => updateRiga(idx, 'nota', e.target.value)}
+                      onChange={(e) => updateRiga(idxSez, idxRiga, 'nota', e.target.value)}
                     />
                   </li>
                 ))}
               </ul>
             )}
-            <label className="field note-seduta">
-              Note della seduta
-              <textarea
-                rows={3}
-                value={note}
-                placeholder="Osservazioni generali, cose da riprendere la prossima volta…"
-                onChange={(e) => setNote(e.target.value)}
+
+            <div className="aggiungi-area">
+              <input
+                type="search"
+                className="filtro-esercizi"
+                placeholder={
+                  s.sezione_id != null
+                    ? 'Filtra i proposti o cerca in tutta la libreria…'
+                    : 'Cerca un esercizio nella libreria (min 2 lettere)…'
+                }
+                value={ricerche[idxSez] ?? ''}
+                onChange={(e) => setRicerche({ ...ricerche, [idxSez]: e.target.value })}
               />
-            </label>
+              {daProporre.length > 0 ? (
+                <ul className="esercizi-proposti">
+                  {daProporre.map((e) => (
+                    <li key={e.id}>
+                      <span className="item-nome">{e.nome}</span>
+                      <span className="default-hint">
+                        {[nomeCategoria(e.categoria_id), [e.serie_default, e.ripetizioni_default].filter(Boolean).join(' × ')]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </span>
+                      <button onClick={() => aggiungi(idxSez, e)}>+ Aggiungi</button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                s.sezione_id != null &&
+                ricerca.length < 2 && (
+                  <p className="hint">
+                    Nessun esercizio proposto: associa categorie alla sezione in configurazione, o
+                    cerca nella libreria.
+                  </p>
+                )
+              )}
+            </div>
           </section>
+        )
+      })}
+
+      <section className="card">
+        <div className="add-row">
+          <input
+            placeholder="Aggiungi una sezione a questa seduta… (es. Defaticamento)"
+            value={nuovaSezione}
+            onChange={(e) => setNuovaSezione(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') aggiungiSezione()
+            }}
+          />
+          <button onClick={aggiungiSezione}>Aggiungi sezione</button>
         </div>
-      </div>
+      </section>
+
+      <section className="card">
+        <label className="field note-seduta">
+          Note della seduta
+          <textarea
+            rows={3}
+            value={note}
+            placeholder="Osservazioni generali, cose da riprendere la prossima volta…"
+            onChange={(e) => setNote(e.target.value)}
+          />
+        </label>
+        <div className="modal-actions">
+          <button onClick={() => onClose(false)}>Annulla</button>
+          <button className="primary" onClick={() => void salva()}>
+            Salva seduta ({totaleEsercizi} esercizi)
+          </button>
+        </div>
+      </section>
     </div>
   )
 }

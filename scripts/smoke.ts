@@ -23,7 +23,7 @@ db.pragma('foreign_keys = ON')
 
 runMigrations(db)
 runMigrations(db) // idempotente
-assert.equal(db.pragma('user_version', { simple: true }), 1)
+assert.equal(db.pragma('user_version', { simple: true }), 2)
 
 const count = (table: string): number =>
   (db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n
@@ -60,29 +60,55 @@ assert.throws(() => db.prepare('DELETE FROM patologie WHERE id = ?').run(patId),
 assert.throws(() => db.prepare('DELETE FROM fasi WHERE id = ?').run(faseId), /FOREIGN KEY/)
 db.prepare('DELETE FROM pazienti WHERE id = ?').run(pazId)
 
-// Sedute: un esercizio usato nel diario non si può eliminare (va archiviato),
-// ma eliminare il paziente elimina in cascata sedute ed esercizi collegati
+// Sedute (v1.1: con sezioni e recupero): un esercizio usato nel diario non si
+// può eliminare (va archiviato), ma eliminare il paziente elimina in cascata
+// sedute, sezioni ed esercizi collegati. Obiettivi raggiunti e test seguono il paziente.
 const pazId2 = db
   .prepare("INSERT INTO pazienti (nome, cognome) VALUES ('Anna', 'Bianchi')")
   .run().lastInsertRowid
 const sedId = db
   .prepare("INSERT INTO sedute (paziente_id, data, fase_id) VALUES (?, '2026-08-10', ?)")
   .run(pazId2, faseId).lastInsertRowid
-db.prepare('INSERT INTO seduta_obiettivi (seduta_id, obiettivo_id) VALUES (?, ?)').run(sedId, obId)
+const sezTemplateId = db
+  .prepare("INSERT INTO sezioni (fase_id, nome, ordine) VALUES (?, 'Riscaldamento', 0)")
+  .run(faseId).lastInsertRowid
+db.prepare('INSERT INTO sezione_categorie (sezione_id, categoria_id, ordine) VALUES (?, ?, 0)').run(
+  sezTemplateId,
+  catId
+)
+const sedSezId = db
+  .prepare("INSERT INTO seduta_sezioni (seduta_id, sezione_id, nome, ordine) VALUES (?, ?, 'Riscaldamento', 0)")
+  .run(sedId, sezTemplateId).lastInsertRowid
 db.prepare(
-  "INSERT INTO seduta_esercizi (seduta_id, esercizio_id, serie, ripetizioni, ordine) VALUES (?, ?, '3', '10', 0)"
-).run(sedId, esId)
+  "INSERT INTO seduta_esercizi (seduta_id, esercizio_id, serie, ripetizioni, recupero, ordine, seduta_sezione_id) VALUES (?, ?, '3', '10', '1 min', 0, ?)"
+).run(sedId, esId, sedSezId)
+db.prepare('INSERT INTO paziente_obiettivi (paziente_id, obiettivo_id) VALUES (?, ?)').run(pazId2, obId)
+const testId = db
+  .prepare("INSERT INTO test_avanzamento (fase_id, nome, ordine) VALUES (?, 'Hop test (cm)', 0)")
+  .run(faseId).lastInsertRowid
+db.prepare("INSERT INTO paziente_test (paziente_id, test_id, eseguito, valore) VALUES (?, ?, 1, '120')").run(
+  pazId2,
+  testId
+)
 assert.throws(() => db.prepare('DELETE FROM esercizi WHERE id = ?').run(esId), /FOREIGN KEY/)
 db.prepare('DELETE FROM pazienti WHERE id = ?').run(pazId2)
 assert.equal(count('sedute'), 0)
-assert.equal(count('seduta_obiettivi'), 0)
+assert.equal(count('seduta_sezioni'), 0)
 assert.equal(count('seduta_esercizi'), 0)
+assert.equal(count('paziente_obiettivi'), 0)
+assert.equal(count('paziente_test'), 0)
+// il template della fase resta intatto
+assert.equal(count('sezioni'), 1)
+assert.equal(count('test_avanzamento'), 1)
 
-// CASCADE: eliminare la patologia elimina fasi, obiettivi e associazioni…
+// CASCADE: eliminare la patologia elimina fasi, obiettivi, sezioni, test e associazioni…
 db.prepare('DELETE FROM patologie WHERE id = ?').run(patId)
 assert.equal(count('fasi'), 0)
 assert.equal(count('obiettivi'), 0)
 assert.equal(count('obiettivo_categorie'), 0)
+assert.equal(count('sezioni'), 0)
+assert.equal(count('sezione_categorie'), 0)
+assert.equal(count('test_avanzamento'), 0)
 // …ma la libreria esercizi resta intatta
 assert.equal(count('esercizi'), 1)
 assert.equal(count('categorie'), 1)
@@ -104,14 +130,20 @@ const seduteExport = [
     fase_nome: 'Fase iniziale',
     note: 'Buona risposta, <attenzione> al gonfiore',
     obiettivi: ['Controllo del dolore e gonfiore'],
-    esercizi: [
+    sezioni: [
       {
-        nome: 'Mobilizzazione & scivolamenti rotulei',
-        categoria_nome: 'Mobilizzazione',
-        serie: '3',
-        ripetizioni: '10',
-        carico: null,
-        nota: 'lento'
+        nome: 'Riscaldamento',
+        esercizi: [
+          {
+            nome: 'Mobilizzazione & scivolamenti rotulei',
+            categoria_nome: 'Mobilizzazione',
+            serie: '3',
+            ripetizioni: '10',
+            carico: null,
+            recupero: '1 min',
+            nota: 'lento'
+          }
+        ]
       }
     ]
   }
@@ -119,6 +151,7 @@ const seduteExport = [
 const html = generaHtml(pazExport, seduteExport)
 assert.ok(html.includes('Rossi') && html.includes('Seduta del 10/08/2026'))
 assert.ok(html.includes('Mobilizzazione &amp; scivolamenti rotulei')) // escaping HTML
+assert.ok(html.includes('Riscaldamento') && html.includes('Recupero') && html.includes('1 min'))
 
 // --- Autenticazione e cifratura ---
 const dirAuth = mkdtempSync(join(tmpdir(), 'riab-auth-'))

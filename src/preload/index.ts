@@ -38,10 +38,23 @@ const api: Api = {
     create: (faseId: number, nome: string) => invoke('obiettivi:create', faseId, nome),
     update: (id: number, nome: string) => invoke('obiettivi:update', id, nome),
     remove: (id: number) => invoke('obiettivi:delete', id),
-    reorder: (ids: number[]) => invoke('obiettivi:reorder', ids),
-    categorie: (obiettivoId: number) => invoke('obiettivi:categorie', obiettivoId),
-    setCategoria: (obiettivoId: number, categoriaId: number, attiva: boolean) =>
-      invoke('obiettivi:setCategoria', obiettivoId, categoriaId, attiva)
+    reorder: (ids: number[]) => invoke('obiettivi:reorder', ids)
+  },
+  sezioni: {
+    list: (faseId: number) => invoke('sezioni:list', faseId),
+    create: (faseId: number, nome: string) => invoke('sezioni:create', faseId, nome),
+    update: (id: number, nome: string) => invoke('sezioni:update', id, nome),
+    remove: (id: number) => invoke('sezioni:delete', id),
+    reorder: (ids: number[]) => invoke('sezioni:reorder', ids),
+    setCategorie: (sezioneId: number, categoriaIds: number[]) =>
+      invoke('sezioni:setCategorie', sezioneId, categoriaIds)
+  },
+  testAvanzamento: {
+    list: (faseId: number) => invoke('testAvanzamento:list', faseId),
+    create: (faseId: number, nome: string) => invoke('testAvanzamento:create', faseId, nome),
+    update: (id: number, nome: string) => invoke('testAvanzamento:update', id, nome),
+    remove: (id: number) => invoke('testAvanzamento:delete', id),
+    reorder: (ids: number[]) => invoke('testAvanzamento:reorder', ids)
   },
   categorie: {
     list: () => invoke('categorie:list'),
@@ -62,7 +75,14 @@ const api: Api = {
     update: (id: number, data: PazienteInput) => invoke('pazienti:update', id, data),
     setPatologiaFase: (id: number, patologiaId: number | null, faseId: number | null) =>
       invoke('pazienti:setPatologiaFase', id, patologiaId, faseId),
-    remove: (id: number) => invoke('pazienti:delete', id)
+    remove: (id: number) => invoke('pazienti:delete', id),
+    obiettiviRaggiunti: (pazienteId: number) => invoke('pazienti:obiettiviRaggiunti', pazienteId),
+    setObiettivoRaggiunto: (pazienteId: number, obiettivoId: number, raggiunto: boolean) =>
+      invoke('pazienti:setObiettivoRaggiunto', pazienteId, obiettivoId, raggiunto),
+    testValori: (pazienteId: number, faseId: number) =>
+      invoke('pazienti:testValori', pazienteId, faseId),
+    setTestValore: (pazienteId: number, testId: number, eseguito: boolean, valore: string | null) =>
+      invoke('pazienti:setTestValore', pazienteId, testId, eseguito, valore)
   },
   sedute: {
     list: (pazienteId: number) => invoke('sedute:list', pazienteId),
@@ -80,7 +100,8 @@ const api: Api = {
   impostazioni: {
     info: () => invoke('impostazioni:info'),
     apriCartella: () => invoke('impostazioni:apriCartella'),
-    cambiaCartella: () => invoke('impostazioni:cambiaCartella')
+    cambiaCartella: () => invoke('impostazioni:cambiaCartella'),
+    cambiaCartellaExport: () => invoke('impostazioni:cambiaCartellaExport')
   }
 }
 

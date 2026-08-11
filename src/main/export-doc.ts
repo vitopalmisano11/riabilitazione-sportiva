@@ -25,13 +25,17 @@ export interface DatiSedutaExport {
   fase_nome: string | null
   note: string | null
   obiettivi: string[]
-  esercizi: {
-    nome: string
-    categoria_nome: string
-    serie: string | null
-    ripetizioni: string | null
-    carico: string | null
-    nota: string | null
+  sezioni: {
+    nome: string | null // null = esercizi senza sezione (sedute v1)
+    esercizi: {
+      nome: string
+      categoria_nome: string
+      serie: string | null
+      ripetizioni: string | null
+      carico: string | null
+      recupero: string | null
+      nota: string | null
+    }[]
   }[]
 }
 
@@ -53,6 +57,27 @@ function infoPaziente(p: DatiPazienteExport): string[] {
 }
 
 export function generaHtml(p: DatiPazienteExport, sedute: DatiSedutaExport[]): string {
+  const tabella = (esercizi: DatiSedutaExport['sezioni'][number]['esercizi']): string => `
+      <table>
+        <thead>
+          <tr><th>Esercizio</th><th>Serie</th><th>Ripetizioni</th><th>Carico</th><th>Recupero</th><th>Note</th></tr>
+        </thead>
+        <tbody>
+          ${esercizi
+            .map(
+              (e) => `<tr>
+            <td>${esc(e.nome)}<div class="cat">${esc(e.categoria_nome)}</div></td>
+            <td>${esc(e.serie ?? '')}</td>
+            <td>${esc(e.ripetizioni ?? '')}</td>
+            <td>${esc(e.carico ?? '')}</td>
+            <td>${esc(e.recupero ?? '')}</td>
+            <td>${esc(e.nota ?? '')}</td>
+          </tr>`
+            )
+            .join('')}
+        </tbody>
+      </table>`
+
   const sedHtml = sedute
     .map(
       (s, i) => `
@@ -63,24 +88,13 @@ export function generaHtml(p: DatiPazienteExport, sedute: DatiSedutaExport[]): s
           ? `<p class="obiettivi"><strong>Obiettivi:</strong> ${s.obiettivi.map(esc).join(', ')}</p>`
           : ''
       }
-      <table>
-        <thead>
-          <tr><th>Esercizio</th><th>Serie</th><th>Ripetizioni</th><th>Carico</th><th>Note</th></tr>
-        </thead>
-        <tbody>
-          ${s.esercizi
-            .map(
-              (e) => `<tr>
-            <td>${esc(e.nome)}<div class="cat">${esc(e.categoria_nome)}</div></td>
-            <td>${esc(e.serie ?? '')}</td>
-            <td>${esc(e.ripetizioni ?? '')}</td>
-            <td>${esc(e.carico ?? '')}</td>
-            <td>${esc(e.nota ?? '')}</td>
-          </tr>`
-            )
-            .join('')}
-        </tbody>
-      </table>
+      ${s.sezioni
+        .map(
+          (sez) => `
+      ${sez.nome ? `<h3>${esc(sez.nome)}</h3>` : ''}
+      ${tabella(sez.esercizi)}`
+        )
+        .join('')}
       ${s.note ? `<p class="note"><strong>Note della seduta:</strong> ${esc(s.note)}</p>` : ''}
     </section>`
     )
@@ -97,6 +111,7 @@ export function generaHtml(p: DatiPazienteExport, sedute: DatiSedutaExport[]): s
   .info { color: #555b66; margin: 0 0 6px; font-size: 11px; }
   h2 { font-size: 15px; border-bottom: 2px solid #2563eb; padding-bottom: 4px; margin: 18px 0 8px; }
   h2 .fase { color: #2563eb; font-weight: 600; }
+  h3 { font-size: 13px; margin: 12px 0 4px; color: #2563eb; }
   .nuova-pagina { page-break-before: always; }
   .obiettivi { margin: 0 0 8px; }
   table { width: 100%; border-collapse: collapse; }
@@ -149,33 +164,45 @@ export async function generaDocx(
       )
     }
 
-    const intestazione = new TableRow({
-      children: ['Esercizio', 'Serie', 'Ripetizioni', 'Carico', 'Note'].map(
-        (t) =>
-          new TableCell({
-            children: [new Paragraph({ children: [new TextRun({ text: t, bold: true })] })]
+    for (const sez of s.sezioni) {
+      if (sez.nome) {
+        children.push(
+          new Paragraph({
+            text: sez.nome,
+            heading: HeadingLevel.HEADING_2,
+            spacing: { before: 200, after: 100 }
+          })
+        )
+      }
+      const intestazione = new TableRow({
+        children: ['Esercizio', 'Serie', 'Ripetizioni', 'Carico', 'Recupero', 'Note'].map(
+          (t) =>
+            new TableCell({
+              children: [new Paragraph({ children: [new TextRun({ text: t, bold: true })] })]
+            })
+        )
+      })
+      const righe = sez.esercizi.map(
+        (e) =>
+          new TableRow({
+            children: [
+              e.nome,
+              e.serie ?? '',
+              e.ripetizioni ?? '',
+              e.carico ?? '',
+              e.recupero ?? '',
+              e.nota ?? ''
+            ].map((t) => new TableCell({ children: [new Paragraph(t)] }))
           })
       )
-    })
-    const righe = s.esercizi.map(
-      (e) =>
-        new TableRow({
-          children: [
-            e.nome,
-            e.serie ?? '',
-            e.ripetizioni ?? '',
-            e.carico ?? '',
-            e.nota ?? ''
-          ].map((t) => new TableCell({ children: [new Paragraph(t)] }))
+      children.push(
+        new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          columnWidths: [2800, 800, 1200, 1300, 1200, 2200],
+          rows: [intestazione, ...righe]
         })
-    )
-    children.push(
-      new Table({
-        width: { size: 100, type: WidthType.PERCENTAGE },
-        columnWidths: [3200, 900, 1300, 1500, 2600],
-        rows: [intestazione, ...righe]
-      })
-    )
+      )
+    }
 
     if (s.note) {
       children.push(
