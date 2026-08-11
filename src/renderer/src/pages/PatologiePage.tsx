@@ -8,6 +8,7 @@ import type {
   TestAvanzamento
 } from '../../../shared/types'
 import CrudList from '../components/CrudList'
+import { toastErrore } from '../components/Toast'
 import { errMsg } from '../lib'
 
 type Tab = 'struttura' | 'obiettivi' | 'test'
@@ -163,7 +164,7 @@ function StrutturaTab({ faseId }: { faseId: number }): React.JSX.Element {
       await window.api.sezioni.setCategorie(selSez, ids)
       await load()
     } catch (e) {
-      alert(errMsg(e))
+      toastErrore(errMsg(e))
     }
   }
 

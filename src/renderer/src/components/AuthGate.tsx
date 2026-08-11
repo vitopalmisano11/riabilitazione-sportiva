@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { HeartPulse } from 'lucide-react'
 import { errMsg } from '../lib'
 
 type Modo = 'caricamento' | 'setup' | 'chiave' | 'login' | 'recupero'
@@ -64,6 +65,9 @@ export default function AuthGate({ onUnlocked }: { onUnlocked: () => void }): Re
   return (
     <div className="auth-screen">
       <div className="auth-card">
+        <div className="auth-logo">
+          <HeartPulse size={26} />
+        </div>
         {modo === 'setup' && (
           <>
             <h1>Riabilitazione Sportiva</h1>

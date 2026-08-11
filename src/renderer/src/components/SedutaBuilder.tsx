@@ -7,6 +7,8 @@ import type {
   SedutaEsercizioDettaglio,
   SedutaInput
 } from '../../../shared/types'
+import { ArrowDown, ArrowUp, Pencil, Plus, X } from 'lucide-react'
+import { toastErrore } from './Toast'
 import { errMsg, oggiIso } from '../lib'
 
 interface Props {
@@ -84,7 +86,7 @@ export default function SedutaBuilder({
         }
         setPronto(true)
       } catch (e) {
-        alert(errMsg(e))
+        toastErrore(errMsg(e))
         onClose(false)
       }
     })()
@@ -197,11 +199,11 @@ export default function SedutaBuilder({
 
   const salva = async (): Promise<void> => {
     if (!data) {
-      alert('Imposta la data della seduta.')
+      toastErrore('Imposta la data della seduta.')
       return
     }
     if (totaleEsercizi === 0) {
-      alert('Aggiungi almeno un esercizio alla seduta.')
+      toastErrore('Aggiungi almeno un esercizio alla seduta.')
       return
     }
     const input: SedutaInput = {
@@ -227,7 +229,7 @@ export default function SedutaBuilder({
       else await window.api.sedute.update(sedutaId, input)
       onClose(true)
     } catch (e) {
-      alert(errMsg(e))
+      toastErrore(errMsg(e))
     }
   }
 
@@ -345,20 +347,20 @@ export default function SedutaBuilder({
               )}
               <span className="item-actions-static">
                 <button title="Sposta su" disabled={idxSez === 0} onClick={() => muoviSezione(idxSez, -1)}>
-                  ↑
+                  <ArrowUp size={14} />
                 </button>
                 <button
                   title="Sposta giù"
                   disabled={idxSez === sezioni.length - 1}
                   onClick={() => muoviSezione(idxSez, 1)}
                 >
-                  ↓
+                  <ArrowDown size={14} />
                 </button>
                 <button title="Rinomina" onClick={() => setEditSez({ idx: idxSez, nome: s.nome })}>
-                  ✎
+                  <Pencil size={14} />
                 </button>
                 <button title="Rimuovi sezione" className="danger" onClick={() => rimuoviSezione(idxSez)}>
-                  ✕
+                  <X size={14} />
                 </button>
               </span>
             </div>
@@ -376,21 +378,21 @@ export default function SedutaBuilder({
                           disabled={idxRiga === 0}
                           onClick={() => muoviRiga(idxSez, idxRiga, -1)}
                         >
-                          ↑
+                          <ArrowUp size={14} />
                         </button>
                         <button
                           title="Sposta giù"
                           disabled={idxRiga === s.righe.length - 1}
                           onClick={() => muoviRiga(idxSez, idxRiga, 1)}
                         >
-                          ↓
+                          <ArrowDown size={14} />
                         </button>
                         <button
                           title="Rimuovi"
                           className="danger"
                           onClick={() => rimuoviRiga(idxSez, idxRiga)}
                         >
-                          ✕
+                          <X size={14} />
                         </button>
                       </span>
                     </div>
@@ -460,7 +462,9 @@ export default function SedutaBuilder({
                           .filter(Boolean)
                           .join(' · ')}
                       </span>
-                      <button onClick={() => aggiungi(idxSez, e)}>+ Aggiungi</button>
+                      <button onClick={() => aggiungi(idxSez, e)}>
+                        <Plus size={14} /> Aggiungi
+                      </button>
                     </li>
                   ))}
                 </ul>

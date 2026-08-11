@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { Categoria, EsercizioConCategoria, EsercizioInput } from '../../../shared/types'
+import { toastErrore } from '../components/Toast'
 import { errMsg } from '../lib'
 
 interface FormState {
@@ -54,11 +55,11 @@ export default function EserciziPage(): React.JSX.Element {
   const salva = async (): Promise<void> => {
     if (!form) return
     if (!form.nome.trim()) {
-      alert('Il nome è obbligatorio.')
+      toastErrore('Il nome è obbligatorio.')
       return
     }
     if (form.categoria_id === '') {
-      alert('Seleziona una categoria.')
+      toastErrore('Seleziona una categoria.')
       return
     }
     const data: EsercizioInput = {
@@ -76,7 +77,7 @@ export default function EserciziPage(): React.JSX.Element {
       setForm(null)
       await load()
     } catch (e) {
-      alert(errMsg(e))
+      toastErrore(errMsg(e))
     }
   }
 
@@ -85,7 +86,7 @@ export default function EserciziPage(): React.JSX.Element {
       await window.api.esercizi.setArchiviato(e.id, e.archiviato === 0)
       await load()
     } catch (err) {
-      alert(errMsg(err))
+      toastErrore(errMsg(err))
     }
   }
 
@@ -96,7 +97,7 @@ export default function EserciziPage(): React.JSX.Element {
       await window.api.esercizi.remove(e.id)
       await load()
     } catch (err) {
-      alert(errMsg(err))
+      toastErrore(errMsg(err))
     }
   }
 
@@ -145,7 +146,7 @@ export default function EserciziPage(): React.JSX.Element {
           className="primary"
           onClick={() => {
             if (categorie.length === 0) {
-              alert('Prima crea almeno una categoria in "Categorie esercizi".')
+              toastErrore('Prima crea almeno una categoria in "Categorie esercizi".')
               return
             }
             setForm(FORM_VUOTO)

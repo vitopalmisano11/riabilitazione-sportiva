@@ -2,6 +2,7 @@ import { app, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { registerIpc } from './ipc'
 import { migraDaUserData } from './impostazioni'
+import icona from '../../resources/icon.png?asset'
 
 function createWindow(): void {
   const win = new BrowserWindow({
@@ -9,6 +10,7 @@ function createWindow(): void {
     height: 800,
     show: false,
     autoHideMenuBar: true,
+    icon: icona,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false

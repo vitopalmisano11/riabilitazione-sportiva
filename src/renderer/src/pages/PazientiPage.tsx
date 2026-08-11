@@ -8,6 +8,7 @@ import type {
   TestValore
 } from '../../../shared/types'
 import SedutaBuilder from '../components/SedutaBuilder'
+import { toast, toastErrore } from '../components/Toast'
 import { errMsg, formatData } from '../lib'
 
 interface NuovoForm {
@@ -63,7 +64,7 @@ export default function PazientiPage(): React.JSX.Element {
   const salvaNuovo = async (): Promise<void> => {
     if (!nuovo) return
     if (!nuovo.nome.trim() || !nuovo.cognome.trim()) {
-      alert('Nome e cognome sono obbligatori.')
+      toastErrore('Nome e cognome sono obbligatori.')
       return
     }
     try {
@@ -79,7 +80,7 @@ export default function PazientiPage(): React.JSX.Element {
       await load()
       setSelId(id)
     } catch (e) {
-      alert(errMsg(e))
+      toastErrore(errMsg(e))
     }
   }
 
@@ -304,7 +305,7 @@ function SchedaPaziente({
 
   const salva = async (): Promise<void> => {
     if (!form.nome.trim() || !form.cognome.trim()) {
-      alert('Nome e cognome sono obbligatori.')
+      toastErrore('Nome e cognome sono obbligatori.')
       return
     }
     try {
@@ -316,7 +317,7 @@ function SchedaPaziente({
       })
       await onChanged()
     } catch (e) {
-      alert(errMsg(e))
+      toastErrore(errMsg(e))
     }
   }
 
@@ -332,7 +333,7 @@ function SchedaPaziente({
       await window.api.pazienti.setPatologiaFase(paziente.id, patologiaId, null)
       await onChanged()
     } catch (e) {
-      alert(errMsg(e))
+      toastErrore(errMsg(e))
     }
   }
 
@@ -341,7 +342,7 @@ function SchedaPaziente({
       await window.api.pazienti.setPatologiaFase(paziente.id, paziente.patologia_id, faseId)
       await onChanged()
     } catch (e) {
-      alert(errMsg(e))
+      toastErrore(errMsg(e))
     }
   }
 
@@ -370,7 +371,7 @@ function SchedaPaziente({
       await window.api.pazienti.remove(paziente.id)
       onDeleted()
     } catch (e) {
-      alert(errMsg(e))
+      toastErrore(errMsg(e))
     }
   }
 
@@ -528,7 +529,7 @@ function ObiettiviCard({ paziente }: { paziente: PazienteDettaglio }): React.JSX
       await window.api.pazienti.setObiettivoRaggiunto(paziente.id, obiettivoId, raggiunto)
       await load()
     } catch (e) {
-      alert(errMsg(e))
+      toastErrore(errMsg(e))
     }
   }
 
@@ -605,7 +606,7 @@ function TestModal({
         riga.valore?.trim() || null
       )
     } catch (e) {
-      alert(errMsg(e))
+      toastErrore(errMsg(e))
     }
   }
 
@@ -691,33 +692,33 @@ function DiarioCard({
       await window.api.sedute.remove(s.id)
       await load()
     } catch (e) {
-      alert(errMsg(e))
+      toastErrore(errMsg(e))
     }
   }
 
   const esportaSingola = async (id: number, formato: 'pdf' | 'docx'): Promise<void> => {
     try {
       const path = await window.api.esporta.seduta(id, formato)
-      if (path) alert(`Seduta esportata in:\n${path}`)
+      if (path) toast(`Seduta esportata${formato === 'pdf' ? ' in PDF' : ' in Word'}.`)
     } catch (e) {
-      alert(errMsg(e))
+      toastErrore(errMsg(e))
     }
   }
 
   const esportaPeriodo = async (formato: 'pdf' | 'docx'): Promise<void> => {
     if (!periodo) return
     if (periodo.dal > periodo.al) {
-      alert('Intervallo non valido: la data "dal" è successiva ad "al".')
+      toastErrore('Intervallo non valido: la data "dal" è successiva ad "al".')
       return
     }
     try {
       const path = await window.api.esporta.storico(paziente.id, periodo.dal, periodo.al, formato)
       if (path) {
         setPeriodo(null)
-        alert(`Storico esportato in:\n${path}`)
+        toast('Storico esportato.')
       }
     } catch (e) {
-      alert(errMsg(e))
+      toastErrore(errMsg(e))
     }
   }
 

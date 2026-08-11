@@ -1,5 +1,7 @@
 import { useState } from 'react'
+import { ArrowDown, ArrowUp, Pencil, X } from 'lucide-react'
 import { errMsg } from '../lib'
+import { toastErrore } from './Toast'
 
 export interface CrudItem {
   id: number
@@ -39,7 +41,7 @@ export default function CrudList({
     try {
       await fn()
     } catch (e) {
-      alert(errMsg(e))
+      toastErrore(errMsg(e))
     }
   }
 
@@ -103,14 +105,14 @@ export default function CrudList({
                   {onReorder && (
                     <>
                       <button title="Sposta su" disabled={idx === 0} onClick={() => move(idx, -1)}>
-                        ↑
+                        <ArrowUp size={14} />
                       </button>
                       <button
                         title="Sposta giù"
                         disabled={idx === items.length - 1}
                         onClick={() => move(idx, 1)}
                       >
-                        ↓
+                        <ArrowDown size={14} />
                       </button>
                     </>
                   )}
@@ -121,7 +123,7 @@ export default function CrudList({
                       setEditNome(item.nome)
                     }}
                   >
-                    ✎
+                    <Pencil size={14} />
                   </button>
                   <button
                     title="Elimina"
@@ -130,7 +132,7 @@ export default function CrudList({
                       if (confirm(`Eliminare "${item.nome}"?`)) void run(() => onDelete(item.id))
                     }}
                   >
-                    ✕
+                    <X size={14} />
                   </button>
                 </span>
               </>

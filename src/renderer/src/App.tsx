@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
+import { FolderCog, HeartPulse, KeyRound, Settings, Users } from 'lucide-react'
 import PatologiePage from './pages/PatologiePage'
 import CategoriePage from './pages/CategoriePage'
 import EserciziPage from './pages/EserciziPage'
 import PazientiPage from './pages/PazientiPage'
 import AuthGate from './components/AuthGate'
+import ToastHost, { toast, toastErrore } from './components/Toast'
 import { errMsg } from './lib'
 
 type Sezione = 'pazienti' | 'configurazione'
@@ -30,13 +32,19 @@ export default function App(): React.JSX.Element {
   return (
     <div className="app">
       <aside className="sidebar">
-        <h1>Riabilitazione</h1>
+        <h1>
+          <span className="logo-badge">
+            <HeartPulse size={18} />
+          </span>
+          Riabilitazione
+        </h1>
         <div className="nav-group-label">Diario pazienti</div>
         <nav>
           <button
             className={sezione === 'pazienti' ? 'active' : ''}
             onClick={() => setSezione('pazienti')}
           >
+            <Users size={16} />
             Pazienti e sedute
           </button>
         </nav>
@@ -45,10 +53,17 @@ export default function App(): React.JSX.Element {
             className={sezione === 'configurazione' ? 'active' : ''}
             onClick={() => setSezione('configurazione')}
           >
+            <Settings size={15} />
             Configurazione
           </button>
-          <button onClick={() => setImpostazioni(true)}>Dati e backup</button>
-          <button onClick={() => setCambiaPw(true)}>Cambia password</button>
+          <button onClick={() => setImpostazioni(true)}>
+            <FolderCog size={15} />
+            Dati e backup
+          </button>
+          <button onClick={() => setCambiaPw(true)}>
+            <KeyRound size={15} />
+            Cambia password
+          </button>
         </div>
       </aside>
       <main className="content">
@@ -57,6 +72,7 @@ export default function App(): React.JSX.Element {
       </main>
       {cambiaPw && <CambiaPasswordModal onClose={() => setCambiaPw(false)} />}
       {impostazioni && <ImpostazioniModal onClose={() => setImpostazioni(false)} />}
+      <ToastHost />
     </div>
   )
 }
@@ -93,7 +109,7 @@ function ExportConfigPage(): React.JSX.Element {
       const nuova = await window.api.impostazioni.cambiaCartellaExport()
       if (nuova) setCartella(nuova)
     } catch (e) {
-      alert(errMsg(e))
+      toastErrore(errMsg(e))
     }
   }
 
@@ -134,10 +150,10 @@ function ImpostazioniModal({ onClose }: { onClose: () => void }): React.JSX.Elem
       const nuova = await window.api.impostazioni.cambiaCartella()
       if (nuova) {
         setCartella(nuova)
-        alert(`Dati spostati in:\n${nuova}`)
+        toast('Dati spostati nella nuova cartella.')
       }
     } catch (e) {
-      alert(errMsg(e))
+      toastErrore(errMsg(e))
     }
   }
 
@@ -183,7 +199,7 @@ function CambiaPasswordModal({ onClose }: { onClose: () => void }): React.JSX.El
     }
     try {
       await window.api.auth.cambiaPassword(vecchia, nuova)
-      alert('Password aggiornata. La chiave di recupero resta valida.')
+      toast('Password aggiornata. La chiave di recupero resta valida.')
       onClose()
     } catch (e) {
       setErrore(errMsg(e))
