@@ -149,6 +149,12 @@ const MIGRATIONS: string[] = [
   // 3 — v1.2: link video opzionale sugli esercizi
   `
   ALTER TABLE esercizi ADD COLUMN link TEXT;
+  `,
+
+  // 4 — v1.3: categorie ordinabili (ordine iniziale = alfabetico)
+  `
+  ALTER TABLE categorie ADD COLUMN ordine INTEGER NOT NULL DEFAULT 0;
+  UPDATE categorie SET ordine = (SELECT COUNT(*) FROM categorie c2 WHERE c2.nome < categorie.nome);
   `
 ]
 

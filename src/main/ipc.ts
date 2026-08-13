@@ -266,11 +266,23 @@ export function registerIpc(): void {
 
   // ---- Categorie ----
   handle('categorie:list', () =>
-    getDb().prepare('SELECT * FROM categorie ORDER BY nome').all()
+    getDb().prepare('SELECT * FROM categorie ORDER BY ordine, nome').all()
   )
-  handle('categorie:create', (nome: string) =>
-    Number(getDb().prepare('INSERT INTO categorie (nome) VALUES (?)').run(nome.trim()).lastInsertRowid)
-  )
+  handle('categorie:create', (nome: string) => {
+    const db = getDb()
+    const { next } = db
+      .prepare('SELECT COALESCE(MAX(ordine), -1) + 1 AS next FROM categorie')
+      .get() as { next: number }
+    return Number(
+      db.prepare('INSERT INTO categorie (nome, ordine) VALUES (?, ?)').run(nome.trim(), next)
+        .lastInsertRowid
+    )
+  })
+  handle('categorie:reorder', (ids: number[]) => {
+    const db = getDb()
+    const stmt = db.prepare('UPDATE categorie SET ordine = ? WHERE id = ?')
+    db.transaction(() => ids.forEach((id, i) => stmt.run(i, id)))()
+  })
   handle('categorie:update', (id: number, nome: string) => {
     getDb().prepare('UPDATE categorie SET nome = ? WHERE id = ?').run(nome.trim(), id)
   })

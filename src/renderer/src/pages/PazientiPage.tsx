@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Download, FileText } from 'lucide-react'
 import type {
   Fase,
   Obiettivo,
@@ -678,6 +679,7 @@ function DiarioCard({
 }): React.JSX.Element {
   const [sedute, setSedute] = useState<SedutaRiepilogo[]>([])
   const [periodo, setPeriodo] = useState<{ dal: string; al: string } | null>(null)
+  const [menuScarica, setMenuScarica] = useState<number | null>(null)
 
   const load = async (): Promise<void> => setSedute(await window.api.sedute.list(paziente.id))
 
@@ -758,16 +760,43 @@ function DiarioCard({
                 {s.obiettivi_nomi && <span className="seduta-obiettivi">{s.obiettivi_nomi}</span>}
               </div>
               <span className="row-actions">
-                <button onClick={() => onApri(s.id)}>Apri</button>
+                <button title="Apri la seduta per modificarla" onClick={() => onApri(s.id)}>
+                  Modifica
+                </button>
                 <button title="Nuova seduta partendo da questa" onClick={() => onDuplica(s.id)}>
                   Duplica
                 </button>
-                <button title="Esporta in PDF" onClick={() => void esportaSingola(s.id, 'pdf')}>
-                  PDF
-                </button>
-                <button title="Esporta in Word" onClick={() => void esportaSingola(s.id, 'docx')}>
-                  Word
-                </button>
+                <span className="menu-wrapper">
+                  <button
+                    title="Scarica la seduta"
+                    onClick={() => setMenuScarica(menuScarica === s.id ? null : s.id)}
+                  >
+                    <Download size={18} />
+                  </button>
+                  {menuScarica === s.id && (
+                    <>
+                      <div className="menu-chiudi" onClick={() => setMenuScarica(null)} />
+                      <div className="menu-tendina">
+                        <button
+                          onClick={() => {
+                            setMenuScarica(null)
+                            void esportaSingola(s.id, 'pdf')
+                          }}
+                        >
+                          <FileText size={18} /> Scarica PDF
+                        </button>
+                        <button
+                          onClick={() => {
+                            setMenuScarica(null)
+                            void esportaSingola(s.id, 'docx')
+                          }}
+                        >
+                          <FileText size={18} /> Scarica Word
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </span>
                 <button className="danger" onClick={() => void elimina(s)}>
                   Elimina
                 </button>

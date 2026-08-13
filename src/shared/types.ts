@@ -20,6 +20,7 @@ export interface Obiettivo {
 export interface Categoria {
   id: number
   nome: string
+  ordine: number
 }
 
 export interface Esercizio {
@@ -207,6 +208,7 @@ export interface Api {
     create(nome: string): Promise<number>
     update(id: number, nome: string): Promise<void>
     remove(id: number): Promise<void>
+    reorder(ids: number[]): Promise<void>
   }
   esercizi: {
     list(includiArchiviati: boolean): Promise<EsercizioConCategoria[]>

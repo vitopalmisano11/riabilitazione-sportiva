@@ -50,6 +50,15 @@ supera con *Ulteriori informazioni → Esegui comunque*.
   con breadcrumb per tornare indietro
 - Fix: nomi delle sezioni non si spezzano più a metà parola (colonne con larghezza minima)
 
+## v1.3 (terzo giro di feedback — rifiniture)
+
+- Libreria esercizi: colonna nome senza a capo, numero serie centrato,
+  serie/ripetizioni/carico/recupero sulla stessa riga nel form
+- Categorie esercizi riordinabili con frecce (nuovo campo ordine, migrazione 4);
+  rimosse le frecce non necessarie in "categorie della sezione" e spaziatura compattata
+- Diario: "Apri" rinominato in "Modifica"; PDF/Word sostituiti da un'icona di
+  download con menu a tendina
+
 ## Stato di avanzamento (piano a step)
 
 - [x] 1. Fondamenta: progetto, database, migrazioni

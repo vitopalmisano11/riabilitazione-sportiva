@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ChevronRight, Pencil, Plus, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ChevronRight, Pencil, Plus, X } from 'lucide-react'
 import type {
   Categoria,
   Fase,
@@ -404,15 +404,6 @@ function StrutturaTab({ faseId }: { faseId: number }): React.JSX.Element {
     void salvaCategorie(ids)
   }
 
-  const muoviCategoria = (idx: number, dir: -1 | 1): void => {
-    if (!sez) return
-    const ids = [...sez.categoria_ids]
-    const j = idx + dir
-    if (j < 0 || j >= ids.length) return
-    ;[ids[idx], ids[j]] = [ids[j], ids[idx]]
-    void salvaCategorie(ids)
-  }
-
   const nomeCategoria = (cid: number): string => categorie.find((c) => c.id === cid)?.nome ?? '?'
   const nonAssociate = categorie.filter((c) => !sez?.categoria_ids.includes(c.id))
 
@@ -452,24 +443,8 @@ function StrutturaTab({ faseId }: { faseId: number }): React.JSX.Element {
         ) : (
           <>
             <ul className="checkbox-list">
-              {sez.categoria_ids.map((cid, idx) => (
-                <li key={cid} className="cat-ordinata">
-                  <span className="item-actions-static">
-                    <button
-                      title="Sposta su"
-                      disabled={idx === 0}
-                      onClick={() => muoviCategoria(idx, -1)}
-                    >
-                      <ArrowUp size={16} />
-                    </button>
-                    <button
-                      title="Sposta giù"
-                      disabled={idx === sez.categoria_ids.length - 1}
-                      onClick={() => muoviCategoria(idx, 1)}
-                    >
-                      <ArrowDown size={16} />
-                    </button>
-                  </span>
+              {sez.categoria_ids.map((cid) => (
+                <li key={cid}>
                   <label>
                     <input type="checkbox" checked onChange={() => toggleCategoria(cid, false)} />
                     {nomeCategoria(cid)}

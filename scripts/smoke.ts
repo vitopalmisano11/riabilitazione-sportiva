@@ -23,7 +23,7 @@ db.pragma('foreign_keys = ON')
 
 runMigrations(db)
 runMigrations(db) // idempotente
-assert.equal(db.pragma('user_version', { simple: true }), 3)
+assert.equal(db.pragma('user_version', { simple: true }), 4)
 
 const count = (table: string): number =>
   (db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n
@@ -37,6 +37,11 @@ const obId = db
   .prepare('INSERT INTO obiettivi (fase_id, nome, ordine) VALUES (?, ?, 0)')
   .run(faseId, 'Controllo del dolore e gonfiore').lastInsertRowid
 const catId = db.prepare('INSERT INTO categorie (nome) VALUES (?)').run('Mobilizzazione').lastInsertRowid
+// v1.3: le categorie hanno un ordine esplicito
+assert.equal(
+  (db.prepare('SELECT ordine FROM categorie WHERE id = ?').get(catId) as { ordine: number }).ordine,
+  0
+)
 db.prepare('INSERT INTO obiettivo_categorie (obiettivo_id, categoria_id) VALUES (?, ?)').run(obId, catId)
 const esId = db
   .prepare(

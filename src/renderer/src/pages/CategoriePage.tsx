@@ -17,7 +17,8 @@ export default function CategoriePage(): React.JSX.Element {
         <h2>Categorie esercizi</h2>
         <p>
           Le categorie raggruppano gli esercizi della libreria (es. Mobilizzazione, Rinforzo,
-          Corsa) e vengono associate agli obiettivi delle fasi in &ldquo;Patologie e fasi&rdquo;.
+          Corsa) e si associano alle sezioni della seduta in &ldquo;Patologie e fasi&rdquo;.
+          L&apos;ordine scelto qui (frecce) è quello usato in tutti gli elenchi.
         </p>
       </header>
       <div className="single-col">
@@ -34,6 +35,10 @@ export default function CategoriePage(): React.JSX.Element {
           }}
           onDelete={async (id) => {
             await window.api.categorie.remove(id)
+            await load()
+          }}
+          onReorder={async (ids) => {
+            await window.api.categorie.reorder(ids)
             await load()
           }}
           addPlaceholder="Nuova categoria…"

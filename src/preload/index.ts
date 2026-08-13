@@ -61,7 +61,8 @@ const api: Api = {
     list: () => invoke('categorie:list'),
     create: (nome: string) => invoke('categorie:create', nome),
     update: (id: number, nome: string) => invoke('categorie:update', id, nome),
-    remove: (id: number) => invoke('categorie:delete', id)
+    remove: (id: number) => invoke('categorie:delete', id),
+    reorder: (ids: number[]) => invoke('categorie:reorder', ids)
   },
   esercizi: {
     list: (includiArchiviati: boolean) => invoke('esercizi:list', includiArchiviati),

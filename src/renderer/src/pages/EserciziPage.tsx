@@ -170,9 +170,9 @@ export default function EserciziPage(): React.JSX.Element {
       <table className="data-table">
         <thead>
           <tr>
-            <th>Nome</th>
+            <th className="col-nome">Nome</th>
             <th>Categoria</th>
-            <th>Serie</th>
+            <th className="col-num">Serie</th>
             <th>Ripetizioni</th>
             <th>Carico</th>
             <th>Recupero</th>
@@ -183,7 +183,7 @@ export default function EserciziPage(): React.JSX.Element {
         <tbody>
           {visibili.map((e) => (
             <tr key={e.id} className={e.archiviato ? 'archiviato' : ''}>
-              <td>
+              <td className="col-nome">
                 {e.nome}
                 {e.link && (
                   <button
@@ -197,7 +197,7 @@ export default function EserciziPage(): React.JSX.Element {
                 {e.archiviato ? <span className="badge">archiviato</span> : null}
               </td>
               <td>{e.categoria_nome}</td>
-              <td>{e.serie_default ?? '—'}</td>
+              <td className="col-num">{e.serie_default ?? '—'}</td>
               <td>{e.ripetizioni_default ?? '—'}</td>
               <td>{e.carico_default ?? '—'}</td>
               <td>{e.recupero_default ?? '—'}</td>
@@ -270,9 +270,12 @@ export default function EserciziPage(): React.JSX.Element {
                 ))}
               </select>
             </label>
-            <div className="form-row">
+            <p className="modal-testo">
+              Valori di default, proposti quando aggiungi l&apos;esercizio a una seduta:
+            </p>
+            <div className="form-row form-row-4">
               <label>
-                Serie (default)
+                Serie
                 <input
                   value={form.serie_default}
                   placeholder="es. 3"
@@ -280,26 +283,26 @@ export default function EserciziPage(): React.JSX.Element {
                 />
               </label>
               <label>
-                Ripetizioni (default)
+                Ripetizioni
                 <input
                   value={form.ripetizioni_default}
-                  placeholder="es. 10, oppure 30 sec"
+                  placeholder="es. 10"
                   onChange={(e) => setForm({ ...form, ripetizioni_default: e.target.value })}
                 />
               </label>
               <label>
-                Carico (default)
+                Carico
                 <input
                   value={form.carico_default}
-                  placeholder="es. 10 kg, elastico verde"
+                  placeholder="es. 10 kg"
                   onChange={(e) => setForm({ ...form, carico_default: e.target.value })}
                 />
               </label>
               <label>
-                Recupero (default)
+                Recupero
                 <input
                   value={form.recupero_default}
-                  placeholder="es. 1 min, 90 sec"
+                  placeholder="es. 1 min"
                   onChange={(e) => setForm({ ...form, recupero_default: e.target.value })}
                 />
               </label>
