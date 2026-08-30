@@ -59,6 +59,25 @@ supera con *Ulteriori informazioni → Esegui comunque*.
 - Diario: "Apri" rinominato in "Modifica"; PDF/Word sostituiti da un'icona di
   download con menu a tendina
 
+## Sviluppare (anche su Windows)
+
+Prerequisiti: [Git](https://git-scm.com/download/win) e [Node.js 22 LTS](https://nodejs.org)
+(installazione standard, non servono compilatori: il modulo SQLite arriva precompilato).
+Editor consigliato: VS Code. Per contribuire con push diretto serve essere collaboratori del repo
+(Settings → Collaborators su GitHub); in alternativa fork + pull request.
+
+```bash
+git clone https://github.com/vitopalmisano11/riabilitazione-sportiva.git
+cd riabilitazione-sportiva
+npm install       # scarica Electron e prepara il modulo nativo (qualche minuto la prima volta)
+npm run dev       # avvia l'app con ricarica automatica
+```
+
+Prima di ogni sessione `git pull`; prima di ogni commit `npm run typecheck`. I dati di prova
+finiscono in `Documenti\Riabilitazione` del proprio PC (password propria), separati da quelli
+degli utenti. Le convenzioni di progetto, la trappola del modulo nativo e la procedura di
+release sono in [`CLAUDE.md`](./CLAUDE.md), letto automaticamente anche da Claude Code.
+
 ## Stato di avanzamento (piano a step)
 
 - [x] 1. Fondamenta: progetto, database, migrazioni

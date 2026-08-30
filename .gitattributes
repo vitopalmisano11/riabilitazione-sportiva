@@ -1,0 +1,4 @@
+# Fine riga uniformi (LF nel repo) anche con sviluppatori su Windows e WSL
+* text=auto eol=lf
+*.png binary
+*.ico binary
