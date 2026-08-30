@@ -52,3 +52,12 @@ Se l'app si avvia "muta" senza finestra, è quasi sempre questo: rilanciare l'ul
 3. GitHub Actions (`.github/workflows/release.yml`) compila l'installer Windows e lo pubblica
    nei Releases in ~3 minuti. Poi `gh release edit vX.Y.Z --notes "..."` con le note in italiano.
 4. L'utente finale scarica sempre da `.../releases/latest`; installando sopra, i dati restano.
+
+## Flusso di lavoro in due
+- `main` è sempre funzionante e rilasciabile: le release si taggano solo da `main`.
+- Modifiche piccole: direttamente su `main`. Lavori grossi: branch `feature/nome`, poi merge
+  in `main` quando `npm run typecheck` è verde.
+- Prima di iniziare `git pull`; prima di pushare `npm run typecheck`. Messaggi di commit in italiano,
+  al presente, che descrivono il "cosa" per l'utente (es. "Diario: menu download PDF/Word").
+- A ogni push GitHub Actions (`.github/workflows/ci.yml`) esegue typecheck, smoke e build:
+  se il badge è rosso, non rilasciare finché non è verde.
