@@ -25,8 +25,12 @@ function salva(patch: Impostazioni): void {
   writeFileSync(percorsoFile(), JSON.stringify({ ...leggi(), ...patch }, null, 2))
 }
 
+// In sviluppo il default è una cartella a parte, per non lavorare sui dati veri.
+const nomeCartellaDati = (): string =>
+  app.isPackaged ? 'Riabilitazione' : 'Riabilitazione (dev)'
+
 export function cartellaDati(): string {
-  const dir = leggi().cartellaDati || join(app.getPath('documents'), 'Riabilitazione')
+  const dir = leggi().cartellaDati || join(app.getPath('documents'), nomeCartellaDati())
   mkdirSync(dir, { recursive: true })
   return dir
 }

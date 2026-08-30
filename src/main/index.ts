@@ -4,6 +4,12 @@ import { registerIpc } from './ipc'
 import { migraDaUserData } from './impostazioni'
 import icona from '../../resources/icon.png?asset'
 
+// In sviluppo l'app tiene dati e cache propri: le prove — comprese le migrazioni,
+// che non si annullano — non toccano i dati dell'app installata.
+if (!app.isPackaged) {
+  app.setPath('userData', `${app.getPath('userData')} (dev)`)
+}
+
 function createWindow(): void {
   const win = new BrowserWindow({
     width: 1280,

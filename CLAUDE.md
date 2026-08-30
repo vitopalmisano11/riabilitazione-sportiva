@@ -31,10 +31,21 @@ Specifica originale e feedback dell'utente sono nei file `prompt-*.md` alla radi
 ```bash
 npm install        # prima volta (scarica Electron, compila il modulo nativo per Electron)
 npm run dev        # app in sviluppo con hot reload
+                   # (per l'utente: scripts/avvia-prova.cmd, collegamento sul Desktop)
 npm run typecheck  # obbligatorio prima di committare
 npm run build      # build di produzione in out/
 npm run smoke      # test db/auth/export — vedi trappola sotto
+npm run dev:reset  # azzera i dati di sviluppo (li archivia, non li cancella)
+npm run build:win  # installer Windows in dist/
 ```
+
+### Dati di sviluppo separati da quelli reali
+In sviluppo (`!app.isPackaged`) l'app usa `%APPDATA%/riabilitazione-sportiva (dev)` e, come
+cartella dati di default, `Documenti/Riabilitazione (dev)`. L'app installata usa i percorsi senza
+suffisso. Serve perché le migrazioni si applicano da sole al login e **non hanno rollback**: una
+prova andata male non deve toccare il database vero. Vedi `index.ts` (setPath userData) e
+`nomeCartellaDati()` in `impostazioni.ts`. `npm run dev:reset` agisce solo sui percorsi che
+contengono `(dev)` e archivia con un suffisso data/ora invece di cancellare.
 
 ### Trappola: modulo nativo e ABI
 `better-sqlite3-multiple-ciphers` va compilato per l'ABI di **Electron** per l'app, ma per
