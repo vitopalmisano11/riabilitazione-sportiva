@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Video } from 'lucide-react'
+import { ImageIcon, Video } from 'lucide-react'
 import type { Categoria, EsercizioConCategoria, EsercizioInput } from '../../../shared/types'
 import { toastErrore } from '../components/Toast'
+import ImmagineEsercizio from '../components/ImmagineEsercizio'
 import { errMsg } from '../lib'
 
 interface FormState {
@@ -14,6 +15,10 @@ interface FormState {
   recupero_default: string
   nota_tecnica: string
   link: string
+  // null = nessuna immagine. `immagineCambiata` evita di riscrivere il campo
+  // (pesante) quando si salva un esercizio senza aver toccato l'immagine.
+  immagine: string | null
+  immagineCambiata: boolean
 }
 
 const FORM_VUOTO: FormState = {
@@ -25,7 +30,9 @@ const FORM_VUOTO: FormState = {
   carico_default: '',
   recupero_default: '',
   nota_tecnica: '',
-  link: ''
+  link: '',
+  immagine: null,
+  immagineCambiata: false
 }
 
 // URL vuoto -> null; senza schema -> prefissa https://
@@ -42,6 +49,7 @@ export default function EserciziPage(): React.JSX.Element {
   const [ricerca, setRicerca] = useState('')
   const [filtroCategoria, setFiltroCategoria] = useState<number | ''>('')
   const [form, setForm] = useState<FormState | null>(null)
+  const [immagineAperta, setImmagineAperta] = useState<EsercizioConCategoria | null>(null)
 
   const load = async (archiviati = mostraArchiviati): Promise<void> => {
     setEsercizi(await window.api.esercizi.list(archiviati))
@@ -83,10 +91,45 @@ export default function EserciziPage(): React.JSX.Element {
       link: normalizzaLink(form.link)
     }
     try {
-      if (form.id == null) await window.api.esercizi.create(data)
-      else await window.api.esercizi.update(form.id, data)
+      const id =
+        form.id == null
+          ? await window.api.esercizi.create(data)
+          : (await window.api.esercizi.update(form.id, data), form.id)
+      if (form.immagineCambiata) await window.api.esercizi.setImmagine(id, form.immagine)
       setForm(null)
       await load()
+    } catch (e) {
+      toastErrore(errMsg(e))
+    }
+  }
+
+  // Apre il form di modifica caricando l'immagine, che l'elenco non trasporta.
+  const apriModifica = async (e: EsercizioConCategoria): Promise<void> => {
+    try {
+      const immagine = e.ha_immagine ? await window.api.esercizi.immagine(e.id) : null
+      setForm({
+        id: e.id,
+        nome: e.nome,
+        categoria_id: e.categoria_id,
+        serie_default: e.serie_default ?? '',
+        ripetizioni_default: e.ripetizioni_default ?? '',
+        carico_default: e.carico_default ?? '',
+        recupero_default: e.recupero_default ?? '',
+        nota_tecnica: e.nota_tecnica ?? '',
+        link: e.link ?? '',
+        immagine,
+        immagineCambiata: false
+      })
+    } catch (err) {
+      toastErrore(errMsg(err))
+    }
+  }
+
+  const scegliImmagine = async (): Promise<void> => {
+    if (!form) return
+    try {
+      const dataUrl = await window.api.scegliImmagine()
+      if (dataUrl) setForm({ ...form, immagine: dataUrl, immagineCambiata: true })
     } catch (e) {
       toastErrore(errMsg(e))
     }
@@ -187,11 +230,20 @@ export default function EserciziPage(): React.JSX.Element {
                 {e.nome}
                 {e.link && (
                   <button
-                    className="link-video"
+                    className="icona-esercizio"
                     title="Apri video"
                     onClick={() => window.api.apriLink(e.link!).catch((err) => toastErrore(errMsg(err)))}
                   >
                     <Video size={16} />
+                  </button>
+                )}
+                {e.ha_immagine === 1 && (
+                  <button
+                    className="icona-esercizio"
+                    title="Vedi immagine"
+                    onClick={() => setImmagineAperta(e)}
+                  >
+                    <ImageIcon size={16} />
                   </button>
                 )}
                 {e.archiviato ? <span className="badge">archiviato</span> : null}
@@ -203,23 +255,7 @@ export default function EserciziPage(): React.JSX.Element {
               <td>{e.recupero_default ?? '—'}</td>
               <td className="nota">{e.nota_tecnica ?? ''}</td>
               <td className="row-actions">
-                <button
-                  onClick={() =>
-                    setForm({
-                      id: e.id,
-                      nome: e.nome,
-                      categoria_id: e.categoria_id,
-                      serie_default: e.serie_default ?? '',
-                      ripetizioni_default: e.ripetizioni_default ?? '',
-                      carico_default: e.carico_default ?? '',
-                      recupero_default: e.recupero_default ?? '',
-                      nota_tecnica: e.nota_tecnica ?? '',
-                      link: e.link ?? ''
-                    })
-                  }
-                >
-                  Modifica
-                </button>
+                <button onClick={() => void apriModifica(e)}>Modifica</button>
                 <button onClick={() => void archivia(e)}>
                   {e.archiviato ? 'Ripristina' : 'Archivia'}
                 </button>
@@ -315,6 +351,28 @@ export default function EserciziPage(): React.JSX.Element {
                 onChange={(e) => setForm({ ...form, link: e.target.value })}
               />
             </label>
+            <div className="campo-immagine">
+              <span className="campo-immagine-etichetta">Immagine (opzionale)</span>
+              {form.immagine ? (
+                <>
+                  <img className="immagine-anteprima" src={form.immagine} alt="" />
+                  <div className="campo-immagine-azioni">
+                    <button onClick={() => void scegliImmagine()}>Sostituisci…</button>
+                    <button
+                      className="danger"
+                      onClick={() => setForm({ ...form, immagine: null, immagineCambiata: true })}
+                    >
+                      Rimuovi
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="campo-immagine-azioni">
+                  <button onClick={() => void scegliImmagine()}>Scegli immagine…</button>
+                  <span className="hint">Viene rimpicciolita e salvata nel database cifrato.</span>
+                </div>
+              )}
+            </div>
             <label>
               Nota tecnica
               <textarea
@@ -332,6 +390,14 @@ export default function EserciziPage(): React.JSX.Element {
             </div>
           </div>
         </div>
+      )}
+
+      {immagineAperta && (
+        <ImmagineEsercizio
+          esercizioId={immagineAperta.id}
+          nome={immagineAperta.nome}
+          onClose={() => setImmagineAperta(null)}
+        />
       )}
     </div>
   )

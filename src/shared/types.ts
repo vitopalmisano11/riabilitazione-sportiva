@@ -36,7 +36,11 @@ export interface Esercizio {
   archiviato: 0 | 1
 }
 
-export type EsercizioConCategoria = Esercizio & { categoria_nome: string }
+// ha_immagine e' un flag, non l'immagine: l'elenco non trasporta i dati binari.
+export type EsercizioConCategoria = Esercizio & {
+  categoria_nome: string
+  ha_immagine: 0 | 1
+}
 
 export interface EsercizioInput {
   nome: string
@@ -139,6 +143,7 @@ export type SedutaEsercizioDettaglio = Omit<SedutaEsercizioInput, 'sezioneIndex'
   nome: string
   categoria_nome: string
   link: string | null
+  ha_immagine: 0 | 1
 }
 
 export interface SedutaSezioneDettaglio {
@@ -157,9 +162,137 @@ export interface SedutaDettaglio {
   sezioni: SedutaSezioneDettaglio[]
 }
 
+// ---- Questionari (PROM) ----
+// Ogni domanda e' un elenco di risposte che valgono un punteggio: 'si_no' sono
+// due risposte (0 e 1), 'scala' e' un intervallo di numeri, 'scelta' ha opzioni
+// scritte a mano con il loro valore. Un solo meccanismo per tutte le forme.
+export type TipoDomanda = 'si_no' | 'scala' | 'scelta'
+
+export interface Questionario {
+  id: number
+  nome: string
+  istruzioni: string | null
+  ordine: number
+  archiviato: 0 | 1
+}
+
+// id null = elemento nuovo, non ancora salvato
+export interface OpzioneDomanda {
+  id: number | null
+  etichetta: string
+  punteggio: number
+}
+
+export interface DomandaQuestionario {
+  id: number | null
+  testo: string
+  tipo: TipoDomanda
+  scala_min: number | null
+  scala_max: number | null
+  opzioni: OpzioneDomanda[]
+}
+
+// Un punteggio somma le risposte di alcune domande (es. "Totale" = tutte,
+// "Sub" = dalla quinta alla nona).
+export interface PunteggioQuestionario {
+  id: number | null
+  nome: string
+  domanda_ids: number[]
+}
+
+// Regola di fascia: si legge in ordine e vince la prima che si avvera. La
+// seconda condizione e' opzionale (serve a casi come lo StarT Back).
+export interface FasciaQuestionario {
+  id: number | null
+  etichetta: string
+  punteggio_id: number | null
+  minimo: number | null
+  massimo: number | null
+  punteggio2_id: number | null
+  minimo2: number | null
+  massimo2: number | null
+}
+
+export interface QuestionarioCompleto {
+  questionario: Questionario
+  domande: DomandaQuestionario[]
+  punteggi: PunteggioQuestionario[]
+  fasce: FasciaQuestionario[]
+}
+
+export interface RispostaQuestionario {
+  domanda_id: number
+  valore: number
+}
+
+export interface CompilazioneInput {
+  paziente_id: number
+  questionario_id: number
+  data: string
+  note: string | null
+  risposte: RispostaQuestionario[]
+}
+
+export interface CompilazioneRiepilogo {
+  id: number
+  data: string
+  questionario_id: number
+  questionario_nome: string
+  fascia: string | null
+  note: string | null
+  punteggi: { nome: string; valore: number }[]
+}
+
+// ---- Test di valutazione (da letteratura) ----
+// Una misura si registra a ogni prova (altezza del salto) oppure una volta sola
+// per il test (simmetria). Il valore confrontato col cutoff e' la prova
+// migliore, la media o la peggiore, secondo come e' definita la misura.
+export type RiassuntoMisura = 'migliore' | 'media' | 'peggiore'
+
+// 'min' = superato stando sopra la soglia; 'max' = stando sotto
+export type DirezioneCutoff = 'min' | 'max'
+
+export interface TestValutazione {
+  id: number
+  nome: string
+  descrizione: string | null
+  protocollo: string | null
+  prove: number
+  ordine: number
+  archiviato: 0 | 1
+}
+
+export type TestValutazioneRiepilogo = TestValutazione & { ha_immagine: 0 | 1 }
+
+export interface ParametroTest {
+  id: number | null
+  nome: string
+  valore: string | null
+  unita: string | null
+}
+
+export interface MisuraTest {
+  id: number | null
+  nome: string
+  unita: string | null
+  per_prova: 0 | 1
+  riassunto: RiassuntoMisura
+  cutoff: number | null
+  cutoff_direzione: DirezioneCutoff | null
+}
+
+export interface TestValutazioneCompleto {
+  test: TestValutazione
+  immagine: string | null
+  parametri: ParametroTest[]
+  misure: MisuraTest[]
+}
+
 export interface Api {
   // apre un URL http/https nel browser predefinito
   apriLink(url: string): Promise<void>
+  // Apre il dialogo file e ritorna l'immagine gia' ridimensionata, o null.
+  scegliImmagine(): Promise<string | null>
   auth: {
     status(): Promise<'setup' | 'login'>
     setup(password: string): Promise<string> // ritorna la recovery key
@@ -216,6 +349,9 @@ export interface Api {
     update(id: number, data: EsercizioInput): Promise<void>
     setArchiviato(id: number, archiviato: boolean): Promise<void>
     remove(id: number): Promise<void>
+    // L'immagine viaggia a parte: e' pesante e serve solo quando la si guarda.
+    immagine(id: number): Promise<string | null>
+    setImmagine(id: number, dataUrl: string | null): Promise<void>
   }
   pazienti: {
     list(): Promise<PazienteDettaglio[]>
@@ -243,6 +379,8 @@ export interface Api {
     remove(id: number): Promise<void>
   }
   esporta: {
+    // HTML della seduta per la sola anteprima a schermo (nessun file salvato).
+    anteprima(sedutaId: number): Promise<string>
     // Ritornano il percorso del file salvato, o null se l'utente annulla.
     seduta(sedutaId: number, formato: 'pdf' | 'docx'): Promise<string | null>
     storico(
@@ -251,6 +389,33 @@ export interface Api {
       al: string,
       formato: 'pdf' | 'docx'
     ): Promise<string | null>
+  }
+  questionari: {
+    list(includiArchiviati: boolean): Promise<Questionario[]>
+    get(id: number): Promise<QuestionarioCompleto>
+    create(nome: string): Promise<number>
+    // Salva il questionario intero in una volta: le domande conservano il
+    // proprio id, quelle sparite vengono eliminate. Cosi' le compilazioni gia'
+    // fatte continuano a puntare alle domande giuste.
+    salva(dati: QuestionarioCompleto): Promise<void>
+    setArchiviato(id: number, archiviato: boolean): Promise<void>
+    remove(id: number): Promise<void>
+    reorder(ids: number[]): Promise<void>
+  }
+  compilazioni: {
+    list(pazienteId: number): Promise<CompilazioneRiepilogo[]>
+    risposte(compilazioneId: number): Promise<RispostaQuestionario[]>
+    // Calcola punteggi e fascia lato principale e li memorizza con le risposte.
+    create(dati: CompilazioneInput): Promise<number>
+    remove(id: number): Promise<void>
+  }
+  testValutazione: {
+    list(includiArchiviati: boolean): Promise<TestValutazioneRiepilogo[]>
+    get(id: number): Promise<TestValutazioneCompleto>
+    create(nome: string): Promise<number>
+    salva(dati: TestValutazioneCompleto): Promise<void>
+    remove(id: number): Promise<void>
+    reorder(ids: number[]): Promise<void>
   }
   impostazioni: {
     info(): Promise<{ cartella: string; cartellaExport: string }>

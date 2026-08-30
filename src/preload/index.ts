@@ -1,10 +1,13 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type {
   Api,
+  CompilazioneInput,
   EsercizioInput,
   PazienteCreateInput,
   PazienteInput,
-  SedutaInput
+  QuestionarioCompleto,
+  SedutaInput,
+  TestValutazioneCompleto
 } from '../shared/types'
 
 const invoke = (channel: string, ...args: unknown[]): Promise<never> =>
@@ -12,6 +15,7 @@ const invoke = (channel: string, ...args: unknown[]): Promise<never> =>
 
 const api: Api = {
   apriLink: (url: string) => invoke('apriLink', url),
+  scegliImmagine: () => invoke('scegliImmagine'),
   auth: {
     status: () => invoke('auth:status'),
     setup: (password: string) => invoke('auth:setup', password),
@@ -69,7 +73,10 @@ const api: Api = {
     create: (data: EsercizioInput) => invoke('esercizi:create', data),
     update: (id: number, data: EsercizioInput) => invoke('esercizi:update', id, data),
     setArchiviato: (id: number, archiviato: boolean) => invoke('esercizi:setArchiviato', id, archiviato),
-    remove: (id: number) => invoke('esercizi:delete', id)
+    remove: (id: number) => invoke('esercizi:delete', id),
+    immagine: (id: number) => invoke('esercizi:immagine', id),
+    setImmagine: (id: number, dataUrl: string | null) =>
+      invoke('esercizi:setImmagine', id, dataUrl)
   },
   pazienti: {
     list: () => invoke('pazienti:list'),
@@ -94,10 +101,35 @@ const api: Api = {
     remove: (id: number) => invoke('sedute:delete', id)
   },
   esporta: {
+    anteprima: (sedutaId: number) => invoke('esporta:anteprima', sedutaId),
     seduta: (sedutaId: number, formato: 'pdf' | 'docx') =>
       invoke('esporta:seduta', sedutaId, formato),
     storico: (pazienteId: number, dal: string, al: string, formato: 'pdf' | 'docx') =>
       invoke('esporta:storico', pazienteId, dal, al, formato)
+  },
+  questionari: {
+    list: (includiArchiviati: boolean) => invoke('questionari:list', includiArchiviati),
+    get: (id: number) => invoke('questionari:get', id),
+    create: (nome: string) => invoke('questionari:create', nome),
+    salva: (dati: QuestionarioCompleto) => invoke('questionari:salva', dati),
+    setArchiviato: (id: number, archiviato: boolean) =>
+      invoke('questionari:setArchiviato', id, archiviato),
+    remove: (id: number) => invoke('questionari:delete', id),
+    reorder: (ids: number[]) => invoke('questionari:reorder', ids)
+  },
+  compilazioni: {
+    list: (pazienteId: number) => invoke('compilazioni:list', pazienteId),
+    risposte: (compilazioneId: number) => invoke('compilazioni:risposte', compilazioneId),
+    create: (dati: CompilazioneInput) => invoke('compilazioni:create', dati),
+    remove: (id: number) => invoke('compilazioni:delete', id)
+  },
+  testValutazione: {
+    list: (includiArchiviati: boolean) => invoke('testValutazione:list', includiArchiviati),
+    get: (id: number) => invoke('testValutazione:get', id),
+    create: (nome: string) => invoke('testValutazione:create', nome),
+    salva: (dati: TestValutazioneCompleto) => invoke('testValutazione:salva', dati),
+    remove: (id: number) => invoke('testValutazione:delete', id),
+    reorder: (ids: number[]) => invoke('testValutazione:reorder', ids)
   },
   impostazioni: {
     info: () => invoke('impostazioni:info'),

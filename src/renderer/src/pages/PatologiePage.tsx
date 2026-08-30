@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ArrowLeft, ArrowRight, ChevronRight, Pencil, Plus, X } from 'lucide-react'
+import { ChevronRight, GripVertical, Pencil, Plus, X } from 'lucide-react'
 import type {
   Categoria,
   Fase,
@@ -9,6 +9,7 @@ import type {
   TestAvanzamento
 } from '../../../shared/types'
 import CrudList from '../components/CrudList'
+import { sposta, useRiordino } from '../riordino'
 import { toastErrore } from '../components/Toast'
 import { errMsg } from '../lib'
 
@@ -121,7 +122,7 @@ function Step1Patologie({
   onChanged: () => Promise<void>
 }): React.JSX.Element {
   const [ricerca, setRicerca] = useState('')
-  const [nuova, setNuova] = useState('')
+  const [nuovaAperta, setNuovaAperta] = useState(false)
   const [edit, setEdit] = useState<{ id: number; nome: string } | null>(null)
 
   const q = ricerca.trim().toLowerCase()
@@ -135,12 +136,12 @@ function Step1Patologie({
     }
   }
 
-  const aggiungi = (): void => {
-    const n = nuova.trim()
+  const aggiungi = (nome: string): void => {
+    const n = nome.trim()
     if (!n) return
     void run(async () => {
       await window.api.patologie.create(n)
-      setNuova('')
+      setNuovaAperta(false)
       await onChanged()
     })
   }
@@ -156,20 +157,31 @@ function Step1Patologie({
 
   return (
     <section className="card step-card">
-      <div className="step-title">
-        <span className="step-num">1</span>
-        <h3>Scegli la patologia</h3>
+      <div className="step-head">
+        <div className="step-title">
+          <span className="step-num">1</span>
+          <h3>Scegli la patologia</h3>
+        </div>
+        <div className="ricerca-con-azione">
+          <input
+            type="search"
+            className="ricerca-compatta"
+            placeholder="Cerca patologia…"
+            value={ricerca}
+            onChange={(e) => setRicerca(e.target.value)}
+          />
+          <button
+            className="primary btn-icona"
+            title="Aggiungi una patologia"
+            onClick={() => setNuovaAperta(true)}
+          >
+            <Plus size={18} />
+          </button>
+        </div>
       </div>
-      <input
-        type="search"
-        className="filtro-esercizi"
-        placeholder="Cerca patologia…"
-        value={ricerca}
-        onChange={(e) => setRicerca(e.target.value)}
-      />
-      <ul className="scelte-list">
+      <div className="scelta-tiles">
         {filtrate.map((p) => (
-          <li key={p.id} onClick={() => onSelect(p.id)}>
+          <div key={p.id} className="scelta-tile" onClick={() => onSelect(p.id)}>
             {edit?.id === p.id ? (
               <span className="edit-row" onClick={(e) => e.stopPropagation()}>
                 <input
@@ -185,7 +197,7 @@ function Step1Patologie({
               </span>
             ) : (
               <>
-                <span className="item-nome">{p.nome}</span>
+                <span className="scelta-tile-nome">{p.nome}</span>
                 <span className="item-actions" onClick={(e) => e.stopPropagation()}>
                   <button title="Rinomina" onClick={() => setEdit({ id: p.id, nome: p.nome })}>
                     <Pencil size={16} />
@@ -205,33 +217,59 @@ function Step1Patologie({
                     <X size={16} />
                   </button>
                 </span>
-                <ChevronRight size={18} className="chevron" />
               </>
             )}
-          </li>
+          </div>
         ))}
-        {filtrate.length === 0 && (
-          <li className="empty">
-            {patologie.length === 0
-              ? 'Nessuna patologia: creane una qui sotto (es. Ricostruzione LCA).'
-              : 'Nessun risultato per la ricerca.'}
-          </li>
-        )}
-      </ul>
-      <div className="add-row">
-        <input
-          placeholder="Nuova patologia…"
-          value={nuova}
-          onChange={(e) => setNuova(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') aggiungi()
-          }}
-        />
-        <button onClick={aggiungi}>
-          <Plus size={16} /> Aggiungi
-        </button>
       </div>
+      {filtrate.length === 0 && (
+        <p className="hint">
+          {patologie.length === 0
+            ? 'Nessuna patologia: aggiungine una col pulsante + qui sopra (es. Ricostruzione LCA).'
+            : 'Nessun risultato per la ricerca.'}
+        </p>
+      )}
+      {nuovaAperta && (
+        <NuovaPatologiaModal onAnnulla={() => setNuovaAperta(false)} onConferma={aggiungi} />
+      )}
     </section>
+  )
+}
+
+function NuovaPatologiaModal({
+  onAnnulla,
+  onConferma
+}: {
+  onAnnulla: () => void
+  onConferma: (nome: string) => void
+}): React.JSX.Element {
+  const [nome, setNome] = useState('')
+
+  return (
+    <div className="modal-overlay" onClick={onAnnulla}>
+      <div className="modal modal-sm" onClick={(e) => e.stopPropagation()}>
+        <h3>Nuova patologia</h3>
+        <label>
+          Nome della patologia
+          <input
+            autoFocus
+            placeholder="es. Ricostruzione LCA"
+            value={nome}
+            onChange={(e) => setNome(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') onConferma(nome)
+              if (e.key === 'Escape') onAnnulla()
+            }}
+          />
+        </label>
+        <div className="modal-actions">
+          <button onClick={onAnnulla}>Annulla</button>
+          <button className="primary" disabled={!nome.trim()} onClick={() => onConferma(nome)}>
+            Aggiungi
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -276,16 +314,13 @@ function Step2Fasi({
     })
   }
 
-  const muovi = (idx: number, dir: -1 | 1): void => {
-    const ids = fasi.map((f) => f.id)
-    const j = idx + dir
-    if (j < 0 || j >= ids.length) return
-    ;[ids[idx], ids[j]] = [ids[j], ids[idx]]
+  const { contenitore, maniglia } = useRiordino<number>((da, a) => {
+    const ids = sposta(fasi, da, a).map((f) => f.id)
     void run(async () => {
       await window.api.fasi.reorder(ids)
       await onChanged()
     })
-  }
+  })
 
   return (
     <section className="card step-card">
@@ -293,9 +328,16 @@ function Step2Fasi({
         <span className="step-num">2</span>
         <h3>Scegli la fase di &ldquo;{patologia.nome}&rdquo;</h3>
       </div>
-      <div className="fasi-tiles">
-        {fasi.map((f, idx) => (
-          <div key={f.id} className="fase-tile" onClick={() => onSelect(f.id)}>
+      <div className="scelta-tiles">
+        {fasi.map((f, idx) => {
+          const dnd = contenitore(idx)
+          return (
+          <div
+            key={f.id}
+            {...dnd}
+            className={['scelta-tile', dnd.className].filter(Boolean).join(' ')}
+            onClick={() => onSelect(f.id)}
+          >
             {edit?.id === f.id ? (
               <span className="edit-row" onClick={(e) => e.stopPropagation()}>
                 <input
@@ -311,17 +353,10 @@ function Step2Fasi({
               </span>
             ) : (
               <>
-                <span className="fase-tile-nome">{f.nome}</span>
+                <span className="scelta-tile-nome">{f.nome}</span>
                 <span className="item-actions" onClick={(e) => e.stopPropagation()}>
-                  <button title="Sposta a sinistra" disabled={idx === 0} onClick={() => muovi(idx, -1)}>
-                    <ArrowLeft size={16} />
-                  </button>
-                  <button
-                    title="Sposta a destra"
-                    disabled={idx === fasi.length - 1}
-                    onClick={() => muovi(idx, 1)}
-                  >
-                    <ArrowRight size={16} />
+                  <button {...maniglia(idx)}>
+                    <GripVertical size={16} />
                   </button>
                   <button title="Rinomina" onClick={() => setEdit({ id: f.id, nome: f.nome })}>
                     <Pencil size={16} />
@@ -348,8 +383,9 @@ function Step2Fasi({
               </>
             )}
           </div>
-        ))}
-        <div className="fase-tile fase-tile-add" onClick={(e) => e.stopPropagation()}>
+          )
+        })}
+        <div className="scelta-tile scelta-tile-add" onClick={(e) => e.stopPropagation()}>
           <input
             placeholder="Nuova fase…"
             value={nuova}

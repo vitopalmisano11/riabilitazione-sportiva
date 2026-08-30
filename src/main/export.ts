@@ -117,6 +117,12 @@ async function salvaExport(
   return filePath
 }
 
+// Stesso HTML da cui nasce il PDF, restituito per la sola visualizzazione.
+export function anteprimaSeduta(sedutaId: number): string {
+  const seduta = leggiSeduta(sedutaId)
+  return generaHtml(leggiPaziente(seduta.paziente_id), [seduta])
+}
+
 export async function esportaSeduta(
   sedutaId: number,
   formato: FormatoExport

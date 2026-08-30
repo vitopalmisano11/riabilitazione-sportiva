@@ -13,6 +13,7 @@ import { runMigrations } from '../src/main/migrations'
 import { generaDocx, generaHtml } from '../src/main/export-doc'
 import { cambiaPasswordAuth, loginAuth, recoverAuth, setupAuth } from '../src/main/auth'
 import { getDb, initDb, isPlaintextDb } from '../src/main/db'
+import { calcola, salvaQuestionario } from '../src/main/questionari'
 import { spostaFileDati } from '../src/main/file-dati'
 import { existsSync, writeFileSync } from 'node:fs'
 
@@ -23,7 +24,7 @@ db.pragma('foreign_keys = ON')
 
 runMigrations(db)
 runMigrations(db) // idempotente
-assert.equal(db.pragma('user_version', { simple: true }), 4)
+assert.equal(db.pragma('user_version', { simple: true }), 7)
 
 const count = (table: string): number =>
   (db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n
@@ -51,6 +52,21 @@ const esId = db
 assert.equal(
   (db.prepare('SELECT link FROM esercizi WHERE id = ?').get(esId) as { link: string }).link,
   'https://esempio.it/video'
+)
+// v1.4: immagine opzionale sull'esercizio, assente finche' non la si carica
+assert.equal(
+  (db.prepare('SELECT immagine FROM esercizi WHERE id = ?').get(esId) as { immagine: null })
+    .immagine,
+  null
+)
+db.prepare('UPDATE esercizi SET immagine = ? WHERE id = ?').run('data:image/png;base64,AAAA', esId)
+assert.equal(
+  (
+    db.prepare('SELECT (immagine IS NOT NULL) AS ha FROM esercizi WHERE id = ?').get(esId) as {
+      ha: number
+    }
+  ).ha,
+  1
 )
 
 // UNIQUE: patologia duplicata rifiutata
@@ -185,6 +201,92 @@ assert.equal(
   (getDb().prepare('SELECT COUNT(*) AS n FROM categorie').get() as { n: number }).n,
   1
 )
+
+// --- Questionari: punteggi e fasce sul caso a due punteggi ---
+// Nove domande si/no (la nona vale 1 sopra una certa risposta), un punteggio
+// Totale su tutte e un Sub sulle ultime cinque, tre fasce lette in ordine.
+{
+  const qId = Number(
+    getDb().prepare("INSERT INTO questionari (nome, ordine) VALUES ('Prova', 0)").run()
+      .lastInsertRowid
+  )
+  // Le domande non ancora salvate hanno un id negativo, assegnato
+  // dall'interfaccia. Qui si passano in ordine sparso apposta: i riferimenti
+  // devono seguire l'id, non la posizione nell'elenco (era il difetto per cui
+  // un punteggio poteva risultare vuoto dopo un riordino).
+  const domande = Array.from({ length: 9 }, (_, i) => ({
+    id: -(i + 1),
+    testo: `Domanda ${i + 1}`,
+    tipo: 'si_no' as const,
+    scala_min: null,
+    scala_max: null,
+    opzioni: []
+  }))
+  const mescolate = [...domande.slice(4), ...domande.slice(0, 4)]
+  salvaQuestionario({
+    questionario: { id: qId, nome: 'Prova', istruzioni: null, ordine: 0, archiviato: 0 },
+    domande: mescolate,
+    punteggi: [
+      { id: -101, nome: 'Totale', domanda_ids: domande.map((d) => d.id) },
+      { id: -102, nome: 'Sub', domanda_ids: [-5, -6, -7, -8, -9] }
+    ],
+    fasce: [
+      { id: null, etichetta: 'Basso', punteggio_id: -101, minimo: null, massimo: 3,
+        punteggio2_id: null, minimo2: null, massimo2: null },
+      { id: null, etichetta: 'Alto', punteggio_id: -101, minimo: 4, massimo: null,
+        punteggio2_id: -102, minimo2: 4, massimo2: null },
+      { id: null, etichetta: 'Medio', punteggio_id: -101, minimo: 4, massimo: null,
+        punteggio2_id: null, minimo2: null, massimo2: null }
+    ]
+  })
+
+  // Il "Totale" deve contenere tutte e nove le domande, non un sottoinsieme:
+  // e' esattamente cio' che si rompeva prima, in silenzio.
+  const perNome = (nome: string): number =>
+    (
+      getDb()
+        .prepare(
+          `SELECT COUNT(*) AS n FROM punteggio_domande pd
+           JOIN questionario_punteggi p ON p.id = pd.punteggio_id
+           WHERE p.questionario_id = ? AND p.nome = ?`
+        )
+        .get(qId, nome) as { n: number }
+    ).n
+  assert.equal(perNome('Totale'), 9)
+  assert.equal(perNome('Sub'), 5)
+
+  const salvato = getDb()
+    .prepare('SELECT id, testo FROM questionario_domande WHERE questionario_id = ?')
+    .all(qId) as { id: number; testo: string }[]
+  assert.equal(salvato.length, 9)
+  // si risponde "si" alle domande indicate per numero, qualunque sia il loro ordine
+  const rispondi = (uni: number[]): { domanda_id: number; valore: number }[] =>
+    salvato.map((d) => ({
+      domanda_id: d.id,
+      valore: uni.includes(Number(d.testo.replace('Domanda ', ''))) ? 1 : 0
+    }))
+
+  // due sole risposte affermative -> totale 2 -> fascia bassa
+  let esito = calcola(qId, rispondi([1, 2]))
+  assert.deepEqual(esito.punteggi, [
+    { nome: 'Totale', valore: 2 },
+    { nome: 'Sub', valore: 0 }
+  ])
+  assert.equal(esito.fascia, 'Basso')
+
+  // totale 5 ma sub 1: la regola "Alto" non si avvera, vince "Medio"
+  esito = calcola(qId, rispondi([1, 2, 3, 4, 5]))
+  assert.equal(esito.fascia, 'Medio')
+
+  // totale 5 e sub 5: vince "Alto", che viene prima di "Medio"
+  esito = calcola(qId, rispondi([5, 6, 7, 8, 9]))
+  assert.deepEqual(esito.punteggi, [
+    { nome: 'Totale', valore: 5 },
+    { nome: 'Sub', valore: 5 }
+  ])
+  assert.equal(esito.fascia, 'Alto')
+}
+
 getDb().close()
 assert.ok(!isPlaintextDb(dbPath))
 // senza chiave il file non è leggibile

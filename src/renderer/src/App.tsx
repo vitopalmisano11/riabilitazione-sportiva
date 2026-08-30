@@ -3,6 +3,8 @@ import { FolderCog, HeartPulse, KeyRound, Settings, Users } from 'lucide-react'
 import PatologiePage from './pages/PatologiePage'
 import CategoriePage from './pages/CategoriePage'
 import EserciziPage from './pages/EserciziPage'
+import QuestionariPage from './pages/QuestionariPage'
+import TestValutazionePage from './pages/TestValutazionePage'
 import PazientiPage from './pages/PazientiPage'
 import AuthGate from './components/AuthGate'
 import ToastHost, { toast, toastErrore } from './components/Toast'
@@ -10,12 +12,20 @@ import { errMsg } from './lib'
 
 type Sezione = 'pazienti' | 'configurazione'
 
-type TabConfig = 'patologie' | 'categorie' | 'esercizi' | 'export'
+type TabConfig =
+  | 'patologie'
+  | 'categorie'
+  | 'esercizi'
+  | 'questionari'
+  | 'testValutazione'
+  | 'export'
 
 const TAB_CONFIG: { key: TabConfig; label: string }[] = [
   { key: 'patologie', label: 'Patologie e fasi' },
   { key: 'categorie', label: 'Categorie esercizi' },
   { key: 'esercizi', label: 'Libreria esercizi' },
+  { key: 'questionari', label: 'Questionari' },
+  { key: 'testValutazione', label: 'Test di valutazione' },
   { key: 'export', label: 'Export' }
 ]
 
@@ -92,6 +102,8 @@ function ConfigurazionePage(): React.JSX.Element {
       {tab === 'patologie' && <PatologiePage />}
       {tab === 'categorie' && <CategoriePage />}
       {tab === 'esercizi' && <EserciziPage />}
+      {tab === 'questionari' && <QuestionariPage />}
+      {tab === 'testValutazione' && <TestValutazionePage />}
       {tab === 'export' && <ExportConfigPage />}
     </div>
   )

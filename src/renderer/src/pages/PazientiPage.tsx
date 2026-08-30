@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Download, FileText } from 'lucide-react'
+import { Download, Eye, FileText } from 'lucide-react'
 import type {
   Fase,
   Obiettivo,
@@ -9,6 +9,7 @@ import type {
   TestValore
 } from '../../../shared/types'
 import SedutaBuilder from '../components/SedutaBuilder'
+import QuestionariPaziente from '../components/QuestionariPaziente'
 import { toast, toastErrore } from '../components/Toast'
 import { errMsg, formatData } from '../lib'
 
@@ -483,6 +484,8 @@ function SchedaPaziente({
 
       <ObiettiviCard paziente={paziente} />
 
+      <QuestionariPaziente paziente={paziente} />
+
       <DiarioCard
         paziente={paziente}
         onNuova={onNuovaSeduta}
@@ -680,6 +683,7 @@ function DiarioCard({
   const [sedute, setSedute] = useState<SedutaRiepilogo[]>([])
   const [periodo, setPeriodo] = useState<{ dal: string; al: string } | null>(null)
   const [menuScarica, setMenuScarica] = useState<number | null>(null)
+  const [anteprima, setAnteprima] = useState<number | null>(null)
 
   const load = async (): Promise<void> => setSedute(await window.api.sedute.list(paziente.id))
 
@@ -766,6 +770,9 @@ function DiarioCard({
                 <button title="Nuova seduta partendo da questa" onClick={() => onDuplica(s.id)}>
                   Duplica
                 </button>
+                <button title="Anteprima della seduta" onClick={() => setAnteprima(s.id)}>
+                  <Eye size={18} />
+                </button>
                 <span className="menu-wrapper">
                   <button
                     title="Scarica la seduta"
@@ -838,6 +845,59 @@ function DiarioCard({
           </div>
         </div>
       )}
+
+      {anteprima != null && (
+        <AnteprimaSeduta sedutaId={anteprima} onClose={() => setAnteprima(null)} />
+      )}
     </section>
+  )
+}
+
+// Mostra la seduta com'e' fatta, senza salvare niente: e' lo stesso HTML da cui
+// nasce il PDF, cosi' l'anteprima non puo' discostarsi dal file esportato.
+// Va in un iframe con sandbox vuota: nessuno script puo' girare li' dentro.
+function AnteprimaSeduta({
+  sedutaId,
+  onClose
+}: {
+  sedutaId: number
+  onClose: () => void
+}): React.JSX.Element {
+  const [html, setHtml] = useState<string | null>(null)
+  const [errore, setErrore] = useState('')
+
+  useEffect(() => {
+    let annullato = false
+    window.api.esporta
+      .anteprima(sedutaId)
+      .then((h) => {
+        if (!annullato) setHtml(h)
+      })
+      .catch((e) => {
+        if (!annullato) setErrore(errMsg(e))
+      })
+    return () => {
+      annullato = true
+    }
+  }, [sedutaId])
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
+        <h3>Anteprima della seduta</h3>
+        {errore ? (
+          <p className="auth-error">{errore}</p>
+        ) : html == null ? (
+          <p className="hint">Caricamento…</p>
+        ) : (
+          <iframe className="anteprima-frame" title="Anteprima della seduta" sandbox="" srcDoc={html} />
+        )}
+        <div className="modal-actions">
+          <button className="primary" onClick={onClose}>
+            Chiudi
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }

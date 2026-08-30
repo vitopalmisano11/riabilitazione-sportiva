@@ -460,6 +460,37 @@ button.danger:hover:not(:disabled) {
   cursor: default;
 }
 
+.step-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.step-head .step-title {
+  margin-bottom: 0;
+}
+
+/* ricerca compatta accanto al titolo, non piu' a tutta larghezza */
+.ricerca-con-azione {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ricerca-compatta {
+  width: 240px;
+  max-width: 100%;
+}
+
+/* pulsante quadrato con la sola icona, alto quanto il campo di ricerca */
+.btn-icona {
+  padding: 10px 12px;
+  flex-shrink: 0;
+}
+
 .step-title {
   display: flex;
   align-items: center;
@@ -486,77 +517,35 @@ button.danger:hover:not(:disabled) {
   font-size: 17px;
 }
 
-.scelte-list {
-  list-style: none;
-  margin: 0 0 14px;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  max-height: 380px;
-  overflow: auto;
-}
-
-.scelte-list li {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 14px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition:
-    border-color 0.15s,
-    background 0.15s,
-    box-shadow 0.15s;
-}
-
-.scelte-list li:hover {
-  border-color: var(--accent);
-  background: #f8fbff;
-  box-shadow: var(--shadow-sm);
-}
-
-.scelte-list li:hover .item-actions {
-  opacity: 1;
-}
-
-.scelte-list .chevron {
-  color: var(--text-dim);
-  flex-shrink: 0;
-}
-
-.scelte-list li.empty {
-  cursor: default;
-  border-style: dashed;
-  color: var(--text-dim);
-  font-style: italic;
-  justify-content: center;
-}
-
-.scelte-list li.empty:hover {
-  border-color: var(--border);
-  background: none;
-  box-shadow: none;
-}
-
-.fasi-tiles {
-  display: flex;
-  flex-wrap: wrap;
+.scelta-tiles {
+  display: grid;
+  /* quattro per riga: la quinta va a capo */
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
 }
 
-.fase-tile {
-  min-width: 180px;
-  max-width: 260px;
-  flex: 1;
-  padding: 16px 14px 12px;
+/* a finestra stretta quattro colonne starebbero troppo strette */
+@media (max-width: 980px) {
+  .scelta-tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.scelta-tile {
+  position: relative;
+  min-height: 104px;
+  /* margini uguali sopra e sotto: solo cosi' il nome cade nel centro esatto
+     della casella. In basso c'e' spazio per le azioni, che sono sovrapposte. */
+  padding: 30px 14px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   cursor: pointer;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
   gap: 10px;
+  text-align: center;
   background: var(--surface);
   box-shadow: var(--shadow-sm);
   transition:
@@ -565,44 +554,60 @@ button.danger:hover:not(:disabled) {
     transform 0.1s;
 }
 
-.fase-tile:hover {
+.scelta-tile:hover {
   border-color: var(--accent);
   box-shadow: var(--shadow-md);
   transform: translateY(-1px);
 }
 
-.fase-tile:hover .item-actions {
+.scelta-tile:hover .item-actions {
   opacity: 1;
+  pointer-events: auto;
 }
 
-.fase-tile-nome {
+.scelta-tile .item-actions {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 7px;
+  justify-content: center;
+}
+
+/* la rinomina resta a tutta larghezza dentro la casella */
+.scelta-tile .edit-row {
+  width: 100%;
+}
+
+.scelta-tile-nome {
   font-weight: 600;
   font-size: 17px;
   overflow-wrap: break-word;
   min-width: 0;
 }
 
-.fase-tile-add {
+.scelta-tile-add {
   border-style: dashed;
   cursor: default;
   box-shadow: none;
   background: #fafbfd;
+  align-items: stretch;
   justify-content: center;
+  padding: 20px 14px;
 }
 
-.fase-tile-add:hover {
+.scelta-tile-add:hover {
   transform: none;
   box-shadow: none;
   border-color: var(--border-forte);
 }
 
-.fase-tile-add input {
+.scelta-tile-add input {
   min-width: 0;
 }
 
-/* ---- Link video esercizi ---- */
+/* ---- Icone accanto al nome dell'esercizio (video, immagine) ---- */
 
-.link-video {
+.icona-esercizio {
   border: none;
   background: none;
   color: var(--accent);
@@ -612,7 +617,7 @@ button.danger:hover:not(:disabled) {
   vertical-align: -2px;
 }
 
-.link-video:hover:not(:disabled) {
+.icona-esercizio:hover:not(:disabled) {
   background: var(--accent-soft);
 }
 
@@ -684,11 +689,14 @@ button.danger:hover:not(:disabled) {
   display: flex;
   gap: 2px;
   opacity: 0;
+  /* invisibili = non cliccabili, altrimenti rubano il clic alla riga */
+  pointer-events: none;
 }
 
 .crud-list li:hover .item-actions,
 .crud-list li.selected .item-actions {
   opacity: 1;
+  pointer-events: auto;
 }
 
 .item-actions button {
@@ -737,12 +745,25 @@ button.danger:hover:not(:disabled) {
 }
 
 /* spaziatura compatta, allineata a quella delle liste di sezioni */
+/* Dentro .crud-list queste voci ereditavano la spaziatura delle righe
+   modificabili (9px sopra e sotto) e risultavano troppo distanziate: qui la
+   spaziatura la decide la label, con l'evidenziazione al passaggio del mouse
+   che tiene le voci ben separate a occhio. */
+.crud-list .checkbox-list li {
+  padding: 0;
+}
+
 .checkbox-list label {
   display: flex;
   align-items: center;
   gap: 9px;
-  padding: 4px;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
+}
+
+.checkbox-list label:hover {
+  background: var(--accent-soft);
 }
 
 /* ---- Toolbar + tabella esercizi ---- */
@@ -834,10 +855,25 @@ button.danger:hover:not(:disabled) {
   white-space: nowrap;
 }
 
+/* Nel diario la fila e' uno <span>: in linea, i pulsanti con la sola icona si
+   allineavano alla base del testo e risultavano sfalsati rispetto a quelli con
+   la scritta. In flex si allineano tutti al centro. Nelle tabelle .row-actions
+   e' invece una cella, che non va tolta dal flusso della tabella. */
+span.row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .row-actions button {
   margin-left: 4px;
   padding: 4px 9px;
   font-size: 15px;
+}
+
+span.row-actions button {
+  margin-left: 0;
+  align-self: stretch;
 }
 
 /* ---- Modal ---- */
@@ -1491,4 +1527,263 @@ button.danger:hover:not(:disabled) {
     opacity: 1;
     transform: none;
   }
+}
+
+/* ---- Riordino per trascinamento ---- */
+
+.maniglia-riordino {
+  display: inline-flex;
+  align-items: center;
+  /* Il cursore di sistema dei pulsanti, non una sua imitazione: ogni versione
+     disegnata a mano restava diversa dall'originale. Cosi' e' identico per
+     definizione, e nitido perche' lo disegna Windows. */
+  cursor: pointer;
+}
+
+.in-movimento {
+  opacity: 0.4;
+}
+
+/* la posizione in cui verrebbe lasciato */
+.bersaglio-drop {
+  outline: 2px dashed var(--accent);
+  outline-offset: 2px;
+}
+
+/* ---- Immagine dell'esercizio ---- */
+
+.campo-immagine {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.campo-immagine-etichetta {
+  font-size: 15px;
+  color: var(--text-dim);
+}
+
+.campo-immagine-azioni {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.immagine-anteprima {
+  max-width: 220px;
+  max-height: 150px;
+  width: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  object-fit: contain;
+  background: #fafbfd;
+}
+
+.immagine-grande {
+  max-width: 100%;
+  /* lascia spazio a titolo e pulsante dentro la finestra */
+  max-height: calc(100vh - 220px);
+  margin: 0 auto;
+  border-radius: var(--radius-sm);
+  object-fit: contain;
+}
+
+/* ---- Anteprima della seduta ---- */
+
+.modal-lg {
+  width: 940px;
+}
+
+.anteprima-frame {
+  width: 100%;
+  height: 62vh;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: #fff;
+}
+
+/* ---- Questionari (PROM) ---- */
+
+.lista-domande {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.domanda-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.domanda-testata {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.domanda-numero {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.domanda-testo {
+  flex: 1;
+  min-width: 0;
+}
+
+.opzioni-domanda {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  /* rientro: le risposte appartengono alla domanda qui sopra */
+  padding-left: 34px;
+}
+
+.opzione-riga {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.opzione-riga input:first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.opzione-punteggio {
+  width: 90px;
+  flex-shrink: 0;
+}
+
+/* la regola di una fascia, letta come una frase: "se Totale da 0 a 3" */
+.regola-fascia {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-left: 34px;
+}
+
+.regola-fascia input[type='number'] {
+  width: 90px;
+}
+
+.regola-parola {
+  color: var(--text-dim);
+  font-size: 15px;
+}
+
+/* ---- Compilazione di un questionario ---- */
+
+.compila-data {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.compila-istruzioni {
+  margin: 0;
+  padding: 10px 12px;
+  background: var(--accent-soft);
+  border-radius: var(--radius-sm);
+  font-size: 16px;
+}
+
+.compila-domande {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: 54vh;
+  overflow: auto;
+}
+
+.compila-domande > li {
+  border-bottom: 1px solid var(--bg);
+  padding-bottom: 12px;
+}
+
+/* il paziente legge da mezzo metro: testo piu' grande del resto dell'app */
+.compila-testo {
+  margin: 0 0 8px;
+  font-size: 18px;
+  line-height: 1.4;
+}
+
+.compila-risposte {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* pulsanti larghi: il fisioterapista clicca al volo mentre legge ad alta voce */
+.compila-risposte button {
+  min-width: 74px;
+  padding: 10px 18px;
+  font-size: 16px;
+}
+
+.compila-risposte button.scelta-attiva {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.scelte-questionari {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.scelte-questionari button {
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.badge-fascia {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* ---- Test di valutazione ---- */
+
+.riga-parametro {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.riga-parametro input:first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.campo-stretto {
+  width: 110px;
+  flex-shrink: 0;
 }

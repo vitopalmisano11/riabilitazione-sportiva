@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { ArrowDown, ArrowUp, Pencil, X } from 'lucide-react'
+import { GripVertical, Pencil, X } from 'lucide-react'
 import { errMsg } from '../lib'
+import { sposta, useRiordino } from '../riordino'
 import { toastErrore } from './Toast'
 
 export interface CrudItem {
@@ -63,26 +64,29 @@ export default function CrudList({
     })
   }
 
-  const move = (idx: number, dir: -1 | 1): void => {
+  const { contenitore, maniglia } = useRiordino<number>((da, a) => {
     if (!onReorder) return
-    const ids = items.map((i) => i.id)
-    const j = idx + dir
-    if (j < 0 || j >= ids.length) return
-    ;[ids[idx], ids[j]] = [ids[j], ids[idx]]
+    const ids = sposta(items, da, a).map((i) => i.id)
     void run(() => onReorder(ids))
-  }
+  })
 
   return (
     <section className="crud-list">
       <h3>{title}</h3>
       <ul>
-        {items.map((item, idx) => (
+        {items.map((item, idx) => {
+          const dnd = onReorder ? contenitore(idx) : null
+          return (
           <li
             key={item.id}
+            {...dnd}
             className={[
               selectedId === item.id ? 'selected' : '',
-              onSelect ? 'selectable' : ''
-            ].join(' ')}
+              onSelect ? 'selectable' : '',
+              dnd?.className ?? ''
+            ]
+              .filter(Boolean)
+              .join(' ')}
             onClick={() => onSelect?.(item.id)}
           >
             {editId === item.id ? (
@@ -103,18 +107,9 @@ export default function CrudList({
                 <span className="item-nome">{item.nome}</span>
                 <span className="item-actions" onClick={(e) => e.stopPropagation()}>
                   {onReorder && (
-                    <>
-                      <button title="Sposta su" disabled={idx === 0} onClick={() => move(idx, -1)}>
-                        <ArrowUp size={16} />
-                      </button>
-                      <button
-                        title="Sposta giù"
-                        disabled={idx === items.length - 1}
-                        onClick={() => move(idx, 1)}
-                      >
-                        <ArrowDown size={16} />
-                      </button>
-                    </>
+                    <button {...maniglia(idx)}>
+                      <GripVertical size={16} />
+                    </button>
                   )}
                   <button
                     title="Rinomina"
@@ -138,7 +133,8 @@ export default function CrudList({
               </>
             )}
           </li>
-        ))}
+          )
+        })}
         {items.length === 0 && <li className="empty">{emptyHint ?? 'Nessun elemento'}</li>}
       </ul>
       <div className="add-row">

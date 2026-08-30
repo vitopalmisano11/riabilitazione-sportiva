@@ -1,4 +1,4 @@
-import { dialog, ipcMain, shell } from 'electron'
+import { dialog, ipcMain, nativeImage, shell } from 'electron'
 import { join } from 'path'
 import { closeDb, getDb, initDb, riapriDb } from './db'
 import {
@@ -15,12 +15,17 @@ import {
   recoverAuth,
   setupAuth
 } from './auth'
-import { esportaSeduta, esportaStorico, type FormatoExport } from './export'
+import { anteprimaSeduta, esportaSeduta, esportaStorico, type FormatoExport } from './export'
+import { leggiQuestionario, salvaCompilazione, salvaQuestionario } from './questionari'
+import { leggiTest, salvaTest } from './test-valutazione'
 import type {
+  CompilazioneInput,
   EsercizioInput,
   PazienteCreateInput,
   PazienteInput,
-  SedutaInput
+  QuestionarioCompleto,
+  SedutaInput,
+  TestValutazioneCompleto
 } from '../shared/types'
 
 // Traduce gli errori SQLite in messaggi comprensibili per l'utente.
@@ -291,10 +296,14 @@ export function registerIpc(): void {
   })
 
   // ---- Esercizi ----
+  // Colonne esplicite: `e.*` trascinerebbe anche `immagine` in ogni elenco.
   handle('esercizi:list', (includiArchiviati: boolean) =>
     getDb()
       .prepare(
-        `SELECT e.*, c.nome AS categoria_nome
+        `SELECT e.id, e.nome, e.categoria_id, e.serie_default, e.ripetizioni_default,
+                e.carico_default, e.recupero_default, e.nota_tecnica, e.link, e.archiviato,
+                c.nome AS categoria_nome,
+                (e.immagine IS NOT NULL) AS ha_immagine
          FROM esercizi e JOIN categorie c ON c.id = e.categoria_id
          ${includiArchiviati ? '' : 'WHERE e.archiviato = 0'}
          ORDER BY e.nome`
@@ -327,6 +336,45 @@ export function registerIpc(): void {
   })
   handle('esercizi:delete', (id: number) => {
     getDb().prepare('DELETE FROM esercizi WHERE id = ?').run(id)
+  })
+
+  // ---- Immagine dell'esercizio ----
+  // Sta nel database (quindi cifrata e inclusa nel backup della cartella) come
+  // data URL. Larghezza massima e peso massimo tengono il file sotto controllo.
+  const IMG_LARGHEZZA_MAX = 1000
+  const IMG_PESO_MAX = 3 * 1024 * 1024
+
+  handle('esercizi:immagine', (id: number) => {
+    const riga = getDb().prepare('SELECT immagine FROM esercizi WHERE id = ?').get(id) as
+      | { immagine: string | null }
+      | undefined
+    if (!riga) throw new Error('Esercizio non trovato.')
+    return riga.immagine
+  })
+
+  handle('esercizi:setImmagine', (id: number, dataUrl: string | null) => {
+    if (dataUrl != null && dataUrl.length > IMG_PESO_MAX) {
+      throw new Error('Immagine troppo pesante.')
+    }
+    getDb().prepare('UPDATE esercizi SET immagine = ? WHERE id = ?').run(dataUrl, id)
+  })
+
+  handle('scegliImmagine', async () => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+      title: "Scegli l'immagine dell'esercizio",
+      properties: ['openFile'],
+      filters: [{ name: 'Immagini', extensions: ['png', 'jpg', 'jpeg', 'webp', 'bmp', 'gif'] }]
+    })
+    if (canceled || filePaths.length === 0) return null
+    let img = nativeImage.createFromPath(filePaths[0])
+    if (img.isEmpty()) throw new Error('Immagine non leggibile o in un formato non supportato.')
+    if (img.getSize().width > IMG_LARGHEZZA_MAX) {
+      img = img.resize({ width: IMG_LARGHEZZA_MAX, quality: 'good' })
+    }
+    // PNG se resta leggero (conserva la trasparenza), altrimenti JPEG.
+    const png = img.toPNG()
+    if (png.length <= 400 * 1024) return `data:image/png;base64,${png.toString('base64')}`
+    return `data:image/jpeg;base64,${img.toJPEG(80).toString('base64')}`
   })
 
   // ---- Pazienti ----
@@ -483,6 +531,7 @@ export function registerIpc(): void {
     const esercizi = db
       .prepare(
         `SELECT se.esercizio_id, e.nome, c.nome AS categoria_nome, e.link,
+                (e.immagine IS NOT NULL) AS ha_immagine,
                 se.serie, se.ripetizioni, se.carico, se.recupero, se.nota, se.seduta_sezione_id
          FROM seduta_esercizi se
          JOIN esercizi e ON e.id = se.esercizio_id
@@ -537,7 +586,101 @@ export function registerIpc(): void {
     getDb().prepare('DELETE FROM sedute WHERE id = ?').run(id)
   })
 
+  // ---- Questionari (PROM) ----
+  handle('questionari:list', (includiArchiviati: boolean) =>
+    getDb()
+      .prepare(
+        `SELECT * FROM questionari
+         ${includiArchiviati ? '' : 'WHERE archiviato = 0'}
+         ORDER BY ordine, nome`
+      )
+      .all()
+  )
+  handle('questionari:get', (id: number) => leggiQuestionario(id))
+  handle('questionari:create', (nome: string) => {
+    const db = getDb()
+    const { next } = db
+      .prepare('SELECT COALESCE(MAX(ordine), -1) + 1 AS next FROM questionari')
+      .get() as { next: number }
+    return Number(
+      db.prepare('INSERT INTO questionari (nome, ordine) VALUES (?, ?)').run(nome.trim(), next)
+        .lastInsertRowid
+    )
+  })
+  handle('questionari:salva', (dati: QuestionarioCompleto) => salvaQuestionario(dati))
+  handle('questionari:setArchiviato', (id: number, archiviato: boolean) => {
+    getDb().prepare('UPDATE questionari SET archiviato = ? WHERE id = ?').run(archiviato ? 1 : 0, id)
+  })
+  handle('questionari:delete', (id: number) => {
+    getDb().prepare('DELETE FROM questionari WHERE id = ?').run(id)
+  })
+  handle('questionari:reorder', (ids: number[]) => {
+    const db = getDb()
+    const stmt = db.prepare('UPDATE questionari SET ordine = ? WHERE id = ?')
+    db.transaction(() => ids.forEach((id, i) => stmt.run(i, id)))()
+  })
+
+  // ---- Compilazioni di un paziente ----
+  handle('compilazioni:list', (pazienteId: number) => {
+    const db = getDb()
+    const righe = db
+      .prepare(
+        `SELECT pq.id, pq.data, pq.questionario_id, pq.fascia, pq.note, q.nome AS questionario_nome
+         FROM paziente_questionari pq JOIN questionari q ON q.id = pq.questionario_id
+         WHERE pq.paziente_id = ?
+         ORDER BY pq.data DESC, pq.id DESC`
+      )
+      .all(pazienteId) as { id: number }[]
+    const pStmt = db.prepare(
+      'SELECT nome, valore FROM compilazione_punteggi WHERE compilazione_id = ? ORDER BY ordine'
+    )
+    return righe.map((r) => ({ ...r, punteggi: pStmt.all(r.id) }))
+  })
+  handle('compilazioni:risposte', (compilazioneId: number) =>
+    getDb()
+      .prepare('SELECT domanda_id, valore FROM questionario_risposte WHERE compilazione_id = ?')
+      .all(compilazioneId)
+  )
+  handle('compilazioni:create', (dati: CompilazioneInput) => salvaCompilazione(dati))
+  handle('compilazioni:delete', (id: number) => {
+    getDb().prepare('DELETE FROM paziente_questionari WHERE id = ?').run(id)
+  })
+
+  // ---- Test di valutazione ----
+  handle('testValutazione:list', (includiArchiviati: boolean) =>
+    getDb()
+      .prepare(
+        `SELECT id, nome, descrizione, protocollo, prove, ordine, archiviato,
+                (immagine IS NOT NULL) AS ha_immagine
+         FROM test_valutazione
+         ${includiArchiviati ? '' : 'WHERE archiviato = 0'}
+         ORDER BY ordine, nome`
+      )
+      .all()
+  )
+  handle('testValutazione:get', (id: number) => leggiTest(id))
+  handle('testValutazione:create', (nome: string) => {
+    const db = getDb()
+    const { next } = db
+      .prepare('SELECT COALESCE(MAX(ordine), -1) + 1 AS next FROM test_valutazione')
+      .get() as { next: number }
+    return Number(
+      db.prepare('INSERT INTO test_valutazione (nome, ordine) VALUES (?, ?)').run(nome.trim(), next)
+        .lastInsertRowid
+    )
+  })
+  handle('testValutazione:salva', (dati: TestValutazioneCompleto) => salvaTest(dati))
+  handle('testValutazione:delete', (id: number) => {
+    getDb().prepare('DELETE FROM test_valutazione WHERE id = ?').run(id)
+  })
+  handle('testValutazione:reorder', (ids: number[]) => {
+    const db = getDb()
+    const stmt = db.prepare('UPDATE test_valutazione SET ordine = ? WHERE id = ?')
+    db.transaction(() => ids.forEach((id, i) => stmt.run(i, id)))()
+  })
+
   // ---- Export ----
+  handle('esporta:anteprima', (sedutaId: number) => anteprimaSeduta(sedutaId))
   handle('esporta:seduta', (sedutaId: number, formato: FormatoExport) =>
     esportaSeduta(sedutaId, formato)
   )

@@ -155,6 +155,142 @@ const MIGRATIONS: string[] = [
   `
   ALTER TABLE categorie ADD COLUMN ordine INTEGER NOT NULL DEFAULT 0;
   UPDATE categorie SET ordine = (SELECT COUNT(*) FROM categorie c2 WHERE c2.nome < categorie.nome);
+  `,
+
+  // 5 — immagine dell'esercizio, come data URL dentro il database cifrato
+  //     (cosi' il backup resta "copia la cartella" e l'immagine e' protetta
+  //     come il resto). Non si legge mai nell'elenco: vedi esercizi:immagine.
+  `
+  ALTER TABLE esercizi ADD COLUMN immagine TEXT;
+  `,
+
+  // 6 — questionari (PROM). Ogni domanda, di qualunque forma, e' un elenco di
+  //     risposte che valgono un punteggio: si/no sono due risposte (0 e 1), una
+  //     scala 0-10 sono undici risposte, una scelta multipla le sue opzioni. Un
+  //     questionario puo' avere piu' punteggi (es. Totale e Sub) e delle fasce,
+  //     lette in ordine: vince la prima regola che si avvera.
+  `
+  CREATE TABLE questionari (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome TEXT NOT NULL UNIQUE,
+    istruzioni TEXT,
+    ordine INTEGER NOT NULL DEFAULT 0,
+    archiviato INTEGER NOT NULL DEFAULT 0
+  );
+
+  CREATE TABLE questionario_domande (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    questionario_id INTEGER NOT NULL REFERENCES questionari(id) ON DELETE CASCADE,
+    testo TEXT NOT NULL,
+    tipo TEXT NOT NULL,
+    scala_min INTEGER,
+    scala_max INTEGER,
+    ordine INTEGER NOT NULL DEFAULT 0
+  );
+
+  CREATE TABLE questionario_opzioni (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    domanda_id INTEGER NOT NULL REFERENCES questionario_domande(id) ON DELETE CASCADE,
+    etichetta TEXT NOT NULL,
+    punteggio REAL NOT NULL DEFAULT 0,
+    ordine INTEGER NOT NULL DEFAULT 0
+  );
+
+  CREATE TABLE questionario_punteggi (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    questionario_id INTEGER NOT NULL REFERENCES questionari(id) ON DELETE CASCADE,
+    nome TEXT NOT NULL,
+    ordine INTEGER NOT NULL DEFAULT 0
+  );
+
+  CREATE TABLE punteggio_domande (
+    punteggio_id INTEGER NOT NULL REFERENCES questionario_punteggi(id) ON DELETE CASCADE,
+    domanda_id INTEGER NOT NULL REFERENCES questionario_domande(id) ON DELETE CASCADE,
+    PRIMARY KEY (punteggio_id, domanda_id)
+  );
+
+  CREATE TABLE questionario_fasce (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    questionario_id INTEGER NOT NULL REFERENCES questionari(id) ON DELETE CASCADE,
+    etichetta TEXT NOT NULL,
+    punteggio_id INTEGER REFERENCES questionario_punteggi(id) ON DELETE CASCADE,
+    minimo REAL,
+    massimo REAL,
+    punteggio2_id INTEGER REFERENCES questionario_punteggi(id) ON DELETE CASCADE,
+    minimo2 REAL,
+    massimo2 REAL,
+    ordine INTEGER NOT NULL DEFAULT 0
+  );
+
+  CREATE TABLE paziente_questionari (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    paziente_id INTEGER NOT NULL REFERENCES pazienti(id) ON DELETE CASCADE,
+    questionario_id INTEGER NOT NULL REFERENCES questionari(id),
+    data TEXT NOT NULL,
+    fascia TEXT,
+    note TEXT
+  );
+
+  CREATE TABLE questionario_risposte (
+    compilazione_id INTEGER NOT NULL REFERENCES paziente_questionari(id) ON DELETE CASCADE,
+    domanda_id INTEGER NOT NULL REFERENCES questionario_domande(id),
+    valore REAL NOT NULL,
+    PRIMARY KEY (compilazione_id, domanda_id)
+  );
+
+  CREATE TABLE compilazione_punteggi (
+    compilazione_id INTEGER NOT NULL REFERENCES paziente_questionari(id) ON DELETE CASCADE,
+    nome TEXT NOT NULL,
+    valore REAL NOT NULL,
+    ordine INTEGER NOT NULL DEFAULT 0
+  );
+
+  CREATE INDEX idx_domande_questionario ON questionario_domande(questionario_id);
+  CREATE INDEX idx_opzioni_domanda ON questionario_opzioni(domanda_id);
+  CREATE INDEX idx_paziente_questionari_paziente ON paziente_questionari(paziente_id);
+  `,
+
+  // 7 — test di valutazione da letteratura (es. Drop Jump): la scheda con
+  //     protocollo, immagine e link, i parametri di setup e le misure. Una
+  //     misura si registra a ogni prova oppure una volta sola per il test; il
+  //     valore confrontato col cutoff e' la prova migliore, la media o la
+  //     peggiore, a seconda di come e' definita la misura.
+  `
+  CREATE TABLE test_valutazione (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome TEXT NOT NULL UNIQUE,
+    descrizione TEXT,
+    protocollo TEXT,
+    link TEXT,
+    immagine TEXT,
+    prove INTEGER NOT NULL DEFAULT 3,
+    ordine INTEGER NOT NULL DEFAULT 0,
+    archiviato INTEGER NOT NULL DEFAULT 0
+  );
+
+  CREATE TABLE test_parametri (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    test_id INTEGER NOT NULL REFERENCES test_valutazione(id) ON DELETE CASCADE,
+    nome TEXT NOT NULL,
+    valore TEXT,
+    unita TEXT,
+    ordine INTEGER NOT NULL DEFAULT 0
+  );
+
+  CREATE TABLE test_misure (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    test_id INTEGER NOT NULL REFERENCES test_valutazione(id) ON DELETE CASCADE,
+    nome TEXT NOT NULL,
+    unita TEXT,
+    per_prova INTEGER NOT NULL DEFAULT 1,
+    riassunto TEXT NOT NULL DEFAULT 'migliore',
+    cutoff REAL,
+    cutoff_direzione TEXT,
+    ordine INTEGER NOT NULL DEFAULT 0
+  );
+
+  CREATE INDEX idx_test_parametri_test ON test_parametri(test_id);
+  CREATE INDEX idx_test_misure_test ON test_misure(test_id);
   `
 ]
 

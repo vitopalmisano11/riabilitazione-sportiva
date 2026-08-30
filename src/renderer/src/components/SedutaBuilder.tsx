@@ -7,9 +7,11 @@ import type {
   SedutaEsercizioDettaglio,
   SedutaInput
 } from '../../../shared/types'
-import { ArrowDown, ArrowUp, Pencil, Plus, Video, X } from 'lucide-react'
+import { GripVertical, ImageIcon, Pencil, Plus, Video, X } from 'lucide-react'
 import { toastErrore } from './Toast'
+import ImmagineEsercizio from './ImmagineEsercizio'
 import { errMsg, oggiIso } from '../lib'
+import { sposta, useRiordino } from '../riordino'
 
 interface Props {
   paziente: PazienteDettaglio
@@ -43,6 +45,7 @@ export default function SedutaBuilder({
   const [categorie, setCategorie] = useState<Categoria[]>([])
   const [ricerche, setRicerche] = useState<Record<number, string>>({})
   const [nuovaSezione, setNuovaSezione] = useState('')
+  const [immagineAperta, setImmagineAperta] = useState<{ id: number; nome: string } | null>(null)
 
   useEffect(() => {
     void (async () => {
@@ -124,7 +127,8 @@ export default function SedutaBuilder({
                   carico: e.carico_default,
                   recupero: e.recupero_default,
                   nota: null,
-                  link: e.link
+                  link: e.link,
+                  ha_immagine: e.ha_immagine
                 }
               ]
             }
@@ -156,26 +160,19 @@ export default function SedutaBuilder({
     )
   }
 
-  const muoviRiga = (idxSez: number, idxRiga: number, dir: -1 | 1): void => {
-    setSezioni(
-      sezioni.map((s, i) => {
-        if (i !== idxSez) return s
-        const j = idxRiga + dir
-        if (j < 0 || j >= s.righe.length) return s
-        const righe = [...s.righe]
-        ;[righe[idxRiga], righe[j]] = [righe[j], righe[idxRiga]]
-        return { ...s, righe }
-      })
-    )
-  }
+  const { contenitore: contSez, maniglia: manSez } = useRiordino<number>((da, a) =>
+    setSezioni(sposta(sezioni, da, a))
+  )
 
-  const muoviSezione = (idx: number, dir: -1 | 1): void => {
-    const j = idx + dir
-    if (j < 0 || j >= sezioni.length) return
-    const next = [...sezioni]
-    ;[next[idx], next[j]] = [next[j], next[idx]]
-    setSezioni(next)
-  }
+  // Le righe si riordinano solo dentro la propria sezione: la chiave e' "sezione:riga".
+  const { contenitore: contRiga, maniglia: manRiga } = useRiordino<string>((da, a) => {
+    const [sezDa, rigaDa] = da.split(':').map(Number)
+    const [sezA, rigaA] = a.split(':').map(Number)
+    if (sezDa !== sezA) return
+    setSezioni(
+      sezioni.map((s, i) => (i === sezDa ? { ...s, righe: sposta(s.righe, rigaDa, rigaA) } : s))
+    )
+  })
 
   const rimuoviSezione = (idx: number): void => {
     const s = sezioni[idx]
@@ -307,8 +304,13 @@ export default function SedutaBuilder({
           ricerca.length >= 2
             ? libreria.filter((e) => e.nome.toLowerCase().includes(ricerca) && !inSezione.has(e.id)).slice(0, 8)
             : proposte(s).filter((e) => !inSezione.has(e.id))
+        const dndSez = contSez(idxSez)
         return (
-          <section key={idxSez} className="card sezione-card">
+          <section
+            key={idxSez}
+            {...dndSez}
+            className={['card sezione-card', dndSez.className].filter(Boolean).join(' ')}
+          >
             <div className="sezione-testata">
               {editSez?.idx === idxSez ? (
                 <span className="edit-row">
@@ -347,15 +349,8 @@ export default function SedutaBuilder({
                 <h3>{s.nome}</h3>
               )}
               <span className="item-actions-static">
-                <button title="Sposta su" disabled={idxSez === 0} onClick={() => muoviSezione(idxSez, -1)}>
-                  <ArrowUp size={16} />
-                </button>
-                <button
-                  title="Sposta giù"
-                  disabled={idxSez === sezioni.length - 1}
-                  onClick={() => muoviSezione(idxSez, 1)}
-                >
-                  <ArrowDown size={16} />
+                <button {...manSez(idxSez)}>
+                  <GripVertical size={16} />
                 </button>
                 <button title="Rinomina" onClick={() => setEditSez({ idx: idxSez, nome: s.nome })}>
                   <Pencil size={16} />
@@ -368,14 +363,16 @@ export default function SedutaBuilder({
 
             {s.righe.length > 0 && (
               <ul className="righe-seduta">
-                {s.righe.map((r, idxRiga) => (
-                  <li key={r.esercizio_id}>
+                {s.righe.map((r, idxRiga) => {
+                  const dndRiga = contRiga(`${idxSez}:${idxRiga}`)
+                  return (
+                  <li key={r.esercizio_id} {...dndRiga} className={dndRiga.className}>
                     <div className="riga-testata">
                       <span className="item-nome">
                         {r.nome}
                         {r.link && (
                           <button
-                            className="link-video"
+                            className="icona-esercizio"
                             title="Apri video"
                             onClick={() =>
                               window.api.apriLink(r.link!).catch((err) => toastErrore(errMsg(err)))
@@ -384,22 +381,22 @@ export default function SedutaBuilder({
                             <Video size={16} />
                           </button>
                         )}
+                        {r.ha_immagine === 1 && (
+                          <button
+                            className="icona-esercizio"
+                            title="Vedi immagine"
+                            onClick={() =>
+                              setImmagineAperta({ id: r.esercizio_id, nome: r.nome })
+                            }
+                          >
+                            <ImageIcon size={16} />
+                          </button>
+                        )}
                       </span>
                       <span className="default-hint">{r.categoria_nome}</span>
                       <span className="item-actions-static">
-                        <button
-                          title="Sposta su"
-                          disabled={idxRiga === 0}
-                          onClick={() => muoviRiga(idxSez, idxRiga, -1)}
-                        >
-                          <ArrowUp size={16} />
-                        </button>
-                        <button
-                          title="Sposta giù"
-                          disabled={idxRiga === s.righe.length - 1}
-                          onClick={() => muoviRiga(idxSez, idxRiga, 1)}
-                        >
-                          <ArrowDown size={16} />
+                        <button {...manRiga(`${idxSez}:${idxRiga}`)}>
+                          <GripVertical size={16} />
                         </button>
                         <button
                           title="Rimuovi"
@@ -450,7 +447,8 @@ export default function SedutaBuilder({
                       onChange={(e) => updateRiga(idxSez, idxRiga, 'nota', e.target.value)}
                     />
                   </li>
-                ))}
+                  )
+                })}
               </ul>
             )}
 
@@ -474,7 +472,7 @@ export default function SedutaBuilder({
                         {e.nome}
                         {e.link && (
                           <button
-                            className="link-video"
+                            className="icona-esercizio"
                             title="Apri video"
                             onClick={(ev) => {
                               ev.stopPropagation()
@@ -482,6 +480,18 @@ export default function SedutaBuilder({
                             }}
                           >
                             <Video size={16} />
+                          </button>
+                        )}
+                        {e.ha_immagine === 1 && (
+                          <button
+                            className="icona-esercizio"
+                            title="Vedi immagine"
+                            onClick={(ev) => {
+                              ev.stopPropagation()
+                              setImmagineAperta({ id: e.id, nome: e.nome })
+                            }}
+                          >
+                            <ImageIcon size={16} />
                           </button>
                         )}
                       </span>
@@ -541,6 +551,14 @@ export default function SedutaBuilder({
           </button>
         </div>
       </section>
+
+      {immagineAperta && (
+        <ImmagineEsercizio
+          esercizioId={immagineAperta.id}
+          nome={immagineAperta.nome}
+          onClose={() => setImmagineAperta(null)}
+        />
+      )}
     </div>
   )
 }
