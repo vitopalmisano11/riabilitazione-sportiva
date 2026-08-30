@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { ImageIcon, Video } from 'lucide-react'
 import type { Categoria, EsercizioConCategoria, EsercizioInput } from '../../../shared/types'
 import { toastErrore } from '../components/Toast'
+import CrudList from '../components/CrudList'
 import ImmagineEsercizio from '../components/ImmagineEsercizio'
 import { errMsg } from '../lib'
 
@@ -55,9 +56,11 @@ export default function EserciziPage(): React.JSX.Element {
     setEsercizi(await window.api.esercizi.list(archiviati))
   }
 
+  const loadCategorie = (): Promise<void> => window.api.categorie.list().then(setCategorie)
+
   useEffect(() => {
     void load()
-    void window.api.categorie.list().then(setCategorie)
+    void loadCategorie()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -160,11 +163,40 @@ export default function EserciziPage(): React.JSX.Element {
       <header className="page-header">
         <h2>Libreria esercizi</h2>
         <p>
-          Libreria unica e condivisa: lo stesso esercizio è richiamabile da patologie diverse. I
-          valori di default (serie/ripetizioni/carico) vengono copiati nella seduta e lì restano
-          modificabili.
+          Le categorie raggruppano gli esercizi (es. Mobilizzazione, Rinforzo, Corsa) e si
+          associano alle sezioni della seduta in &ldquo;Patologie e fasi&rdquo;. La libreria è
+          unica e condivisa: lo stesso esercizio è richiamabile da patologie diverse, e i valori
+          di default vengono copiati nella seduta dove restano modificabili.
         </p>
       </header>
+
+      <details className="blocco-apribile">
+        <summary>Categorie esercizi ({categorie.length})</summary>
+        <div className="contenuto-apribile">
+        <CrudList
+          title="Categorie"
+          items={categorie}
+          onAdd={async (n) => {
+            await window.api.categorie.create(n)
+            await loadCategorie()
+          }}
+          onRename={async (id, n) => {
+            await window.api.categorie.update(id, n)
+            await loadCategorie()
+          }}
+          onDelete={async (id) => {
+            await window.api.categorie.remove(id)
+            await loadCategorie()
+          }}
+          onReorder={async (ids) => {
+            await window.api.categorie.reorder(ids)
+            await loadCategorie()
+          }}
+          addPlaceholder="Nuova categoria…"
+          emptyHint="Nessuna categoria: creane una qui sotto."
+        />
+        </div>
+      </details>
 
       <div className="toolbar">
         <input

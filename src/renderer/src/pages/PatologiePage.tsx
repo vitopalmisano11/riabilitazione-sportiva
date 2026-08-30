@@ -155,6 +155,14 @@ function Step1Patologie({
     })
   }
 
+  const { contenitore, maniglia } = useRiordino<number>((da, a) => {
+    const ids = sposta(patologie, da, a).map((p) => p.id)
+    void run(async () => {
+      await window.api.patologie.reorder(ids)
+      await onChanged()
+    })
+  })
+
   return (
     <section className="card step-card">
       <div className="step-head">
@@ -180,9 +188,16 @@ function Step1Patologie({
         </div>
       </div>
       <div className="scelta-tiles">
-        {filtrate.map((p) => (
-          <div key={p.id} className="scelta-tile" onClick={() => onSelect(p.id)}>
-            {edit?.id === p.id ? (
+        {filtrate.map((p, idx) => {
+          const dnd = contenitore(idx)
+          return (
+          <div
+            key={p.id}
+            {...dnd}
+            className={['scelta-tile', dnd.className].filter(Boolean).join(' ')}
+            onClick={() => onSelect(p.id)}
+          >
+            {edit && edit.id === p.id ? (
               <span className="edit-row" onClick={(e) => e.stopPropagation()}>
                 <input
                   autoFocus
@@ -199,6 +214,9 @@ function Step1Patologie({
               <>
                 <span className="scelta-tile-nome">{p.nome}</span>
                 <span className="item-actions" onClick={(e) => e.stopPropagation()}>
+                  <button {...maniglia(idx)}>
+                    <GripVertical size={16} />
+                  </button>
                   <button title="Rinomina" onClick={() => setEdit({ id: p.id, nome: p.nome })}>
                     <Pencil size={16} />
                   </button>
@@ -220,7 +238,8 @@ function Step1Patologie({
               </>
             )}
           </div>
-        ))}
+          )
+        })}
       </div>
       {filtrate.length === 0 && (
         <p className="hint">

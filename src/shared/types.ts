@@ -1,6 +1,7 @@
 export interface Patologia {
   id: number
   nome: string
+  ordine: number
 }
 
 export interface Fase {
@@ -90,6 +91,8 @@ export interface Paziente {
 export type PazienteDettaglio = Paziente & {
   patologia_nome: string | null
   fase_nome: string | null
+  // data dell'ultima seduta, per tenere in cima chi e' in trattamento adesso
+  ultima_seduta: string | null
 }
 
 export interface PazienteInput {
@@ -168,8 +171,15 @@ export interface SedutaDettaglio {
 // scritte a mano con il loro valore. Un solo meccanismo per tutte le forme.
 export type TipoDomanda = 'si_no' | 'scala' | 'scelta'
 
+export interface CategoriaQuestionario {
+  id: number
+  nome: string
+  ordine: number
+}
+
 export interface Questionario {
   id: number
+  categoria_id: number | null
   nome: string
   istruzioni: string | null
   ordine: number
@@ -252,17 +262,24 @@ export type RiassuntoMisura = 'migliore' | 'media' | 'peggiore'
 // 'min' = superato stando sopra la soglia; 'max' = stando sotto
 export type DirezioneCutoff = 'min' | 'max'
 
+export interface CategoriaTest {
+  id: number
+  nome: string
+  ordine: number
+}
+
 export interface TestValutazione {
   id: number
+  categoria_id: number | null
   nome: string
   descrizione: string | null
   protocollo: string | null
+  // video o pagina che mostra come si esegue il test
+  link: string | null
   prove: number
   ordine: number
   archiviato: 0 | 1
 }
-
-export type TestValutazioneRiepilogo = TestValutazione & { ha_immagine: 0 | 1 }
 
 export interface ParametroTest {
   id: number | null
@@ -283,7 +300,6 @@ export interface MisuraTest {
 
 export interface TestValutazioneCompleto {
   test: TestValutazione
-  immagine: string | null
   parametri: ParametroTest[]
   misure: MisuraTest[]
 }
@@ -305,6 +321,7 @@ export interface Api {
     create(nome: string): Promise<number>
     update(id: number, nome: string): Promise<void>
     remove(id: number): Promise<void>
+    reorder(ids: number[]): Promise<void>
   }
   fasi: {
     list(patologiaId: number): Promise<Fase[]>
@@ -390,10 +407,19 @@ export interface Api {
       formato: 'pdf' | 'docx'
     ): Promise<string | null>
   }
+  questionariCategorie: {
+    list(): Promise<CategoriaQuestionario[]>
+    create(nome: string): Promise<number>
+    update(id: number, nome: string): Promise<void>
+    remove(id: number): Promise<void>
+    reorder(ids: number[]): Promise<void>
+  }
   questionari: {
+    // Ritorna tutti i questionari con la loro categoria: sono pochi, il filtro
+    // per categoria si fa nell'interfaccia.
     list(includiArchiviati: boolean): Promise<Questionario[]>
     get(id: number): Promise<QuestionarioCompleto>
-    create(nome: string): Promise<number>
+    create(nome: string, categoriaId: number): Promise<number>
     // Salva il questionario intero in una volta: le domande conservano il
     // proprio id, quelle sparite vengono eliminate. Cosi' le compilazioni gia'
     // fatte continuano a puntare alle domande giuste.
@@ -409,10 +435,17 @@ export interface Api {
     create(dati: CompilazioneInput): Promise<number>
     remove(id: number): Promise<void>
   }
-  testValutazione: {
-    list(includiArchiviati: boolean): Promise<TestValutazioneRiepilogo[]>
-    get(id: number): Promise<TestValutazioneCompleto>
+  testCategorie: {
+    list(): Promise<CategoriaTest[]>
     create(nome: string): Promise<number>
+    update(id: number, nome: string): Promise<void>
+    remove(id: number): Promise<void>
+    reorder(ids: number[]): Promise<void>
+  }
+  testValutazione: {
+    list(includiArchiviati: boolean): Promise<TestValutazione[]>
+    get(id: number): Promise<TestValutazioneCompleto>
+    create(nome: string, categoriaId: number): Promise<number>
     salva(dati: TestValutazioneCompleto): Promise<void>
     remove(id: number): Promise<void>
     reorder(ids: number[]): Promise<void>

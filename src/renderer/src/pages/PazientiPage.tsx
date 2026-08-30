@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Download, Eye, FileText } from 'lucide-react'
+import { ChevronRight, Download, Eye, FileText, Plus } from 'lucide-react'
 import type {
   Fase,
   Obiettivo,
@@ -58,9 +58,15 @@ export default function PazientiPage(): React.JSX.Element {
   }, [nuovo?.patologia_id])
 
   const q = ricerca.trim().toLowerCase()
-  const visibili = pazienti.filter(
+  const trovati = pazienti.filter(
     (p) => q === '' || `${p.cognome} ${p.nome} ${p.nome} ${p.cognome}`.toLowerCase().includes(q)
   )
+  // L'elenco arriva gia' ordinato per seduta piu' recente. Se ne mostrano dieci
+  // e il resto va sotto, richiudibile: cercando invece si vede tutto, cosi'
+  // nessun paziente diventa difficile da raggiungere.
+  const IN_VISTA = 10
+  const inVista = q === '' ? trovati.slice(0, IN_VISTA) : trovati
+  const altri = q === '' ? trovati.slice(IN_VISTA) : []
   const sel = pazienti.find((p) => p.id === selId) ?? null
 
   const salvaNuovo = async (): Promise<void> => {
@@ -101,7 +107,7 @@ export default function PazientiPage(): React.JSX.Element {
   }
 
   return (
-    <div className="page">
+    <div className="page step-flow">
       <header className="page-header">
         <h2>Pazienti</h2>
         <p>
@@ -111,66 +117,86 @@ export default function PazientiPage(): React.JSX.Element {
         </p>
       </header>
 
-      <div className="pazienti-layout">
-        <section className="crud-list">
-          <div className="add-row list-top">
+      {sel && (
+        <div className="briciole">
+          <button className="briciola" onClick={() => setSelId(null)}>
+            Pazienti
+          </button>
+          <ChevronRight size={16} />
+          <span className="briciola corrente">
+            {sel.cognome} {sel.nome}
+          </span>
+        </div>
+      )}
+
+      {sel ? (
+        <SchedaPaziente
+          key={sel.id}
+          paziente={sel}
+          patologie={patologie}
+          onChanged={load}
+          onDeleted={() => {
+            setSelId(null)
+            void load()
+          }}
+          onNuovaSeduta={() => setBuilder({ sedutaId: null })}
+          onApriSeduta={(id) => setBuilder({ sedutaId: id })}
+          onDuplicaSeduta={(id) => setBuilder({ sedutaId: null, duplicaDa: id })}
+        />
+      ) : (
+        <section className="card step-card colonna-centrata">
+          <div className="ricerca-sopra">
             <input
               type="search"
               placeholder="Cerca paziente…"
               value={ricerca}
               onChange={(e) => setRicerca(e.target.value)}
             />
-            <button className="primary" onClick={() => setNuovo({ ...NUOVO_VUOTO })}>
-              + Nuovo
+            <button
+              className="primary btn-icona"
+              title="Nuovo paziente"
+              onClick={() => setNuovo({ ...NUOVO_VUOTO })}
+            >
+              <Plus size={18} />
             </button>
           </div>
-          <ul>
-            {visibili.map((p) => (
-              <li
-                key={p.id}
-                className={['selectable', selId === p.id ? 'selected' : ''].join(' ')}
-                onClick={() => setSelId(p.id)}
-              >
-                <span className="paziente-item">
-                  <span className="item-nome">
-                    {p.cognome} {p.nome}
-                  </span>
-                  <span className="paziente-sub">
-                    {p.patologia_nome
-                      ? `${p.patologia_nome}${p.fase_nome ? ' · ' + p.fase_nome : ''}`
-                      : 'Senza patologia'}
-                  </span>
-                </span>
-              </li>
-            ))}
-            {visibili.length === 0 && (
-              <li className="empty">
-                {pazienti.length === 0 ? 'Nessun paziente: creane uno con "+ Nuovo".' : 'Nessun risultato.'}
-              </li>
-            )}
-          </ul>
-        </section>
 
-        {sel ? (
-          <SchedaPaziente
-            key={sel.id}
-            paziente={sel}
-            patologie={patologie}
-            onChanged={load}
-            onDeleted={() => {
-              setSelId(null)
-              void load()
-            }}
-            onNuovaSeduta={() => setBuilder({ sedutaId: null })}
-            onApriSeduta={(id) => setBuilder({ sedutaId: id })}
-            onDuplicaSeduta={(id) => setBuilder({ sedutaId: null, duplicaDa: id })}
-          />
-        ) : (
-          <section className="card">
-            <p className="hint">Seleziona un paziente dalla lista, o creane uno nuovo.</p>
-          </section>
-        )}
-      </div>
+          <div className="elenco-verticale">
+            {inVista.map((p) => (
+              <div key={p.id} className="scelta-tile" onClick={() => setSelId(p.id)}>
+                <span className="scelta-tile-nome">
+                  {p.cognome} {p.nome}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {altri.length > 0 && (
+            <details className="blocco-apribile blocco-archivio">
+              <summary>Meno recenti ({altri.length})</summary>
+              <div className="contenuto-apribile">
+                <div className="elenco-verticale">
+                  {altri.map((p) => (
+                    <div key={p.id} className="scelta-tile" onClick={() => setSelId(p.id)}>
+                      <span className="scelta-tile-nome">
+                        {p.cognome} {p.nome}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </details>
+          )}
+
+          {trovati.length === 0 && (
+            <p className="hint">
+              {pazienti.length === 0
+                ? 'Nessun paziente: creane uno col pulsante + qui sopra.'
+                : 'Nessun risultato per la ricerca.'}
+            </p>
+          )}
+        </section>
+      )}
 
       {nuovo && (
         <div className="modal-overlay" onClick={() => setNuovo(null)}>

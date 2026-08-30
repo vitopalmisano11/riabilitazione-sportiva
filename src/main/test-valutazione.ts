@@ -14,15 +14,12 @@ export function leggiTest(id: number): TestValutazioneCompleto {
   const db = getDb()
   const test = db
     .prepare(
-      `SELECT id, nome, descrizione, protocollo, prove, ordine, archiviato
+      `SELECT id, categoria_id, nome, descrizione, protocollo, link, prove, ordine, archiviato
        FROM test_valutazione WHERE id = ?`
     )
     .get(id) as TestValutazione | undefined
   if (!test) throw new Error('Test non trovato.')
 
-  const { immagine } = db.prepare('SELECT immagine FROM test_valutazione WHERE id = ?').get(id) as {
-    immagine: string | null
-  }
   const parametri = db
     .prepare('SELECT id, nome, valore, unita FROM test_parametri WHERE test_id = ? ORDER BY ordine, id')
     .all(id) as ParametroTest[]
@@ -33,7 +30,7 @@ export function leggiTest(id: number): TestValutazioneCompleto {
     )
     .all(id) as MisuraTest[]
 
-  return { test, immagine, parametri, misure }
+  return { test, parametri, misure }
 }
 
 export function salvaTest(dati: TestValutazioneCompleto): void {
@@ -43,13 +40,13 @@ export function salvaTest(dati: TestValutazioneCompleto): void {
   db.transaction(() => {
     db.prepare(
       `UPDATE test_valutazione
-       SET nome = ?, descrizione = ?, protocollo = ?, immagine = ?, prove = ?
+       SET nome = ?, descrizione = ?, protocollo = ?, link = ?, prove = ?
        WHERE id = ?`
     ).run(
       dati.test.nome.trim(),
       dati.test.descrizione,
       dati.test.protocollo,
-      dati.immagine,
+      dati.test.link,
       Math.max(1, dati.test.prove),
       id
     )

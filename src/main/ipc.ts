@@ -129,11 +129,23 @@ export function registerIpc(): void {
 
   // ---- Patologie ----
   handle('patologie:list', () =>
-    getDb().prepare('SELECT * FROM patologie ORDER BY nome').all()
+    getDb().prepare('SELECT * FROM patologie ORDER BY ordine, nome').all()
   )
-  handle('patologie:create', (nome: string) =>
-    Number(getDb().prepare('INSERT INTO patologie (nome) VALUES (?)').run(nome.trim()).lastInsertRowid)
-  )
+  handle('patologie:create', (nome: string) => {
+    const db = getDb()
+    const { next } = db
+      .prepare('SELECT COALESCE(MAX(ordine), -1) + 1 AS next FROM patologie')
+      .get() as { next: number }
+    return Number(
+      db.prepare('INSERT INTO patologie (nome, ordine) VALUES (?, ?)').run(nome.trim(), next)
+        .lastInsertRowid
+    )
+  })
+  handle('patologie:reorder', (ids: number[]) => {
+    const db = getDb()
+    const stmt = db.prepare('UPDATE patologie SET ordine = ? WHERE id = ?')
+    db.transaction(() => ids.forEach((id, i) => stmt.run(i, id)))()
+  })
   handle('patologie:update', (id: number, nome: string) => {
     getDb().prepare('UPDATE patologie SET nome = ? WHERE id = ?').run(nome.trim(), id)
   })
@@ -393,11 +405,14 @@ export function registerIpc(): void {
   handle('pazienti:list', () =>
     getDb()
       .prepare(
-        `SELECT p.*, pat.nome AS patologia_nome, f.nome AS fase_nome
+        `SELECT p.*, pat.nome AS patologia_nome, f.nome AS fase_nome,
+                (SELECT MAX(s.data) FROM sedute s WHERE s.paziente_id = p.id) AS ultima_seduta
          FROM pazienti p
          LEFT JOIN patologie pat ON pat.id = p.patologia_id
          LEFT JOIN fasi f ON f.id = p.fase_corrente_id
-         ORDER BY p.cognome, p.nome`
+         -- in cima chi ha la seduta piu' recente; chi non ne ha ancora resta in
+         -- fondo, in ordine alfabetico
+         ORDER BY ultima_seduta IS NULL, ultima_seduta DESC, p.cognome, p.nome`
       )
       .all()
   )
@@ -586,6 +601,33 @@ export function registerIpc(): void {
     getDb().prepare('DELETE FROM sedute WHERE id = ?').run(id)
   })
 
+  // ---- Categorie dei questionari ----
+  handle('questionariCategorie:list', () =>
+    getDb().prepare('SELECT * FROM questionario_categorie ORDER BY ordine, nome').all()
+  )
+  handle('questionariCategorie:create', (nome: string) => {
+    const db = getDb()
+    const { next } = db
+      .prepare('SELECT COALESCE(MAX(ordine), -1) + 1 AS next FROM questionario_categorie')
+      .get() as { next: number }
+    return Number(
+      db
+        .prepare('INSERT INTO questionario_categorie (nome, ordine) VALUES (?, ?)')
+        .run(nome.trim(), next).lastInsertRowid
+    )
+  })
+  handle('questionariCategorie:update', (id: number, nome: string) => {
+    getDb().prepare('UPDATE questionario_categorie SET nome = ? WHERE id = ?').run(nome.trim(), id)
+  })
+  handle('questionariCategorie:delete', (id: number) => {
+    getDb().prepare('DELETE FROM questionario_categorie WHERE id = ?').run(id)
+  })
+  handle('questionariCategorie:reorder', (ids: number[]) => {
+    const db = getDb()
+    const stmt = db.prepare('UPDATE questionario_categorie SET ordine = ? WHERE id = ?')
+    db.transaction(() => ids.forEach((id, i) => stmt.run(i, id)))()
+  })
+
   // ---- Questionari (PROM) ----
   handle('questionari:list', (includiArchiviati: boolean) =>
     getDb()
@@ -597,14 +639,15 @@ export function registerIpc(): void {
       .all()
   )
   handle('questionari:get', (id: number) => leggiQuestionario(id))
-  handle('questionari:create', (nome: string) => {
+  handle('questionari:create', (nome: string, categoriaId: number) => {
     const db = getDb()
     const { next } = db
-      .prepare('SELECT COALESCE(MAX(ordine), -1) + 1 AS next FROM questionari')
-      .get() as { next: number }
+      .prepare('SELECT COALESCE(MAX(ordine), -1) + 1 AS next FROM questionari WHERE categoria_id = ?')
+      .get(categoriaId) as { next: number }
     return Number(
-      db.prepare('INSERT INTO questionari (nome, ordine) VALUES (?, ?)').run(nome.trim(), next)
-        .lastInsertRowid
+      db
+        .prepare('INSERT INTO questionari (nome, categoria_id, ordine) VALUES (?, ?, ?)')
+        .run(nome.trim(), categoriaId, next).lastInsertRowid
     )
   })
   handle('questionari:salva', (dati: QuestionarioCompleto) => salvaQuestionario(dati))
@@ -646,12 +689,37 @@ export function registerIpc(): void {
     getDb().prepare('DELETE FROM paziente_questionari WHERE id = ?').run(id)
   })
 
+  // ---- Categorie dei test ----
+  handle('testCategorie:list', () =>
+    getDb().prepare('SELECT * FROM test_categorie ORDER BY ordine, nome').all()
+  )
+  handle('testCategorie:create', (nome: string) => {
+    const db = getDb()
+    const { next } = db
+      .prepare('SELECT COALESCE(MAX(ordine), -1) + 1 AS next FROM test_categorie')
+      .get() as { next: number }
+    return Number(
+      db.prepare('INSERT INTO test_categorie (nome, ordine) VALUES (?, ?)').run(nome.trim(), next)
+        .lastInsertRowid
+    )
+  })
+  handle('testCategorie:update', (id: number, nome: string) => {
+    getDb().prepare('UPDATE test_categorie SET nome = ? WHERE id = ?').run(nome.trim(), id)
+  })
+  handle('testCategorie:delete', (id: number) => {
+    getDb().prepare('DELETE FROM test_categorie WHERE id = ?').run(id)
+  })
+  handle('testCategorie:reorder', (ids: number[]) => {
+    const db = getDb()
+    const stmt = db.prepare('UPDATE test_categorie SET ordine = ? WHERE id = ?')
+    db.transaction(() => ids.forEach((id, i) => stmt.run(i, id)))()
+  })
+
   // ---- Test di valutazione ----
   handle('testValutazione:list', (includiArchiviati: boolean) =>
     getDb()
       .prepare(
-        `SELECT id, nome, descrizione, protocollo, prove, ordine, archiviato,
-                (immagine IS NOT NULL) AS ha_immagine
+        `SELECT id, categoria_id, nome, descrizione, protocollo, link, prove, ordine, archiviato
          FROM test_valutazione
          ${includiArchiviati ? '' : 'WHERE archiviato = 0'}
          ORDER BY ordine, nome`
@@ -659,14 +727,15 @@ export function registerIpc(): void {
       .all()
   )
   handle('testValutazione:get', (id: number) => leggiTest(id))
-  handle('testValutazione:create', (nome: string) => {
+  handle('testValutazione:create', (nome: string, categoriaId: number) => {
     const db = getDb()
     const { next } = db
-      .prepare('SELECT COALESCE(MAX(ordine), -1) + 1 AS next FROM test_valutazione')
-      .get() as { next: number }
+      .prepare('SELECT COALESCE(MAX(ordine), -1) + 1 AS next FROM test_valutazione WHERE categoria_id = ?')
+      .get(categoriaId) as { next: number }
     return Number(
-      db.prepare('INSERT INTO test_valutazione (nome, ordine) VALUES (?, ?)').run(nome.trim(), next)
-        .lastInsertRowid
+      db
+        .prepare('INSERT INTO test_valutazione (nome, categoria_id, ordine) VALUES (?, ?, ?)')
+        .run(nome.trim(), categoriaId, next).lastInsertRowid
     )
   })
   handle('testValutazione:salva', (dati: TestValutazioneCompleto) => salvaTest(dati))

@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { FolderCog, HeartPulse, KeyRound, Settings, Users } from 'lucide-react'
 import PatologiePage from './pages/PatologiePage'
-import CategoriePage from './pages/CategoriePage'
 import EserciziPage from './pages/EserciziPage'
 import QuestionariPage from './pages/QuestionariPage'
 import TestValutazionePage from './pages/TestValutazionePage'
@@ -12,21 +11,13 @@ import { errMsg } from './lib'
 
 type Sezione = 'pazienti' | 'configurazione'
 
-type TabConfig =
-  | 'patologie'
-  | 'categorie'
-  | 'esercizi'
-  | 'questionari'
-  | 'testValutazione'
-  | 'export'
+type TabConfig = 'patologie' | 'esercizi' | 'questionari' | 'testValutazione'
 
 const TAB_CONFIG: { key: TabConfig; label: string }[] = [
   { key: 'patologie', label: 'Patologie e fasi' },
-  { key: 'categorie', label: 'Categorie esercizi' },
   { key: 'esercizi', label: 'Libreria esercizi' },
   { key: 'questionari', label: 'Questionari' },
-  { key: 'testValutazione', label: 'Test di valutazione' },
-  { key: 'export', label: 'Export' }
+  { key: 'testValutazione', label: 'Test di valutazione' }
 ]
 
 export default function App(): React.JSX.Element {
@@ -100,64 +91,28 @@ function ConfigurazionePage(): React.JSX.Element {
         ))}
       </div>
       {tab === 'patologie' && <PatologiePage />}
-      {tab === 'categorie' && <CategoriePage />}
       {tab === 'esercizi' && <EserciziPage />}
       {tab === 'questionari' && <QuestionariPage />}
       {tab === 'testValutazione' && <TestValutazionePage />}
-      {tab === 'export' && <ExportConfigPage />}
-    </div>
-  )
-}
-
-function ExportConfigPage(): React.JSX.Element {
-  const [cartella, setCartella] = useState('')
-
-  useEffect(() => {
-    void window.api.impostazioni.info().then((i) => setCartella(i.cartellaExport))
-  }, [])
-
-  const cambia = async (): Promise<void> => {
-    try {
-      const nuova = await window.api.impostazioni.cambiaCartellaExport()
-      if (nuova) setCartella(nuova)
-    } catch (e) {
-      toastErrore(errMsg(e))
-    }
-  }
-
-  return (
-    <div className="page">
-      <header className="page-header">
-        <h2>Export</h2>
-        <p>
-          Cartella di destinazione proposta quando esporti una seduta o uno storico in PDF/Word.
-          Puoi comunque cambiarla di volta in volta nella finestra di salvataggio: l&apos;ultima
-          cartella usata viene ricordata.
-        </p>
-      </header>
-      <div className="single-col">
-        <section className="card">
-          <h3>Cartella di destinazione</h3>
-          <div className="cartella-path">{cartella}</div>
-          <div className="modal-actions">
-            <button className="primary" onClick={() => void cambia()}>
-              Cambia cartella…
-            </button>
-          </div>
-        </section>
-      </div>
     </div>
   )
 }
 
 function ImpostazioniModal({ onClose }: { onClose: () => void }): React.JSX.Element {
   const [cartella, setCartella] = useState('')
+  const [cartellaExport, setCartellaExport] = useState('')
+
+  const ricarica = (): Promise<void> =>
+    window.api.impostazioni.info().then((i) => {
+      setCartella(i.cartella)
+      setCartellaExport(i.cartellaExport)
+    })
 
   useEffect(() => {
-    void window.api.impostazioni.info().then((i) => setCartella(i.cartella))
+    void ricarica()
   }, [])
 
-  const cambia = async (): Promise<void> => {
+  const cambiaDati = async (): Promise<void> => {
     try {
       const nuova = await window.api.impostazioni.cambiaCartella()
       if (nuova) {
@@ -169,21 +124,50 @@ function ImpostazioniModal({ onClose }: { onClose: () => void }): React.JSX.Elem
     }
   }
 
+  const cambiaExport = async (): Promise<void> => {
+    try {
+      const nuova = await window.api.impostazioni.cambiaCartellaExport()
+      if (nuova) setCartellaExport(nuova)
+    } catch (e) {
+      toastErrore(errMsg(e))
+    }
+  }
+
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal modal-sm" onClick={(e) => e.stopPropagation()}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
         <h3>Dati e backup</h3>
-        <p className="modal-testo">
-          Tutti i dati vivono in questa cartella: <code>riabilitazione.db</code> (database
-          cifrato) e <code>auth.json</code> (chiavi di accesso). Per il backup manuale copia
-          l&apos;intera cartella — senza <code>auth.json</code> il database non è apribile.
-        </p>
-        <div className="cartella-path">{cartella}</div>
+
+        <div className="blocco-impostazione">
+          <div className="sotto-titolo">Cartella dei dati</div>
+          <p className="modal-testo">
+            Tutti i tuoi dati vivono qui: <code>riabilitazione.db</code> (il database cifrato) e{' '}
+            <code>auth.json</code> (le chiavi di accesso). Per il backup manuale copia
+            l&apos;intera cartella — senza <code>auth.json</code> il database non è apribile.
+          </p>
+          <div className="cartella-path">{cartella}</div>
+          <div className="modal-actions">
+            <button onClick={() => void window.api.impostazioni.apriCartella()}>
+              Apri cartella
+            </button>
+            <button onClick={() => void cambiaDati()}>Cambia cartella…</button>
+          </div>
+        </div>
+
+        <div className="blocco-impostazione">
+          <div className="sotto-titolo">Cartella per gli export</div>
+          <p className="modal-testo">
+            Dove l&apos;app propone di salvare quando esporti una seduta o uno storico in
+            PDF/Word. Puoi comunque cambiarla di volta in volta nella finestra di salvataggio:
+            l&apos;ultima cartella usata viene ricordata.
+          </p>
+          <div className="cartella-path">{cartellaExport}</div>
+          <div className="modal-actions">
+            <button onClick={() => void cambiaExport()}>Cambia cartella…</button>
+          </div>
+        </div>
+
         <div className="modal-actions">
-          <button onClick={() => void window.api.impostazioni.apriCartella()}>
-            Apri cartella
-          </button>
-          <button onClick={() => void cambia()}>Cambia cartella…</button>
           <button className="primary" onClick={onClose}>
             Chiudi
           </button>

@@ -24,7 +24,7 @@ db.pragma('foreign_keys = ON')
 
 runMigrations(db)
 runMigrations(db) // idempotente
-assert.equal(db.pragma('user_version', { simple: true }), 7)
+assert.equal(db.pragma('user_version', { simple: true }), 10)
 
 const count = (table: string): number =>
   (db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n
@@ -206,9 +206,15 @@ assert.equal(
 // Nove domande si/no (la nona vale 1 sopra una certa risposta), un punteggio
 // Totale su tutte e un Sub sulle ultime cinque, tre fasce lette in ordine.
 {
+  const catId = Number(
+    getDb()
+      .prepare("INSERT INTO questionario_categorie (nome, ordine) VALUES ('Rachide', 0)")
+      .run().lastInsertRowid
+  )
   const qId = Number(
-    getDb().prepare("INSERT INTO questionari (nome, ordine) VALUES ('Prova', 0)").run()
-      .lastInsertRowid
+    getDb()
+      .prepare("INSERT INTO questionari (nome, categoria_id, ordine) VALUES ('Prova', ?, 0)")
+      .run(catId).lastInsertRowid
   )
   // Le domande non ancora salvate hanno un id negativo, assegnato
   // dall'interfaccia. Qui si passano in ordine sparso apposta: i riferimenti
@@ -224,7 +230,14 @@ assert.equal(
   }))
   const mescolate = [...domande.slice(4), ...domande.slice(0, 4)]
   salvaQuestionario({
-    questionario: { id: qId, nome: 'Prova', istruzioni: null, ordine: 0, archiviato: 0 },
+    questionario: {
+      id: qId,
+      categoria_id: catId,
+      nome: 'Prova',
+      istruzioni: null,
+      ordine: 0,
+      archiviato: 0
+    },
     domande: mescolate,
     punteggi: [
       { id: -101, nome: 'Totale', domanda_ids: domande.map((d) => d.id) },

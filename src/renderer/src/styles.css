@@ -70,6 +70,39 @@ select {
     box-shadow 0.15s;
 }
 
+/* Etichetta sopra, casella sotto, anche fuori dalle finestre modali: senza
+   questa regola le due cose finiscono affiancate e il testo appare piu' in
+   basso della casella. :where() non aggiunge peso al selettore, cosi' le
+   etichette che devono restare in riga (spunte, filtri) vincono comunque. */
+.card :where(label) {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 15px;
+  color: var(--text-dim);
+}
+
+.card :where(label) input,
+.card :where(label) select,
+.card :where(label) textarea {
+  font-size: 16px;
+  color: var(--text);
+}
+
+/* .form-row-2 era usata in nove punti senza avere nessuno stile: le due
+   colonne non sono mai state due colonne. */
+.form-row-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+@media (max-width: 760px) {
+  .form-row-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
 input:focus,
 textarea:focus,
 select:focus {
@@ -755,6 +788,9 @@ button.danger:hover:not(:disabled) {
 
 .checkbox-list label {
   display: flex;
+  /* dichiarata apposta: la regola generale delle etichette nelle card le mette
+     in colonna, e qui la spunta deve restare a sinistra del testo */
+  flex-direction: row;
   align-items: center;
   gap: 9px;
   padding: 4px 8px;
@@ -785,6 +821,7 @@ button.danger:hover:not(:disabled) {
 
 .checkbox-inline {
   display: flex;
+  flex-direction: row;
   align-items: center;
   gap: 6px;
   color: var(--text-dim);
@@ -971,103 +1008,6 @@ span.row-actions button {
 }
 
 /* ---- Pazienti ---- */
-
-.pazienti-layout {
-  display: grid;
-  grid-template-columns: 340px minmax(0, 1fr);
-  gap: 18px;
-  align-items: start;
-}
-
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 20px;
-  box-shadow: var(--shadow-sm);
-}
-
-.card h3 {
-  margin: 0 0 12px;
-  font-size: 16px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-dim);
-}
-
-.card .hint {
-  color: var(--text-dim);
-  font-style: italic;
-  font-size: 15px;
-  margin: 0;
-}
-
-.scheda {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 15px;
-  color: var(--text-dim);
-}
-
-.field input,
-.field select {
-  font-size: 16px;
-  color: var(--text);
-}
-
-.form-row-2 {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-.form-row-2 + .form-row-2 {
-  margin-top: 10px;
-}
-
-.scheda-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 14px;
-}
-
-.scheda-actions .spacer {
-  flex: 1;
-}
-
-.fase-riga {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: 12px;
-}
-
-.fase-riga .hint {
-  margin: 0;
-  color: var(--text-dim);
-  font-size: 15px;
-}
-
-.paziente-item {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-  flex: 1;
-  min-width: 0;
-}
-
-.paziente-sub {
-  font-size: 14px;
-  color: var(--text-dim);
-}
 
 .list-top {
   margin-bottom: 10px;
@@ -1385,6 +1325,21 @@ span.row-actions button {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+/* Etichetta sopra, casella sotto: fuori dalle finestre modali non c'era
+   nessuna regola e le due cose finivano affiancate. */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 15px;
+  color: var(--text-dim);
+}
+
+.field input {
+  font-size: 16px;
+  color: var(--text);
 }
 
 .auth-error {
@@ -1786,4 +1741,109 @@ span.row-actions button {
 .campo-stretto {
   width: 110px;
   flex-shrink: 0;
+}
+
+/* Le caselle di testo hanno una dimensione decisa dal modulo: trascinandone
+   l'angolo si sfasava il resto della schermata. */
+textarea {
+  resize: none;
+}
+
+/* due impostazioni distinte dentro la stessa finestra */
+.blocco-impostazione {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.blocco-impostazione .sotto-titolo {
+  margin-top: 0;
+}
+
+/* le categorie stanno sopra la libreria, ma restano un blocco a se' */
+.blocco-categorie {
+  max-width: 520px;
+  margin-bottom: 6px;
+}
+
+/* riga secondaria dentro la casella (es. patologia e fase del paziente) */
+.scelta-tile-sub {
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+/* Elenco in colonna, centrato: i pazienti si scorrono meglio incolonnati che
+   affiancati, e la ricerca sta sopra la colonna. */
+.colonna-centrata {
+  max-width: 620px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.ricerca-sopra {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.ricerca-sopra input {
+  flex: 1;
+  min-width: 0;
+}
+
+.elenco-verticale {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.elenco-verticale .scelta-tile {
+  min-height: 0;
+  padding: 14px 16px;
+}
+
+/* 3) le categorie si aprono solo quando servono */
+.blocco-apribile {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 14px;
+  background: #fafbfd;
+}
+
+.blocco-apribile > summary {
+  cursor: pointer;
+  padding: 10px 14px;
+  font-weight: 600;
+  color: var(--text-dim);
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.blocco-apribile > summary::-webkit-details-marker {
+  display: none;
+}
+
+.blocco-apribile[open] > summary {
+  border-bottom: 1px solid var(--border);
+}
+
+.blocco-apribile .contenuto-apribile {
+  padding: 12px 14px;
+  max-width: 520px;
+}
+
+/* l'elenco dei meno recenti sta sotto e occupa tutta la colonna */
+.blocco-archivio {
+  margin-top: 12px;
+  margin-bottom: 0;
+}
+
+.blocco-archivio .contenuto-apribile {
+  max-width: none;
 }

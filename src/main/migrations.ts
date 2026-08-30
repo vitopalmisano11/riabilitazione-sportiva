@@ -291,6 +291,56 @@ const MIGRATIONS: string[] = [
 
   CREATE INDEX idx_test_parametri_test ON test_parametri(test_id);
   CREATE INDEX idx_test_misure_test ON test_misure(test_id);
+  `,
+
+  // 8 — categorie dei questionari (rachide, ginocchio...). I questionari gia'
+  //     esistenti finiscono in una categoria "Generale", creata solo se
+  //     servono, cosi' nessuno resta senza.
+  `
+  CREATE TABLE questionario_categorie (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome TEXT NOT NULL UNIQUE,
+    ordine INTEGER NOT NULL DEFAULT 0
+  );
+
+  ALTER TABLE questionari ADD COLUMN categoria_id INTEGER
+    REFERENCES questionario_categorie(id) ON DELETE CASCADE;
+
+  INSERT INTO questionario_categorie (nome, ordine)
+    SELECT 'Generale', 0 WHERE EXISTS (SELECT 1 FROM questionari);
+
+  UPDATE questionari
+    SET categoria_id = (SELECT id FROM questionario_categorie WHERE nome = 'Generale');
+
+  CREATE INDEX idx_questionari_categoria ON questionari(categoria_id);
+  `,
+
+  // 9 — categorie dei test di valutazione (es. Test di salto). Come per i
+  //     questionari, quelli gia' esistenti finiscono in "Generale".
+  `
+  CREATE TABLE test_categorie (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome TEXT NOT NULL UNIQUE,
+    ordine INTEGER NOT NULL DEFAULT 0
+  );
+
+  ALTER TABLE test_valutazione ADD COLUMN categoria_id INTEGER
+    REFERENCES test_categorie(id) ON DELETE CASCADE;
+
+  INSERT INTO test_categorie (nome, ordine)
+    SELECT 'Generale', 0 WHERE EXISTS (SELECT 1 FROM test_valutazione);
+
+  UPDATE test_valutazione
+    SET categoria_id = (SELECT id FROM test_categorie WHERE nome = 'Generale');
+
+  CREATE INDEX idx_test_categoria ON test_valutazione(categoria_id);
+  `,
+
+  // 10 — patologie ordinabili a mano (ordine iniziale = alfabetico), come le
+  //      categorie degli esercizi
+  `
+  ALTER TABLE patologie ADD COLUMN ordine INTEGER NOT NULL DEFAULT 0;
+  UPDATE patologie SET ordine = (SELECT COUNT(*) FROM patologie p2 WHERE p2.nome < patologie.nome);
   `
 ]
 

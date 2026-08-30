@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ChevronRight, GripVertical, Pencil, Plus, X } from 'lucide-react'
 import type {
+  CategoriaQuestionario,
   DomandaQuestionario,
   FasciaQuestionario,
   PunteggioQuestionario,
@@ -9,6 +10,7 @@ import type {
   TipoDomanda
 } from '../../../shared/types'
 import { toast, toastErrore } from '../components/Toast'
+import ElencoCategorie from '../components/ElencoCategorie'
 import { errMsg } from '../lib'
 import { sposta, useRiordino } from '../riordino'
 
@@ -34,18 +36,26 @@ let ultimaChiave = 0
 const nuovaChiave = (): number => --ultimaChiave
 
 export default function QuestionariPage(): React.JSX.Element {
+  const [categorie, setCategorie] = useState<CategoriaQuestionario[]>([])
   const [questionari, setQuestionari] = useState<Questionario[]>([])
+  const [catId, setCatId] = useState<number | null>(null)
   const [apertoId, setApertoId] = useState<number | null>(null)
 
-  const load = useCallback(
+  const loadCategorie = useCallback(
+    (): Promise<void> => window.api.questionariCategorie.list().then(setCategorie),
+    []
+  )
+  const loadQuestionari = useCallback(
     (): Promise<void> => window.api.questionari.list(false).then(setQuestionari),
     []
   )
 
   useEffect(() => {
-    void load()
-  }, [load])
+    void loadCategorie()
+    void loadQuestionari()
+  }, [loadCategorie, loadQuestionari])
 
+  const categoria = categorie.find((c) => c.id === catId) ?? null
   const aperto = questionari.find((q) => q.id === apertoId) ?? null
 
   return (
@@ -53,39 +63,67 @@ export default function QuestionariPage(): React.JSX.Element {
       <header className="page-header">
         <h2>Questionari</h2>
         <p>
-          I questionari che somministri ai pazienti (PROM). Ogni domanda è un elenco di risposte
-          che valgono un punteggio; puoi definire più punteggi e le fasce di risultato.
+          I questionari che somministri ai pazienti (PROM), raccolti per categoria. Ogni domanda è
+          un elenco di risposte che valgono un punteggio; puoi definire più punteggi e le fasce di
+          risultato.
         </p>
       </header>
 
-      {aperto && (
+      {categoria && (
         <div className="briciole">
-          <button className="briciola" onClick={() => setApertoId(null)}>
-            Questionari
+          <button
+            className="briciola"
+            onClick={() => {
+              setApertoId(null)
+              setCatId(null)
+            }}
+          >
+            Categorie
           </button>
           <ChevronRight size={16} />
-          <span className="briciola corrente">{aperto.nome}</span>
+          <button className="briciola" disabled={aperto == null} onClick={() => setApertoId(null)}>
+            {categoria.nome}
+          </button>
+          {aperto && (
+            <>
+              <ChevronRight size={16} />
+              <span className="briciola corrente">{aperto.nome}</span>
+            </>
+          )}
         </div>
       )}
 
-      {aperto == null ? (
+      {categoria == null ? (
+        <ElencoCategorie
+          categorie={categorie}
+          api={window.api.questionariCategorie}
+          etichettaNuova="Nuova categoria di questionari"
+          esempio="es. Rachide"
+          avvisoElimina="Verranno eliminati anche i questionari che contiene e le compilazioni dei pazienti."
+          onApri={setCatId}
+          onChanged={loadCategorie}
+        />
+      ) : aperto == null ? (
         <ElencoQuestionari
-          questionari={questionari}
+          categoriaId={categoria.id}
+          questionari={questionari.filter((q) => q.categoria_id === categoria.id)}
           onApri={setApertoId}
-          onChanged={load}
+          onChanged={loadQuestionari}
         />
       ) : (
-        <EditorQuestionario key={aperto.id} id={aperto.id} onChanged={load} />
+        <EditorQuestionario key={aperto.id} id={aperto.id} onChanged={loadQuestionari} />
       )}
     </div>
   )
 }
 
 function ElencoQuestionari({
+  categoriaId,
   questionari,
   onApri,
   onChanged
 }: {
+  categoriaId: number
   questionari: Questionario[]
   onApri: (id: number) => void
   onChanged: () => Promise<void>
@@ -131,7 +169,7 @@ function ElencoQuestionari({
     const n = nome.trim()
     if (!n) return
     void run(async () => {
-      const id = await window.api.questionari.create(n)
+      const id = await window.api.questionari.create(n, categoriaId)
       setNome('')
       setNuovoAperto(false)
       await onChanged()
@@ -143,7 +181,7 @@ function ElencoQuestionari({
     <section className="card step-card">
       <div className="step-head">
         <div className="step-title">
-          <span className="step-num">1</span>
+          <span className="step-num">2</span>
           <h3>Scegli il questionario</h3>
         </div>
         <div className="ricerca-con-azione">
@@ -311,7 +349,7 @@ function EditorQuestionario({
       <label>
         Istruzioni per il paziente (facoltative)
         <textarea
-          rows={2}
+          rows={1}
           placeholder="es. Pensando alle ultime due settimane, indichi la risposta…"
           value={dati.questionario.istruzioni ?? ''}
           onChange={(e) =>

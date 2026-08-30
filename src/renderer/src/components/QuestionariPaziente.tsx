@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import type {
+  CategoriaQuestionario,
   CompilazioneRiepilogo,
   DomandaQuestionario,
   PazienteDettaglio,
@@ -17,13 +18,18 @@ export default function QuestionariPaziente({
 }): React.JSX.Element {
   const [storico, setStorico] = useState<CompilazioneRiepilogo[]>([])
   const [disponibili, setDisponibili] = useState<Questionario[]>([])
+  const [categorie, setCategorie] = useState<CategoriaQuestionario[]>([])
   const [compilaId, setCompilaId] = useState<number | null>(null)
+  // null = finestra chiusa; altrimenti la categoria scelta, o null dentro la
+  // finestra finche' non se ne sceglie una
   const [scelta, setScelta] = useState(false)
+  const [catScelta, setCatScelta] = useState<number | null>(null)
 
   const load = useCallback(async (): Promise<void> => {
     try {
       setStorico(await window.api.compilazioni.list(paziente.id))
       setDisponibili(await window.api.questionari.list(false))
+      setCategorie(await window.api.questionariCategorie.list())
     } catch (e) {
       toastErrore(errMsg(e))
     }
@@ -88,25 +94,64 @@ export default function QuestionariPaziente({
       )}
 
       {scelta && (
-        <div className="modal-overlay" onClick={() => setScelta(false)}>
+        <div
+          className="modal-overlay"
+          onClick={() => {
+            setScelta(false)
+            setCatScelta(null)
+          }}
+        >
           <div className="modal modal-sm" onClick={(e) => e.stopPropagation()}>
-            <h3>Quale questionario?</h3>
-            <ul className="scelte-questionari">
-              {disponibili.map((q) => (
-                <li key={q.id}>
-                  <button
-                    onClick={() => {
-                      setScelta(false)
-                      setCompilaId(q.id)
-                    }}
-                  >
-                    {q.nome}
-                  </button>
-                </li>
-              ))}
-            </ul>
+            {catScelta == null ? (
+              <>
+                <h3>Quale categoria?</h3>
+                <ul className="scelte-questionari">
+                  {categorie
+                    .filter((c) => disponibili.some((q) => q.categoria_id === c.id))
+                    .map((c) => (
+                      <li key={c.id}>
+                        <button onClick={() => setCatScelta(c.id)}>{c.nome}</button>
+                      </li>
+                    ))}
+                </ul>
+                {!categorie.some((c) => disponibili.some((q) => q.categoria_id === c.id)) && (
+                  <p className="hint">Nessuna categoria contiene questionari.</p>
+                )}
+              </>
+            ) : (
+              <>
+                <h3>Quale questionario?</h3>
+                <ul className="scelte-questionari">
+                  {disponibili
+                    .filter((q) => q.categoria_id === catScelta)
+                    .map((q) => (
+                      <li key={q.id}>
+                        <button
+                          onClick={() => {
+                            setScelta(false)
+                            setCatScelta(null)
+                            setCompilaId(q.id)
+                          }}
+                        >
+                          {q.nome}
+                        </button>
+                      </li>
+                    ))}
+                </ul>
+              </>
+            )}
             <div className="modal-actions">
-              <button onClick={() => setScelta(false)}>Annulla</button>
+              {catScelta != null && (
+                <button onClick={() => setCatScelta(null)}>Indietro</button>
+              )}
+              <button
+                onClick={() => {
+                  setScelta(false)
+                  setCatScelta(null)
+                }}
+              >
+                Annulla
+              </button>
             </div>
           </div>
         </div>

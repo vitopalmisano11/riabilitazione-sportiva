@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ChevronRight, GripVertical, Pencil, Plus, X } from 'lucide-react'
 import type {
+  CategoriaTest,
   DirezioneCutoff,
   MisuraTest,
   ParametroTest,
   RiassuntoMisura,
-  TestValutazioneCompleto,
-  TestValutazioneRiepilogo
+  TestValutazione,
+  TestValutazioneCompleto
 } from '../../../shared/types'
 import { toast, toastErrore } from '../components/Toast'
+import ElencoCategorie from '../components/ElencoCategorie'
 import { errMsg } from '../lib'
 import { sposta, useRiordino } from '../riordino'
 
@@ -19,18 +21,26 @@ const RIASSUNTI: { valore: RiassuntoMisura; etichetta: string }[] = [
 ]
 
 export default function TestValutazionePage(): React.JSX.Element {
-  const [test, setTest] = useState<TestValutazioneRiepilogo[]>([])
+  const [categorie, setCategorie] = useState<CategoriaTest[]>([])
+  const [test, setTest] = useState<TestValutazione[]>([])
+  const [catId, setCatId] = useState<number | null>(null)
   const [apertoId, setApertoId] = useState<number | null>(null)
 
-  const load = useCallback(
+  const loadCategorie = useCallback(
+    (): Promise<void> => window.api.testCategorie.list().then(setCategorie),
+    []
+  )
+  const loadTest = useCallback(
     (): Promise<void> => window.api.testValutazione.list(false).then(setTest),
     []
   )
 
   useEffect(() => {
-    void load()
-  }, [load])
+    void loadCategorie()
+    void loadTest()
+  }, [loadCategorie, loadTest])
 
+  const categoria = categorie.find((c) => c.id === catId) ?? null
   const aperto = test.find((t) => t.id === apertoId) ?? null
 
   return (
@@ -38,36 +48,67 @@ export default function TestValutazionePage(): React.JSX.Element {
       <header className="page-header">
         <h2>Test di valutazione</h2>
         <p>
-          I test da letteratura che usi per valutare i pazienti: protocollo, parametri di
-          esecuzione e misure con i relativi valori di riferimento.
+          I test da letteratura che usi per valutare i pazienti, raccolti per categoria: per
+          ognuno il protocollo, i parametri di esecuzione e le misure con i valori di riferimento.
         </p>
       </header>
 
-      {aperto && (
+      {categoria && (
         <div className="briciole">
-          <button className="briciola" onClick={() => setApertoId(null)}>
-            Test di valutazione
+          <button
+            className="briciola"
+            onClick={() => {
+              setApertoId(null)
+              setCatId(null)
+            }}
+          >
+            Categorie
           </button>
           <ChevronRight size={16} />
-          <span className="briciola corrente">{aperto.nome}</span>
+          <button className="briciola" disabled={aperto == null} onClick={() => setApertoId(null)}>
+            {categoria.nome}
+          </button>
+          {aperto && (
+            <>
+              <ChevronRight size={16} />
+              <span className="briciola corrente">{aperto.nome}</span>
+            </>
+          )}
         </div>
       )}
 
-      {aperto == null ? (
-        <ElencoTest test={test} onApri={setApertoId} onChanged={load} />
+      {categoria == null ? (
+        <ElencoCategorie
+          categorie={categorie}
+          api={window.api.testCategorie}
+          etichettaNuova="Nuova categoria di test"
+          esempio="es. Test di salto"
+          avvisoElimina="Verranno eliminati anche i test che contiene."
+          onApri={setCatId}
+          onChanged={loadCategorie}
+        />
+      ) : aperto == null ? (
+        <ElencoTest
+          categoriaId={categoria.id}
+          test={test.filter((t) => t.categoria_id === categoria.id)}
+          onApri={setApertoId}
+          onChanged={loadTest}
+        />
       ) : (
-        <EditorTest key={aperto.id} id={aperto.id} onChanged={load} />
+        <EditorTest key={aperto.id} id={aperto.id} onChanged={loadTest} />
       )}
     </div>
   )
 }
 
 function ElencoTest({
+  categoriaId,
   test,
   onApri,
   onChanged
 }: {
-  test: TestValutazioneRiepilogo[]
+  categoriaId: number
+  test: TestValutazione[]
   onApri: (id: number) => void
   onChanged: () => Promise<void>
 }): React.JSX.Element {
@@ -99,7 +140,7 @@ function ElencoTest({
     const n = nome.trim()
     if (!n) return
     void run(async () => {
-      const id = await window.api.testValutazione.create(n)
+      const id = await window.api.testValutazione.create(n, categoriaId)
       setNome('')
       setNuovoAperto(false)
       await onChanged()
@@ -124,7 +165,7 @@ function ElencoTest({
     <section className="card step-card">
       <div className="step-head">
         <div className="step-title">
-          <span className="step-num">1</span>
+          <span className="step-num">2</span>
           <h3>Scegli il test</h3>
         </div>
         <div className="ricerca-con-azione">
@@ -155,7 +196,7 @@ function ElencoTest({
               className={['scelta-tile', dnd.className].filter(Boolean).join(' ')}
               onClick={() => onApri(t.id)}
             >
-              {edit?.id === t.id ? (
+              {edit && edit.id === t.id ? (
                 <span className="edit-row" onClick={(e) => e.stopPropagation()}>
                   <input
                     autoFocus
@@ -275,21 +316,12 @@ function EditorTest({
     }
   }
 
-  const scegliImmagine = async (): Promise<void> => {
-    try {
-      const dataUrl = await window.api.scegliImmagine()
-      if (dataUrl) aggiorna({ immagine: dataUrl })
-    } catch (e) {
-      toastErrore(errMsg(e))
-    }
-  }
-
   return (
     <section className="card">
       <label>
         A cosa serve
         <textarea
-          rows={2}
+          rows={1}
           placeholder="es. Valuta il controllo dinamico del ginocchio all'atterraggio e la capacità reattiva"
           value={dati.test.descrizione ?? ''}
           onChange={(e) => aggiornaTest({ descrizione: e.target.value || null })}
@@ -298,42 +330,31 @@ function EditorTest({
       <label>
         Come si esegue (protocollo)
         <textarea
-          rows={3}
+          rows={1}
           placeholder="es. Dal box, cadere con entrambi i piedi e saltare subito il più in alto possibile"
           value={dati.test.protocollo ?? ''}
           onChange={(e) => aggiornaTest({ protocollo: e.target.value || null })}
         />
       </label>
 
-      <label>
-        Numero di prove
-        <input
-          type="number"
-          className="campo-stretto"
-          min={1}
-          value={dati.test.prove}
-          onChange={(e) => aggiornaTest({ prove: Math.max(1, Number(e.target.value)) })}
-        />
-      </label>
-
-      <div className="campo-immagine">
-        <span className="campo-immagine-etichetta">Immagine del test (facoltativa)</span>
-        {dati.immagine ? (
-          <>
-            <img className="immagine-anteprima" src={dati.immagine} alt="" />
-            <div className="campo-immagine-azioni">
-              <button onClick={() => void scegliImmagine()}>Sostituisci…</button>
-              <button className="danger" onClick={() => aggiorna({ immagine: null })}>
-                Rimuovi
-              </button>
-            </div>
-          </>
-        ) : (
-          <div className="campo-immagine-azioni">
-            <button onClick={() => void scegliImmagine()}>Scegli immagine…</button>
-            <span className="hint">Es. lo schema dell&apos;esecuzione.</span>
-          </div>
-        )}
+      <div className="form-row-2">
+        <label>
+          Link all&apos;esecuzione (facoltativo)
+          <input
+            placeholder="es. video che mostra come si esegue"
+            value={dati.test.link ?? ''}
+            onChange={(e) => aggiornaTest({ link: e.target.value || null })}
+          />
+        </label>
+        <label>
+          Numero di prove
+          <input
+            type="number"
+            min={1}
+            value={dati.test.prove}
+            onChange={(e) => aggiornaTest({ prove: Math.max(1, Number(e.target.value)) })}
+          />
+        </label>
       </div>
 
       <Parametri

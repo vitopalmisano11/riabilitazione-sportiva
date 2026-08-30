@@ -29,7 +29,8 @@ const api: Api = {
     list: () => invoke('patologie:list'),
     create: (nome: string) => invoke('patologie:create', nome),
     update: (id: number, nome: string) => invoke('patologie:update', id, nome),
-    remove: (id: number) => invoke('patologie:delete', id)
+    remove: (id: number) => invoke('patologie:delete', id),
+    reorder: (ids: number[]) => invoke('patologie:reorder', ids)
   },
   fasi: {
     list: (patologiaId: number) => invoke('fasi:list', patologiaId),
@@ -107,10 +108,18 @@ const api: Api = {
     storico: (pazienteId: number, dal: string, al: string, formato: 'pdf' | 'docx') =>
       invoke('esporta:storico', pazienteId, dal, al, formato)
   },
+  questionariCategorie: {
+    list: () => invoke('questionariCategorie:list'),
+    create: (nome: string) => invoke('questionariCategorie:create', nome),
+    update: (id: number, nome: string) => invoke('questionariCategorie:update', id, nome),
+    remove: (id: number) => invoke('questionariCategorie:delete', id),
+    reorder: (ids: number[]) => invoke('questionariCategorie:reorder', ids)
+  },
   questionari: {
     list: (includiArchiviati: boolean) => invoke('questionari:list', includiArchiviati),
     get: (id: number) => invoke('questionari:get', id),
-    create: (nome: string) => invoke('questionari:create', nome),
+    create: (nome: string, categoriaId: number) =>
+      invoke('questionari:create', nome, categoriaId),
     salva: (dati: QuestionarioCompleto) => invoke('questionari:salva', dati),
     setArchiviato: (id: number, archiviato: boolean) =>
       invoke('questionari:setArchiviato', id, archiviato),
@@ -123,10 +132,18 @@ const api: Api = {
     create: (dati: CompilazioneInput) => invoke('compilazioni:create', dati),
     remove: (id: number) => invoke('compilazioni:delete', id)
   },
+  testCategorie: {
+    list: () => invoke('testCategorie:list'),
+    create: (nome: string) => invoke('testCategorie:create', nome),
+    update: (id: number, nome: string) => invoke('testCategorie:update', id, nome),
+    remove: (id: number) => invoke('testCategorie:delete', id),
+    reorder: (ids: number[]) => invoke('testCategorie:reorder', ids)
+  },
   testValutazione: {
     list: (includiArchiviati: boolean) => invoke('testValutazione:list', includiArchiviati),
     get: (id: number) => invoke('testValutazione:get', id),
-    create: (nome: string) => invoke('testValutazione:create', nome),
+    create: (nome: string, categoriaId: number) =>
+      invoke('testValutazione:create', nome, categoriaId),
     salva: (dati: TestValutazioneCompleto) => invoke('testValutazione:salva', dati),
     remove: (id: number) => invoke('testValutazione:delete', id),
     reorder: (ids: number[]) => invoke('testValutazione:reorder', ids)
