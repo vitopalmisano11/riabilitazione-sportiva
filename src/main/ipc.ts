@@ -421,8 +421,12 @@ export function registerIpc(): void {
     return Number(
       getDb()
         .prepare(
-          `INSERT INTO pazienti (nome, cognome, tipo_intervento, data_intervento, patologia_id, fase_corrente_id)
-           VALUES (@nome, @cognome, @tipo_intervento, @data_intervento, @patologia_id, @fase_corrente_id)`
+          `INSERT INTO pazienti
+             (nome, cognome, data_nascita, telefono, email, lavoro, inviato_da, diagnosi,
+              tipo_intervento, data_intervento, patologia_id, fase_corrente_id)
+           VALUES
+             (@nome, @cognome, @data_nascita, @telefono, @email, @lavoro, @inviato_da, @diagnosi,
+              @tipo_intervento, @data_intervento, @patologia_id, @fase_corrente_id)`
         )
         .run({ ...data, nome: data.nome.trim(), cognome: data.cognome.trim() }).lastInsertRowid
     )
@@ -431,6 +435,8 @@ export function registerIpc(): void {
     getDb()
       .prepare(
         `UPDATE pazienti SET nome = @nome, cognome = @cognome,
+         data_nascita = @data_nascita, telefono = @telefono, email = @email,
+         lavoro = @lavoro, inviato_da = @inviato_da, diagnosi = @diagnosi,
          tipo_intervento = @tipo_intervento, data_intervento = @data_intervento
          WHERE id = @id`
       )

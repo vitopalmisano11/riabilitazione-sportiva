@@ -341,6 +341,20 @@ const MIGRATIONS: string[] = [
   `
   ALTER TABLE patologie ADD COLUMN ordine INTEGER NOT NULL DEFAULT 0;
   UPDATE patologie SET ordine = (SELECT COUNT(*) FROM patologie p2 WHERE p2.nome < patologie.nome);
+  `,
+
+  // 11 — dati anagrafici del paziente. Niente indirizzo, comune, codice fiscale
+  //      o partita IVA: quelli stanno nel gestionale delle fatture. L'eta' non
+  //      si memorizza, si calcola dalla data di nascita (altrimenti invecchia).
+  //      La diagnosi e' testo libero e resta distinta dalla patologia, che e'
+  //      invece la scelta del percorso di cura.
+  `
+  ALTER TABLE pazienti ADD COLUMN data_nascita TEXT;
+  ALTER TABLE pazienti ADD COLUMN telefono TEXT;
+  ALTER TABLE pazienti ADD COLUMN email TEXT;
+  ALTER TABLE pazienti ADD COLUMN lavoro TEXT;
+  ALTER TABLE pazienti ADD COLUMN inviato_da TEXT;
+  ALTER TABLE pazienti ADD COLUMN diagnosi TEXT;
   `
 ]
 

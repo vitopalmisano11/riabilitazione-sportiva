@@ -18,3 +18,17 @@ export function oggiIso(): string {
     d.getDate()
   ).padStart(2, '0')}`
 }
+
+// L'eta' non si memorizza mai: si calcola, altrimenti dopo un anno e' sbagliata.
+export function eta(dataNascita: string | null): number | null {
+  if (!dataNascita) return null
+  const nato = new Date(dataNascita)
+  if (Number.isNaN(nato.getTime())) return null
+  const oggi = new Date()
+  let anni = oggi.getFullYear() - nato.getFullYear()
+  const compiuto =
+    oggi.getMonth() > nato.getMonth() ||
+    (oggi.getMonth() === nato.getMonth() && oggi.getDate() >= nato.getDate())
+  if (!compiuto) anni -= 1
+  return anni >= 0 ? anni : null
+}

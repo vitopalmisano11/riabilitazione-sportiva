@@ -82,6 +82,14 @@ export interface Paziente {
   id: number
   nome: string
   cognome: string
+  data_nascita: string | null
+  telefono: string | null
+  email: string | null
+  lavoro: string | null
+  inviato_da: string | null
+  // Testo libero: puo' essere la diagnosi del medico o l'ipotesi del
+  // fisioterapista. Resta separata dalla patologia, che e' il percorso di cura.
+  diagnosi: string | null
   tipo_intervento: string | null
   data_intervento: string | null
   patologia_id: number | null
@@ -98,6 +106,12 @@ export type PazienteDettaglio = Paziente & {
 export interface PazienteInput {
   nome: string
   cognome: string
+  data_nascita: string | null
+  telefono: string | null
+  email: string | null
+  lavoro: string | null
+  inviato_da: string | null
+  diagnosi: string | null
   tipo_intervento: string | null
   data_intervento: string | null
 }

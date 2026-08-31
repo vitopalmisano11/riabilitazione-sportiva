@@ -8,6 +8,10 @@
   --accent: #2563eb;
   --accent-hover: #1d4fc7;
   --accent-soft: #e8effd;
+  /* fondo dei riquadri di dati e interno delle caselle in cui si scrive:
+     appena piu' chiari del grigio della pagina, cosi' si distinguono */
+  --pannello: #f7f9fc;
+  --campo: #f8fafc;
   --danger: #d64545;
   --success: #1f9d61;
   --radius: 10px;
@@ -63,7 +67,8 @@ select {
   padding: 10px 14px;
   border: 1px solid var(--border-forte);
   border-radius: var(--radius-sm);
-  background: var(--surface);
+  /* interno leggermente colorato: si vede a colpo d'occhio dove si scrive */
+  background: var(--campo);
   outline: none;
   transition:
     border-color 0.15s,
@@ -108,6 +113,7 @@ textarea:focus,
 select:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+  background: var(--surface);
 }
 
 input::placeholder,
@@ -1846,4 +1852,35 @@ textarea {
 
 .blocco-archivio .contenuto-apribile {
   max-width: none;
+}
+
+/* ---- Dati del paziente, in sola lettura ---- */
+
+.dati-paziente {
+  margin: 0;
+  background: var(--pannello);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 10px 24px;
+}
+
+.dati-paziente .dato {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.dati-paziente dt {
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+.dati-paziente dd {
+  margin: 0;
+  font-size: 16px;
+  overflow-wrap: break-word;
 }

@@ -10,34 +10,16 @@ import type {
 } from '../../../shared/types'
 import SedutaBuilder from '../components/SedutaBuilder'
 import QuestionariPaziente from '../components/QuestionariPaziente'
+import AnagraficaPaziente, { ModaleDatiPaziente } from '../components/AnagraficaPaziente'
 import { toast, toastErrore } from '../components/Toast'
 import { errMsg, formatData } from '../lib'
-
-interface NuovoForm {
-  nome: string
-  cognome: string
-  tipo_intervento: string
-  data_intervento: string
-  patologia_id: number | ''
-  fase_corrente_id: number | ''
-}
-
-const NUOVO_VUOTO: NuovoForm = {
-  nome: '',
-  cognome: '',
-  tipo_intervento: '',
-  data_intervento: '',
-  patologia_id: '',
-  fase_corrente_id: ''
-}
 
 export default function PazientiPage(): React.JSX.Element {
   const [pazienti, setPazienti] = useState<PazienteDettaglio[]>([])
   const [selId, setSelId] = useState<number | null>(null)
   const [ricerca, setRicerca] = useState('')
   const [patologie, setPatologie] = useState<Patologia[]>([])
-  const [nuovo, setNuovo] = useState<NuovoForm | null>(null)
-  const [nuovoFasi, setNuovoFasi] = useState<Fase[]>([])
+  const [nuovo, setNuovo] = useState(false)
   const [builder, setBuilder] = useState<{ sedutaId: number | null; duplicaDa?: number } | null>(
     null
   )
@@ -48,14 +30,6 @@ export default function PazientiPage(): React.JSX.Element {
     void load()
     void window.api.patologie.list().then(setPatologie)
   }, [])
-
-  useEffect(() => {
-    if (!nuovo || nuovo.patologia_id === '') {
-      setNuovoFasi([])
-      return
-    }
-    void window.api.fasi.list(nuovo.patologia_id).then(setNuovoFasi)
-  }, [nuovo?.patologia_id])
 
   const q = ricerca.trim().toLowerCase()
   const trovati = pazienti.filter(
@@ -68,29 +42,6 @@ export default function PazientiPage(): React.JSX.Element {
   const inVista = q === '' ? trovati.slice(0, IN_VISTA) : trovati
   const altri = q === '' ? trovati.slice(IN_VISTA) : []
   const sel = pazienti.find((p) => p.id === selId) ?? null
-
-  const salvaNuovo = async (): Promise<void> => {
-    if (!nuovo) return
-    if (!nuovo.nome.trim() || !nuovo.cognome.trim()) {
-      toastErrore('Nome e cognome sono obbligatori.')
-      return
-    }
-    try {
-      const id = await window.api.pazienti.create({
-        nome: nuovo.nome,
-        cognome: nuovo.cognome,
-        tipo_intervento: nuovo.tipo_intervento.trim() || null,
-        data_intervento: nuovo.data_intervento || null,
-        patologia_id: nuovo.patologia_id === '' ? null : nuovo.patologia_id,
-        fase_corrente_id: nuovo.fase_corrente_id === '' ? null : nuovo.fase_corrente_id
-      })
-      setNuovo(null)
-      await load()
-      setSelId(id)
-    } catch (e) {
-      toastErrore(errMsg(e))
-    }
-  }
 
   if (builder && sel) {
     return (
@@ -155,7 +106,7 @@ export default function PazientiPage(): React.JSX.Element {
             <button
               className="primary btn-icona"
               title="Nuovo paziente"
-              onClick={() => setNuovo({ ...NUOVO_VUOTO })}
+              onClick={() => setNuovo(true)}
             >
               <Plus size={18} />
             </button>
@@ -199,94 +150,17 @@ export default function PazientiPage(): React.JSX.Element {
       )}
 
       {nuovo && (
-        <div className="modal-overlay" onClick={() => setNuovo(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3>Nuovo paziente</h3>
-            <div className="form-row-2">
-              <label>
-                Nome *
-                <input
-                  autoFocus
-                  value={nuovo.nome}
-                  onChange={(e) => setNuovo({ ...nuovo, nome: e.target.value })}
-                />
-              </label>
-              <label>
-                Cognome *
-                <input
-                  value={nuovo.cognome}
-                  onChange={(e) => setNuovo({ ...nuovo, cognome: e.target.value })}
-                />
-              </label>
-            </div>
-            <div className="form-row-2">
-              <label>
-                Tipo di intervento
-                <input
-                  placeholder="es. Ricostruzione LCA dx"
-                  value={nuovo.tipo_intervento}
-                  onChange={(e) => setNuovo({ ...nuovo, tipo_intervento: e.target.value })}
-                />
-              </label>
-              <label>
-                Data intervento
-                <input
-                  type="date"
-                  value={nuovo.data_intervento}
-                  onChange={(e) => setNuovo({ ...nuovo, data_intervento: e.target.value })}
-                />
-              </label>
-            </div>
-            <div className="form-row-2">
-              <label>
-                Patologia
-                <select
-                  value={nuovo.patologia_id}
-                  onChange={(e) =>
-                    setNuovo({
-                      ...nuovo,
-                      patologia_id: e.target.value === '' ? '' : Number(e.target.value),
-                      fase_corrente_id: ''
-                    })
-                  }
-                >
-                  <option value="">— nessuna —</option>
-                  {patologie.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.nome}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Fase iniziale
-                <select
-                  value={nuovo.fase_corrente_id}
-                  disabled={nuovo.patologia_id === ''}
-                  onChange={(e) =>
-                    setNuovo({
-                      ...nuovo,
-                      fase_corrente_id: e.target.value === '' ? '' : Number(e.target.value)
-                    })
-                  }
-                >
-                  <option value="">— non impostata —</option>
-                  {nuovoFasi.map((f) => (
-                    <option key={f.id} value={f.id}>
-                      {f.nome}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-            <div className="modal-actions">
-              <button onClick={() => setNuovo(null)}>Annulla</button>
-              <button className="primary" onClick={() => void salvaNuovo()}>
-                Crea paziente
-              </button>
-            </div>
-          </div>
-        </div>
+        <ModaleDatiPaziente
+          paziente={null}
+          patologie={patologie}
+          onChiudi={(salvato, nuovoId) => {
+            setNuovo(false)
+            if (salvato) {
+              void load()
+              if (nuovoId != null) setSelId(nuovoId)
+            }
+          }}
+        />
       )}
     </div>
   )
@@ -309,12 +183,6 @@ function SchedaPaziente({
   onApriSeduta: (id: number) => void
   onDuplicaSeduta: (id: number) => void
 }): React.JSX.Element {
-  const [form, setForm] = useState({
-    nome: paziente.nome,
-    cognome: paziente.cognome,
-    tipo_intervento: paziente.tipo_intervento ?? '',
-    data_intervento: paziente.data_intervento ?? ''
-  })
   const [fasi, setFasi] = useState<Fase[]>([])
 
   useEffect(() => {
@@ -324,30 +192,6 @@ function SchedaPaziente({
     }
     void window.api.fasi.list(paziente.patologia_id).then(setFasi)
   }, [paziente.patologia_id])
-
-  const dirty =
-    form.nome !== paziente.nome ||
-    form.cognome !== paziente.cognome ||
-    form.tipo_intervento !== (paziente.tipo_intervento ?? '') ||
-    form.data_intervento !== (paziente.data_intervento ?? '')
-
-  const salva = async (): Promise<void> => {
-    if (!form.nome.trim() || !form.cognome.trim()) {
-      toastErrore('Nome e cognome sono obbligatori.')
-      return
-    }
-    try {
-      await window.api.pazienti.update(paziente.id, {
-        nome: form.nome,
-        cognome: form.cognome,
-        tipo_intervento: form.tipo_intervento.trim() || null,
-        data_intervento: form.data_intervento || null
-      })
-      await onChanged()
-    } catch (e) {
-      toastErrore(errMsg(e))
-    }
-  }
 
   const setPatologia = async (patologiaId: number | null): Promise<void> => {
     if (
@@ -405,49 +249,9 @@ function SchedaPaziente({
 
   return (
     <div className="scheda">
-      <section className="card">
-        <h3>Anagrafica</h3>
-        <div className="form-row-2">
-          <label className="field">
-            Nome *
-            <input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
-          </label>
-          <label className="field">
-            Cognome *
-            <input
-              value={form.cognome}
-              onChange={(e) => setForm({ ...form, cognome: e.target.value })}
-            />
-          </label>
-        </div>
-        <div className="form-row-2">
-          <label className="field">
-            Tipo di intervento
-            <input
-              placeholder="es. Ricostruzione LCA dx"
-              value={form.tipo_intervento}
-              onChange={(e) => setForm({ ...form, tipo_intervento: e.target.value })}
-            />
-          </label>
-          <label className="field">
-            Data intervento
-            <input
-              type="date"
-              value={form.data_intervento}
-              onChange={(e) => setForm({ ...form, data_intervento: e.target.value })}
-            />
-          </label>
-        </div>
-        <div className="scheda-actions">
-          <button className="danger" onClick={() => void elimina()}>
-            Elimina paziente
-          </button>
-          <span className="spacer" />
-          <button className="primary" disabled={!dirty} onClick={() => void salva()}>
-            Salva modifiche
-          </button>
-        </div>
-      </section>
+      <AnagraficaPaziente paziente={paziente} onChanged={onChanged} onDeleted={onDeleted} />
+
+      <QuestionariPaziente paziente={paziente} />
 
       <section className="card">
         <h3>Percorso riabilitativo</h3>
@@ -509,8 +313,6 @@ function SchedaPaziente({
       </section>
 
       <ObiettiviCard paziente={paziente} />
-
-      <QuestionariPaziente paziente={paziente} />
 
       <DiarioCard
         paziente={paziente}
