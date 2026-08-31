@@ -12,6 +12,7 @@ import SedutaBuilder from '../components/SedutaBuilder'
 import QuestionariPaziente from '../components/QuestionariPaziente'
 import AnagraficaPaziente, { ModaleDatiPaziente } from '../components/AnagraficaPaziente'
 import AnamnesiPaziente from '../components/AnamnesiPaziente'
+import ValutazionePaziente from '../components/ValutazionePaziente'
 import { toast, toastErrore } from '../components/Toast'
 import { errMsg, formatData } from '../lib'
 
@@ -253,6 +254,8 @@ function SchedaPaziente({
       <AnagraficaPaziente paziente={paziente} onChanged={onChanged} onDeleted={onDeleted} />
 
       <AnamnesiPaziente paziente={paziente} />
+
+      <ValutazionePaziente paziente={paziente} />
 
       <QuestionariPaziente paziente={paziente} />
 

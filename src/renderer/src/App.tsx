@@ -4,6 +4,7 @@ import PatologiePage from './pages/PatologiePage'
 import EserciziPage from './pages/EserciziPage'
 import QuestionariPage from './pages/QuestionariPage'
 import TestValutazionePage from './pages/TestValutazionePage'
+import DistrettiPage from './pages/DistrettiPage'
 import PazientiPage from './pages/PazientiPage'
 import AuthGate from './components/AuthGate'
 import ToastHost, { toast, toastErrore } from './components/Toast'
@@ -11,10 +12,16 @@ import { errMsg } from './lib'
 
 type Sezione = 'pazienti' | 'configurazione'
 
-type TabConfig = 'patologie' | 'esercizi' | 'questionari' | 'testValutazione'
+type TabConfig =
+  | 'patologie'
+  | 'distretti'
+  | 'esercizi'
+  | 'questionari'
+  | 'testValutazione'
 
 const TAB_CONFIG: { key: TabConfig; label: string }[] = [
   { key: 'patologie', label: 'Patologie e fasi' },
+  { key: 'distretti', label: 'Distretti' },
   { key: 'esercizi', label: 'Libreria esercizi' },
   { key: 'questionari', label: 'Questionari' },
   { key: 'testValutazione', label: 'Test di valutazione' }
@@ -91,6 +98,7 @@ function ConfigurazionePage(): React.JSX.Element {
         ))}
       </div>
       {tab === 'patologie' && <PatologiePage />}
+      {tab === 'distretti' && <DistrettiPage />}
       {tab === 'esercizi' && <EserciziPage />}
       {tab === 'questionari' && <QuestionariPage />}
       {tab === 'testValutazione' && <TestValutazionePage />}

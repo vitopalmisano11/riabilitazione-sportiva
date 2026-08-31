@@ -361,6 +361,18 @@ export interface BodyChartCompleta {
 export type AndamentoSintomo = 'costante' | 'intermittente'
 export type EpisodioSintomo = 'primo' | 'recidiva'
 
+// Un punto sul grafico dell'andamento. Nel grafico del giorno il tempo sono
+// minuti dalla mezzanotte; in quello dall'esordio e' una data.
+export type TipoGrafico = 'giorno' | 'esordio'
+
+export interface PuntoAndamento {
+  id: number | null
+  grafico: TipoGrafico
+  minuti: number | null
+  data: string | null
+  dolore: number
+}
+
 // id negativo = sintomo non ancora salvato, come per le domande dei questionari
 export interface SintomoAnamnesi {
   id: number | null
@@ -373,6 +385,7 @@ export interface SintomoAnamnesi {
   comportamento: string | null
   aggrava: string | null
   allevia: string | null
+  punti: PuntoAndamento[]
 }
 
 export interface AnamnesiProssima {
@@ -383,7 +396,123 @@ export interface AnamnesiProssima {
   sintomi_neurologici: string | null
   relazione_sintomi: string | null
   note: string | null
+  note_giorno: string | null
+  note_esordio: string | null
   sintomi: SintomoAnamnesi[]
+}
+
+export interface AttivitaPartecipazione {
+  attivita: string | null
+  partecipazione: string | null
+  fattori_interni: string | null
+}
+
+// Le nove domande di sicurezza: 1 si', 0 no, null non chiesto.
+export type RispostaSiNo = 0 | 1 | null
+
+export interface AnamnesiRemota {
+  traumi: string | null
+  interventi: string | null
+  riabilitazioni: string | null
+  bioimmagini_note: string | null
+  peso: RispostaSiNo
+  febbre: RispostaSiNo
+  sudorazione: RispostaSiNo
+  nausea: RispostaSiNo
+  fumo: RispostaSiNo
+  neoplasie: RispostaSiNo
+  gravidanza: RispostaSiNo
+  pacemaker: RispostaSiNo
+  schegge: RispostaSiNo
+}
+
+export interface Bioimmagine {
+  id: number
+  nome: string
+  tipo: string
+  data: string
+}
+
+// ---- Valutazione obiettiva ----
+// Movimenti e test stanno nel distretto: si scrivono una volta e si riusano su
+// tutte le patologie che riguardano quella zona.
+export type GruppoTest = 'provocazione' | 'forza' | 'neurologico' | 'altri'
+
+// Come si risponde a un test: positivo/negativo, scala di forza 0-5, testo.
+export type RispostaTest = 'posneg' | 'scala5' | 'testo'
+
+// 0 nulla, 1 lieve, 2 moderata, 3 severa. null = non valutato.
+export type Grado = 0 | 1 | 2 | 3 | null
+
+export type Andamento = 'aumentato' | 'invariato' | 'diminuito'
+
+export interface Distretto {
+  id: number
+  nome: string
+  ordine: number
+}
+
+export interface MovimentoDistretto {
+  id: number | null
+  nome: string
+  // 1 = si misura l'escursione in gradi
+  gradi: 0 | 1
+}
+
+export interface TestDistretto {
+  id: number | null
+  nome: string
+  gruppo: GruppoTest
+  risposta: RispostaTest
+}
+
+export interface DistrettoCompleto {
+  distretto: Distretto
+  movimenti: MovimentoDistretto[]
+  test: TestDistretto[]
+}
+
+export interface RilievoMovimento {
+  movimento_id: number
+  attivo_restrizione: Grado
+  attivo_dolore: Grado
+  attivo_gradi: number | null
+  passivo_restrizione: Grado
+  passivo_dolore: Grado
+  passivo_gradi: number | null
+  nota: string | null
+}
+
+export interface RilievoTest {
+  test_id: number
+  valore: string | null
+  nota: string | null
+}
+
+export interface Valutazione {
+  id: number
+  paziente_id: number
+  data: string
+  ispezione: string | null
+  note: string | null
+  carico_locale: Andamento | null
+  carico_generale: Andamento | null
+  capacita_locale: Andamento | null
+  capacita_generale: Andamento | null
+}
+
+export interface ValutazioneRiepilogo {
+  id: number
+  data: string
+  note: string | null
+  num_distretti: number
+}
+
+export interface ValutazioneCompleta {
+  valutazione: Valutazione
+  distretto_ids: number[]
+  movimenti: RilievoMovimento[]
+  test: RilievoTest[]
 }
 
 export interface Api {
@@ -398,12 +527,30 @@ export interface Api {
     recover(recoveryKey: string, nuovaPassword: string): Promise<void>
     cambiaPassword(vecchia: string, nuova: string): Promise<void>
   }
+  distretti: {
+    list(): Promise<Distretto[]>
+    get(id: number): Promise<DistrettoCompleto>
+    create(nome: string): Promise<number>
+    salva(dati: DistrettoCompleto): Promise<void>
+    remove(id: number): Promise<void>
+    reorder(ids: number[]): Promise<void>
+  }
+  valutazioni: {
+    list(pazienteId: number): Promise<ValutazioneRiepilogo[]>
+    get(id: number): Promise<ValutazioneCompleta>
+    create(pazienteId: number, data: string, distrettoIds: number[]): Promise<number>
+    salva(dati: ValutazioneCompleta): Promise<void>
+    remove(id: number): Promise<void>
+  }
   patologie: {
     list(): Promise<Patologia[]>
     create(nome: string): Promise<number>
     update(id: number, nome: string): Promise<void>
     remove(id: number): Promise<void>
     reorder(ids: number[]): Promise<void>
+    // distretti abituali della patologia: preselezione della valutazione
+    distretti(patologiaId: number): Promise<number[]>
+    setDistretti(patologiaId: number, distrettoIds: number[]): Promise<void>
   }
   fasi: {
     list(patologiaId: number): Promise<Fase[]>
@@ -544,6 +691,19 @@ export interface Api {
   anamnesi: {
     get(pazienteId: number): Promise<AnamnesiProssima>
     salva(pazienteId: number, dati: AnamnesiProssima): Promise<void>
+    attivita(pazienteId: number): Promise<AttivitaPartecipazione>
+    salvaAttivita(pazienteId: number, dati: AttivitaPartecipazione): Promise<void>
+    remota(pazienteId: number): Promise<AnamnesiRemota>
+    salvaRemota(pazienteId: number, dati: AnamnesiRemota): Promise<void>
+  }
+  bioimmagini: {
+    list(pazienteId: number): Promise<Bioimmagine[]>
+    // Apre il dialogo file, salva il referto nell'archivio cifrato e ritorna
+    // quante voci sono state aggiunte.
+    aggiungi(pazienteId: number): Promise<number>
+    // Scrive il file in una cartella temporanea e lo apre col programma di sistema.
+    apri(id: number): Promise<void>
+    remove(id: number): Promise<void>
   }
   impostazioni: {
     info(): Promise<{ cartella: string; cartellaExport: string }>

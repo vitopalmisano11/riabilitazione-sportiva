@@ -1,11 +1,12 @@
-import { useCallback, useEffect, useState } from 'react'
-import { ClipboardList, Eye, Pencil, Trash2 } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { ClipboardList, Eye, History, Pencil, Trash2 } from 'lucide-react'
 import type { BodyChartRiepilogo, PazienteDettaglio } from '../../../shared/types'
 import { toastErrore } from './Toast'
 import { errMsg, formatData, oggiIso } from '../lib'
 import BodyChartEditor from './BodyChartEditor'
 import { SagomaIcona } from './FiguraUmana'
 import AnamnesiProssima from './AnamnesiProssima'
+import AnamnesiRemota from './AnamnesiRemota'
 
 // Raccolta anamnestica. Ogni parte si compila per conto suo, in qualunque
 // ordine: non c'e' una sequenza obbligata da seguire durante il colloquio.
@@ -17,6 +18,7 @@ export default function AnamnesiPaziente({
   const [charts, setCharts] = useState<BodyChartRiepilogo[]>([])
   const [aperta, setAperta] = useState<{ id: number; soloLettura: boolean } | null>(null)
   const [prossima, setProssima] = useState(false)
+  const [remota, setRemota] = useState(false)
 
   const load = useCallback(async (): Promise<void> => {
     try {
@@ -30,9 +32,15 @@ export default function AnamnesiPaziente({
     void load()
   }, [load])
 
+  // La riga nasce subito perche' l'editor lavora su una body chart esistente,
+  // ma se si chiude senza salvare niente viene tolta: un clic per sbaglio non
+  // deve lasciare schede vuote da ripulire.
+  const appenaCreata = useRef<number | null>(null)
+
   const nuova = async (): Promise<void> => {
     try {
       const id = await window.api.bodyChart.create(paziente.id, oggiIso())
+      appenaCreata.current = id
       await load()
       setAperta({ id, soloLettura: false })
     } catch (e) {
@@ -63,6 +71,9 @@ export default function AnamnesiPaziente({
           onClick={() => setProssima(true)}
         >
           <ClipboardList size={24} />
+        </button>
+        <button className="btn-sagoma" title="Anamnesi remota" onClick={() => setRemota(true)}>
+          <History size={24} />
         </button>
         <button className="btn-sagoma" title="Body chart" onClick={() => void nuova()}>
           <SagomaIcona size={24} />
@@ -110,14 +121,22 @@ export default function AnamnesiPaziente({
         <AnamnesiProssima pazienteId={paziente.id} onChiudi={() => setProssima(false)} />
       )}
 
+      {remota && <AnamnesiRemota pazienteId={paziente.id} onChiudi={() => setRemota(false)} />}
+
       {aperta && (
         <BodyChartEditor
           key={aperta.id}
           chartId={aperta.id}
           soloLettura={aperta.soloLettura}
           onChiudi={(salvata) => {
+            const daTogliere = !salvata ? appenaCreata.current : null
+            appenaCreata.current = null
             setAperta(null)
-            if (salvata) void load()
+            if (daTogliere != null) {
+              void window.api.bodyChart.remove(daTogliere).then(load)
+            } else if (salvata) {
+              void load()
+            }
           }}
         />
       )}

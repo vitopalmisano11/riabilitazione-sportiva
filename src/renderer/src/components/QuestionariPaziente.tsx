@@ -51,8 +51,8 @@ export default function QuestionariPaziente({
 
   return (
     <section className="card">
-      <div className="card-header-row">
-        <h3>Questionari</h3>
+      <h3>Questionari</h3>
+      <div className="sotto-sezioni">
         <button
           className="primary"
           disabled={disponibili.length === 0}

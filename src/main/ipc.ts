@@ -1,5 +1,7 @@
-import { dialog, ipcMain, nativeImage, shell } from 'electron'
-import { join } from 'path'
+import { app, dialog, ipcMain, nativeImage, shell } from 'electron'
+import { basename, join } from 'path'
+import { readFileSync } from 'fs'
+import { writeFile } from 'fs/promises'
 import { closeDb, getDb, initDb, riapriDb } from './db'
 import {
   cartellaDati,
@@ -18,16 +20,26 @@ import {
 import { anteprimaSeduta, esportaSeduta, esportaStorico, type FormatoExport } from './export'
 import { leggiQuestionario, salvaCompilazione, salvaQuestionario } from './questionari'
 import { leggiTest, salvaTest } from './test-valutazione'
+import {
+  leggiDistretto,
+  leggiValutazione,
+  salvaDistretto,
+  salvaValutazione
+} from './valutazione'
 import type {
   AnamnesiProssima,
+  AnamnesiRemota,
+  AttivitaPartecipazione,
   BodyChartCompleta,
   CompilazioneInput,
   EsercizioInput,
   PazienteCreateInput,
   PazienteInput,
+  DistrettoCompleto,
   QuestionarioCompleto,
   SedutaInput,
-  TestValutazioneCompleto
+  TestValutazioneCompleto,
+  ValutazioneCompleta
 } from '../shared/types'
 
 // Traduce gli errori SQLite in messaggi comprensibili per l'utente.
@@ -153,6 +165,82 @@ export function registerIpc(): void {
   })
   handle('patologie:delete', (id: number) => {
     getDb().prepare('DELETE FROM patologie WHERE id = ?').run(id)
+  })
+
+  // ---- Distretti (libreria della valutazione obiettiva) ----
+  handle('distretti:list', () =>
+    getDb().prepare('SELECT * FROM distretti ORDER BY ordine, nome').all()
+  )
+  handle('distretti:get', (id: number) => leggiDistretto(id))
+  handle('distretti:create', (nome: string) => {
+    const db = getDb()
+    const { next } = db
+      .prepare('SELECT COALESCE(MAX(ordine), -1) + 1 AS next FROM distretti')
+      .get() as { next: number }
+    return Number(
+      db.prepare('INSERT INTO distretti (nome, ordine) VALUES (?, ?)').run(nome.trim(), next)
+        .lastInsertRowid
+    )
+  })
+  handle('distretti:salva', (dati: DistrettoCompleto) => salvaDistretto(dati))
+  handle('distretti:delete', (id: number) => {
+    getDb().prepare('DELETE FROM distretti WHERE id = ?').run(id)
+  })
+  handle('distretti:reorder', (ids: number[]) => {
+    const db = getDb()
+    const stmt = db.prepare('UPDATE distretti SET ordine = ? WHERE id = ?')
+    db.transaction(() => ids.forEach((id, i) => stmt.run(i, id)))()
+  })
+
+  handle('patologie:distretti', (patologiaId: number) =>
+    (
+      getDb()
+        .prepare('SELECT distretto_id FROM patologia_distretti WHERE patologia_id = ?')
+        .all(patologiaId) as { distretto_id: number }[]
+    ).map((r) => r.distretto_id)
+  )
+  handle('patologie:setDistretti', (patologiaId: number, ids: number[]) => {
+    const db = getDb()
+    db.transaction(() => {
+      db.prepare('DELETE FROM patologia_distretti WHERE patologia_id = ?').run(patologiaId)
+      const ins = db.prepare(
+        'INSERT INTO patologia_distretti (patologia_id, distretto_id) VALUES (?, ?)'
+      )
+      for (const d of ids) ins.run(patologiaId, d)
+    })()
+  })
+
+  // ---- Valutazioni obiettive ----
+  handle('valutazioni:list', (pazienteId: number) =>
+    getDb()
+      .prepare(
+        `SELECT v.id, v.data, v.note,
+                (SELECT COUNT(*) FROM valutazione_distretti d WHERE d.valutazione_id = v.id)
+                  AS num_distretti
+         FROM valutazioni v WHERE v.paziente_id = ?
+         ORDER BY v.data DESC, v.id DESC`
+      )
+      .all(pazienteId)
+  )
+  handle('valutazioni:get', (id: number) => leggiValutazione(id))
+  handle('valutazioni:create', (pazienteId: number, data: string, distrettoIds: number[]) => {
+    const db = getDb()
+    return db.transaction(() => {
+      const id = Number(
+        db
+          .prepare('INSERT INTO valutazioni (paziente_id, data) VALUES (?, ?)')
+          .run(pazienteId, data).lastInsertRowid
+      )
+      const ins = db.prepare(
+        'INSERT INTO valutazione_distretti (valutazione_id, distretto_id) VALUES (?, ?)'
+      )
+      for (const d of distrettoIds) ins.run(id, d)
+      return id
+    })()
+  })
+  handle('valutazioni:salva', (dati: ValutazioneCompleta) => salvaValutazione(dati))
+  handle('valutazioni:delete', (id: number) => {
+    getDb().prepare('DELETE FROM valutazioni WHERE id = ?').run(id)
   })
 
   // ---- Fasi ----
@@ -768,7 +856,12 @@ export function registerIpc(): void {
                 comportamento, aggrava, allevia
          FROM anamnesi_sintomi WHERE paziente_id = ? ORDER BY ordine, id`
       )
-      .all(pazienteId)
+      .all(pazienteId) as { id: number }[]
+    const puntiStmt = db.prepare(
+      `SELECT id, grafico, minuti, data, dolore FROM sintomo_punti
+       WHERE sintomo_id = ? ORDER BY grafico, minuti, data, id`
+    )
+    const conPunti = sintomi.map((x) => ({ ...x, punti: puntiStmt.all(x.id) }))
     return {
       motivo_consulto: null,
       dolore_notturno: null,
@@ -777,8 +870,10 @@ export function registerIpc(): void {
       sintomi_neurologici: null,
       relazione_sintomi: null,
       note: null,
+      note_giorno: null,
+      note_esordio: null,
       ...(riga ?? {}),
-      sintomi
+      sintomi: conPunti
     }
   })
 
@@ -788,9 +883,10 @@ export function registerIpc(): void {
       db.prepare(
         `INSERT INTO anamnesi_prossima
            (paziente_id, motivo_consulto, dolore_notturno, disturbi_sonno, tosse_starnuto,
-            sintomi_neurologici, relazione_sintomi, note)
+            sintomi_neurologici, relazione_sintomi, note, note_giorno, note_esordio)
          VALUES (@paziente_id, @motivo_consulto, @dolore_notturno, @disturbi_sonno,
-                 @tosse_starnuto, @sintomi_neurologici, @relazione_sintomi, @note)
+                 @tosse_starnuto, @sintomi_neurologici, @relazione_sintomi, @note,
+                 @note_giorno, @note_esordio)
          ON CONFLICT(paziente_id) DO UPDATE SET
            motivo_consulto = excluded.motivo_consulto,
            dolore_notturno = excluded.dolore_notturno,
@@ -798,7 +894,9 @@ export function registerIpc(): void {
            tosse_starnuto = excluded.tosse_starnuto,
            sintomi_neurologici = excluded.sintomi_neurologici,
            relazione_sintomi = excluded.relazione_sintomi,
-           note = excluded.note`
+           note = excluded.note,
+           note_giorno = excluded.note_giorno,
+           note_esordio = excluded.note_esordio`
       ).run({
         paziente_id: pazienteId,
         motivo_consulto: dati.motivo_consulto,
@@ -807,7 +905,9 @@ export function registerIpc(): void {
         tosse_starnuto: dati.tosse_starnuto,
         sintomi_neurologici: dati.sintomi_neurologici,
         relazione_sintomi: dati.relazione_sintomi,
-        note: dati.note
+        note: dati.note,
+        note_giorno: dati.note_giorno,
+        note_esordio: dati.note_esordio
       })
 
       // I sintomi gia' salvati conservano il proprio id: i grafici futuri vi si
@@ -835,12 +935,163 @@ export function registerIpc(): void {
            allevia = @allevia, ordine = @ordine
          WHERE id = @id`
       )
+      const insPunto = db.prepare(
+        `INSERT INTO sintomo_punti (sintomo_id, grafico, minuti, data, dolore)
+         VALUES (?, ?, ?, ?, ?)`
+      )
       dati.sintomi.forEach((x, i) => {
-        const campi = { ...x, paziente_id: pazienteId, ordine: i }
-        if (x.id == null || x.id < 0) ins.run(campi)
-        else upd.run(campi)
+        const { punti, ...resto } = x
+        const campi = { ...resto, paziente_id: pazienteId, ordine: i }
+        let sid: number
+        if (x.id == null || x.id < 0) {
+          sid = Number(ins.run({ ...campi, id: null }).lastInsertRowid)
+        } else {
+          upd.run(campi)
+          sid = x.id
+        }
+        // I punti si riscrivono per intero: non sono citati da nessun'altra
+        // tabella, e riscriverli e' piu' semplice che tenerne traccia uno a uno.
+        db.prepare('DELETE FROM sintomo_punti WHERE sintomo_id = ?').run(sid)
+        for (const pt of punti) {
+          insPunto.run(sid, pt.grafico, pt.minuti, pt.data, pt.dolore)
+        }
       })
     })()
+  })
+
+  // ---- Attivita' e partecipazione ----
+  handle('anamnesi:attivita', (pazienteId: number) => {
+    const riga = getDb()
+      .prepare('SELECT attivita, partecipazione, fattori_interni FROM anamnesi_attivita WHERE paziente_id = ?')
+      .get(pazienteId)
+    return riga ?? { attivita: null, partecipazione: null, fattori_interni: null }
+  })
+  handle('anamnesi:salvaAttivita', (pazienteId: number, dati: AttivitaPartecipazione) => {
+    getDb()
+      .prepare(
+        `INSERT INTO anamnesi_attivita (paziente_id, attivita, partecipazione, fattori_interni)
+         VALUES (?, ?, ?, ?)
+         ON CONFLICT(paziente_id) DO UPDATE SET
+           attivita = excluded.attivita,
+           partecipazione = excluded.partecipazione,
+           fattori_interni = excluded.fattori_interni`
+      )
+      .run(pazienteId, dati.attivita, dati.partecipazione, dati.fattori_interni)
+  })
+
+  // ---- Anamnesi remota ----
+  const REMOTA_VUOTA: AnamnesiRemota = {
+    traumi: null,
+    interventi: null,
+    riabilitazioni: null,
+    bioimmagini_note: null,
+    peso: null,
+    febbre: null,
+    sudorazione: null,
+    nausea: null,
+    fumo: null,
+    neoplasie: null,
+    gravidanza: null,
+    pacemaker: null,
+    schegge: null
+  }
+
+  handle('anamnesi:remota', (pazienteId: number) => {
+    const riga = getDb()
+      .prepare('SELECT * FROM anamnesi_remota WHERE paziente_id = ?')
+      .get(pazienteId) as Record<string, unknown> | undefined
+    return { ...REMOTA_VUOTA, ...(riga ?? {}) }
+  })
+  handle('anamnesi:salvaRemota', (pazienteId: number, dati: AnamnesiRemota) => {
+    getDb()
+      .prepare(
+        `INSERT INTO anamnesi_remota
+           (paziente_id, traumi, interventi, riabilitazioni, bioimmagini_note,
+            peso, febbre, sudorazione, nausea, fumo, neoplasie, gravidanza, pacemaker, schegge)
+         VALUES (@paziente_id, @traumi, @interventi, @riabilitazioni, @bioimmagini_note,
+            @peso, @febbre, @sudorazione, @nausea, @fumo, @neoplasie, @gravidanza,
+            @pacemaker, @schegge)
+         ON CONFLICT(paziente_id) DO UPDATE SET
+           traumi = excluded.traumi, interventi = excluded.interventi,
+           riabilitazioni = excluded.riabilitazioni,
+           bioimmagini_note = excluded.bioimmagini_note,
+           peso = excluded.peso, febbre = excluded.febbre,
+           sudorazione = excluded.sudorazione, nausea = excluded.nausea,
+           fumo = excluded.fumo, neoplasie = excluded.neoplasie,
+           gravidanza = excluded.gravidanza, pacemaker = excluded.pacemaker,
+           schegge = excluded.schegge`
+      )
+      .run({ ...dati, paziente_id: pazienteId })
+  })
+
+  // ---- Bioimmagini ----
+  const BIO_PESO_MAX = 12 * 1024 * 1024
+
+  handle('bioimmagini:list', (pazienteId: number) =>
+    getDb()
+      .prepare(
+        'SELECT id, nome, tipo, data FROM bioimmagini WHERE paziente_id = ? ORDER BY ordine, id'
+      )
+      .all(pazienteId)
+  )
+
+  handle('bioimmagini:aggiungi', async (pazienteId: number) => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+      title: 'Scegli il referto (foto o PDF)',
+      properties: ['openFile', 'multiSelections'],
+      filters: [{ name: 'Referti', extensions: ['png', 'jpg', 'jpeg', 'webp', 'pdf'] }]
+    })
+    if (canceled || filePaths.length === 0) return 0
+    const db = getDb()
+    const { next } = db
+      .prepare('SELECT COALESCE(MAX(ordine), -1) + 1 AS next FROM bioimmagini WHERE paziente_id = ?')
+      .get(pazienteId) as { next: number }
+    const ins = db.prepare(
+      `INSERT INTO bioimmagini (paziente_id, nome, tipo, contenuto, data, ordine)
+       VALUES (?, ?, ?, ?, date('now'), ?)`
+    )
+    let aggiunti = 0
+    for (const percorso of filePaths) {
+      const nome = basename(percorso)
+      const pdf = percorso.toLowerCase().endsWith('.pdf')
+      let tipo: string
+      let dataUrl: string
+      if (pdf) {
+        const buf = readFileSync(percorso)
+        if (buf.length > BIO_PESO_MAX) {
+          throw new Error(`"${nome}" e' troppo pesante (oltre 12 MB).`)
+        }
+        tipo = 'application/pdf'
+        dataUrl = `data:application/pdf;base64,${buf.toString('base64')}`
+      } else {
+        // le foto si rimpiccioliscono: un referto fotografato col telefono
+        // arriva a diversi megabyte e farebbe crescere l'archivio senza motivo
+        let img = nativeImage.createFromPath(percorso)
+        if (img.isEmpty()) throw new Error(`"${nome}" non e' leggibile.`)
+        if (img.getSize().width > 1600) img = img.resize({ width: 1600, quality: 'good' })
+        tipo = 'image/jpeg'
+        dataUrl = `data:image/jpeg;base64,${img.toJPEG(82).toString('base64')}`
+      }
+      ins.run(pazienteId, nome, tipo, dataUrl, next + aggiunti)
+      aggiunti++
+    }
+    return aggiunti
+  })
+
+  handle('bioimmagini:apri', async (id: number) => {
+    const riga = getDb()
+      .prepare('SELECT nome, tipo, contenuto FROM bioimmagini WHERE id = ?')
+      .get(id) as { nome: string; tipo: string; contenuto: string } | undefined
+    if (!riga) throw new Error('Referto non trovato.')
+    const base64 = riga.contenuto.slice(riga.contenuto.indexOf(',') + 1)
+    const estensione = riga.tipo === 'application/pdf' ? '.pdf' : '.jpg'
+    const tmp = join(app.getPath('temp'), `referto-${id}${estensione}`)
+    await writeFile(tmp, Buffer.from(base64, 'base64'))
+    void shell.openPath(tmp)
+  })
+
+  handle('bioimmagini:delete', (id: number) => {
+    getDb().prepare('DELETE FROM bioimmagini WHERE id = ?').run(id)
   })
 
   // ---- Body chart ----

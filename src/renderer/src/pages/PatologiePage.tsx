@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { ChevronRight, GripVertical, Pencil, Plus, X } from 'lucide-react'
 import type {
   Categoria,
+  Distretto,
   Fase,
   Obiettivo,
   Patologia,
@@ -347,6 +348,8 @@ function Step2Fasi({
         <span className="step-num">2</span>
         <h3>Scegli la fase di &ldquo;{patologia.nome}&rdquo;</h3>
       </div>
+
+      <DistrettiPatologia patologiaId={patologia.id} />
       <div className="scelta-tiles">
         {fasi.map((f, idx) => {
           const dnd = contenitore(idx)
@@ -622,5 +625,54 @@ function TestTab({ faseId }: { faseId: number }): React.JSX.Element {
         emptyHint="Nessun test definito per questa fase (facoltativo)."
       />
     </div>
+  )
+}
+
+// I distretti abituali di questa patologia: diventano la preselezione quando si
+// apre una valutazione obiettiva del paziente. Non vincolano nulla, si possono
+// sempre cambiare al momento.
+function DistrettiPatologia({ patologiaId }: { patologiaId: number }): React.JSX.Element {
+  const [distretti, setDistretti] = useState<Distretto[]>([])
+  const [scelti, setScelti] = useState<number[]>([])
+
+  useEffect(() => {
+    void window.api.distretti.list().then(setDistretti)
+    void window.api.patologie.distretti(patologiaId).then(setScelti)
+  }, [patologiaId])
+
+  const alterna = (id: number): void => {
+    const nuovi = scelti.includes(id) ? scelti.filter((x) => x !== id) : [...scelti, id]
+    setScelti(nuovi)
+    window.api.patologie
+      .setDistretti(patologiaId, nuovi)
+      .catch((e) => toastErrore(errMsg(e)))
+  }
+
+  if (distretti.length === 0) return <></>
+
+  return (
+    <details className="blocco-apribile">
+      <summary>Distretti da valutare ({scelti.length})</summary>
+      <div className="contenuto-apribile">
+        <p className="hint">
+          Compariranno già spuntati aprendo una valutazione obiettiva di un paziente con questa
+          patologia.
+        </p>
+        <ul className="checkbox-list">
+          {distretti.map((d) => (
+            <li key={d.id}>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={scelti.includes(d.id)}
+                  onChange={() => alterna(d.id)}
+                />
+                {d.nome}
+              </label>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </details>
   )
 }

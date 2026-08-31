@@ -420,6 +420,148 @@ const MIGRATIONS: string[] = [
   );
 
   CREATE INDEX idx_anamnesi_sintomi_paziente ON anamnesi_sintomi(paziente_id);
+  `,
+
+  // 14 - andamento dei sintomi, attivita' e partecipazione, anamnesi remota.
+  //      I punti dei due grafici sono agganciati al sintomo, non al paziente:
+  //      ogni sintomo ha la sua linea. Nel grafico delle 24 ore il tempo sono
+  //      minuti dalla mezzanotte; in quello dall'esordio e' una data vera, cosi'
+  //      un punto aggiunto fra mesi si colloca da solo al posto giusto.
+  `
+  ALTER TABLE anamnesi_prossima ADD COLUMN note_giorno TEXT;
+  ALTER TABLE anamnesi_prossima ADD COLUMN note_esordio TEXT;
+
+  CREATE TABLE sintomo_punti (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sintomo_id INTEGER NOT NULL REFERENCES anamnesi_sintomi(id) ON DELETE CASCADE,
+    grafico TEXT NOT NULL,
+    minuti INTEGER,
+    data TEXT,
+    dolore REAL NOT NULL
+  );
+
+  CREATE TABLE anamnesi_attivita (
+    paziente_id INTEGER PRIMARY KEY REFERENCES pazienti(id) ON DELETE CASCADE,
+    attivita TEXT,
+    partecipazione TEXT,
+    fattori_interni TEXT
+  );
+
+  CREATE TABLE anamnesi_remota (
+    paziente_id INTEGER PRIMARY KEY REFERENCES pazienti(id) ON DELETE CASCADE,
+    traumi TEXT,
+    interventi TEXT,
+    riabilitazioni TEXT,
+    bioimmagini_note TEXT,
+    peso INTEGER,
+    febbre INTEGER,
+    sudorazione INTEGER,
+    nausea INTEGER,
+    fumo INTEGER,
+    neoplasie INTEGER,
+    gravidanza INTEGER,
+    pacemaker INTEGER,
+    schegge INTEGER
+  );
+
+  CREATE TABLE bioimmagini (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    paziente_id INTEGER NOT NULL REFERENCES pazienti(id) ON DELETE CASCADE,
+    nome TEXT NOT NULL,
+    tipo TEXT NOT NULL,
+    contenuto TEXT NOT NULL,
+    data TEXT NOT NULL,
+    ordine INTEGER NOT NULL DEFAULT 0
+  );
+
+  CREATE INDEX idx_sintomo_punti_sintomo ON sintomo_punti(sintomo_id);
+  CREATE INDEX idx_bioimmagini_paziente ON bioimmagini(paziente_id);
+  `,
+
+  // 15 - valutazione obiettiva. Movimenti e test appartengono al distretto, non
+  //      alla patologia: il rachide cervicale ruota comunque, qualunque sia la
+  //      diagnosi. Cosi' si scrivono una volta sola invece che in ogni
+  //      patologia del collo. Alla patologia si collegano i distretti abituali,
+  //      che diventano la preselezione all'apertura della valutazione.
+  `
+  CREATE TABLE distretti (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome TEXT NOT NULL UNIQUE,
+    ordine INTEGER NOT NULL DEFAULT 0
+  );
+
+  CREATE TABLE distretto_movimenti (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    distretto_id INTEGER NOT NULL REFERENCES distretti(id) ON DELETE CASCADE,
+    nome TEXT NOT NULL,
+    ordine INTEGER NOT NULL DEFAULT 0
+  );
+
+  CREATE TABLE distretto_test (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    distretto_id INTEGER NOT NULL REFERENCES distretti(id) ON DELETE CASCADE,
+    nome TEXT NOT NULL,
+    gruppo TEXT NOT NULL,
+    risposta TEXT NOT NULL,
+    ordine INTEGER NOT NULL DEFAULT 0
+  );
+
+  CREATE TABLE patologia_distretti (
+    patologia_id INTEGER NOT NULL REFERENCES patologie(id) ON DELETE CASCADE,
+    distretto_id INTEGER NOT NULL REFERENCES distretti(id) ON DELETE CASCADE,
+    PRIMARY KEY (patologia_id, distretto_id)
+  );
+
+  CREATE TABLE valutazioni (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    paziente_id INTEGER NOT NULL REFERENCES pazienti(id) ON DELETE CASCADE,
+    data TEXT NOT NULL,
+    ispezione TEXT,
+    note TEXT,
+    carico_locale TEXT,
+    carico_generale TEXT,
+    capacita_locale TEXT,
+    capacita_generale TEXT
+  );
+
+  CREATE TABLE valutazione_distretti (
+    valutazione_id INTEGER NOT NULL REFERENCES valutazioni(id) ON DELETE CASCADE,
+    distretto_id INTEGER NOT NULL REFERENCES distretti(id) ON DELETE CASCADE,
+    PRIMARY KEY (valutazione_id, distretto_id)
+  );
+
+  CREATE TABLE valutazione_movimenti (
+    valutazione_id INTEGER NOT NULL REFERENCES valutazioni(id) ON DELETE CASCADE,
+    movimento_id INTEGER NOT NULL REFERENCES distretto_movimenti(id) ON DELETE CASCADE,
+    attivo_restrizione INTEGER,
+    attivo_dolore INTEGER,
+    passivo_restrizione INTEGER,
+    passivo_dolore INTEGER,
+    nota TEXT,
+    PRIMARY KEY (valutazione_id, movimento_id)
+  );
+
+  CREATE TABLE valutazione_test (
+    valutazione_id INTEGER NOT NULL REFERENCES valutazioni(id) ON DELETE CASCADE,
+    test_id INTEGER NOT NULL REFERENCES distretto_test(id) ON DELETE CASCADE,
+    valore TEXT,
+    nota TEXT,
+    PRIMARY KEY (valutazione_id, test_id)
+  );
+
+  CREATE INDEX idx_movimenti_distretto ON distretto_movimenti(distretto_id);
+  CREATE INDEX idx_test_distretto ON distretto_test(distretto_id);
+  CREATE INDEX idx_valutazioni_paziente ON valutazioni(paziente_id);
+  `,
+
+  // 16 - gradi di movimento, ma solo dove hanno senso: si segna sul movimento
+  //      della libreria se va misurato, e in valutazione compaiono le due
+  //      caselle. Cosi' la tabella si allarga solo per i distretti che lo
+  //      richiedono, invece che per tutti.
+  `
+  ALTER TABLE distretto_movimenti ADD COLUMN gradi INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE valutazione_movimenti ADD COLUMN attivo_gradi REAL;
+  ALTER TABLE valutazione_movimenti ADD COLUMN passivo_gradi REAL;
   `
 ]
 
