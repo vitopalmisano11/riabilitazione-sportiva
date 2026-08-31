@@ -19,6 +19,8 @@ import { anteprimaSeduta, esportaSeduta, esportaStorico, type FormatoExport } fr
 import { leggiQuestionario, salvaCompilazione, salvaQuestionario } from './questionari'
 import { leggiTest, salvaTest } from './test-valutazione'
 import type {
+  AnamnesiProssima,
+  BodyChartCompleta,
   CompilazioneInput,
   EsercizioInput,
   PazienteCreateInput,
@@ -752,6 +754,146 @@ export function registerIpc(): void {
     const db = getDb()
     const stmt = db.prepare('UPDATE test_valutazione SET ordine = ? WHERE id = ?')
     db.transaction(() => ids.forEach((id, i) => stmt.run(i, id)))()
+  })
+
+  // ---- Anamnesi prossima ----
+  handle('anamnesi:get', (pazienteId: number) => {
+    const db = getDb()
+    const riga = db
+      .prepare('SELECT * FROM anamnesi_prossima WHERE paziente_id = ?')
+      .get(pazienteId) as Record<string, unknown> | undefined
+    const sintomi = db
+      .prepare(
+        `SELECT id, descrizione, andamento, da_quanto, episodio, esordio, traumatico,
+                comportamento, aggrava, allevia
+         FROM anamnesi_sintomi WHERE paziente_id = ? ORDER BY ordine, id`
+      )
+      .all(pazienteId)
+    return {
+      motivo_consulto: null,
+      dolore_notturno: null,
+      disturbi_sonno: null,
+      tosse_starnuto: null,
+      sintomi_neurologici: null,
+      relazione_sintomi: null,
+      note: null,
+      ...(riga ?? {}),
+      sintomi
+    }
+  })
+
+  handle('anamnesi:salva', (pazienteId: number, dati: AnamnesiProssima) => {
+    const db = getDb()
+    db.transaction(() => {
+      db.prepare(
+        `INSERT INTO anamnesi_prossima
+           (paziente_id, motivo_consulto, dolore_notturno, disturbi_sonno, tosse_starnuto,
+            sintomi_neurologici, relazione_sintomi, note)
+         VALUES (@paziente_id, @motivo_consulto, @dolore_notturno, @disturbi_sonno,
+                 @tosse_starnuto, @sintomi_neurologici, @relazione_sintomi, @note)
+         ON CONFLICT(paziente_id) DO UPDATE SET
+           motivo_consulto = excluded.motivo_consulto,
+           dolore_notturno = excluded.dolore_notturno,
+           disturbi_sonno = excluded.disturbi_sonno,
+           tosse_starnuto = excluded.tosse_starnuto,
+           sintomi_neurologici = excluded.sintomi_neurologici,
+           relazione_sintomi = excluded.relazione_sintomi,
+           note = excluded.note`
+      ).run({
+        paziente_id: pazienteId,
+        motivo_consulto: dati.motivo_consulto,
+        dolore_notturno: dati.dolore_notturno,
+        disturbi_sonno: dati.disturbi_sonno,
+        tosse_starnuto: dati.tosse_starnuto,
+        sintomi_neurologici: dati.sintomi_neurologici,
+        relazione_sintomi: dati.relazione_sintomi,
+        note: dati.note
+      })
+
+      // I sintomi gia' salvati conservano il proprio id: i grafici futuri vi si
+      // aggancieranno, e un riordino non deve spostarli su un altro sintomo.
+      const daTenere = dati.sintomi
+        .map((x) => x.id)
+        .filter((x): x is number => x != null && x > 0)
+      const segnaposto = daTenere.map(() => '?').join(', ')
+      db.prepare(
+        'DELETE FROM anamnesi_sintomi WHERE paziente_id = ?' +
+          (daTenere.length > 0 ? ` AND id NOT IN (${segnaposto})` : '')
+      ).run(pazienteId, ...daTenere)
+
+      const ins = db.prepare(
+        `INSERT INTO anamnesi_sintomi
+           (paziente_id, descrizione, andamento, da_quanto, episodio, esordio, traumatico,
+            comportamento, aggrava, allevia, ordine)
+         VALUES (@paziente_id, @descrizione, @andamento, @da_quanto, @episodio, @esordio,
+                 @traumatico, @comportamento, @aggrava, @allevia, @ordine)`
+      )
+      const upd = db.prepare(
+        `UPDATE anamnesi_sintomi SET descrizione = @descrizione, andamento = @andamento,
+           da_quanto = @da_quanto, episodio = @episodio, esordio = @esordio,
+           traumatico = @traumatico, comportamento = @comportamento, aggrava = @aggrava,
+           allevia = @allevia, ordine = @ordine
+         WHERE id = @id`
+      )
+      dati.sintomi.forEach((x, i) => {
+        const campi = { ...x, paziente_id: pazienteId, ordine: i }
+        if (x.id == null || x.id < 0) ins.run(campi)
+        else upd.run(campi)
+      })
+    })()
+  })
+
+  // ---- Body chart ----
+  handle('bodyChart:list', (pazienteId: number) =>
+    getDb()
+      .prepare(
+        `SELECT b.id, b.data, b.note,
+                (SELECT COUNT(*) FROM body_chart_segni s WHERE s.chart_id = b.id) AS num_segni
+         FROM body_chart b
+         WHERE b.paziente_id = ?
+         ORDER BY b.data DESC, b.id DESC`
+      )
+      .all(pazienteId)
+  )
+  handle('bodyChart:get', (id: number) => {
+    const db = getDb()
+    const chart = db.prepare('SELECT * FROM body_chart WHERE id = ?').get(id)
+    if (!chart) throw new Error('Body chart non trovata.')
+    const segni = db
+      .prepare(
+        `SELECT id, vista, tipo, x, y, dimensione, intensita
+         FROM body_chart_segni WHERE chart_id = ? ORDER BY ordine, id`
+      )
+      .all(id)
+    return { chart, segni }
+  })
+  handle('bodyChart:create', (pazienteId: number, data: string) =>
+    Number(
+      getDb()
+        .prepare('INSERT INTO body_chart (paziente_id, data) VALUES (?, ?)')
+        .run(pazienteId, data).lastInsertRowid
+    )
+  )
+  handle('bodyChart:salva', (dati: BodyChartCompleta) => {
+    const db = getDb()
+    db.transaction(() => {
+      db.prepare('UPDATE body_chart SET data = ?, note = ? WHERE id = ?').run(
+        dati.chart.data,
+        dati.chart.note,
+        dati.chart.id
+      )
+      db.prepare('DELETE FROM body_chart_segni WHERE chart_id = ?').run(dati.chart.id)
+      const ins = db.prepare(
+        `INSERT INTO body_chart_segni (chart_id, vista, tipo, x, y, dimensione, intensita, ordine)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      )
+      dati.segni.forEach((s, i) =>
+        ins.run(dati.chart.id, s.vista, s.tipo, s.x, s.y, s.dimensione, s.intensita, i)
+      )
+    })()
+  })
+  handle('bodyChart:delete', (id: number) => {
+    getDb().prepare('DELETE FROM body_chart WHERE id = ?').run(id)
   })
 
   // ---- Export ----

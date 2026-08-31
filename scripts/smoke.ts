@@ -24,7 +24,7 @@ db.pragma('foreign_keys = ON')
 
 runMigrations(db)
 runMigrations(db) // idempotente
-assert.equal(db.pragma('user_version', { simple: true }), 11)
+assert.equal(db.pragma('user_version', { simple: true }), 13)
 
 const count = (table: string): number =>
   (db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n

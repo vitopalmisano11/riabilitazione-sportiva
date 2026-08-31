@@ -318,6 +318,74 @@ export interface TestValutazioneCompleto {
   misure: MisuraTest[]
 }
 
+// ---- Body chart ----
+// Le quattro viste da cui si guarda il paziente.
+export type VistaCorpo = 'fronte' | 'retro' | 'sinistra' | 'destra'
+
+// I quattro segni della legenda: rigidita' percepita, area dolorosa, scossa
+// elettrica, parestesie.
+export type TipoSegno = 'rigidita' | 'dolore' | 'scossa' | 'parestesie'
+
+export interface SegnoBodyChart {
+  id: number | null
+  vista: VistaCorpo
+  tipo: TipoSegno
+  // frazioni 0..1 del riquadro della figura
+  x: number
+  y: number
+  dimensione: number
+  // 0..10, facoltativa: si vede passando il cursore sul segno
+  intensita: number | null
+}
+
+export interface BodyChartRiepilogo {
+  id: number
+  data: string
+  note: string | null
+  num_segni: number
+}
+
+export interface BodyChart {
+  id: number
+  paziente_id: number
+  data: string
+  note: string | null
+}
+
+export interface BodyChartCompleta {
+  chart: BodyChart
+  segni: SegnoBodyChart[]
+}
+
+// ---- Anamnesi prossima ----
+export type AndamentoSintomo = 'costante' | 'intermittente'
+export type EpisodioSintomo = 'primo' | 'recidiva'
+
+// id negativo = sintomo non ancora salvato, come per le domande dei questionari
+export interface SintomoAnamnesi {
+  id: number | null
+  descrizione: string | null
+  andamento: AndamentoSintomo | null
+  da_quanto: string | null
+  episodio: EpisodioSintomo | null
+  esordio: string | null
+  traumatico: 0 | 1 | null
+  comportamento: string | null
+  aggrava: string | null
+  allevia: string | null
+}
+
+export interface AnamnesiProssima {
+  motivo_consulto: string | null
+  dolore_notturno: string | null
+  disturbi_sonno: string | null
+  tosse_starnuto: string | null
+  sintomi_neurologici: string | null
+  relazione_sintomi: string | null
+  note: string | null
+  sintomi: SintomoAnamnesi[]
+}
+
 export interface Api {
   // apre un URL http/https nel browser predefinito
   apriLink(url: string): Promise<void>
@@ -463,6 +531,19 @@ export interface Api {
     salva(dati: TestValutazioneCompleto): Promise<void>
     remove(id: number): Promise<void>
     reorder(ids: number[]): Promise<void>
+  }
+  bodyChart: {
+    list(pazienteId: number): Promise<BodyChartRiepilogo[]>
+    get(id: number): Promise<BodyChartCompleta>
+    create(pazienteId: number, data: string): Promise<number>
+    // Salva tutto in blocco: i segni si riscrivono ogni volta, non sono citati
+    // da nessun'altra tabella.
+    salva(dati: BodyChartCompleta): Promise<void>
+    remove(id: number): Promise<void>
+  }
+  anamnesi: {
+    get(pazienteId: number): Promise<AnamnesiProssima>
+    salva(pazienteId: number, dati: AnamnesiProssima): Promise<void>
   }
   impostazioni: {
     info(): Promise<{ cartella: string; cartellaExport: string }>

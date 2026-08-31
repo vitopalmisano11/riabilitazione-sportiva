@@ -11,6 +11,7 @@ import type {
 import SedutaBuilder from '../components/SedutaBuilder'
 import QuestionariPaziente from '../components/QuestionariPaziente'
 import AnagraficaPaziente, { ModaleDatiPaziente } from '../components/AnagraficaPaziente'
+import AnamnesiPaziente from '../components/AnamnesiPaziente'
 import { toast, toastErrore } from '../components/Toast'
 import { errMsg, formatData } from '../lib'
 
@@ -250,6 +251,8 @@ function SchedaPaziente({
   return (
     <div className="scheda">
       <AnagraficaPaziente paziente={paziente} onChanged={onChanged} onDeleted={onDeleted} />
+
+      <AnamnesiPaziente paziente={paziente} />
 
       <QuestionariPaziente paziente={paziente} />
 

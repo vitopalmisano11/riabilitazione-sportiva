@@ -1,0 +1,126 @@
+import { useCallback, useEffect, useState } from 'react'
+import { ClipboardList, Eye, Pencil, Trash2 } from 'lucide-react'
+import type { BodyChartRiepilogo, PazienteDettaglio } from '../../../shared/types'
+import { toastErrore } from './Toast'
+import { errMsg, formatData, oggiIso } from '../lib'
+import BodyChartEditor from './BodyChartEditor'
+import { SagomaIcona } from './FiguraUmana'
+import AnamnesiProssima from './AnamnesiProssima'
+
+// Raccolta anamnestica. Ogni parte si compila per conto suo, in qualunque
+// ordine: non c'e' una sequenza obbligata da seguire durante il colloquio.
+export default function AnamnesiPaziente({
+  paziente
+}: {
+  paziente: PazienteDettaglio
+}): React.JSX.Element {
+  const [charts, setCharts] = useState<BodyChartRiepilogo[]>([])
+  const [aperta, setAperta] = useState<{ id: number; soloLettura: boolean } | null>(null)
+  const [prossima, setProssima] = useState(false)
+
+  const load = useCallback(async (): Promise<void> => {
+    try {
+      setCharts(await window.api.bodyChart.list(paziente.id))
+    } catch (e) {
+      toastErrore(errMsg(e))
+    }
+  }, [paziente.id])
+
+  useEffect(() => {
+    void load()
+  }, [load])
+
+  const nuova = async (): Promise<void> => {
+    try {
+      const id = await window.api.bodyChart.create(paziente.id, oggiIso())
+      await load()
+      setAperta({ id, soloLettura: false })
+    } catch (e) {
+      toastErrore(errMsg(e))
+    }
+  }
+
+  const elimina = async (c: BodyChartRiepilogo): Promise<void> => {
+    if (!confirm(`Eliminare la body chart del ${formatData(c.data)}?`)) return
+    try {
+      await window.api.bodyChart.remove(c.id)
+      await load()
+    } catch (e) {
+      toastErrore(errMsg(e))
+    }
+  }
+
+  return (
+    <section className="card">
+      <h3>Anamnesi</h3>
+
+      {/* Le sotto-sezioni stanno affiancate sotto al titolo: body chart ora,
+          poi anamnesi prossima, remota e informazioni cliniche complementari. */}
+      <div className="sotto-sezioni">
+        <button
+          className="btn-sagoma"
+          title="Anamnesi prossima"
+          onClick={() => setProssima(true)}
+        >
+          <ClipboardList size={24} />
+        </button>
+        <button className="btn-sagoma" title="Body chart" onClick={() => void nuova()}>
+          <SagomaIcona size={24} />
+        </button>
+      </div>
+      {charts.length === 0 ? (
+        <p className="hint">
+          Nessuna body chart. Creane una per segnare dove e come il paziente sente il dolore; le
+          successive restano in elenco per confrontare com&apos;è cambiato.
+        </p>
+      ) : (
+        <ul className="sedute-list">
+          {charts.map((c) => (
+            <li key={c.id}>
+              <div className="seduta-info">
+                <span className="seduta-data">{formatData(c.data)}</span>
+                <span className="seduta-meta">
+                  {c.num_segni === 1 ? '1 segno' : `${c.num_segni} segni`}
+                </span>
+                {c.note && <span className="seduta-obiettivi">{c.note}</span>}
+              </div>
+              <span className="row-actions">
+                <button
+                  title="Anteprima"
+                  onClick={() => setAperta({ id: c.id, soloLettura: true })}
+                >
+                  <Eye size={18} />
+                </button>
+                <button
+                  title="Modifica"
+                  onClick={() => setAperta({ id: c.id, soloLettura: false })}
+                >
+                  <Pencil size={18} />
+                </button>
+                <button className="danger" title="Elimina" onClick={() => void elimina(c)}>
+                  <Trash2 size={18} />
+                </button>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {prossima && (
+        <AnamnesiProssima pazienteId={paziente.id} onChiudi={() => setProssima(false)} />
+      )}
+
+      {aperta && (
+        <BodyChartEditor
+          key={aperta.id}
+          chartId={aperta.id}
+          soloLettura={aperta.soloLettura}
+          onChiudi={(salvata) => {
+            setAperta(null)
+            if (salvata) void load()
+          }}
+        />
+      )}
+    </section>
+  )
+}

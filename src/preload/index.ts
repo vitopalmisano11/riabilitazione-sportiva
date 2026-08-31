@@ -1,6 +1,8 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type {
+  AnamnesiProssima,
   Api,
+  BodyChartCompleta,
   CompilazioneInput,
   EsercizioInput,
   PazienteCreateInput,
@@ -147,6 +149,18 @@ const api: Api = {
     salva: (dati: TestValutazioneCompleto) => invoke('testValutazione:salva', dati),
     remove: (id: number) => invoke('testValutazione:delete', id),
     reorder: (ids: number[]) => invoke('testValutazione:reorder', ids)
+  },
+  bodyChart: {
+    list: (pazienteId: number) => invoke('bodyChart:list', pazienteId),
+    get: (id: number) => invoke('bodyChart:get', id),
+    create: (pazienteId: number, data: string) => invoke('bodyChart:create', pazienteId, data),
+    salva: (dati: BodyChartCompleta) => invoke('bodyChart:salva', dati),
+    remove: (id: number) => invoke('bodyChart:delete', id)
+  },
+  anamnesi: {
+    get: (pazienteId: number) => invoke('anamnesi:get', pazienteId),
+    salva: (pazienteId: number, dati: AnamnesiProssima) =>
+      invoke('anamnesi:salva', pazienteId, dati)
   },
   impostazioni: {
     info: () => invoke('impostazioni:info'),

@@ -355,6 +355,71 @@ const MIGRATIONS: string[] = [
   ALTER TABLE pazienti ADD COLUMN lavoro TEXT;
   ALTER TABLE pazienti ADD COLUMN inviato_da TEXT;
   ALTER TABLE pazienti ADD COLUMN diagnosi TEXT;
+  `,
+
+  // 12 — body chart: dove e come il paziente sente il dolore. Ogni segno e' un
+  //      dato a se' (tipo, posizione, dimensione, intensita'), non un disegno
+  //      appiattito: cosi' si puo' modificare e confrontare nel tempo. Le
+  //      coordinate sono frazioni 0..1 del riquadro della figura, quindi non
+  //      dipendono da quanto e' grande sullo schermo.
+  `
+  CREATE TABLE body_chart (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    paziente_id INTEGER NOT NULL REFERENCES pazienti(id) ON DELETE CASCADE,
+    data TEXT NOT NULL,
+    note TEXT
+  );
+
+  CREATE TABLE body_chart_segni (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    chart_id INTEGER NOT NULL REFERENCES body_chart(id) ON DELETE CASCADE,
+    vista TEXT NOT NULL,
+    tipo TEXT NOT NULL,
+    x REAL NOT NULL,
+    y REAL NOT NULL,
+    dimensione REAL NOT NULL DEFAULT 1,
+    intensita INTEGER,
+    ordine INTEGER NOT NULL DEFAULT 0
+  );
+
+  CREATE INDEX idx_body_chart_paziente ON body_chart(paziente_id);
+  CREATE INDEX idx_body_chart_segni_chart ON body_chart_segni(chart_id);
+  `,
+
+  // 13 - anamnesi prossima. Quasi tutte le domande del colloquio si ripetono
+  //      per ogni sintomo, percio' i sintomi sono righe con un id proprio e non
+  //      caselle di testo: i grafici dell'andamento (24 ore ed esordio) si
+  //      aggancieranno a questi. Le domande sul quadro generale stanno invece
+  //      sulla riga del paziente. Nessun campo e' obbligatorio: durante il
+  //      colloquio si compila in qualsiasi ordine.
+  `
+  CREATE TABLE anamnesi_prossima (
+    paziente_id INTEGER PRIMARY KEY REFERENCES pazienti(id) ON DELETE CASCADE,
+    motivo_consulto TEXT,
+    dolore_notturno TEXT,
+    disturbi_sonno TEXT,
+    tosse_starnuto TEXT,
+    sintomi_neurologici TEXT,
+    relazione_sintomi TEXT,
+    note TEXT
+  );
+
+  CREATE TABLE anamnesi_sintomi (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    paziente_id INTEGER NOT NULL REFERENCES pazienti(id) ON DELETE CASCADE,
+    descrizione TEXT,
+    andamento TEXT,
+    da_quanto TEXT,
+    episodio TEXT,
+    esordio TEXT,
+    traumatico INTEGER,
+    comportamento TEXT,
+    aggrava TEXT,
+    allevia TEXT,
+    ordine INTEGER NOT NULL DEFAULT 0
+  );
+
+  CREATE INDEX idx_anamnesi_sintomi_paziente ON anamnesi_sintomi(paziente_id);
   `
 ]
 
