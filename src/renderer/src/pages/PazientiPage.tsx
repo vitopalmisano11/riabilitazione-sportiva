@@ -1,5 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
-import { ChevronRight, Download, Eye, FileText, Plus, Presentation } from 'lucide-react'
+import {
+  ChevronRight,
+  Copy,
+  Download,
+  Eye,
+  FileText,
+  Pencil,
+  Plus,
+  Presentation,
+  Trash2
+} from 'lucide-react'
 import type {
   Fase,
   Obiettivo,
@@ -624,11 +634,11 @@ function DiarioCard({
                 <button title="Anteprima della seduta" onClick={() => setAnteprima(s.id)}>
                   <Eye size={18} />
                 </button>
-                <button title="Apri la seduta per modificarla" onClick={() => onApri(s.id)}>
-                  Modifica
+                <button title="Modifica la seduta" onClick={() => onApri(s.id)}>
+                  <Pencil size={18} />
                 </button>
                 <button title="Nuova seduta partendo da questa" onClick={() => onDuplica(s.id)}>
-                  Duplica
+                  <Copy size={18} />
                 </button>
                 <span className="menu-wrapper">
                   <button
@@ -661,8 +671,8 @@ function DiarioCard({
                     </>
                   )}
                 </span>
-                <button className="danger" onClick={() => void elimina(s)}>
-                  Elimina
+                <button className="danger" title="Elimina" onClick={() => void elimina(s)}>
+                  <Trash2 size={18} />
                 </button>
               </span>
             </li>
