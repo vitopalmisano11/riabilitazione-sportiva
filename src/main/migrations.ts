@@ -562,6 +562,25 @@ const MIGRATIONS: string[] = [
   ALTER TABLE distretto_movimenti ADD COLUMN gradi INTEGER NOT NULL DEFAULT 0;
   ALTER TABLE valutazione_movimenti ADD COLUMN attivo_gradi REAL;
   ALTER TABLE valutazione_movimenti ADD COLUMN passivo_gradi REAL;
+  `,
+
+  // 17 - obiettivi terapeutici concordati col paziente. Il termine (breve,
+  //      medio, lungo) e' una colonna e non tre tabelle: un obiettivo cambia
+  //      spesso di respiro durante il percorso, e cosi' basta cambiare la voce
+  //      nel menu invece di riscriverlo. L'ordine e' uno solo per paziente:
+  //      l'elenco si mostra raggruppato per termine, e dentro ogni gruppo si
+  //      trascina.
+  `
+  CREATE TABLE obiettivi_terapeutici (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    paziente_id INTEGER NOT NULL REFERENCES pazienti(id) ON DELETE CASCADE,
+    testo TEXT NOT NULL,
+    termine TEXT NOT NULL DEFAULT 'breve',
+    ordine INTEGER NOT NULL DEFAULT 0
+  );
+
+  CREATE INDEX idx_obiettivi_terapeutici_paziente
+    ON obiettivi_terapeutici(paziente_id);
   `
 ]
 

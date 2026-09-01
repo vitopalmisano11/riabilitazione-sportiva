@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ClipboardList, Eye, History, Pencil, Trash2 } from 'lucide-react'
+import { ClipboardList, Eye, History, Pencil, Target, Trash2 } from 'lucide-react'
 import type { BodyChartRiepilogo, PazienteDettaglio } from '../../../shared/types'
 import { toastErrore } from './Toast'
 import { errMsg, formatData, oggiIso } from '../lib'
@@ -7,6 +7,7 @@ import BodyChartEditor from './BodyChartEditor'
 import { SagomaIcona } from './FiguraUmana'
 import AnamnesiProssima from './AnamnesiProssima'
 import AnamnesiRemota from './AnamnesiRemota'
+import ObiettiviTerapeutici from './ObiettiviTerapeutici'
 
 // Raccolta anamnestica. Ogni parte si compila per conto suo, in qualunque
 // ordine: non c'e' una sequenza obbligata da seguire durante il colloquio.
@@ -19,6 +20,7 @@ export default function AnamnesiPaziente({
   const [aperta, setAperta] = useState<{ id: number; soloLettura: boolean } | null>(null)
   const [prossima, setProssima] = useState(false)
   const [remota, setRemota] = useState(false)
+  const [obiettivi, setObiettivi] = useState(false)
 
   const load = useCallback(async (): Promise<void> => {
     try {
@@ -78,6 +80,13 @@ export default function AnamnesiPaziente({
         <button className="btn-sagoma" title="Body chart" onClick={() => void nuova()}>
           <SagomaIcona size={24} />
         </button>
+        <button
+          className="btn-sagoma"
+          title="Obiettivi terapeutici"
+          onClick={() => setObiettivi(true)}
+        >
+          <Target size={24} />
+        </button>
       </div>
       {charts.length === 0 ? (
         <p className="hint">
@@ -122,6 +131,10 @@ export default function AnamnesiPaziente({
       )}
 
       {remota && <AnamnesiRemota pazienteId={paziente.id} onChiudi={() => setRemota(false)} />}
+
+      {obiettivi && (
+        <ObiettiviTerapeutici pazienteId={paziente.id} onChiudi={() => setObiettivi(false)} />
+      )}
 
       {aperta && (
         <BodyChartEditor

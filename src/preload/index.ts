@@ -12,6 +12,8 @@ import type {
   DistrettoCompleto,
   QuestionarioCompleto,
   SedutaInput,
+  SezioneCartella,
+  TermineObiettivo,
   TestValutazioneCompleto,
   ValutazioneCompleta
 } from '../shared/types'
@@ -128,6 +130,10 @@ const api: Api = {
   },
   esporta: {
     anteprima: (sedutaId: number) => invoke('esporta:anteprima', sedutaId),
+    anteprimaCartella: (pazienteId: number, sezioni: SezioneCartella[]) =>
+      invoke('esporta:anteprimaCartella', pazienteId, sezioni),
+    cartella: (pazienteId: number, sezioni: SezioneCartella[]) =>
+      invoke('esporta:cartella', pazienteId, sezioni),
     seduta: (sedutaId: number, formato: 'pdf' | 'docx') =>
       invoke('esporta:seduta', sedutaId, formato),
     storico: (pazienteId: number, dal: string, al: string, formato: 'pdf' | 'docx') =>
@@ -155,6 +161,7 @@ const api: Api = {
     list: (pazienteId: number) => invoke('compilazioni:list', pazienteId),
     risposte: (compilazioneId: number) => invoke('compilazioni:risposte', compilazioneId),
     create: (dati: CompilazioneInput) => invoke('compilazioni:create', dati),
+    update: (id: number, dati: CompilazioneInput) => invoke('compilazioni:update', id, dati),
     remove: (id: number) => invoke('compilazioni:delete', id)
   },
   testCategorie: {
@@ -191,11 +198,33 @@ const api: Api = {
     salvaRemota: (pazienteId: number, dati: AnamnesiRemota) =>
       invoke('anamnesi:salvaRemota', pazienteId, dati)
   },
+  scheda: {
+    apri: (sedutaId: number) => invoke('scheda:apri', sedutaId),
+    dati: (sedutaId: number) => invoke('scheda:dati', sedutaId)
+  },
+  obiettiviTerapeutici: {
+    list: (pazienteId: number) => invoke('obiettiviTerapeutici:list', pazienteId),
+    create: (pazienteId: number, testo: string, termine: TermineObiettivo) =>
+      invoke('obiettiviTerapeutici:create', pazienteId, testo, termine),
+    update: (id: number, testo: string, termine: TermineObiettivo) =>
+      invoke('obiettiviTerapeutici:update', id, testo, termine),
+    remove: (id: number) => invoke('obiettiviTerapeutici:remove', id),
+    reorder: (ids: number[]) => invoke('obiettiviTerapeutici:reorder', ids)
+  },
   bioimmagini: {
     list: (pazienteId: number) => invoke('bioimmagini:list', pazienteId),
     aggiungi: (pazienteId: number) => invoke('bioimmagini:aggiungi', pazienteId),
     apri: (id: number) => invoke('bioimmagini:apri', id),
     remove: (id: number) => invoke('bioimmagini:delete', id)
+  },
+  backup: {
+    info: () => invoke('backup:info'),
+    cambiaCartella: () => invoke('backup:cambiaCartella'),
+    setAttivo: (attivo: boolean) => invoke('backup:setAttivo', attivo),
+    setDaTenere: (n: number) => invoke('backup:setDaTenere', n),
+    eseguiOra: () => invoke('backup:eseguiOra'),
+    apriCartella: () => invoke('backup:apriCartella'),
+    ripristina: (nome: string) => invoke('backup:ripristina', nome)
   },
   impostazioni: {
     info: () => invoke('impostazioni:info'),

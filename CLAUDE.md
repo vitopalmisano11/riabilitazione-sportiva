@@ -34,7 +34,8 @@ npm run dev        # app in sviluppo con hot reload
                    # (per l'utente: scripts/avvia-prova.cmd, collegamento sul Desktop)
 npm run typecheck  # obbligatorio prima di committare
 npm run build      # build di produzione in out/
-npm run smoke      # test db/auth/export — vedi trappola sotto
+npm run smoke:app  # test db/auth/export — da preferire, gira con l'ABI dell'app
+npm run smoke      # stesso test con Node — richiede la ricompilazione, vedi sotto
 npm run dev:reset  # azzera i dati di sviluppo (li archivia, non li cancella)
 npm run build:win  # installer Windows in dist/
 ```
@@ -48,8 +49,16 @@ prova andata male non deve toccare il database vero. Vedi `index.ts` (setPath us
 contengono `(dev)` e archivia con un suffisso data/ora invece di cancellare.
 
 ### Trappola: modulo nativo e ABI
-`better-sqlite3-multiple-ciphers` va compilato per l'ABI di **Electron** per l'app, ma per
-l'ABI di **Node** per `npm run smoke`. Sequenza corretta:
+`better-sqlite3-multiple-ciphers` è compilato una volta sola, per l'ABI di **Electron**, perché
+è quella che serve all'app. Node ne vuole un'altra, quindi `npm run smoke` (che gira con Node)
+pretenderebbe di ricompilarlo avanti e indietro — e non ci riesce nemmeno, se l'app è aperta:
+tiene il file `.node` bloccato.
+
+**Usare `npm run smoke:app`**: esegue lo stesso test dentro il runtime di Electron avviato come
+Node (`ELECTRON_RUN_AS_NODE=1`), quindi con l'ABI già giusta. Nessuna ricompilazione, funziona
+anche con l'app aperta.
+
+`npm run smoke` resta per la CI, dove non c'è un'app aperta; lì serve la sequenza:
 ```bash
 npm rebuild better-sqlite3-multiple-ciphers   # -> Node, per lo smoke
 npm run smoke

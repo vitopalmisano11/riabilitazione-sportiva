@@ -4,6 +4,8 @@ import { unlink, writeFile } from 'fs/promises'
 import { dirname, join } from 'path'
 import { getDb } from './db'
 import { cartellaExport, impostaCartellaExport } from './impostazioni'
+import { componiCartella, generaCartella, oggiIso } from './export-cartella'
+import type { SezioneCartella } from '../shared/types'
 import {
   generaDocx,
   generaHtml,
@@ -151,4 +153,69 @@ export async function esportaStorico(
   const sedute = ids.map(leggiSeduta)
   const nomeBase = `${slug(paziente.cognome)}_${slug(paziente.nome)}_sedute_${dal}_${al}`
   return salvaExport(paziente, sedute, nomeBase, formato)
+}
+
+// ---- Cartella completa del paziente ----
+// Solo PDF: la cartella contiene le body chart, che sono disegni, e in Word non
+// si porterebbero dietro.
+
+export function anteprimaCartella(pazienteId: number, sezioni: SezioneCartella[]): string {
+  return generaCartella(pazienteId, sezioni)
+}
+
+// Anteprima della cartella in una finestra sua: il documento e' alto, e dentro
+// alla finestra delle spunte si vedrebbe da un buco. E' lo stesso HTML da cui
+// nasce il PDF, quindi non puo' discostarsi dal file salvato. La finestra non
+// ha preload: da li' non si arriva all'archivio.
+const anteprimeAperte = new Map<number, BrowserWindow>()
+
+export async function apriAnteprimaCartella(
+  pazienteId: number,
+  sezioni: SezioneCartella[]
+): Promise<void> {
+  const html = generaCartella(pazienteId, sezioni)
+  const { cognome, nome } = componiCartella(pazienteId, sezioni)
+  const tmp = join(app.getPath('temp'), `riab-anteprima-${pazienteId}-${Date.now()}.html`)
+  await writeFile(tmp, html, 'utf-8')
+
+  const gia = anteprimeAperte.get(pazienteId)
+  if (gia && !gia.isDestroyed()) {
+    // stessa finestra, contenuto aggiornato: cambiando le spunte non se ne
+    // accumulano una sopra l'altra
+    await gia.loadFile(tmp)
+    gia.focus()
+    void unlink(tmp).catch(() => undefined)
+    return
+  }
+
+  const win = new BrowserWindow({
+    width: 900,
+    height: 1000,
+    title: `Anteprima — ${cognome} ${nome}`,
+    autoHideMenuBar: true,
+    webPreferences: { sandbox: true }
+  })
+  win.on('page-title-updated', (e) => e.preventDefault())
+  win.on('closed', () => anteprimeAperte.delete(pazienteId))
+  anteprimeAperte.set(pazienteId, win)
+  await win.loadFile(tmp)
+  void unlink(tmp).catch(() => undefined)
+}
+
+export async function esportaCartella(
+  pazienteId: number,
+  sezioni: SezioneCartella[]
+): Promise<string | null> {
+  const { cognome, nome } = componiCartella(pazienteId, sezioni)
+  const oggi = oggiIso()
+  const { canceled, filePath } = await dialog.showSaveDialog({
+    title: 'Esporta la cartella del paziente',
+    defaultPath: join(cartellaExport(), `${slug(cognome)}_${slug(nome)}_cartella_${oggi}.pdf`),
+    filters: [{ name: 'PDF', extensions: ['pdf'] }]
+  })
+  if (canceled || !filePath) return null
+  await htmlToPdf(generaCartella(pazienteId, sezioni), filePath)
+  impostaCartellaExport(dirname(filePath))
+  shell.showItemInFolder(filePath)
+  return filePath
 }

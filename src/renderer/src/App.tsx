@@ -8,6 +8,7 @@ import DistrettiPage from './pages/DistrettiPage'
 import PazientiPage from './pages/PazientiPage'
 import AuthGate from './components/AuthGate'
 import ToastHost, { toast, toastErrore } from './components/Toast'
+import PannelloBackup from './components/PannelloBackup'
 import { errMsg } from './lib'
 
 type Sezione = 'pazienti' | 'configurazione'
@@ -32,6 +33,11 @@ export default function App(): React.JSX.Element {
   const [sezione, setSezione] = useState<Sezione>('pazienti')
   const [cambiaPw, setCambiaPw] = useState(false)
   const [impostazioni, setImpostazioni] = useState(false)
+  // Ripremere la voce della sezione in cui si e' gia' significa "torna
+  // indietro". Non si puo' azzerare da qui la selezione del paziente, che vive
+  // dentro la pagina: le si manda un contatore, e a ogni scatto lei torna
+  // all'elenco.
+  const [tornaAllElenco, setTornaAllElenco] = useState(0)
 
   if (!sbloccata) {
     return <AuthGate onUnlocked={() => setSbloccata(true)} />
@@ -50,7 +56,10 @@ export default function App(): React.JSX.Element {
         <nav>
           <button
             className={sezione === 'pazienti' ? 'active' : ''}
-            onClick={() => setSezione('pazienti')}
+            onClick={() => {
+              if (sezione === 'pazienti') setTornaAllElenco((n) => n + 1)
+              else setSezione('pazienti')
+            }}
           >
             <Users size={18} />
             Pazienti e sedute
@@ -75,7 +84,7 @@ export default function App(): React.JSX.Element {
         </div>
       </aside>
       <main className="content">
-        {sezione === 'pazienti' && <PazientiPage />}
+        {sezione === 'pazienti' && <PazientiPage tornaAllElenco={tornaAllElenco} />}
         {sezione === 'configurazione' && <ConfigurazionePage />}
       </main>
       {cambiaPw && <CambiaPasswordModal onClose={() => setCambiaPw(false)} />}
@@ -150,8 +159,8 @@ function ImpostazioniModal({ onClose }: { onClose: () => void }): React.JSX.Elem
           <div className="sotto-titolo">Cartella dei dati</div>
           <p className="modal-testo">
             Tutti i tuoi dati vivono qui: <code>riabilitazione.db</code> (il database cifrato) e{' '}
-            <code>auth.json</code> (le chiavi di accesso). Per il backup manuale copia
-            l&apos;intera cartella — senza <code>auth.json</code> il database non è apribile.
+            <code>auth.json</code> (le chiavi di accesso). Servono <b>entrambi</b>: senza
+            <code>auth.json</code> il database non è apribile.
           </p>
           <div className="cartella-path">{cartella}</div>
           <div className="modal-actions">
@@ -174,6 +183,8 @@ function ImpostazioniModal({ onClose }: { onClose: () => void }): React.JSX.Elem
             <button onClick={() => void cambiaExport()}>Cambia cartella…</button>
           </div>
         </div>
+
+        <PannelloBackup />
 
         <div className="modal-actions">
           <button className="primary" onClick={onClose}>

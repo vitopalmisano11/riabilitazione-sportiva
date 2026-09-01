@@ -91,15 +91,18 @@ export default function ValutazionePaziente({
 
   return (
     <section className="card">
-      <h3>Valutazione obiettiva</h3>
-      <div className="sotto-sezioni">
-        <button
-          className="primary"
-          disabled={distretti.length === 0}
-          onClick={() => void apriScelta()}
-        >
-          <Plus size={16} /> Nuova valutazione
-        </button>
+      <div className="card-header-row">
+        <h3>Valutazione obiettiva</h3>
+        <span className="row-actions">
+          <button
+            className="primary"
+            title="Nuova valutazione"
+            disabled={distretti.length === 0}
+            onClick={() => void apriScelta()}
+          >
+            <Plus size={18} />
+          </button>
+        </span>
       </div>
 
       {distretti.length === 0 ? (

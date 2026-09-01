@@ -4,12 +4,21 @@ import { readFileSync } from 'fs'
 import { writeFile } from 'fs/promises'
 import { closeDb, getDb, initDb, riapriDb } from './db'
 import {
+  cartellaBackup,
   cartellaDati,
   cartellaExport,
+  backupAttivo,
+  backupDaTenere,
+  impostaBackupAttivo,
+  impostaBackupDaTenere,
+  impostaCartellaBackup,
   impostaCartellaDati,
   impostaCartellaExport
 } from './impostazioni'
 import { spostaFileDati } from './file-dati'
+import { apriScheda } from './scheda'
+import { datiScheda } from './scheda-dati'
+import { elencoBackup, eseguiBackup, backupSeServe, ripristinaBackup } from './backup'
 import {
   authExists,
   cambiaPasswordAuth,
@@ -17,8 +26,20 @@ import {
   recoverAuth,
   setupAuth
 } from './auth'
-import { anteprimaSeduta, esportaSeduta, esportaStorico, type FormatoExport } from './export'
-import { leggiQuestionario, salvaCompilazione, salvaQuestionario } from './questionari'
+import {
+  apriAnteprimaCartella,
+  anteprimaSeduta,
+  esportaCartella,
+  esportaSeduta,
+  esportaStorico,
+  type FormatoExport
+} from './export'
+import {
+  aggiornaCompilazione,
+  leggiQuestionario,
+  salvaCompilazione,
+  salvaQuestionario
+} from './questionari'
 import { leggiTest, salvaTest } from './test-valutazione'
 import {
   leggiDistretto,
@@ -38,6 +59,8 @@ import type {
   DistrettoCompleto,
   QuestionarioCompleto,
   SedutaInput,
+  SezioneCartella,
+  TermineObiettivo,
   TestValutazioneCompleto,
   ValutazioneCompleta
 } from '../shared/types'
@@ -93,6 +116,9 @@ export function registerIpc(): void {
   handle('auth:login', (password: string) => {
     const dekHex = loginAuth(authPath(), password)
     initDb(dbPath(), dekHex)
+    // una copia al giorno, appena si entra: conserva com'era l'archivio prima
+    // della sessione, anche se quella precedente e' finita male
+    backupSeServe()
   })
   handle('auth:recover', (recoveryKey: string, nuovaPassword: string) => {
     if (nuovaPassword.length < 8) throw new Error('La password deve avere almeno 8 caratteri.')
@@ -103,6 +129,31 @@ export function registerIpc(): void {
     if (nuova.length < 8) throw new Error('La nuova password deve avere almeno 8 caratteri.')
     cambiaPasswordAuth(authPath(), vecchia, nuova)
   })
+
+  // ---- Copie di sicurezza ----
+  handle('backup:info', () => ({
+    cartella: cartellaBackup(),
+    attivo: backupAttivo(),
+    daTenere: backupDaTenere(),
+    copie: elencoBackup()
+  }))
+  handle('backup:cambiaCartella', async () => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+      title: 'Scegli dove tenere le copie di sicurezza',
+      defaultPath: cartellaBackup(),
+      properties: ['openDirectory', 'createDirectory']
+    })
+    if (canceled || filePaths.length === 0) return null
+    impostaCartellaBackup(filePaths[0])
+    return filePaths[0]
+  })
+  handle('backup:setAttivo', (attivo: boolean) => impostaBackupAttivo(attivo))
+  handle('backup:setDaTenere', (n: number) => impostaBackupDaTenere(n))
+  handle('backup:eseguiOra', () => eseguiBackup())
+  handle('backup:apriCartella', () => {
+    void shell.openPath(cartellaBackup())
+  })
+  handle('backup:ripristina', (nome: string) => ripristinaBackup(nome))
 
   // ---- Impostazioni / cartella dati ----
   handle('impostazioni:info', () => ({ cartella: cartellaDati(), cartellaExport: cartellaExport() }))
@@ -781,6 +832,9 @@ export function registerIpc(): void {
       .all(compilazioneId)
   )
   handle('compilazioni:create', (dati: CompilazioneInput) => salvaCompilazione(dati))
+  handle('compilazioni:update', (id: number, dati: CompilazioneInput) =>
+    aggiornaCompilazione(id, dati)
+  )
   handle('compilazioni:delete', (id: number) => {
     getDb().prepare('DELETE FROM paziente_questionari WHERE id = ?').run(id)
   })
@@ -1027,6 +1081,50 @@ export function registerIpc(): void {
   // ---- Bioimmagini ----
   const BIO_PESO_MAX = 12 * 1024 * 1024
 
+  // ---- Scheda mostrata al paziente ----
+  handle('scheda:apri', (sedutaId: number) => apriScheda(sedutaId))
+  handle('scheda:dati', (sedutaId: number) => datiScheda(sedutaId))
+
+  // ---- Obiettivi terapeutici ----
+  handle('obiettiviTerapeutici:list', (pazienteId: number) =>
+    getDb()
+      .prepare(
+        'SELECT id, testo, termine FROM obiettivi_terapeutici WHERE paziente_id = ? ORDER BY ordine, id'
+      )
+      .all(pazienteId)
+  )
+  handle(
+    'obiettiviTerapeutici:create',
+    (pazienteId: number, testo: string, termine: TermineObiettivo) => {
+      const db = getDb()
+      const { next } = db
+        .prepare(
+          'SELECT COALESCE(MAX(ordine), -1) + 1 AS next FROM obiettivi_terapeutici WHERE paziente_id = ?'
+        )
+        .get(pazienteId) as { next: number }
+      return Number(
+        db
+          .prepare(
+            'INSERT INTO obiettivi_terapeutici (paziente_id, testo, termine, ordine) VALUES (?, ?, ?, ?)'
+          )
+          .run(pazienteId, testo.trim(), termine, next).lastInsertRowid
+      )
+    }
+  )
+  handle('obiettiviTerapeutici:update', (id: number, testo: string, termine: TermineObiettivo) => {
+    getDb()
+      .prepare('UPDATE obiettivi_terapeutici SET testo = ?, termine = ? WHERE id = ?')
+      .run(testo.trim(), termine, id)
+  })
+  handle('obiettiviTerapeutici:remove', (id: number) => {
+    getDb().prepare('DELETE FROM obiettivi_terapeutici WHERE id = ?').run(id)
+  })
+  handle('obiettiviTerapeutici:reorder', (ids: number[]) => {
+    const db = getDb()
+    const stmt = db.prepare('UPDATE obiettivi_terapeutici SET ordine = ? WHERE id = ?')
+    db.transaction(() => ids.forEach((id, i) => stmt.run(i, id)))()
+  })
+
   handle('bioimmagini:list', (pazienteId: number) =>
     getDb()
       .prepare(
@@ -1149,6 +1247,12 @@ export function registerIpc(): void {
 
   // ---- Export ----
   handle('esporta:anteprima', (sedutaId: number) => anteprimaSeduta(sedutaId))
+  handle('esporta:anteprimaCartella', (pazienteId: number, sezioni: SezioneCartella[]) =>
+    apriAnteprimaCartella(pazienteId, sezioni)
+  )
+  handle('esporta:cartella', (pazienteId: number, sezioni: SezioneCartella[]) =>
+    esportaCartella(pazienteId, sezioni)
+  )
   handle('esporta:seduta', (sedutaId: number, formato: FormatoExport) =>
     esportaSeduta(sedutaId, formato)
   )

@@ -9,6 +9,9 @@ import { spostaFileDati } from './file-dati'
 interface Impostazioni {
   cartellaDati?: string
   cartellaExport?: string
+  cartellaBackup?: string
+  backupAttivo?: boolean
+  backupDaTenere?: number
 }
 
 const percorsoFile = (): string => join(app.getPath('userData'), 'impostazioni.json')
@@ -45,6 +48,36 @@ export function cartellaExport(): string {
 
 export function impostaCartellaExport(dir: string): void {
   salva({ cartellaExport: dir })
+}
+
+// Le copie di sicurezza: di default in una sottocartella dell'archivio, ma si
+// puo' puntare altrove — dentro OneDrive, per esempio, e finiscono online da
+// sole.
+export function cartellaBackup(): string {
+  const dir = leggi().cartellaBackup || join(cartellaDati(), 'Backup')
+  mkdirSync(dir, { recursive: true })
+  return dir
+}
+
+export function impostaCartellaBackup(dir: string): void {
+  salva({ cartellaBackup: dir })
+}
+
+export function backupAttivo(): boolean {
+  return leggi().backupAttivo !== false
+}
+
+export function impostaBackupAttivo(attivo: boolean): void {
+  salva({ backupAttivo: attivo })
+}
+
+export function backupDaTenere(): number {
+  const n = leggi().backupDaTenere
+  return typeof n === 'number' && n > 0 ? n : 10
+}
+
+export function impostaBackupDaTenere(n: number): void {
+  salva({ backupDaTenere: Math.max(1, Math.min(100, Math.round(n))) })
 }
 
 // Migrazione una tantum: le versioni precedenti salvavano db e auth in userData.

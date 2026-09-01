@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Pencil, Trash2 } from 'lucide-react'
+import { FileDown, Pencil, Trash2 } from 'lucide-react'
 import type {
   Fase,
   Patologia,
@@ -8,6 +8,7 @@ import type {
 } from '../../../shared/types'
 import { toast, toastErrore } from './Toast'
 import { errMsg, eta, formatData } from '../lib'
+import EsportaCartella from './EsportaCartella'
 
 // Dati del paziente: si leggono, non si modificano per sbaglio. Per cambiarli
 // si apre la finestra con la matita, accanto al cestino.
@@ -21,6 +22,7 @@ export default function AnagraficaPaziente({
   onDeleted: () => void
 }): React.JSX.Element {
   const [modifica, setModifica] = useState(false)
+  const [esporta, setEsporta] = useState(false)
 
   const elimina = async (): Promise<void> => {
     if (
@@ -65,6 +67,9 @@ export default function AnagraficaPaziente({
           {paziente.cognome} {paziente.nome}
         </h3>
         <span className="row-actions">
+          <button title="Esporta la cartella in PDF" onClick={() => setEsporta(true)}>
+            <FileDown size={18} />
+          </button>
           <button title="Modifica i dati" onClick={() => setModifica(true)}>
             <Pencil size={18} />
           </button>
@@ -86,6 +91,8 @@ export default function AnagraficaPaziente({
           ))}
         </dl>
       )}
+
+      {esporta && <EsportaCartella paziente={paziente} onChiudi={() => setEsporta(false)} />}
 
       {modifica && (
         <ModaleDatiPaziente

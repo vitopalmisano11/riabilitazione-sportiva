@@ -12,8 +12,15 @@ import Database from 'better-sqlite3-multiple-ciphers'
 import { runMigrations } from '../src/main/migrations'
 import { generaDocx, generaHtml } from '../src/main/export-doc'
 import { cambiaPasswordAuth, loginAuth, recoverAuth, setupAuth } from '../src/main/auth'
-import { getDb, initDb, isPlaintextDb } from '../src/main/db'
-import { calcola, salvaQuestionario } from '../src/main/questionari'
+import { closeDb, getDb, initDb, isPlaintextDb } from '../src/main/db'
+import { generaCartella, SEZIONI } from '../src/main/export-cartella'
+import { datiScheda } from '../src/main/scheda-dati'
+import {
+  aggiornaCompilazione,
+  calcola,
+  salvaCompilazione,
+  salvaQuestionario
+} from '../src/main/questionari'
 import { spostaFileDati } from '../src/main/file-dati'
 import { existsSync, writeFileSync } from 'node:fs'
 
@@ -24,7 +31,7 @@ db.pragma('foreign_keys = ON')
 
 runMigrations(db)
 runMigrations(db) // idempotente
-assert.equal(db.pragma('user_version', { simple: true }), 16)
+assert.equal(db.pragma('user_version', { simple: true }), 17)
 
 const count = (table: string): number =>
   (db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n
@@ -298,6 +305,63 @@ assert.equal(
     { nome: 'Sub', valore: 5 }
   ])
   assert.equal(esito.fascia, 'Alto')
+
+  // Correzione di una compilazione gia' salvata: punteggi e fascia devono
+  // essere ricalcolati sulle risposte nuove, non restare quelli di prima.
+  const pazQ = Number(
+    getDb().prepare("INSERT INTO pazienti (nome, cognome) VALUES ('Test', 'Questionario')")
+      .run().lastInsertRowid
+  )
+  const compId = salvaCompilazione({
+    paziente_id: pazQ,
+    questionario_id: qId,
+    data: '2026-09-01',
+    note: 'prima stesura',
+    risposte: rispondi([1, 2])
+  })
+  const leggi = (): { fascia: string | null; note: string | null; data: string } =>
+    getDb().prepare('SELECT fascia, note, data FROM paziente_questionari WHERE id = ?')
+      .get(compId) as { fascia: string | null; note: string | null; data: string }
+  const punteggiDi = (): { nome: string; valore: number }[] =>
+    getDb()
+      .prepare(
+        'SELECT nome, valore FROM compilazione_punteggi WHERE compilazione_id = ? ORDER BY ordine'
+      )
+      .all(compId) as { nome: string; valore: number }[]
+  assert.equal(leggi().fascia, 'Basso')
+  assert.deepEqual(punteggiDi(), [
+    { nome: 'Totale', valore: 2 },
+    { nome: 'Sub', valore: 0 }
+  ])
+
+  aggiornaCompilazione(compId, {
+    paziente_id: pazQ,
+    questionario_id: qId,
+    data: '2026-09-02',
+    note: 'corretta',
+    risposte: rispondi([5, 6, 7, 8, 9])
+  })
+  assert.equal(leggi().fascia, 'Alto')
+  assert.equal(leggi().note, 'corretta')
+  assert.equal(leggi().data, '2026-09-02')
+  assert.deepEqual(punteggiDi(), [
+    { nome: 'Totale', valore: 5 },
+    { nome: 'Sub', valore: 5 }
+  ])
+  // le risposte vecchie non devono restare accanto a quelle nuove
+  const nRisposte = (
+    getDb()
+      .prepare('SELECT COUNT(*) AS n FROM questionario_risposte WHERE compilazione_id = ?')
+      .get(compId) as { n: number }
+  ).n
+  assert.equal(nRisposte, 9)
+  assert.throws(() => aggiornaCompilazione(999999, {
+    paziente_id: pazQ,
+    questionario_id: qId,
+    data: '2026-09-02',
+    note: null,
+    risposte: []
+  }), /non trovata/)
 }
 
 getDb().close()
@@ -339,6 +403,172 @@ writeFileSync(join(dirA, 'riabilitazione.db'), 'altro-db')
 assert.throws(() => spostaFileDati(dirA, dirB), /contiene già/)
 rmSync(dirA, { recursive: true, force: true })
 rmSync(dirB, { recursive: true, force: true })
+
+// --- Cartella completa del paziente ---
+// Le query della cartella toccano quasi tutte le tabelle: qui si semina un
+// paziente con qualcosa in ognuna e si controlla che il documento le riporti.
+// Serve a beccare i nomi di colonna sbagliati, che il typecheck non vede.
+const dirCartella = mkdtempSync(join(tmpdir(), 'riab-cartella-'))
+initDb(join(dirCartella, 'cartella.db'), dekHex)
+{
+  const c = getDb()
+  const ins = (sql: string, ...args: unknown[]): number | bigint =>
+    c.prepare(sql).run(...args).lastInsertRowid
+
+  const patC = ins("INSERT INTO patologie (nome) VALUES ('Lombalgia')")
+  const faseC = ins('INSERT INTO fasi (patologia_id, nome, ordine) VALUES (?, ?, 0)', patC, 'Acuta')
+  const catC = ins("INSERT INTO categorie (nome) VALUES ('Core')")
+  const esC = ins('INSERT INTO esercizi (nome, categoria_id) VALUES (?, ?)', 'Plank', catC)
+  const pz = ins(
+    `INSERT INTO pazienti (nome, cognome, data_nascita, telefono, email, lavoro, inviato_da,
+       diagnosi, tipo_intervento, data_intervento, patologia_id, fase_corrente_id)
+     VALUES ('Giulia', 'Verdi', '1990-04-12', '333', 'g@v.it', 'Impiegata', 'Dott. Neri',
+       'Lombalgia aspecifica', 'Nessuno', '2026-01-05', ?, ?)`,
+    patC,
+    faseC
+  )
+
+  ins(
+    `INSERT INTO anamnesi_prossima (paziente_id, motivo_consulto, dolore_notturno, disturbi_sonno,
+       tosse_starnuto, sintomi_neurologici, relazione_sintomi, note, note_giorno, note_esordio)
+     VALUES (?, 'Dolore lombare', 'no', 'no', 'no', 'no', 'unico sintomo', 'nessuna', 'peggio la sera', 'in calo')`,
+    pz
+  )
+  const sint = ins(
+    `INSERT INTO anamnesi_sintomi (paziente_id, descrizione, andamento, da_quanto, episodio,
+       esordio, traumatico, comportamento, aggrava, allevia, ordine)
+     VALUES (?, 'Lombare destro', 'intermittente', '3 settimane', 'primo', 'graduale', 0,
+       'riposo', 'stare seduta', 'camminare', 0)`,
+    pz
+  )
+  ins(
+    "INSERT INTO sintomo_punti (sintomo_id, grafico, minuti, dolore) VALUES (?, 'giorno', 480, 6)",
+    sint
+  )
+  ins(
+    "INSERT INTO sintomo_punti (sintomo_id, grafico, data, dolore) VALUES (?, 'esordio', '2026-08-01', 7)",
+    sint
+  )
+  ins(
+    "INSERT INTO anamnesi_attivita (paziente_id, attivita, partecipazione, fattori_interni) VALUES (?, 'guida', 'palestra', 'timore')",
+    pz
+  )
+  ins(
+    `INSERT INTO anamnesi_remota (paziente_id, traumi, interventi, riabilitazioni, bioimmagini_note,
+       peso, febbre, sudorazione, nausea, fumo, neoplasie, gravidanza, pacemaker, schegge)
+     VALUES (?, 'nessuno', 'nessuno', 'nessuna', 'RX negativa', 0, 0, 0, 0, 1, 0, 0, 0, 0)`,
+    pz
+  )
+  ins(
+    "INSERT INTO bioimmagini (paziente_id, nome, tipo, contenuto, data) VALUES (?, 'RX bacino', 'image/png', 'x', '2026-07-01')",
+    pz
+  )
+
+  const chart = ins("INSERT INTO body_chart (paziente_id, data, note) VALUES (?, '2026-08-20', 'prima visita')", pz)
+  for (const [vista, tipo] of [
+    ['fronte', 'dolore'],
+    ['retro', 'rigidita'],
+    ['destra', 'scossa'],
+    ['sinistra', 'parestesie']
+  ]) {
+    ins(
+      'INSERT INTO body_chart_segni (chart_id, vista, tipo, x, y, dimensione, intensita) VALUES (?, ?, ?, 0.5, 0.4, 1, 6)',
+      chart,
+      vista,
+      tipo
+    )
+  }
+
+  const distr = ins("INSERT INTO distretti (nome) VALUES ('Rachide lombare')")
+  const mov = ins(
+    "INSERT INTO distretto_movimenti (distretto_id, nome, gradi) VALUES (?, 'Flessione', 1)",
+    distr
+  )
+  const tst = ins(
+    "INSERT INTO distretto_test (distretto_id, nome, gruppo, risposta) VALUES (?, 'SLR', 'Neurodinamici', 'pos-neg')",
+    distr
+  )
+  const val = ins(
+    `INSERT INTO valutazioni (paziente_id, data, ispezione, note, carico_locale, carico_generale,
+       capacita_locale, capacita_generale)
+     VALUES (?, '2026-08-25', 'atteggiamento antalgico', 'ok', 'ridotto', 'buono', 'media', 'buona')`,
+    pz
+  )
+  ins('INSERT INTO valutazione_distretti (valutazione_id, distretto_id) VALUES (?, ?)', val, distr)
+  ins(
+    `INSERT INTO valutazione_movimenti (valutazione_id, movimento_id, attivo_restrizione,
+       attivo_dolore, passivo_restrizione, passivo_dolore, attivo_gradi, passivo_gradi)
+     VALUES (?, ?, 2, 1, 1, 1, 40, 55)`,
+    val,
+    mov
+  )
+  ins(
+    "INSERT INTO valutazione_test (valutazione_id, test_id, valore, nota) VALUES (?, ?, 'negativo', 'nessuna irradiazione')",
+    val,
+    tst
+  )
+
+  const qst = ins("INSERT INTO questionari (nome, ordine) VALUES ('Prova PROM', 0)")
+  const comp = ins(
+    "INSERT INTO paziente_questionari (paziente_id, questionario_id, data, fascia, note) VALUES (?, ?, '2026-08-26', 'rischio medio', '')",
+    pz,
+    qst
+  )
+  ins(
+    "INSERT INTO compilazione_punteggi (compilazione_id, nome, valore, ordine) VALUES (?, 'Totale', 5, 0)",
+    comp
+  )
+
+  const sed = ins("INSERT INTO sedute (paziente_id, data, fase_id, note) VALUES (?, '2026-08-27', ?, 'ben tollerata')", pz, faseC)
+  ins(
+    "INSERT INTO seduta_esercizi (seduta_id, esercizio_id, serie, ripetizioni, carico, recupero, nota, ordine) VALUES (?, ?, '3', '30\"', '-', '1 min', 'ok', 0)",
+    sed,
+    esC
+  )
+
+  ins(
+    "INSERT INTO obiettivi_terapeutici (paziente_id, testo, termine, ordine) VALUES (?, 'Camminare 30 minuti', 'medio', 0)",
+    pz
+  )
+
+  const tutte = SEZIONI.map((x) => x.chiave)
+  const doc = generaCartella(Number(pz), tutte)
+  for (const atteso of [
+    'Verdi',
+    'Dolore lombare',      // anamnesi prossima
+    'RX negativa',         // anamnesi remota
+    'Rachide lombare',     // valutazione obiettiva
+    'Prova PROM',          // questionari
+    'Camminare 30 minuti', // obiettivi terapeutici
+    'Lato sinistro'        // body chart, tutte e quattro le viste
+  ]) {
+    assert.ok(doc.includes(atteso), `la cartella non riporta "${atteso}"`)
+  }
+  // le sezioni escluse non devono comparire
+  const soloDati = generaCartella(Number(pz), ['anagrafica'])
+  assert.ok(soloDati.includes('Dott. Neri'))
+  assert.ok(!soloDati.includes('27/08/2026'))
+  // delle sedute nella cartella restano le date, non gli esercizi
+  assert.ok(doc.includes('27/08/2026'))
+  assert.ok(!doc.includes('Plank'))
+  // una sezione senza contenuto non stampa un titolo vuoto
+  const pzVuoto = ins("INSERT INTO pazienti (nome, cognome) VALUES ('Vuoto', 'Test')")
+  const nulla = generaCartella(Number(pzVuoto), tutte)
+  assert.ok(!nulla.includes('Diario delle sedute'))
+  assert.throws(() => generaCartella(999999, tutte), /non trovato/)
+
+  // La scheda mostrata al paziente legge le stesse sedute con query proprie.
+  const scheda = datiScheda(Number(sed))
+  assert.equal(scheda.paziente, 'Giulia Verdi')
+  assert.equal(scheda.data, '2026-08-27')
+  assert.equal(scheda.fase_nome, 'Acuta')
+  assert.equal(scheda.sezioni.length, 1)
+  assert.equal(scheda.sezioni[0].esercizi[0].nome, 'Plank')
+  assert.equal(scheda.sezioni[0].esercizi[0].ripetizioni, '30"')
+  assert.throws(() => datiScheda(999999), /non trovata/)
+}
+closeDb()
+rmSync(dirCartella, { recursive: true, force: true })
 
 void (async () => {
   const docxBuf = await generaDocx(pazExport, seduteExport)

@@ -205,6 +205,35 @@ export function calcola(
   return { punteggi: risultato, fascia: fascia?.etichetta ?? null }
 }
 
+// Correzione di una compilazione gia' salvata: risposte e punteggi si
+// riscrivono da zero, perche' un punteggio calcolato su risposte vecchie non
+// vale piu' niente. Il questionario di partenza non cambia: per usarne un
+// altro se ne compila uno nuovo.
+export function aggiornaCompilazione(id: number, dati: CompilazioneInput): void {
+  const db = getDb()
+  const riga = db
+    .prepare('SELECT questionario_id FROM paziente_questionari WHERE id = ?')
+    .get(id) as { questionario_id: number } | undefined
+  if (!riga) throw new Error('Compilazione non trovata.')
+
+  const { punteggi, fascia } = calcola(riga.questionario_id, dati.risposte)
+  db.transaction(() => {
+    db.prepare(
+      'UPDATE paziente_questionari SET data = ?, fascia = ?, note = ? WHERE id = ?'
+    ).run(dati.data, fascia, dati.note, id)
+    db.prepare('DELETE FROM questionario_risposte WHERE compilazione_id = ?').run(id)
+    db.prepare('DELETE FROM compilazione_punteggi WHERE compilazione_id = ?').run(id)
+    const insR = db.prepare(
+      'INSERT INTO questionario_risposte (compilazione_id, domanda_id, valore) VALUES (?, ?, ?)'
+    )
+    for (const r of dati.risposte) insR.run(id, r.domanda_id, r.valore)
+    const insP = db.prepare(
+      'INSERT INTO compilazione_punteggi (compilazione_id, nome, valore, ordine) VALUES (?, ?, ?, ?)'
+    )
+    punteggi.forEach((p, i) => insP.run(id, p.nome, p.valore, i))
+  })()
+}
+
 export function salvaCompilazione(dati: CompilazioneInput): number {
   const db = getDb()
   const { punteggi, fascia } = calcola(dati.questionario_id, dati.risposte)

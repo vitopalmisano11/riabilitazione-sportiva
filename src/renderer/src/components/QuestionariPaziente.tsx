@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Eye, Pencil, Plus, Trash2 } from 'lucide-react'
 import type {
   CategoriaQuestionario,
   CompilazioneRiepilogo,
@@ -19,7 +20,13 @@ export default function QuestionariPaziente({
   const [storico, setStorico] = useState<CompilazioneRiepilogo[]>([])
   const [disponibili, setDisponibili] = useState<Questionario[]>([])
   const [categorie, setCategorie] = useState<CategoriaQuestionario[]>([])
-  const [compilaId, setCompilaId] = useState<number | null>(null)
+  // Cosa c'e' aperto: un questionario nuovo da compilare, oppure uno gia'
+  // compilato aperto in lettura o in modifica.
+  const [aperto, setAperto] = useState<
+    | { modo: 'nuovo'; questionarioId: number }
+    | { modo: 'vedi' | 'modifica'; compilazione: CompilazioneRiepilogo }
+    | null
+  >(null)
   // null = finestra chiusa; altrimenti la categoria scelta, o null dentro la
   // finestra finche' non se ne sceglie una
   const [scelta, setScelta] = useState(false)
@@ -51,15 +58,18 @@ export default function QuestionariPaziente({
 
   return (
     <section className="card">
-      <h3>Questionari</h3>
-      <div className="sotto-sezioni">
-        <button
-          className="primary"
-          disabled={disponibili.length === 0}
-          onClick={() => setScelta(true)}
-        >
-          Compila questionario
-        </button>
+      <div className="card-header-row">
+        <h3>Questionari</h3>
+        <span className="row-actions">
+          <button
+            className="primary"
+            title="Compila un questionario"
+            disabled={disponibili.length === 0}
+            onClick={() => setScelta(true)}
+          >
+            <Plus size={18} />
+          </button>
+        </span>
       </div>
 
       {disponibili.length === 0 ? (
@@ -84,8 +94,20 @@ export default function QuestionariPaziente({
               </div>
               <span className="row-actions">
                 {c.fascia && <span className="badge-fascia">{c.fascia}</span>}
-                <button className="danger" onClick={() => void elimina(c)}>
-                  Elimina
+                <button
+                  title="Vedi le risposte"
+                  onClick={() => setAperto({ modo: 'vedi', compilazione: c })}
+                >
+                  <Eye size={18} />
+                </button>
+                <button
+                  title="Modifica le risposte"
+                  onClick={() => setAperto({ modo: 'modifica', compilazione: c })}
+                >
+                  <Pencil size={18} />
+                </button>
+                <button className="danger" title="Elimina" onClick={() => void elimina(c)}>
+                  <Trash2 size={18} />
                 </button>
               </span>
             </li>
@@ -130,7 +152,7 @@ export default function QuestionariPaziente({
                           onClick={() => {
                             setScelta(false)
                             setCatScelta(null)
-                            setCompilaId(q.id)
+                            setAperto({ modo: 'nuovo', questionarioId: q.id })
                           }}
                         >
                           {q.nome}
@@ -141,9 +163,7 @@ export default function QuestionariPaziente({
               </>
             )}
             <div className="modal-actions">
-              {catScelta != null && (
-                <button onClick={() => setCatScelta(null)}>Indietro</button>
-              )}
+              {catScelta != null && <button onClick={() => setCatScelta(null)}>Indietro</button>}
               <button
                 onClick={() => {
                   setScelta(false)
@@ -157,12 +177,19 @@ export default function QuestionariPaziente({
         </div>
       )}
 
-      {compilaId != null && (
+      {aperto && (
         <CompilaQuestionario
+          key={aperto.modo === 'nuovo' ? `n${aperto.questionarioId}` : `c${aperto.compilazione.id}`}
           pazienteId={paziente.id}
-          questionarioId={compilaId}
+          questionarioId={
+            aperto.modo === 'nuovo'
+              ? aperto.questionarioId
+              : aperto.compilazione.questionario_id
+          }
+          compilazione={aperto.modo === 'nuovo' ? null : aperto.compilazione}
+          soloLettura={aperto.modo === 'vedi'}
           onChiudi={(salvato) => {
-            setCompilaId(null)
+            setAperto(null)
             if (salvato) void load()
           }}
         />
@@ -172,21 +199,29 @@ export default function QuestionariPaziente({
 }
 
 // Lo schermo è girato verso il paziente, che legge le domande, ma a cliccare è
-// il fisioterapista: testo grande e risposte come pulsanti larghi, non pallini
-// da centrare col mouse.
+// il fisioterapista: risposte come pulsanti larghi, non pallini da centrare col
+// mouse.
+//
+// La stessa finestra serve per compilare, per rileggere e per correggere: le
+// domande sono le stesse, cambia solo se le risposte si possono toccare.
 function CompilaQuestionario({
   pazienteId,
   questionarioId,
+  compilazione,
+  soloLettura,
   onChiudi
 }: {
   pazienteId: number
   questionarioId: number
+  compilazione: CompilazioneRiepilogo | null
+  soloLettura: boolean
   onChiudi: (salvato: boolean) => void
 }): React.JSX.Element {
   const [dati, setDati] = useState<QuestionarioCompleto | null>(null)
   const [risposte, setRisposte] = useState<Record<number, number>>({})
-  const [data, setData] = useState(oggiIso())
-  const [note, setNote] = useState('')
+  const [data, setData] = useState(compilazione?.data ?? oggiIso())
+  const [note, setNote] = useState(compilazione?.note ?? '')
+  const [pronto, setPronto] = useState(compilazione == null)
 
   useEffect(() => {
     window.api.questionari
@@ -195,7 +230,18 @@ function CompilaQuestionario({
       .catch((e) => toastErrore(errMsg(e)))
   }, [questionarioId])
 
-  if (!dati) {
+  useEffect(() => {
+    if (compilazione == null) return
+    window.api.compilazioni
+      .risposte(compilazione.id)
+      .then((r) => {
+        setRisposte(Object.fromEntries(r.map((x) => [x.domanda_id, x.valore])))
+        setPronto(true)
+      })
+      .catch((e) => toastErrore(errMsg(e)))
+  }, [compilazione])
+
+  if (!dati || !pronto) {
     return (
       <div className="modal-overlay">
         <div className="modal">
@@ -209,15 +255,17 @@ function CompilaQuestionario({
   const mancanti = conId.filter((d) => risposte[d.id] === undefined).length
 
   const salva = async (): Promise<void> => {
+    const dset = {
+      paziente_id: pazienteId,
+      questionario_id: questionarioId,
+      data,
+      note: note.trim() || null,
+      risposte: conId.map((d) => ({ domanda_id: d.id, valore: risposte[d.id] ?? 0 }))
+    }
     try {
-      await window.api.compilazioni.create({
-        paziente_id: pazienteId,
-        questionario_id: questionarioId,
-        data,
-        note: note.trim() || null,
-        risposte: conId.map((d) => ({ domanda_id: d.id, valore: risposte[d.id] ?? 0 }))
-      })
-      toast('Questionario salvato.')
+      if (compilazione) await window.api.compilazioni.update(compilazione.id, dset)
+      else await window.api.compilazioni.create(dset)
+      toast(compilazione ? 'Questionario aggiornato.' : 'Questionario salvato.')
       onChiudi(true)
     } catch (e) {
       toastErrore(errMsg(e))
@@ -229,54 +277,78 @@ function CompilaQuestionario({
       <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
         <div className="card-header-row">
           <h3>{dati.questionario.nome}</h3>
-          <label className="compila-data">
-            Data
-            <input type="date" value={data} onChange={(e) => setData(e.target.value)} />
-          </label>
+          {soloLettura ? (
+            <span className="hint">{formatData(data)}</span>
+          ) : (
+            <label className="compila-data">
+              Data
+              <input type="date" value={data} onChange={(e) => setData(e.target.value)} />
+            </label>
+          )}
         </div>
         {dati.questionario.istruzioni && (
           <p className="compila-istruzioni">{dati.questionario.istruzioni}</p>
         )}
 
-        <ol className="compila-domande">
-          {conId.map((d) => (
-            <li key={d.id}>
-              <p className="compila-testo">{d.testo}</p>
-              <div className="compila-risposte">
-                {opzioniDi(d).map((o, i) => (
-                  <button
-                    key={i}
-                    className={risposte[d.id] === o.valore ? 'scelta-attiva' : ''}
-                    onClick={() => setRisposte({ ...risposte, [d.id]: o.valore })}
-                  >
-                    {o.etichetta}
-                  </button>
-                ))}
-              </div>
-            </li>
-          ))}
-          {conId.length === 0 && <li className="hint">Questo questionario non ha domande.</li>}
-        </ol>
+        {/* Domande e note scorrono insieme: le note stanno in fondo, dopo
+            l'ultima domanda, invece di restare fisse sotto e distrarre fin
+            dalla prima. */}
+        <div className="compila-corpo">
+          <ol className="compila-domande">
+            {conId.map((d) => (
+              <li key={d.id}>
+                <p className="compila-testo">{d.testo}</p>
+                <div className="compila-risposte">
+                  {opzioniDi(d).map((o, i) => (
+                    <button
+                      key={i}
+                      className={risposte[d.id] === o.valore ? 'scelta-attiva' : ''}
+                      disabled={soloLettura}
+                      onClick={() => setRisposte({ ...risposte, [d.id]: o.valore })}
+                    >
+                      {o.etichetta}
+                    </button>
+                  ))}
+                </div>
+              </li>
+            ))}
+            {conId.length === 0 && <li className="hint">Questo questionario non ha domande.</li>}
+          </ol>
 
-        <label>
-          Note (facoltative)
-          <textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
-        </label>
+          {soloLettura ? (
+            note.trim() !== '' && (
+              <label>
+                Note
+                <p className="modal-testo">{note}</p>
+              </label>
+            )
+          ) : (
+            <label>
+              Note (facoltative)
+              <textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
+            </label>
+          )}
+        </div>
 
         <div className="modal-actions">
-          {mancanti > 0 && (
+          {soloLettura && compilazione?.fascia && (
+            <span className="badge-fascia">{compilazione.fascia}</span>
+          )}
+          {!soloLettura && mancanti > 0 && (
             <span className="hint">
               {mancanti === 1 ? 'Manca 1 risposta.' : `Mancano ${mancanti} risposte.`}
             </span>
           )}
-          <button onClick={() => onChiudi(false)}>Annulla</button>
-          <button
-            className="primary"
-            disabled={conId.length === 0 || mancanti > 0}
-            onClick={() => void salva()}
-          >
-            Salva
-          </button>
+          <button onClick={() => onChiudi(false)}>{soloLettura ? 'Chiudi' : 'Annulla'}</button>
+          {!soloLettura && (
+            <button
+              className="primary"
+              disabled={conId.length === 0 || mancanti > 0}
+              onClick={() => void salva()}
+            >
+              Salva
+            </button>
+          )}
         </div>
       </div>
     </div>

@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { ChevronRight, Download, Eye, FileText, Plus } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { ChevronRight, Download, Eye, FileText, Plus, Presentation } from 'lucide-react'
 import type {
   Fase,
   Obiettivo,
@@ -16,7 +16,12 @@ import ValutazionePaziente from '../components/ValutazionePaziente'
 import { toast, toastErrore } from '../components/Toast'
 import { errMsg, formatData } from '../lib'
 
-export default function PazientiPage(): React.JSX.Element {
+export default function PazientiPage({
+  tornaAllElenco
+}: {
+  // Cambia ogni volta che si ripreme "Pazienti e sedute" nel menu a sinistra.
+  tornaAllElenco: number
+}): React.JSX.Element {
   const [pazienti, setPazienti] = useState<PazienteDettaglio[]>([])
   const [selId, setSelId] = useState<number | null>(null)
   const [ricerca, setRicerca] = useState('')
@@ -32,6 +37,19 @@ export default function PazientiPage(): React.JSX.Element {
     void load()
     void window.api.patologie.list().then(setPatologie)
   }, [])
+
+  // Lo stato del builder letto dentro l'effetto senza farlo scattare: se fosse
+  // fra le dipendenze, chiudere una seduta chiuderebbe anche la scheda.
+  const builderAperto = useRef(builder)
+  builderAperto.current = builder
+
+  // Torna all'elenco solo dalla scheda del paziente. Mentre si costruisce una
+  // seduta non si esce da qui: il lavoro non salvato si perderebbe senza che
+  // nessuno lo abbia chiesto, e per uscire c'e' gia' "Annulla".
+  useEffect(() => {
+    if (tornaAllElenco === 0) return
+    if (builderAperto.current == null) setSelId(null)
+  }, [tornaAllElenco])
 
   const q = ricerca.trim().toLowerCase()
   const trovati = pazienti.filter(
@@ -261,7 +279,9 @@ function SchedaPaziente({
 
       <section className="card">
         <h3>Percorso riabilitativo</h3>
-        <div className="form-row-2">
+        {/* Patologia, fase e il pulsante che fa avanzare stanno su una riga
+            sola: sono la stessa decisione, presa in tre passi. */}
+        <div className="riga-percorso">
           <label className="field">
             Patologia
             <select
@@ -278,7 +298,7 @@ function SchedaPaziente({
               ))}
             </select>
           </label>
-          <label className="field">
+          <label className="field campo-fase">
             Fase corrente
             <select
               value={paziente.fase_corrente_id ?? ''}
@@ -293,19 +313,9 @@ function SchedaPaziente({
               ))}
             </select>
           </label>
-        </div>
-        <div className="fase-riga">
-          {paziente.patologia_id == null ? (
-            <p className="hint">Assegna una patologia per impostare le fasi.</p>
-          ) : fasi.length === 0 ? (
-            <p className="hint">
-              Questa patologia non ha fasi: definiscile in &ldquo;Patologie e fasi&rdquo;.
-            </p>
-          ) : (
-            <>
-              <span className="hint">
-                {idxFase >= 0 ? `Fase ${idxFase + 1} di ${fasi.length}` : 'Nessuna fase impostata'}
-              </span>
+          {paziente.patologia_id != null && fasi.length > 0 && (
+            <label className="field campo-avanza">
+              {idxFase >= 0 ? `Fase ${idxFase + 1} di ${fasi.length}` : 'Nessuna fase impostata'}
               <button disabled={!prossima} onClick={() => void avanza()}>
                 {paziente.fase_corrente_id == null
                   ? 'Imposta prima fase'
@@ -313,9 +323,16 @@ function SchedaPaziente({
                     ? `Avanza a "${prossima.nome}" →`
                     : 'Ultima fase raggiunta'}
               </button>
-            </>
+            </label>
           )}
         </div>
+        {paziente.patologia_id == null ? (
+          <p className="hint">Assegna una patologia per impostare le fasi.</p>
+        ) : fasi.length === 0 ? (
+          <p className="hint">
+            Questa patologia non ha fasi: definiscile in &ldquo;Patologie e fasi&rdquo;.
+          </p>
+        ) : null}
       </section>
 
       <ObiettiviCard paziente={paziente} />
@@ -573,11 +590,11 @@ function DiarioCard({
                 setPeriodo({ dal: sedute[sedute.length - 1].data, al: sedute[0].data })
               }
             >
-              Esporta periodo…
+              Esporta sedute
             </button>
           )}
-          <button className="primary" onClick={onNuova}>
-            + Nuova seduta
+          <button className="primary" title="Nuova seduta" onClick={onNuova}>
+            <Plus size={18} />
           </button>
         </span>
       </div>
@@ -598,14 +615,20 @@ function DiarioCard({
                 {s.obiettivi_nomi && <span className="seduta-obiettivi">{s.obiettivi_nomi}</span>}
               </div>
               <span className="row-actions">
+                <button
+                  title="Mostra la scheda al paziente (si apre in una finestra a parte)"
+                  onClick={() => void window.api.scheda.apri(s.id).catch((e) => toastErrore(errMsg(e)))}
+                >
+                  <Presentation size={18} />
+                </button>
+                <button title="Anteprima della seduta" onClick={() => setAnteprima(s.id)}>
+                  <Eye size={18} />
+                </button>
                 <button title="Apri la seduta per modificarla" onClick={() => onApri(s.id)}>
                   Modifica
                 </button>
                 <button title="Nuova seduta partendo da questa" onClick={() => onDuplica(s.id)}>
                   Duplica
-                </button>
-                <button title="Anteprima della seduta" onClick={() => setAnteprima(s.id)}>
-                  <Eye size={18} />
                 </button>
                 <span className="menu-wrapper">
                   <button

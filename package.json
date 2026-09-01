@@ -11,6 +11,7 @@
     "build": "electron-vite build",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "smoke": "tsx scripts/smoke.ts",
+    "smoke:app": "node scripts/smoke-app.mjs",
     "dev:reset": "tsx scripts/reset-dati.ts",
     "build:win": "electron-vite build && electron-builder --win --publish never",
     "postinstall": "electron-builder install-app-deps"

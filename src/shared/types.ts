@@ -426,6 +426,37 @@ export interface AnamnesiRemota {
   schegge: RispostaSiNo
 }
 
+// Obiettivo concordato col paziente. Il termine e' il respiro dell'obiettivo,
+// non una scadenza: un obiettivo a lungo termine non ha una data.
+export type TermineObiettivo = 'breve' | 'medio' | 'lungo'
+
+export interface ObiettivoTerapeutico {
+  id: number
+  testo: string
+  termine: TermineObiettivo
+}
+
+// ---- Scheda da mostrare al paziente ----
+// Una sola seduta, con dentro le immagini degli esercizi: la finestra che la
+// mostra riceve tutto in una volta e non chiede altro all'archivio.
+export interface EsercizioScheda {
+  nome: string
+  categoria_nome: string
+  serie: string | null
+  ripetizioni: string | null
+  carico: string | null
+  recupero: string | null
+  nota: string | null
+}
+
+export interface SchedaPaziente {
+  paziente: string
+  data: string
+  fase_nome: string | null
+  note: string | null
+  sezioni: { nome: string; esercizi: EsercizioScheda[] }[]
+}
+
 export interface Bioimmagine {
   id: number
   nome: string
@@ -514,6 +545,30 @@ export interface ValutazioneCompleta {
   movimenti: RilievoMovimento[]
   test: RilievoTest[]
 }
+
+export interface VoceBackup {
+  nome: string
+  quando: string
+  dimensione: number
+}
+
+export interface InfoBackup {
+  cartella: string
+  attivo: boolean
+  daTenere: number
+  copie: VoceBackup[]
+}
+
+// Le parti della cartella del paziente che si possono stampare.
+export type SezioneCartella =
+  | 'anagrafica'
+  | 'anamnesi'
+  | 'remota'
+  | 'bodychart'
+  | 'valutazioni'
+  | 'questionari'
+  | 'obiettivi'
+  | 'sedute'
 
 export interface Api {
   // apre un URL http/https nel browser predefinito
@@ -627,6 +682,10 @@ export interface Api {
   esporta: {
     // HTML della seduta per la sola anteprima a schermo (nessun file salvato).
     anteprima(sedutaId: number): Promise<string>
+    // Cartella completa: si scelgono le sezioni da includere.
+    // L'anteprima si apre in una finestra a parte, il PDF si salva su file.
+    anteprimaCartella(pazienteId: number, sezioni: SezioneCartella[]): Promise<void>
+    cartella(pazienteId: number, sezioni: SezioneCartella[]): Promise<string | null>
     // Ritornano il percorso del file salvato, o null se l'utente annulla.
     seduta(sedutaId: number, formato: 'pdf' | 'docx'): Promise<string | null>
     storico(
@@ -662,6 +721,8 @@ export interface Api {
     risposte(compilazioneId: number): Promise<RispostaQuestionario[]>
     // Calcola punteggi e fascia lato principale e li memorizza con le risposte.
     create(dati: CompilazioneInput): Promise<number>
+    // Riscrive risposte e punteggi di una compilazione gia' salvata.
+    update(id: number, dati: CompilazioneInput): Promise<void>
     remove(id: number): Promise<void>
   }
   testCategorie: {
@@ -696,6 +757,19 @@ export interface Api {
     remota(pazienteId: number): Promise<AnamnesiRemota>
     salvaRemota(pazienteId: number, dati: AnamnesiRemota): Promise<void>
   }
+  scheda: {
+    // Apre (o riporta in primo piano) la finestra con la scheda della seduta.
+    apri(sedutaId: number): Promise<void>
+    dati(sedutaId: number): Promise<SchedaPaziente>
+  }
+  obiettiviTerapeutici: {
+    list(pazienteId: number): Promise<ObiettivoTerapeutico[]>
+    create(pazienteId: number, testo: string, termine: TermineObiettivo): Promise<number>
+    update(id: number, testo: string, termine: TermineObiettivo): Promise<void>
+    remove(id: number): Promise<void>
+    // Gli id nell'ordine in cui devono comparire, tutti insieme.
+    reorder(ids: number[]): Promise<void>
+  }
   bioimmagini: {
     list(pazienteId: number): Promise<Bioimmagine[]>
     // Apre il dialogo file, salva il referto nell'archivio cifrato e ritorna
@@ -704,6 +778,17 @@ export interface Api {
     // Scrive il file in una cartella temporanea e lo apre col programma di sistema.
     apri(id: number): Promise<void>
     remove(id: number): Promise<void>
+  }
+  backup: {
+    info(): Promise<InfoBackup>
+    cambiaCartella(): Promise<string | null>
+    setAttivo(attivo: boolean): Promise<void>
+    setDaTenere(n: number): Promise<void>
+    // Esegue subito una copia e ritorna la cartella creata.
+    eseguiOra(): Promise<string>
+    apriCartella(): Promise<void>
+    // Riporta indietro l'archivio: l'app si riavvia da sola.
+    ripristina(nome: string): Promise<void>
   }
   impostazioni: {
     info(): Promise<{ cartella: string; cartellaExport: string }>

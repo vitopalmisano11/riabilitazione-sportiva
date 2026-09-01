@@ -821,11 +821,16 @@ button.danger:hover:not(:disabled) {
   width: 260px;
 }
 
-.toolbar .spacer {
+/* Spinge a destra quello che viene dopo, in qualunque riga di pulsanti: era
+   definito solo dentro .toolbar, quindi nelle finestre non faceva niente. */
+.spacer {
   flex: 1;
 }
 
-.checkbox-inline {
+.checkbox-inline,
+/* dentro una finestra vince .modal label, che le metterebbe in colonna: qui la
+   spunta deve restare a sinistra del testo */
+.modal label.checkbox-inline {
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -1233,6 +1238,66 @@ span.row-actions button {
 
 .card-header-row h3 {
   margin: 0;
+}
+
+/* Ogni sezione della scheda paziente dentro il suo riquadro: si riconoscono a
+   colpo d'occhio invece di doverle separare leggendo i titoli. Il riquadro vale
+   solo qui: nelle pagine di configurazione le sezioni sono gia' divise dalle
+   colonne e incorniciarle le renderebbe piu' pesanti. */
+.scheda {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.scheda > .card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 18px 22px;
+}
+
+/* Dentro il riquadro il titolo sta in cima: lo stacco fra le sezioni ora lo da'
+   il riquadro, non il margine del titolo. */
+.scheda > .card > h3:first-child,
+.scheda > .card > .card-header-row:first-child {
+  margin-top: 0;
+}
+
+/* Patologia, fase e pulsante di avanzamento su una riga sola: la casella della
+   fase e' piu' stretta perche' i nomi delle fasi sono corti, e cosi' il
+   pulsante ci sta accanto invece di finire a capo. */
+.riga-percorso {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* La patologia ha i nomi piu' lunghi, quindi la sua casella e' un po' piu'
+   larga; fase corrente e pulsante di avanzamento restano uguali fra loro. */
+.riga-percorso .field {
+  flex: 0 1 300px;
+  min-width: 0;
+}
+
+.riga-percorso .campo-fase {
+  flex: 0 1 230px;
+}
+
+/* Il pulsante di avanzamento e' un campo come gli altri: sopra ha la sua
+   etichetta ("Fase 1 di 3"), scritta come "Patologia" e "Fase corrente". */
+.riga-percorso .campo-avanza {
+  flex: none;
+}
+
+/* Stessa altezza e stessa larghezza della casella della fase. Il pulsante puo'
+   crescere se il nome della fase successiva e' lungo: meglio una riga un po'
+   piu' larga che un nome tagliato a meta'. */
+.riga-percorso .campo-avanza button {
+  padding: 10px 16px;
+  min-width: 230px;
 }
 
 .sedute-list {
@@ -1669,7 +1734,19 @@ span.row-actions button {
   padding: 10px 12px;
   background: var(--accent-soft);
   border-radius: var(--radius-sm);
-  font-size: 16px;
+  font-size: 14px;
+}
+
+/* Scorre tutto insieme, domande e note: cosi' le note si incontrano dopo
+   l'ultima domanda invece di restare ferme sotto fin dalla prima. */
+.compila-corpo {
+  max-height: 56vh;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  /* spazio per non far toccare il bordo della barra di scorrimento */
+  padding-right: 4px;
 }
 
 .compila-domande {
@@ -1679,8 +1756,6 @@ span.row-actions button {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  max-height: 54vh;
-  overflow: auto;
 }
 
 .compila-domande > li {
@@ -1688,10 +1763,9 @@ span.row-actions button {
   padding-bottom: 12px;
 }
 
-/* il paziente legge da mezzo metro: testo piu' grande del resto dell'app */
 .compila-testo {
   margin: 0 0 8px;
-  font-size: 18px;
+  font-size: 15px;
   line-height: 1.4;
 }
 
@@ -1703,9 +1777,9 @@ span.row-actions button {
 
 /* pulsanti larghi: il fisioterapista clicca al volo mentre legge ad alta voce */
 .compila-risposte button {
-  min-width: 74px;
-  padding: 10px 18px;
-  font-size: 16px;
+  min-width: 62px;
+  padding: 8px 14px;
+  font-size: 14px;
 }
 
 .compila-risposte button.scelta-attiva {
@@ -2263,4 +2337,109 @@ textarea {
   padding: 6px 6px;
   font-size: 15px;
   text-align: center;
+}
+
+.obiettivo-testo {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Scheda mostrata al paziente: si legge da lontano, in piedi, mentre si
+   esegue l'esercizio. Percio' caratteri grandi e molta aria. */
+.scheda-paziente {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 28px 24px 48px;
+}
+
+.scheda-paziente header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 3px solid var(--accent);
+  padding-bottom: 12px;
+  margin-bottom: 20px;
+}
+
+.scheda-paziente header h1 {
+  margin: 0;
+  font-size: 23px;
+}
+
+.scheda-paziente header p {
+  margin: 4px 0 0;
+  color: var(--text-dim);
+  font-size: 14px;
+}
+
+.scheda-paziente h2 {
+  font-size: 17px;
+  margin: 22px 0 8px;
+  color: var(--accent);
+}
+
+.tabella-scheda {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+  /* larghezze fisse: cosi' le tabelle di sezioni diverse si incolonnano fra
+     loro invece di allargarsi ognuna sul proprio contenuto */
+  table-layout: fixed;
+}
+
+.tabella-scheda th:first-child {
+  width: 38%;
+}
+
+.tabella-scheda th,
+.tabella-scheda td {
+  border: 1px solid var(--border-forte);
+  padding: 8px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.tabella-scheda th {
+  background: var(--pannello);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-dim);
+}
+
+.tabella-scheda td:first-child {
+  font-weight: 600;
+}
+
+.tabella-scheda .categoria {
+  display: block;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-dim);
+}
+
+.nota-seduta {
+  font-size: 14px;
+  white-space: pre-wrap;
+}
+
+/* Le sezioni da includere nella cartella: due colonne, cosi' si vedono tutte
+   senza far scorrere la finestra. */
+.sezioni-cartella {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px 16px;
+  margin-bottom: 10px;
+}
+
+/* La riga di pulsanti in fondo alle finestre. L'altezza minima serve ai
+   pulsanti con la sola icona: senza, resterebbero piu' bassi di quelli con il
+   testo, che portano l'altezza di una riga di scritta. */
+.modal-actions {
+  align-items: center;
+}
+
+.modal-actions button {
+  min-height: 44px;
 }

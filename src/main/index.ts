@@ -2,6 +2,7 @@ import { app, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { registerIpc } from './ipc'
 import { migraDaUserData } from './impostazioni'
+import { backupDiChiusura } from './backup'
 import icona from '../../resources/icon.png?asset'
 
 // In sviluppo l'app tiene dati e cache propri: le prove — comprese le migrazioni,
@@ -45,6 +46,12 @@ app.whenReady().then(() => {
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
+})
+
+// Alla chiusura si aggiorna la copia del giorno, cosi' contiene anche il lavoro
+// appena fatto e non solo com'era l'archivio all'accesso.
+app.on('before-quit', () => {
+  backupDiChiusura()
 })
 
 app.on('window-all-closed', () => {
