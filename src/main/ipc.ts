@@ -55,11 +55,13 @@ import type {
   CompilazioneInput,
   EsercizioInput,
   PazienteCreateInput,
+  PazienteDettaglio,
   PazienteInput,
   DistrettoCompleto,
   QuestionarioCompleto,
   SedutaInput,
   SezioneCartella,
+  StatoPaziente,
   TermineObiettivo,
   TestValutazioneCompleto,
   ValutazioneCompleta
@@ -592,6 +594,65 @@ export function registerIpc(): void {
   handle('pazienti:delete', (id: number) => {
     getDb().prepare('DELETE FROM pazienti WHERE id = ?').run(id)
   })
+  // ---- Follow-up ----
+  // Le due liste escono dalla stessa query dell'elenco pazienti, divise per
+  // stato: in trattamento in ordine di seduta piu' recente, in follow-up in
+  // ordine di data da contattare (chi non ne ha in fondo).
+  handle('followUp:list', () => {
+    const righe = getDb()
+      .prepare(
+        `SELECT p.*, pat.nome AS patologia_nome, f.nome AS fase_nome,
+                (SELECT MAX(s.data) FROM sedute s WHERE s.paziente_id = p.id) AS ultima_seduta
+         FROM pazienti p
+         LEFT JOIN patologie pat ON pat.id = p.patologia_id
+         LEFT JOIN fasi f ON f.id = p.fase_corrente_id
+         ORDER BY p.cognome, p.nome`
+      )
+      .all() as (PazienteDettaglio & { stato: StatoPaziente })[]
+
+    const perSeduta = (a: PazienteDettaglio, b: PazienteDettaglio): number =>
+      (b.ultima_seduta ?? '').localeCompare(a.ultima_seduta ?? '')
+    // chi ha una data da rispettare viene prima, in ordine di scadenza
+    const perScadenza = (a: PazienteDettaglio, b: PazienteDettaglio): number => {
+      if (a.follow_up_il == null) return b.follow_up_il == null ? 0 : 1
+      if (b.follow_up_il == null) return -1
+      return a.follow_up_il.localeCompare(b.follow_up_il)
+    }
+    return {
+      trattamento: righe.filter((p) => p.stato !== 'concluso').sort(perSeduta),
+      concluso: righe.filter((p) => p.stato === 'concluso').sort(perScadenza)
+    }
+  })
+
+  handle(
+    'followUp:setStato',
+    (id: number, stato: StatoPaziente, followUpIl: string | null) => {
+      getDb()
+        .prepare('UPDATE pazienti SET stato = ?, follow_up_il = ? WHERE id = ?')
+        .run(stato, stato === 'concluso' ? followUpIl : null, id)
+    }
+  )
+  handle('followUp:setFollowUp', (id: number, followUpIl: string | null) => {
+    getDb().prepare('UPDATE pazienti SET follow_up_il = ? WHERE id = ?').run(followUpIl, id)
+  })
+  // Spuntare "contattato" segna la data di oggi e libera il prossimo contatto:
+  // se ne serve un altro, la data la si rimette a mano.
+  handle('followUp:segnaContattato', (id: number, contattato: boolean) => {
+    const db = getDb()
+    if (contattato) {
+      db.prepare(
+        "UPDATE pazienti SET contattato_il = date('now', 'localtime'), follow_up_il = NULL WHERE id = ?"
+      ).run(id)
+    } else {
+      db.prepare('UPDATE pazienti SET contattato_il = NULL WHERE id = ?').run(id)
+    }
+  })
+  handle('followUp:setRecensione', (id: number, recensione: boolean) => {
+    getDb()
+      .prepare('UPDATE pazienti SET recensione = ? WHERE id = ?')
+      .run(recensione ? 1 : 0, id)
+  })
+
   handle('pazienti:obiettiviRaggiunti', (pazienteId: number) =>
     (
       getDb()

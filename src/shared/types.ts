@@ -78,6 +78,8 @@ export interface TestValore {
   valore: string | null
 }
 
+export type StatoPaziente = 'trattamento' | 'concluso'
+
 export interface Paziente {
   id: number
   nome: string
@@ -94,6 +96,13 @@ export interface Paziente {
   data_intervento: string | null
   patologia_id: number | null
   fase_corrente_id: number | null
+  // 'trattamento' = lo stai seguendo adesso; 'concluso' = il ciclo e' finito e
+  // il paziente e' passato nell'elenco del follow-up.
+  stato: StatoPaziente
+  // Quando risentirlo. Vuoto = non c'e' niente in programma.
+  follow_up_il: string | null
+  contattato_il: string | null
+  recensione: 0 | 1
 }
 
 export type PazienteDettaglio = Paziente & {
@@ -678,6 +687,17 @@ export interface Api {
     create(data: SedutaInput): Promise<number>
     update(id: number, data: SedutaInput): Promise<void>
     remove(id: number): Promise<void>
+  }
+  followUp: {
+    // I due elenchi della sezione: chi e' in trattamento e chi ha finito.
+    list(): Promise<{ trattamento: PazienteDettaglio[]; concluso: PazienteDettaglio[] }>
+    // Sposta il paziente fra i due elenchi. Passando una data la imposta come
+    // primo contatto da fare.
+    setStato(id: number, stato: StatoPaziente, followUpIl: string | null): Promise<void>
+    setFollowUp(id: number, followUpIl: string | null): Promise<void>
+    // Segna il contatto fatto oggi e svuota la data del prossimo.
+    segnaContattato(id: number, contattato: boolean): Promise<void>
+    setRecensione(id: number, recensione: boolean): Promise<void>
   }
   esporta: {
     // HTML della seduta per la sola anteprima a schermo (nessun file salvato).

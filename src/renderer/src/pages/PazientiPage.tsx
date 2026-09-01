@@ -27,10 +27,13 @@ import { toast, toastErrore } from '../components/Toast'
 import { errMsg, formatData } from '../lib'
 
 export default function PazientiPage({
-  tornaAllElenco
+  tornaAllElenco,
+  apriPaziente
 }: {
   // Cambia ogni volta che si ripreme "Pazienti e sedute" nel menu a sinistra.
   tornaAllElenco: number
+  // Scheda da aprire, richiesta da un'altra sezione (il follow-up).
+  apriPaziente: { id: number; seq: number } | null
 }): React.JSX.Element {
   const [pazienti, setPazienti] = useState<PazienteDettaglio[]>([])
   const [selId, setSelId] = useState<number | null>(null)
@@ -60,6 +63,15 @@ export default function PazientiPage({
     if (tornaAllElenco === 0) return
     if (builderAperto.current == null) setSelId(null)
   }, [tornaAllElenco])
+
+  // Arrivando da un'altra sezione si apre la scheda chiesta. Se era rimasta
+  // aperta la costruzione di una seduta la si chiude: mostrerebbe il programma
+  // di un paziente sotto il nome di un altro.
+  useEffect(() => {
+    if (apriPaziente == null) return
+    setBuilder(null)
+    setSelId(apriPaziente.id)
+  }, [apriPaziente])
 
   const q = ricerca.trim().toLowerCase()
   const trovati = pazienti.filter(

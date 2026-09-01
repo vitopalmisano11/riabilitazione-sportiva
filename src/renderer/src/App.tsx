@@ -1,17 +1,18 @@
 import { useEffect, useState } from 'react'
-import { FolderCog, HeartPulse, KeyRound, Settings, Users } from 'lucide-react'
+import { CalendarClock, FolderCog, HeartPulse, KeyRound, Settings, Users } from 'lucide-react'
 import PatologiePage from './pages/PatologiePage'
 import EserciziPage from './pages/EserciziPage'
 import QuestionariPage from './pages/QuestionariPage'
 import TestValutazionePage from './pages/TestValutazionePage'
 import DistrettiPage from './pages/DistrettiPage'
 import PazientiPage from './pages/PazientiPage'
+import FollowUpPage from './pages/FollowUpPage'
 import AuthGate from './components/AuthGate'
 import ToastHost, { toast, toastErrore } from './components/Toast'
 import PannelloBackup from './components/PannelloBackup'
 import { errMsg } from './lib'
 
-type Sezione = 'pazienti' | 'configurazione'
+type Sezione = 'pazienti' | 'followup' | 'configurazione'
 
 type TabConfig =
   | 'patologie'
@@ -38,6 +39,15 @@ export default function App(): React.JSX.Element {
   // dentro la pagina: le si manda un contatore, e a ogni scatto lei torna
   // all'elenco.
   const [tornaAllElenco, setTornaAllElenco] = useState(0)
+  // Richiesta di aprire la scheda di un paziente da un'altra sezione. Il numero
+  // progressivo serve a far scattare l'apertura anche se si richiede due volte
+  // lo stesso paziente.
+  const [apriPaziente, setApriPaziente] = useState<{ id: number; seq: number } | null>(null)
+
+  const vaiAlPaziente = (id: number): void => {
+    setSezione('pazienti')
+    setApriPaziente((p) => ({ id, seq: (p?.seq ?? 0) + 1 }))
+  }
 
   if (!sbloccata) {
     return <AuthGate onUnlocked={() => setSbloccata(true)} />
@@ -64,6 +74,13 @@ export default function App(): React.JSX.Element {
             <Users size={18} />
             Pazienti e sedute
           </button>
+          <button
+            className={sezione === 'followup' ? 'active' : ''}
+            onClick={() => setSezione('followup')}
+          >
+            <CalendarClock size={18} />
+            Follow-up
+          </button>
         </nav>
         <div className="sidebar-footer">
           <button
@@ -84,7 +101,10 @@ export default function App(): React.JSX.Element {
         </div>
       </aside>
       <main className="content">
-        {sezione === 'pazienti' && <PazientiPage tornaAllElenco={tornaAllElenco} />}
+        {sezione === 'pazienti' && (
+          <PazientiPage tornaAllElenco={tornaAllElenco} apriPaziente={apriPaziente} />
+        )}
+        {sezione === 'followup' && <FollowUpPage onApriPaziente={vaiAlPaziente} />}
         {sezione === 'configurazione' && <ConfigurazionePage />}
       </main>
       {cambiaPw && <CambiaPasswordModal onClose={() => setCambiaPw(false)} />}

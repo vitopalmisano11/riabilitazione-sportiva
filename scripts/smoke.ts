@@ -31,7 +31,7 @@ db.pragma('foreign_keys = ON')
 
 runMigrations(db)
 runMigrations(db) // idempotente
-assert.equal(db.pragma('user_version', { simple: true }), 17)
+assert.equal(db.pragma('user_version', { simple: true }), 18)
 
 const count = (table: string): number =>
   (db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n
@@ -144,6 +144,57 @@ assert.equal(count('test_avanzamento'), 0)
 // …ma la libreria esercizi resta intatta
 assert.equal(count('esercizi'), 1)
 assert.equal(count('categorie'), 1)
+
+// --- Follow-up: stato del paziente e promemoria ---
+// Un paziente nasce in trattamento e senza recensione: e' quello che deve
+// vedere chi apre l'app dopo un aggiornamento, senza dover sistemare niente.
+{
+  // paziente suo: quelli di prima sono stati cancellati dai test sulla cascata
+  const pazFu = db
+    .prepare("INSERT INTO pazienti (nome, cognome) VALUES ('Giulia', 'Verdi')")
+    .run().lastInsertRowid
+  const stato = db
+    .prepare('SELECT stato, follow_up_il, contattato_il, recensione FROM pazienti WHERE id = ?')
+    .get(pazFu) as {
+    stato: string
+    follow_up_il: string | null
+    contattato_il: string | null
+    recensione: number
+  }
+  assert.deepEqual(stato, {
+    stato: 'trattamento',
+    follow_up_il: null,
+    contattato_il: null,
+    recensione: 0
+  })
+
+  db.prepare("UPDATE pazienti SET stato = 'concluso', follow_up_il = '2026-10-01' WHERE id = ?")
+    .run(pazFu)
+  db.prepare('UPDATE pazienti SET recensione = 1 WHERE id = ?').run(pazFu)
+  const dopo = db
+    .prepare('SELECT stato, follow_up_il, recensione FROM pazienti WHERE id = ?')
+    .get(pazFu) as { stato: string; follow_up_il: string; recensione: number }
+  assert.deepEqual(dopo, { stato: 'concluso', follow_up_il: '2026-10-01', recensione: 1 })
+
+  // "contattato" segna la data di oggi e libera il prossimo appuntamento
+  db.prepare(
+    "UPDATE pazienti SET contattato_il = date('now', 'localtime'), follow_up_il = NULL WHERE id = ?"
+  ).run(pazFu)
+  const contattato = db
+    .prepare('SELECT follow_up_il, contattato_il FROM pazienti WHERE id = ?')
+    .get(pazFu) as { follow_up_il: string | null; contattato_il: string | null }
+  assert.equal(contattato.follow_up_il, null)
+  assert.match(contattato.contattato_il ?? '', /^\d{4}-\d{2}-\d{2}$/)
+
+  // si torna in trattamento senza perdere la recensione gia' segnata
+  db.prepare("UPDATE pazienti SET stato = 'trattamento', follow_up_il = NULL WHERE id = ?")
+    .run(pazFu)
+  const ripreso = db.prepare('SELECT stato, recensione FROM pazienti WHERE id = ?').get(pazFu) as {
+    stato: string
+    recensione: number
+  }
+  assert.deepEqual(ripreso, { stato: 'trattamento', recensione: 1 })
+}
 
 db.close()
 rmSync(dir, { recursive: true, force: true })

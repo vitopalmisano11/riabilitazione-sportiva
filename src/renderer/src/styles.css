@@ -2443,3 +2443,46 @@ textarea {
 .modal-actions button {
   min-height: 44px;
 }
+
+/* Elenco del follow-up: caselle di data e spunte incolonnate, nomi a sinistra. */
+.tabella-followup th:not(.col-nome),
+.tabella-followup td:not(.col-nome) {
+  text-align: center;
+  width: 1%;
+  white-space: nowrap;
+}
+
+.tabella-followup input[type='date'] {
+  padding: 6px 10px;
+}
+
+/* una data gia' passata: da sentire, si vede scorrendo l'elenco */
+.tabella-followup input.data-scaduta {
+  border-color: var(--danger);
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.sotto-riga {
+  display: block;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+/* Il nome del paziente nel follow-up e' un collegamento alla sua scheda:
+   sembra testo, ma si vede che ci si puo' cliccare passandoci sopra. */
+.nome-cliccabile {
+  padding: 0;
+  border: none;
+  background: none;
+  font-weight: 600;
+  color: inherit;
+  text-align: left;
+  border-radius: 0;
+}
+
+.nome-cliccabile:hover:not(:disabled) {
+  background: none;
+  color: var(--accent);
+  text-decoration: underline;
+}

@@ -581,6 +581,18 @@ const MIGRATIONS: string[] = [
 
   CREATE INDEX idx_obiettivi_terapeutici_paziente
     ON obiettivi_terapeutici(paziente_id);
+  `,
+
+  // 18 - follow-up. Quattro colonne sul paziente invece di una tabella a
+  //      parte: di ognuno interessa una cosa sola alla volta — quando
+  //      risentirlo — e non lo storico di tutti i contatti. Lo stato lo decide
+  //      il fisioterapista e non si ricava dalle sedute: una pausa per ferie
+  //      non e' una fine del trattamento.
+  `
+  ALTER TABLE pazienti ADD COLUMN stato TEXT NOT NULL DEFAULT 'trattamento';
+  ALTER TABLE pazienti ADD COLUMN follow_up_il TEXT;
+  ALTER TABLE pazienti ADD COLUMN contattato_il TEXT;
+  ALTER TABLE pazienti ADD COLUMN recensione INTEGER NOT NULL DEFAULT 0;
   `
 ]
 

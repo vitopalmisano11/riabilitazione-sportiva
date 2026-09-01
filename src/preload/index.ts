@@ -13,6 +13,7 @@ import type {
   QuestionarioCompleto,
   SedutaInput,
   SezioneCartella,
+  StatoPaziente,
   TermineObiettivo,
   TestValutazioneCompleto,
   ValutazioneCompleta
@@ -127,6 +128,17 @@ const api: Api = {
     create: (data: SedutaInput) => invoke('sedute:create', data),
     update: (id: number, data: SedutaInput) => invoke('sedute:update', id, data),
     remove: (id: number) => invoke('sedute:delete', id)
+  },
+  followUp: {
+    list: () => invoke('followUp:list'),
+    setStato: (id: number, stato: StatoPaziente, followUpIl: string | null) =>
+      invoke('followUp:setStato', id, stato, followUpIl),
+    setFollowUp: (id: number, followUpIl: string | null) =>
+      invoke('followUp:setFollowUp', id, followUpIl),
+    segnaContattato: (id: number, contattato: boolean) =>
+      invoke('followUp:segnaContattato', id, contattato),
+    setRecensione: (id: number, recensione: boolean) =>
+      invoke('followUp:setRecensione', id, recensione)
   },
   esporta: {
     anteprima: (sedutaId: number) => invoke('esporta:anteprima', sedutaId),
