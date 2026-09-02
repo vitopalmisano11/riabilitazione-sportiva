@@ -593,6 +593,120 @@ const MIGRATIONS: string[] = [
   ALTER TABLE pazienti ADD COLUMN follow_up_il TEXT;
   ALTER TABLE pazienti ADD COLUMN contattato_il TEXT;
   ALTER TABLE pazienti ADD COLUMN recensione INTEGER NOT NULL DEFAULT 0;
+  `,
+
+  // 19 - screening off season. Un protocollo non contiene test propri: pesca
+  //      da quelli gia' scritti nella libreria (e dai questionari), li ordina e
+  //      li raggruppa in sezioni. Cosi' un test si scrive una volta sola e i
+  //      suoi risultati restano confrontabili, che lo si esegua dentro uno
+  //      screening o da solo.
+  //
+  //      Le sezioni sono libere: "In ambulatorio" e "In campo" sono solo la
+  //      proposta di partenza, ma chi vuole dividere per qualita' (forza,
+  //      salti, sprint) lo fa senza cambiare niente.
+  //
+  //      per_lato sulla libreria: i test monopodalici (hop, single leg CMJ,
+  //      dinamometro d'anca) si registrano destra e sinistra, e da li' nasce
+  //      l'asimmetria. Un test bilaterale ha un valore solo.
+  `
+  ALTER TABLE test_valutazione ADD COLUMN per_lato INTEGER NOT NULL DEFAULT 0;
+
+  CREATE TABLE screening_protocolli (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome TEXT NOT NULL,
+    sport TEXT NOT NULL,
+    note TEXT,
+    ordine INTEGER NOT NULL DEFAULT 0,
+    archiviato INTEGER NOT NULL DEFAULT 0
+  );
+
+  CREATE TABLE screening_sezioni (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    protocollo_id INTEGER NOT NULL REFERENCES screening_protocolli(id) ON DELETE CASCADE,
+    nome TEXT NOT NULL,
+    ordine INTEGER NOT NULL DEFAULT 0
+  );
+
+  -- Una voce e' un test della libreria oppure un questionario, mai tutti e due
+  -- e mai nessuno dei due.
+  CREATE TABLE screening_voci (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sezione_id INTEGER NOT NULL REFERENCES screening_sezioni(id) ON DELETE CASCADE,
+    test_id INTEGER REFERENCES test_valutazione(id) ON DELETE CASCADE,
+    questionario_id INTEGER REFERENCES questionari(id) ON DELETE CASCADE,
+    ordine INTEGER NOT NULL DEFAULT 0,
+    CHECK ((test_id IS NULL) <> (questionario_id IS NULL))
+  );
+
+  CREATE INDEX idx_screening_sezioni_protocollo
+    ON screening_sezioni(protocollo_id);
+  CREATE INDEX idx_screening_voci_sezione ON screening_voci(sezione_id);
+  `,
+
+  // 20 - screening eseguiti. Una sessione e' un protocollo somministrato a un
+  //      paziente in una data; i valori sono righe, non colonne, perche' ogni
+  //      test ha misure sue e un numero di prove suo.
+  //
+  //      lato: 'dx' o 'sx' per i test monopodalici, NULL per i bilaterali.
+  //      prova: il numero della ripetizione (1, 2, 3...) per le misure che si
+  //      registrano a ogni prova, NULL per quelle che si prendono una volta
+  //      sola. Il protocollo resta collegato: se lo si cancella, gli screening
+  //      gia' fatti restano leggibili con i loro valori.
+  `
+  CREATE TABLE screening_sessioni (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    paziente_id INTEGER NOT NULL REFERENCES pazienti(id) ON DELETE CASCADE,
+    protocollo_id INTEGER REFERENCES screening_protocolli(id) ON DELETE SET NULL,
+    protocollo_nome TEXT NOT NULL,
+    sport TEXT NOT NULL,
+    data TEXT NOT NULL,
+    note TEXT
+  );
+
+  CREATE TABLE screening_valori (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sessione_id INTEGER NOT NULL REFERENCES screening_sessioni(id) ON DELETE CASCADE,
+    misura_id INTEGER NOT NULL REFERENCES test_misure(id) ON DELETE CASCADE,
+    lato TEXT,
+    prova INTEGER,
+    valore REAL NOT NULL
+  );
+
+  -- Il questionario di uno screening e' una compilazione normale: qui si tiene
+  -- solo il collegamento, cosi' resta anche nello storico del paziente.
+  CREATE TABLE screening_questionari (
+    sessione_id INTEGER NOT NULL REFERENCES screening_sessioni(id) ON DELETE CASCADE,
+    questionario_id INTEGER NOT NULL REFERENCES questionari(id) ON DELETE CASCADE,
+    compilazione_id INTEGER REFERENCES paziente_questionari(id) ON DELETE SET NULL,
+    PRIMARY KEY (sessione_id, questionario_id)
+  );
+
+  CREATE INDEX idx_screening_sessioni_paziente ON screening_sessioni(paziente_id);
+  CREATE INDEX idx_screening_valori_sessione ON screening_valori(sessione_id);
+  `,
+
+  // 21 - quello che serve a leggere davvero un confronto fra i due arti.
+  //
+  //      arto_operato sul paziente: senza, il rapporto e' solo destra/sinistra.
+  //      Sapendo qual e' l'arto operato diventa operato ÷ sano, che e' l'LSI, e
+  //      il verso ha un significato clinico. Sta sul paziente e non sul singolo
+  //      screening perche' non cambia da una volta all'altra.
+  //
+  //      lsi_cutoff sul test: e' una soglia sul rapporto (90%, 95%), cosa
+  //      diversa dal cutoff della misura, che si confronta col valore misurato.
+  //      Servono tutti e due e non possono stare nello stesso campo.
+  //
+  //      calcolo sulla misura: alcune misure non si misurano, si ricavano da
+  //      altre due dello stesso test (l'EUR e' CMJ diviso Squat Jump). Le fonti
+  //      sono misure gia' salvate, quindi si citano per id.
+  `
+  ALTER TABLE pazienti ADD COLUMN arto_operato TEXT;
+  ALTER TABLE test_valutazione ADD COLUMN lsi_cutoff REAL;
+  ALTER TABLE test_misure ADD COLUMN calcolo TEXT;
+  ALTER TABLE test_misure ADD COLUMN calcolo_a INTEGER
+    REFERENCES test_misure(id) ON DELETE SET NULL;
+  ALTER TABLE test_misure ADD COLUMN calcolo_b INTEGER
+    REFERENCES test_misure(id) ON DELETE SET NULL;
   `
 ]
 

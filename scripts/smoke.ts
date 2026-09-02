@@ -16,6 +16,11 @@ import { closeDb, getDb, initDb, isPlaintextDb } from '../src/main/db'
 import { generaCartella, SEZIONI } from '../src/main/export-cartella'
 import { datiScheda } from '../src/main/scheda-dati'
 import {
+  duplicaProtocollo,
+  leggiProtocollo,
+  salvaProtocollo
+} from '../src/main/screening'
+import {
   aggiornaCompilazione,
   calcola,
   salvaCompilazione,
@@ -31,7 +36,7 @@ db.pragma('foreign_keys = ON')
 
 runMigrations(db)
 runMigrations(db) // idempotente
-assert.equal(db.pragma('user_version', { simple: true }), 18)
+assert.equal(db.pragma('user_version', { simple: true }), 21)
 
 const count = (table: string): number =>
   (db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n
@@ -413,6 +418,108 @@ assert.equal(
     note: null,
     risposte: []
   }), /non trovata/)
+}
+
+// --- Screening: un protocollo pesca dalla libreria, non duplica i test ---
+{
+  const catTest = Number(
+    getDb().prepare("INSERT INTO test_categorie (nome, ordine) VALUES ('Salti', 0)").run()
+      .lastInsertRowid
+  )
+  const tSalto = Number(
+    getDb().prepare("INSERT INTO test_valutazione (nome, categoria_id) VALUES ('CMJ', ?)")
+      .run(catTest).lastInsertRowid
+  )
+  const tHop = Number(
+    getDb().prepare(
+      "INSERT INTO test_valutazione (nome, categoria_id, per_lato) VALUES ('Single Hop', ?, 1)"
+    ).run(catTest).lastInsertRowid
+  )
+  const catQ = Number(
+    getDb().prepare("INSERT INTO questionario_categorie (nome, ordine) VALUES ('Ginocchio', 0)").run()
+      .lastInsertRowid
+  )
+  const qAcl = Number(
+    getDb().prepare("INSERT INTO questionari (nome, categoria_id) VALUES ('ACL-RSI', ?)").run(catQ)
+      .lastInsertRowid
+  )
+
+  const protId = Number(
+    getDb().prepare("INSERT INTO screening_protocolli (nome, sport) VALUES ('Off season', 'Calcio')")
+      .run().lastInsertRowid
+  )
+  // Sezioni e voci arrivano con id negativi, come dall'interfaccia.
+  salvaProtocollo({
+    protocollo: {
+      id: protId,
+      nome: 'Off season',
+      sport: 'Calcio',
+      note: null,
+      ordine: 0,
+      archiviato: 0
+    },
+    sezioni: [
+      {
+        id: -1,
+        nome: 'In ambulatorio',
+        voci: [
+          { id: -10, test_id: tSalto, questionario_id: null },
+          { id: -11, test_id: null, questionario_id: qAcl }
+        ]
+      },
+      { id: -2, nome: 'In campo', voci: [{ id: -12, test_id: tHop, questionario_id: null }] }
+    ]
+  })
+
+  const letto = leggiProtocollo(protId)
+  assert.equal(letto.sezioni.length, 2)
+  // il nome della voce viene dalla libreria, non e' una copia
+  assert.deepEqual(
+    letto.sezioni[0].voci.map((v: { nome?: string }) => v.nome),
+    ['CMJ', 'ACL-RSI']
+  )
+  assert.equal(letto.sezioni[1].voci[0].nome, 'Single Hop')
+
+  // rinominando il test nella libreria, il protocollo mostra il nome nuovo
+  getDb().prepare("UPDATE test_valutazione SET nome = 'CMJ bilaterale' WHERE id = ?").run(tSalto)
+  assert.equal(leggiProtocollo(protId).sezioni[0].voci[0].nome, 'CMJ bilaterale')
+
+  // togliendo una sezione, le sue voci se ne vanno con lei
+  const restano = leggiProtocollo(protId)
+  salvaProtocollo({ ...restano, sezioni: [restano.sezioni[0]] })
+  assert.equal(leggiProtocollo(protId).sezioni.length, 1)
+  assert.equal(
+    (getDb().prepare('SELECT COUNT(*) AS n FROM screening_voci').get() as { n: number })
+      .n,
+    2
+  )
+
+  // la copia e' indipendente: le sue voci hanno id propri
+  const copia = duplicaProtocollo(protId, 'Off season 2027')
+  assert.notEqual(copia, protId)
+  const dupl = leggiProtocollo(copia)
+  assert.equal(dupl.protocollo.sport, 'Calcio')
+  assert.deepEqual(
+    dupl.sezioni[0].voci.map((v: { nome?: string }) => v.nome),
+    ['CMJ bilaterale', 'ACL-RSI']
+  )
+  assert.ok(
+    dupl.sezioni[0].voci.every(
+      (v: { id: number | null }) => v.id !== letto.sezioni[0].voci[0].id
+    )
+  )
+
+  // una voce non puo' essere insieme test e questionario, ne' nessuno dei due
+  assert.throws(() =>
+    getDb().prepare(
+      'INSERT INTO screening_voci (sezione_id, test_id, questionario_id) VALUES (?, ?, ?)'
+    ).run(dupl.sezioni[0].id, tSalto, qAcl)
+  )
+  assert.throws(() =>
+    getDb().prepare(
+      'INSERT INTO screening_voci (sezione_id, test_id, questionario_id) VALUES (?, NULL, NULL)'
+    ).run(dupl.sezioni[0].id)
+  )
 }
 
 getDb().close()

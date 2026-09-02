@@ -24,10 +24,14 @@ function fraUnMese(): string {
 }
 
 export default function FollowUpPage({
-  onApriPaziente
+  onApriPaziente,
+  ricarica
 }: {
   // Porta alla scheda del paziente, nella sezione "Pazienti e sedute".
   onApriPaziente: (id: number) => void
+  // Cambia quando si ripreme "Follow-up" nel menu: qui non c'e' niente da
+  // chiudere, quindi si rilegge l'elenco.
+  ricarica: number
 }): React.JSX.Element {
   const [trattamento, setTrattamento] = useState<PazienteDettaglio[]>([])
   const [concluso, setConcluso] = useState<PazienteDettaglio[]>([])
@@ -44,7 +48,7 @@ export default function FollowUpPage({
 
   useEffect(() => {
     void carica()
-  }, [carica])
+  }, [carica, ricarica])
 
   const esegui = async (fn: () => Promise<unknown>): Promise<void> => {
     try {
@@ -108,27 +112,26 @@ export default function FollowUpPage({
           ) : (
             <ul className="sedute-list">
               {trattamento.map((p) => (
-                <li key={p.id}>
-                  <div className="seduta-info">
-                    <button
-                      className="nome-cliccabile"
-                      title="Apri la scheda del paziente"
-                      onClick={() => onApriPaziente(p.id)}
-                    >
-                      {p.cognome} {p.nome}
-                    </button>
-                    <span className="seduta-meta">
-                      {p.ultima_seduta
-                        ? `ultima seduta ${formatData(p.ultima_seduta)}`
-                        : 'nessuna seduta ancora'}
-                      {p.patologia_nome && ` · ${p.patologia_nome}`}
-                    </span>
-                  </div>
-                  <span className="row-actions">
-                    <button title="Il ciclo è finito" onClick={() => concludi(p)}>
-                      <CheckCircle2 size={18} /> Concludi
-                    </button>
+                // Nome a sinistra, patologia a destra e il pulsante in fondo:
+                // tutto su una riga sola. L'ultima seduta resta perché è quella
+                // che dice chi non si fa vivo da settimane.
+                <li key={p.id} className="riga-trattamento">
+                  <button
+                    className="nome-cliccabile"
+                    title="Apri la scheda del paziente"
+                    onClick={() => onApriPaziente(p.id)}
+                  >
+                    {p.cognome} {p.nome}
+                  </button>
+                  <span className="colonna-patologia">{p.patologia_nome ?? '—'}</span>
+                  <span className="colonna-ultima">
+                    {p.ultima_seduta
+                      ? `ultima seduta ${formatData(p.ultima_seduta)}`
+                      : 'nessuna seduta ancora'}
                   </span>
+                  <button title="Il ciclo è finito" onClick={() => concludi(p)}>
+                    <CheckCircle2 size={18} /> Concludi
+                  </button>
                 </li>
               ))}
             </ul>

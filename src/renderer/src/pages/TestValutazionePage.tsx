@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ChevronRight, GripVertical, Pencil, Plus, X } from 'lucide-react'
 import type {
+  CalcoloMisura,
   CategoriaTest,
   DirezioneCutoff,
   MisuraTest,
@@ -357,6 +358,40 @@ function EditorTest({
         </label>
       </div>
 
+      {/* I test monopodalici si registrano gamba per gamba: e' da qui che nasce
+          il confronto fra destra e sinistra. */}
+      <label className="checkbox-inline">
+        <input
+          type="checkbox"
+          checked={dati.test.per_lato === 1}
+          onChange={(e) => aggiornaTest({ per_lato: e.target.checked ? 1 : 0 })}
+        />
+        Si esegue una gamba per volta (destra e sinistra separate)
+      </label>
+
+      {/* La soglia sull'LSI e' cosa diversa da quella sulla misura: qui si
+          confronta il rapporto fra i due arti, non il valore misurato. */}
+      {dati.test.per_lato === 1 && (
+        <div className="regola-fascia">
+          <span className="regola-parola">simmetria sufficiente da</span>
+          <input
+            type="number"
+            className="campo-stretto"
+            placeholder="es. 90"
+            value={dati.test.lsi_cutoff ?? ''}
+            onChange={(e) =>
+              aggiornaTest({
+                lsi_cutoff: e.target.value === '' ? null : Number(e.target.value)
+              })
+            }
+          />
+          <span className="regola-parola">% in su</span>
+          {dati.test.lsi_cutoff == null && (
+            <span className="hint">senza soglia l&apos;asimmetria si mostra, non si giudica</span>
+          )}
+        </div>
+      )}
+
       <Parametri
         parametri={dati.parametri}
         onChange={(parametri) => aggiorna({ parametri })}
@@ -552,6 +587,46 @@ function Misure({
               <span className="regola-parola">{m.unita ?? ''}</span>
               {m.cutoff == null && <span className="hint">senza soglia: solo registrata</span>}
             </div>
+
+            {/* Misure ricavate da altre due dello stesso test: l'EUR e' CMJ
+                diviso Squat Jump. Le fonti devono essere gia' salvate, perche'
+                una misura appena aggiunta non ha ancora un id da citare. */}
+            <div className="regola-fascia">
+              <span className="regola-parola">si ottiene</span>
+              <select
+                value={m.calcolo ?? ''}
+                onChange={(e) =>
+                  modifica(i, {
+                    calcolo: e.target.value === '' ? null : (e.target.value as CalcoloMisura),
+                    calcolo_a: e.target.value === '' ? null : m.calcolo_a,
+                    calcolo_b: e.target.value === '' ? null : m.calcolo_b
+                  })
+                }
+              >
+                <option value="">misurandola</option>
+                <option value="rapporto">dividendo</option>
+                <option value="differenza">sottraendo</option>
+              </select>
+              {m.calcolo != null && (
+                <>
+                  <FonteMisura
+                    misure={misure}
+                    escludi={m.id}
+                    valore={m.calcolo_a}
+                    onScegli={(v) => modifica(i, { calcolo_a: v })}
+                  />
+                  <span className="regola-parola">
+                    {m.calcolo === 'rapporto' ? 'per' : 'meno'}
+                  </span>
+                  <FonteMisura
+                    misure={misure}
+                    escludi={m.id}
+                    valore={m.calcolo_b}
+                    onScegli={(v) => modifica(i, { calcolo_b: v })}
+                  />
+                </>
+              )}
+            </div>
           </div>
         )
       })}
@@ -566,6 +641,9 @@ function Misure({
               unita: null,
               per_prova: 1,
               riassunto: 'migliore',
+              calcolo: null,
+              calcolo_a: null,
+              calcolo_b: null,
               cutoff: null,
               cutoff_direzione: null
             }
@@ -575,5 +653,37 @@ function Misure({
         <Plus size={16} /> Aggiungi misura
       </button>
     </div>
+  )
+}
+
+// Le misure che si possono usare come fonte di un calcolo: solo quelle gia'
+// salvate (hanno un id) e diverse da quella che si sta impostando.
+function FonteMisura({
+  misure,
+  escludi,
+  valore,
+  onScegli
+}: {
+  misure: MisuraTest[]
+  escludi: number | null
+  valore: number | null
+  onScegli: (v: number | null) => void
+}): React.JSX.Element {
+  const scelte = misure.filter((m) => m.id != null && m.id !== escludi)
+  if (scelte.length === 0) {
+    return <span className="hint">salva prima le misure da usare nel calcolo</span>
+  }
+  return (
+    <select
+      value={valore ?? ''}
+      onChange={(e) => onScegli(e.target.value === '' ? null : Number(e.target.value))}
+    >
+      <option value="">— scegli —</option>
+      {scelte.map((m) => (
+        <option key={m.id} value={m.id ?? undefined}>
+          {m.nome || 'senza nome'}
+        </option>
+      ))}
+    </select>
   )
 }

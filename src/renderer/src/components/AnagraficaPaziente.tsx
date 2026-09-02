@@ -56,6 +56,15 @@ export default function AnagraficaPaziente({
     {
       etichetta: 'Data intervento',
       valore: paziente.data_intervento ? formatData(paziente.data_intervento) : null
+    },
+    {
+      etichetta: 'Lato operato/infortunato',
+      valore:
+        paziente.arto_operato === 'dx'
+          ? 'Destro'
+          : paziente.arto_operato === 'sx'
+            ? 'Sinistro'
+            : null
     }
   ]
   const compilate = voci.filter((v) => v.valore)
@@ -118,7 +127,8 @@ const VUOTO = {
   inviato_da: '',
   diagnosi: '',
   tipo_intervento: '',
-  data_intervento: ''
+  data_intervento: '',
+  arto_operato: ''
 }
 
 // Stessa finestra per creare un paziente e per modificarlo, cosi' i campi non
@@ -146,7 +156,8 @@ export function ModaleDatiPaziente({
           inviato_da: paziente.inviato_da ?? '',
           diagnosi: paziente.diagnosi ?? '',
           tipo_intervento: paziente.tipo_intervento ?? '',
-          data_intervento: paziente.data_intervento ?? ''
+          data_intervento: paziente.data_intervento ?? '',
+          arto_operato: paziente.arto_operato ?? ''
         }
       : { ...VUOTO }
   )
@@ -183,7 +194,8 @@ export function ModaleDatiPaziente({
       inviato_da: vuotoNull(form.inviato_da),
       diagnosi: vuotoNull(form.diagnosi),
       tipo_intervento: vuotoNull(form.tipo_intervento),
-      data_intervento: form.data_intervento || null
+      data_intervento: form.data_intervento || null,
+      arto_operato: form.arto_operato === '' ? null : (form.arto_operato as 'dx' | 'sx')
     }
     try {
       if (nuovo) {
@@ -278,10 +290,22 @@ export function ModaleDatiPaziente({
           </label>
         </div>
 
-        <label>
-          Data intervento
-          <input type="date" value={form.data_intervento} onChange={campo('data_intervento')} />
-        </label>
+        <div className="form-row-2">
+          <label>
+            Data intervento
+            <input type="date" value={form.data_intervento} onChange={campo('data_intervento')} />
+          </label>
+          {/* Serve agli screening: sapendo qual e' il lato interessato il
+              confronto fra i due diventa interessato ÷ sano, cioè l'LSI. */}
+          <label>
+            Lato operato/infortunato
+            <select value={form.arto_operato} onChange={campo('arto_operato')}>
+              <option value="">— nessuno —</option>
+              <option value="dx">Destro</option>
+              <option value="sx">Sinistro</option>
+            </select>
+          </label>
+        </div>
 
         {nuovo && (
           <>

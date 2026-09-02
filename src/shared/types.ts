@@ -103,6 +103,9 @@ export interface Paziente {
   follow_up_il: string | null
   contattato_il: string | null
   recensione: 0 | 1
+  // Qual e' l'arto operato: serve a calcolare l'LSI come operato ÷ sano invece
+  // che come semplice differenza fra destra e sinistra.
+  arto_operato: 'dx' | 'sx' | null
 }
 
 export type PazienteDettaglio = Paziente & {
@@ -123,6 +126,7 @@ export interface PazienteInput {
   diagnosi: string | null
   tipo_intervento: string | null
   data_intervento: string | null
+  arto_operato: 'dx' | 'sx' | null
 }
 
 export type PazienteCreateInput = PazienteInput & {
@@ -300,6 +304,13 @@ export interface TestValutazione {
   // video o pagina che mostra come si esegue il test
   link: string | null
   prove: number
+  // Soglia sul rapporto fra i due arti (90, 95...). E' cosa diversa dal cutoff
+  // della misura, che si confronta col valore misurato.
+  lsi_cutoff: number | null
+  // 1 = si esegue una gamba per volta (hop, single leg CMJ, dinamometro
+  // d'anca): i valori si registrano destra e sinistra e da li' nasce
+  // l'asimmetria fra i due arti.
+  per_lato: 0 | 1
   ordine: number
   archiviato: 0 | 1
 }
@@ -311,6 +322,10 @@ export interface ParametroTest {
   unita: string | null
 }
 
+// Una misura che si ricava da altre due dello stesso test invece di essere
+// misurata: 'rapporto' e' A ÷ B (l'EUR), 'differenza' e' A − B (il COD deficit).
+export type CalcoloMisura = 'rapporto' | 'differenza'
+
 export interface MisuraTest {
   id: number | null
   nome: string
@@ -319,12 +334,111 @@ export interface MisuraTest {
   riassunto: RiassuntoMisura
   cutoff: number | null
   cutoff_direzione: DirezioneCutoff | null
+  // Se valorizzato, la misura non si scrive: si calcola dalle due indicate.
+  calcolo: CalcoloMisura | null
+  calcolo_a: number | null
+  calcolo_b: number | null
 }
 
 export interface TestValutazioneCompleto {
   test: TestValutazione
   parametri: ParametroTest[]
   misure: MisuraTest[]
+}
+
+// ---- Screening (off season e non) ----
+// Un protocollo non ha test propri: raccoglie e ordina quelli gia' scritti
+// nella libreria, piu' i questionari, divisi in sezioni libere ("In
+// ambulatorio", "In campo", oppure per qualita': forza, salti, sprint).
+//
+// Le voci non ancora salvate hanno un id negativo assegnato dall'interfaccia,
+// come nei questionari: serve a tenere i riferimenti giusti anche riordinando
+// prima di salvare.
+export interface ProtocolloScreening {
+  id: number
+  nome: string
+  sport: string
+  note: string | null
+  ordine: number
+  archiviato: 0 | 1
+}
+
+export interface VoceScreening {
+  id: number | null
+  // Esattamente uno dei due e' valorizzato.
+  test_id: number | null
+  questionario_id: number | null
+  // solo per mostrarlo: non si salva, viene dalla libreria
+  nome?: string
+}
+
+export interface SezioneScreening {
+  id: number | null
+  nome: string
+  voci: VoceScreening[]
+}
+
+export interface ProtocolloScreeningCompleto {
+  protocollo: ProtocolloScreening
+  sezioni: SezioneScreening[]
+}
+
+// ---- Screening eseguito ----
+// Un protocollo somministrato a un paziente in una data. Nome del protocollo e
+// sport sono copiati dentro: uno screening gia' fatto deve restare leggibile
+// anche se il protocollo viene poi cambiato o cancellato.
+export interface ScreeningRiepilogo {
+  id: number
+  paziente_id: number
+  paziente_nome: string
+  paziente_cognome: string
+  data: string
+  protocollo_nome: string
+  sport: string
+  note: string | null
+  num_valori: number
+}
+
+export interface SessioneScreening extends ScreeningRiepilogo {
+  protocollo_id: number | null
+  // Copiato dal paziente: serve a sapere quale dei due arti e' quello operato.
+  arto_operato: 'dx' | 'sx' | null
+}
+
+// Un valore misurato. lato = 'dx' | 'sx' per i test monopodalici, null per i
+// bilaterali; prova = numero della ripetizione, null per le misure che si
+// prendono una volta sola.
+export interface ValoreScreening {
+  misura_id: number
+  lato: 'dx' | 'sx' | null
+  prova: number | null
+  valore: number
+}
+
+export type VoceEseguita =
+  | {
+      tipo: 'test'
+      test_id: number
+      nome: string
+      protocollo: string | null
+      prove: number
+      per_lato: 0 | 1
+      lsi_cutoff: number | null
+      misure: MisuraTest[]
+    }
+  | {
+      tipo: 'questionario'
+      questionario_id: number
+      nome: string
+      compilazione_id: number | null
+      compilazione_data: string | null
+      fascia: string | null
+    }
+
+export interface ScreeningCompleto {
+  sessione: SessioneScreening
+  sezioni: { nome: string; voci: VoceEseguita[] }[]
+  valori: ValoreScreening[]
 }
 
 // ---- Body chart ----
@@ -759,6 +873,38 @@ export interface Api {
     salva(dati: TestValutazioneCompleto): Promise<void>
     remove(id: number): Promise<void>
     reorder(ids: number[]): Promise<void>
+  }
+  screening: {
+    // Gli sport gia' usati, per proporli invece di farli riscrivere.
+    sport(): Promise<string[]>
+    list(sport: string | null): Promise<ProtocolloScreening[]>
+    get(id: number): Promise<ProtocolloScreeningCompleto>
+    create(nome: string, sport: string): Promise<number>
+    rinomina(id: number, nome: string): Promise<void>
+    // Salva protocollo, sezioni e voci in blocco: quelle sparite si eliminano.
+    salva(dati: ProtocolloScreeningCompleto): Promise<void>
+    duplica(id: number, nome: string): Promise<number>
+    remove(id: number): Promise<void>
+    reorder(ids: number[]): Promise<void>
+  }
+  screeningSvolti: {
+    // Passando null si vedono quelli di tutti i pazienti.
+    list(pazienteId: number | null): Promise<ScreeningRiepilogo[]>
+    get(id: number): Promise<ScreeningCompleto>
+    create(pazienteId: number, protocolloId: number, data: string): Promise<number>
+    // I valori si riscrivono tutti insieme.
+    salva(
+      id: number,
+      data: string,
+      note: string | null,
+      valori: ValoreScreening[]
+    ): Promise<void>
+    collegaQuestionario(
+      id: number,
+      questionarioId: number,
+      compilazioneId: number
+    ): Promise<void>
+    remove(id: number): Promise<void>
   }
   bodyChart: {
     list(pazienteId: number): Promise<BodyChartRiepilogo[]>

@@ -40,6 +40,15 @@ import {
   salvaCompilazione,
   salvaQuestionario
 } from './questionari'
+import { duplicaProtocollo, leggiProtocollo, salvaProtocollo } from './screening'
+import {
+  collegaCompilazione,
+  creaScreening,
+  elencoScreening,
+  eliminaScreening,
+  leggiScreening,
+  salvaValori
+} from './screening-sessioni'
 import { leggiTest, salvaTest } from './test-valutazione'
 import {
   leggiDistretto,
@@ -60,6 +69,8 @@ import type {
   DistrettoCompleto,
   QuestionarioCompleto,
   SedutaInput,
+  ProtocolloScreeningCompleto,
+  ValoreScreening,
   SezioneCartella,
   StatoPaziente,
   TermineObiettivo,
@@ -580,7 +591,8 @@ export function registerIpc(): void {
         `UPDATE pazienti SET nome = @nome, cognome = @cognome,
          data_nascita = @data_nascita, telefono = @telefono, email = @email,
          lavoro = @lavoro, inviato_da = @inviato_da, diagnosi = @diagnosi,
-         tipo_intervento = @tipo_intervento, data_intervento = @data_intervento
+         tipo_intervento = @tipo_intervento, data_intervento = @data_intervento,
+         arto_operato = @arto_operato
          WHERE id = @id`
       )
       .run({ ...data, nome: data.nome.trim(), cognome: data.cognome.trim(), id })
@@ -594,6 +606,77 @@ export function registerIpc(): void {
   handle('pazienti:delete', (id: number) => {
     getDb().prepare('DELETE FROM pazienti WHERE id = ?').run(id)
   })
+  // ---- Screening ----
+  handle('screening:sport', () =>
+    (
+      getDb()
+        .prepare('SELECT DISTINCT sport FROM screening_protocolli ORDER BY sport')
+        .all() as { sport: string }[]
+    ).map((r) => r.sport)
+  )
+  handle('screening:list', (sport: string | null) =>
+    getDb()
+      .prepare(
+        `SELECT * FROM screening_protocolli
+         WHERE (? IS NULL OR sport = ?)
+         ORDER BY sport, ordine, id`
+      )
+      .all(sport, sport)
+  )
+  handle('screening:get', (id: number) => leggiProtocollo(id))
+  handle('screening:create', (nome: string, sport: string) => {
+    const db = getDb()
+    const { next } = db
+      .prepare('SELECT COALESCE(MAX(ordine), -1) + 1 AS next FROM screening_protocolli')
+      .get() as { next: number }
+    const id = Number(
+      db
+        .prepare('INSERT INTO screening_protocolli (nome, sport, ordine) VALUES (?, ?, ?)')
+        .run(nome.trim(), sport.trim(), next).lastInsertRowid
+    )
+    // Le due sezioni con cui si comincia quasi sempre: si rinominano e si
+    // cancellano come le altre.
+    const ins = db.prepare(
+      'INSERT INTO screening_sezioni (protocollo_id, nome, ordine) VALUES (?, ?, ?)'
+    )
+    ins.run(id, 'In ambulatorio', 0)
+    ins.run(id, 'In campo', 1)
+    return id
+  })
+  handle('screening:rinomina', (id: number, nome: string) => {
+    getDb().prepare('UPDATE screening_protocolli SET nome = ? WHERE id = ?').run(nome.trim(), id)
+  })
+  handle('screening:salva', (dati: ProtocolloScreeningCompleto) => salvaProtocollo(dati))
+  handle('screening:duplica', (id: number, nome: string) => duplicaProtocollo(id, nome))
+  handle('screening:delete', (id: number) => {
+    getDb().prepare('DELETE FROM screening_protocolli WHERE id = ?').run(id)
+  })
+  handle('screening:reorder', (ids: number[]) => {
+    const db = getDb()
+    const stmt = db.prepare('UPDATE screening_protocolli SET ordine = ? WHERE id = ?')
+    db.transaction(() => ids.forEach((id, i) => stmt.run(i, id)))()
+  })
+
+  // ---- Screening eseguiti ----
+  handle('screeningSvolti:list', (pazienteId: number | null) => elencoScreening(pazienteId))
+  handle('screeningSvolti:get', (id: number) => leggiScreening(id))
+  handle(
+    'screeningSvolti:create',
+    (pazienteId: number, protocolloId: number, data: string) =>
+      creaScreening(pazienteId, protocolloId, data)
+  )
+  handle(
+    'screeningSvolti:salva',
+    (id: number, data: string, note: string | null, valori: ValoreScreening[]) =>
+      salvaValori(id, data, note, valori)
+  )
+  handle(
+    'screeningSvolti:collegaQuestionario',
+    (id: number, questionarioId: number, compilazioneId: number) =>
+      collegaCompilazione(id, questionarioId, compilazioneId)
+  )
+  handle('screeningSvolti:delete', (id: number) => eliminaScreening(id))
+
   // ---- Follow-up ----
   // Le due liste escono dalla stessa query dell'elenco pazienti, divise per
   // stato: in trattamento in ordine di seduta piu' recente, in follow-up in

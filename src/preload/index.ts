@@ -12,6 +12,8 @@ import type {
   DistrettoCompleto,
   QuestionarioCompleto,
   SedutaInput,
+  ProtocolloScreeningCompleto,
+  ValoreScreening,
   SezioneCartella,
   StatoPaziente,
   TermineObiettivo,
@@ -191,6 +193,28 @@ const api: Api = {
     salva: (dati: TestValutazioneCompleto) => invoke('testValutazione:salva', dati),
     remove: (id: number) => invoke('testValutazione:delete', id),
     reorder: (ids: number[]) => invoke('testValutazione:reorder', ids)
+  },
+  screening: {
+    sport: () => invoke('screening:sport'),
+    list: (sport: string | null) => invoke('screening:list', sport),
+    get: (id: number) => invoke('screening:get', id),
+    create: (nome: string, sport: string) => invoke('screening:create', nome, sport),
+    rinomina: (id: number, nome: string) => invoke('screening:rinomina', id, nome),
+    salva: (dati: ProtocolloScreeningCompleto) => invoke('screening:salva', dati),
+    duplica: (id: number, nome: string) => invoke('screening:duplica', id, nome),
+    remove: (id: number) => invoke('screening:delete', id),
+    reorder: (ids: number[]) => invoke('screening:reorder', ids)
+  },
+  screeningSvolti: {
+    list: (pazienteId: number | null) => invoke('screeningSvolti:list', pazienteId),
+    get: (id: number) => invoke('screeningSvolti:get', id),
+    create: (pazienteId: number, protocolloId: number, data: string) =>
+      invoke('screeningSvolti:create', pazienteId, protocolloId, data),
+    salva: (id: number, data: string, note: string | null, valori: ValoreScreening[]) =>
+      invoke('screeningSvolti:salva', id, data, note, valori),
+    collegaQuestionario: (id: number, questionarioId: number, compilazioneId: number) =>
+      invoke('screeningSvolti:collegaQuestionario', id, questionarioId, compilazioneId),
+    remove: (id: number) => invoke('screeningSvolti:delete', id)
   },
   bodyChart: {
     list: (pazienteId: number) => invoke('bodyChart:list', pazienteId),
