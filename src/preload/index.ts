@@ -143,13 +143,13 @@ const api: Api = {
       invoke('followUp:setRecensione', id, recensione)
   },
   esporta: {
-    anteprima: (sedutaId: number) => invoke('esporta:anteprima', sedutaId),
+    schedaIllustrata: (sedutaId: number) => invoke('esporta:schedaIllustrata', sedutaId),
     anteprimaCartella: (pazienteId: number, sezioni: SezioneCartella[]) =>
       invoke('esporta:anteprimaCartella', pazienteId, sezioni),
     cartella: (pazienteId: number, sezioni: SezioneCartella[]) =>
       invoke('esporta:cartella', pazienteId, sezioni),
-    seduta: (sedutaId: number, formato: 'pdf' | 'docx') =>
-      invoke('esporta:seduta', sedutaId, formato),
+    seduta: (sedutaId: number, formato: 'pdf' | 'docx', illustrata?: boolean) =>
+      invoke('esporta:seduta', sedutaId, formato, illustrata),
     storico: (pazienteId: number, dal: string, al: string, formato: 'pdf' | 'docx') =>
       invoke('esporta:storico', pazienteId, dal, al, formato)
   },

@@ -9,6 +9,7 @@
 // Le body chart si ridisegnano con gli stessi tracciati dell'app
 // (src/shared/figure.ts): nel documento appaiono come le hai segnate.
 import { getDb } from './db'
+import { COLORI_SINTOMI } from '../shared/sintomi'
 import {
   ALTEZZA,
   BRACCIO,
@@ -33,8 +34,11 @@ import type { SezioneCartella } from '../shared/types'
 export const SEZIONI: { chiave: SezioneCartella; titolo: string }[] = [
   { chiave: 'anagrafica', titolo: 'Dati del paziente' },
   { chiave: 'anamnesi', titolo: 'Anamnesi prossima' },
-  { chiave: 'remota', titolo: 'Anamnesi remota' },
+  // La body chart sta fra le due anamnesi: e' il disegno di quello che il
+  // paziente ha appena raccontato, e leggerlo dopo l'anamnesi remota vorrebbe
+  // dire tornare indietro.
   { chiave: 'bodychart', titolo: 'Body chart' },
+  { chiave: 'remota', titolo: 'Anamnesi remota' },
   { chiave: 'valutazioni', titolo: 'Valutazione obiettiva' },
   { chiave: 'questionari', titolo: 'Questionari' },
   { chiave: 'obiettivi', titolo: 'Obiettivi terapeutici' },
@@ -50,6 +54,12 @@ export type Blocco =
   | { tipo: 'elenco'; voci: string[] }
   | { tipo: 'tabella'; intestazioni: string[]; righe: string[][] }
   | { tipo: 'figure'; viste: { didascalia: string; svg: string }[] }
+  | { tipo: 'riquadro'; titolo: string; colore?: string; blocchi: Blocco[] }
+  | {
+      tipo: 'grafici'
+      grafici: { titolo: string; svg: string }[]
+      legenda: { colore: string; testo: string }[]
+    }
 
 export interface SezioneComposta {
   titolo: string
@@ -104,6 +114,78 @@ function testo(titolo: string, corpo: unknown): Blocco[] {
   return pieno(corpo) ? [{ tipo: 'testo', titolo, corpo: String(corpo) }] : []
 }
 
+// ---- andamento dei sintomi ----
+//
+// Gli stessi due grafici della raccolta anamnestica — le 24 ore e l'andamento
+// dall'esordio — con tutti i sintomi dentro lo stesso disegno, una linea per
+// colore. Uno per sintomo non direbbe la cosa che conta di piu': se peggiorano
+// insieme o uno per volta.
+//
+// La posizione orizzontale arriva gia' calcolata da 0 a 1, perche' i due
+// grafici la decidono in modo diverso: le ore sono in scala, le date sono
+// equidistanti (un paziente puo' dire "cinque anni fa", e in scala reale i punti
+// recenti finirebbero ammassati in pochi millimetri).
+interface SerieSintomo {
+  colore: string
+  punti: { x: number; dolore: number }[]
+}
+
+function graficoAndamento(
+  serie: SerieSintomo[],
+  tacche: { x: number; testo: string }[],
+  nomeAsse: string
+): string {
+  const L = 380
+  const A = 250
+  const M = { su: 12, giu: 46, sx: 26, dx: 12 }
+  const largo = L - M.sx - M.dx
+  const alto = A - M.su - M.giu
+  const px = (x: number): number => M.sx + x * largo
+  const py = (d: number): number => M.su + (1 - d / 10) * alto
+
+  const griglia = [0, 2, 4, 6, 8, 10]
+    .map(
+      (d) =>
+        `<line x1="${M.sx}" y1="${py(d)}" x2="${L - M.dx}" y2="${py(d)}" stroke="#e4e9f0"/>
+         <text x="${M.sx - 6}" y="${py(d) + 3}" class="asse">${d}</text>`
+    )
+    .join('')
+
+  // La prima tacca ancorata a sinistra e l'ultima a destra: centrate, uscirebbero
+  // dal disegno e verrebbero tagliate.
+  const sotto = tacche
+    .map((t) => {
+      const dove = t.x < 0.02 ? ' inizio' : t.x > 0.98 ? ' fine' : ''
+      return `<text x="${px(t.x)}" y="${A - M.giu + 16}" class="asse-x${dove}">${esc(
+        t.testo
+      )}</text>`
+    })
+    .join('')
+
+  const linee = serie
+    .map((serieSintomo) => {
+      const ordinati = [...serieSintomo.punti].sort((a, b) => a.x - b.x)
+      const linea =
+        ordinati.length > 1
+          ? `<polyline points="${ordinati
+              .map((q) => `${px(q.x)},${py(q.dolore)}`)
+              .join(' ')}" fill="none" stroke="${serieSintomo.colore}" stroke-width="2"/>`
+          : ''
+      const pallini = ordinati
+        .map(
+          (q) => `<circle cx="${px(q.x)}" cy="${py(q.dolore)}" r="3.5" fill="${serieSintomo.colore}"/>`
+        )
+        .join('')
+      return `${linea}${pallini}`
+    })
+    .join('')
+
+  return `<svg viewBox="0 0 ${L} ${A}">
+    ${griglia}${sotto}${linee}
+    <text x="${L / 2}" y="${A - 8}" class="asse-x">${esc(nomeAsse)}</text>
+  </svg>`
+}
+
 // ---- body chart ----
 
 const NOME_SEGNO: Record<string, string> = {
@@ -128,6 +210,14 @@ function forme(f: Forma[]): string {
         : `<path d="${x.d}"/>`
     )
     .join('')
+}
+
+// Il numero dell'intensita' accanto al segno: nel foglio stampato non c'e' modo
+// di passarci sopra col mouse, e senza il numero il segno dice dove ma non
+// quanto.
+function intensita(v: number | null, r: number): string {
+  if (v == null) return ''
+  return `<text x="${r + 5}" y="${-r + 4}" class="intensita">${v}</text>`
 }
 
 function simbolo(tipo: string, r: number): string {
@@ -169,6 +259,8 @@ const STILE_FIGURA = `
   .s-rigidita line { stroke: #d64545; stroke-width: 3.4; stroke-linecap: round; }
   .s-scossa { fill: #d64545; }
   .s-parestesie { fill: #d64545; opacity: 0.28; }
+  .intensita { font-size: 20px; font-weight: 700; fill: #b03030;
+               font-family: 'Segoe UI', system-ui, sans-serif; }
 `
 
 function figuraSvg(vista: string, segni: SegnoRiga[]): string {
@@ -200,7 +292,7 @@ function figuraSvg(vista: string, segni: SegnoRiga[]): string {
         `<g transform="translate(${s.x * LARGHEZZA} ${s.y * ALTEZZA})">${simbolo(
           s.tipo,
           14 * s.dimensione
-        )}</g>`
+        )}${intensita(s.intensita, 14 * s.dimensione)}</g>`
     )
     .join('')
 
@@ -247,46 +339,109 @@ function sezAnamnesi(pazienteId: number): Blocco[] {
   const puntiStmt = db.prepare(
     'SELECT grafico, minuti, data, dolore FROM sintomo_punti WHERE sintomo_id = ? ORDER BY grafico, minuti, data'
   )
+  const punti = sintomi.map((x) => puntiStmt.all(x.id) as Record<string, unknown>[])
+  const colore = (i: number): string => COLORI_SINTOMI[i % COLORI_SINTOMI.length]
 
-  const perSintomo = sintomi.flatMap((s, i): Blocco[] => {
-    const punti = puntiStmt.all(s.id) as Record<string, unknown>[]
-    const andamento = (
-      etichetta: string,
-      grafico: string,
-      come: (r: Record<string, unknown>) => string
-    ): Blocco[] => {
-      const righe = punti.filter((x) => x.grafico === grafico)
-      return righe.length === 0
-        ? []
-        : [{ tipo: 'testo', titolo: etichetta, corpo: righe.map(come).join(' · ') }]
-    }
-    return [
-      {
-        tipo: 'sottotitolo',
-        testo: `Sintomo ${i + 1}${s.descrizione ? ` — ${s.descrizione}` : ''}`
-      },
-      ...coppie([
-        ['Andamento', s.andamento],
-        ['Da quanto tempo', s.da_quanto],
-        ['Episodio', s.episodio],
-        ['Esordio', s.esordio],
-        ['Traumatico', s.traumatico == null ? null : s.traumatico ? 'sì' : 'no'],
-        ['Comportamento messo in atto', s.comportamento],
-        ['Cosa lo aggrava', s.aggrava],
-        ['Cosa lo allevia', s.allevia]
-      ]),
-      ...andamento(
-        'Nelle 24 ore',
-        'giorno',
-        (r) => `${String(Math.floor(Number(r.minuti) / 60)).padStart(2, '0')}:00 → ${r.dolore}/10`
-      ),
-      ...andamento('Dall’esordio', 'esordio', (r) => `${data(r.data as string)} → ${r.dolore}/10`)
-    ]
-  })
+  // Le caratteristiche di ogni sintomo nel suo riquadro, uno sotto l'altro. I
+  // valori del dolore non si scrivono: stanno nei due grafici qui sotto, dove il
+  // sintomo si riconosce dal colore del riquadro.
+  const perSintomo = sintomi.map(
+    (x, i): Blocco => ({
+      tipo: 'riquadro',
+      titolo: `Sintomo ${i + 1}${x.descrizione ? ` — ${x.descrizione}` : ''}`,
+      colore: colore(i),
+      blocchi: coppie([
+        ['Andamento', x.andamento],
+        ['Da quanto tempo', x.da_quanto],
+        ['Episodio', x.episodio],
+        ['Esordio', x.esordio],
+        ['Traumatico', x.traumatico == null ? null : x.traumatico ? 'sì' : 'no'],
+        ['Comportamento messo in atto', x.comportamento],
+        ['Cosa lo aggrava', x.aggrava],
+        ['Cosa lo allevia', x.allevia]
+      ])
+    })
+  )
+
+  // Nel grafico dall'esordio le date sono equidistanti e condivise fra i
+  // sintomi: e' l'unico modo perche' due linee siano confrontabili.
+  const date = [
+    ...new Set(
+      punti
+        .flat()
+        .filter((q) => q.grafico === 'esordio' && q.data)
+        .map((q) => String(q.data))
+    )
+  ].sort()
+
+  const dovePunto = (q: Record<string, unknown>, quale: string): number => {
+    if (quale === 'giorno') return Number(q.minuti) / (24 * 60)
+    const i = date.indexOf(String(q.data))
+    return date.length === 1 || i < 0 ? 0.5 : i / (date.length - 1)
+  }
+
+  const serie = (quale: string): SerieSintomo[] =>
+    punti
+      .map((righe, i) => ({
+        colore: colore(i),
+        punti: righe
+          .filter((q) => q.grafico === quale)
+          .map((q) => ({ x: dovePunto(q, quale), dolore: Number(q.dolore) }))
+      }))
+      .filter((serieSintomo) => serieSintomo.punti.length > 0)
+
+  // Al massimo quattro date scritte sotto l'asse: con dieci controlli le
+  // etichette si sovrapporrebbero fino a non leggersi.
+  const taccheDate = (): { x: number; testo: string }[] => {
+    if (date.length === 0) return []
+    if (date.length === 1) return [{ x: 0.5, testo: data(date[0]) }]
+    const passo = Math.ceil(date.length / 4)
+    return date
+      .map((d, i) => ({ d, i }))
+      .filter(({ i }) => i % passo === 0 || i === date.length - 1)
+      .map(({ d, i }) => ({ x: i / (date.length - 1), testo: data(d) }))
+  }
+
+  const disegni: { titolo: string; svg: string }[] = []
+  const giorno = serie('giorno')
+  if (giorno.length > 0) {
+    disegni.push({
+      titolo: 'Nelle 24 ore',
+      svg: graficoAndamento(
+        giorno,
+        [0, 4, 8, 12, 16, 20, 24].map((h) => ({ x: h / 24, testo: String(h) })),
+        'ora del giorno'
+      )
+    })
+  }
+  const esordio = serie('esordio')
+  if (esordio.length > 0) {
+    disegni.push({
+      titolo: 'Dall’esordio',
+      svg: graficoAndamento(esordio, taccheDate(), 'data')
+    })
+  }
+
+  const grafici: Blocco[] =
+    disegni.length === 0
+      ? []
+      : [
+          {
+            tipo: 'grafici',
+            grafici: disegni,
+            legenda: sintomi
+              .map((x, i) => ({
+                colore: colore(i),
+                testo: `Sintomo ${i + 1}${x.descrizione ? ` — ${x.descrizione}` : ''}`
+              }))
+              .filter((_, i) => punti[i].length > 0)
+          }
+        ]
 
   return [
     ...testo('Motivo del consulto', a?.motivo_consulto),
     ...perSintomo,
+    ...grafici,
     ...testo('Note sull’andamento nelle 24 ore', a?.note_giorno),
     ...testo('Note sull’andamento dall’esordio', a?.note_esordio),
     ...coppie([
@@ -512,17 +667,21 @@ function sezQuestionari(pazienteId: number): Blocco[] {
   const pStmt = db.prepare(
     'SELECT nome, valore FROM compilazione_punteggi WHERE compilazione_id = ? ORDER BY ordine'
   )
+  // La colonna dell'esito c'e' solo se almeno un questionario ha una fascia di
+  // rischio: molti non ne hanno una, e una colonna di caselle vuote fa pensare
+  // a un dato che manca invece che a un dato che non esiste.
+  const conFascia = righe.some((r) => r.fascia != null && String(r.fascia).trim() !== '')
   return [
     {
       tipo: 'tabella',
-      intestazioni: ['Data', 'Questionario', 'Punteggi', 'Esito'],
+      intestazioni: ['Data', 'Questionario', 'Punteggi', ...(conFascia ? ['Esito'] : [])],
       righe: righe.map((r) => {
         const punteggi = pStmt.all(r.id) as { nome: string; valore: number }[]
         return [
           data(r.data as string),
           String(r.nome),
           punteggi.map((p) => `${p.nome} ${p.valore}`).join(' · '),
-          String(r.fascia ?? '')
+          ...(conFascia ? [String(r.fascia ?? '')] : [])
         ]
       })
     }
@@ -640,6 +799,24 @@ function bloccoHtml(b: Blocco): string {
         .join('')}</tr></thead><tbody>${b.righe
         .map((r) => `<tr>${r.map((c) => `<td>${esc(c)}</td>`).join('')}</tr>`)
         .join('')}</tbody></table>`
+    case 'riquadro':
+      return `<div class="riquadro"${
+        b.colore ? ` style="border-left-color:${b.colore}"` : ''
+      }><h3>${esc(b.titolo)}</h3>${b.blocchi.map(bloccoHtml).join('')}</div>`
+    case 'grafici':
+      // Grafici e legenda in un contenitore solo: separati, la stampa
+      // potrebbe lasciare la legenda sulla pagina dopo.
+      return `<div class="grafici"><div class="disegni">${b.grafici
+        .map(
+          (g) =>
+            `<figure><figcaption>${esc(g.titolo)}</figcaption>${g.svg}</figure>`
+        )
+        .join('')}</div><div class="legenda">${b.legenda
+        .map(
+          (v) =>
+            `<span><i style="background:${v.colore}"></i>${esc(v.testo)}</span>`
+        )
+        .join('')}</div></div>`
     case 'figure':
       return `<div class="corpi">${b.viste
         .map(
@@ -701,6 +878,27 @@ export function generaCartella(pazienteId: number, sezioni: SezioneCartella[]): 
   th, td { border: 1px solid #ccd2da; padding: 5px 7px; text-align: left; vertical-align: top; }
   th { background: #f0e9dc; font-size: 10px; text-transform: uppercase; letter-spacing: 0.03em; }
   tr { page-break-inside: avoid; }
+  /* Un sintomo per riquadro, col filo di colore della sua linea nei grafici. */
+  .riquadro { border: 1px solid #e4e8ed; border-left: 3px solid #8b93a0; border-radius: 4px;
+              background: #f7f7f6; padding: 2px 10px 6px; margin: 0 0 8px;
+              page-break-inside: avoid; }
+  .riquadro > h3 { margin: 8px 0 5px; color: #1f2733; }
+  .riquadro dl.dati { margin-bottom: 4px; }
+  /* I due grafici affiancati, la legenda sotto: e' la disposizione della
+     raccolta anamnestica, cosi' chi ha compilato ritrova quello che ha visto. */
+  .grafici { page-break-inside: avoid; margin: 0 0 10px; }
+  .grafici .disegni { display: flex; gap: 14px; }
+  .grafici figure { margin: 0; flex: 1; min-width: 0; }
+  .grafici figcaption { font-size: 11px; font-weight: 600; color: #55806a; margin-bottom: 2px; }
+  .grafici svg { width: 100%; height: auto; }
+  .grafici .asse { font-size: 11px; fill: #8b93a0; text-anchor: end; }
+  .grafici .asse-x { font-size: 11px; fill: #8b93a0; text-anchor: middle; }
+  .grafici .asse-x.inizio { text-anchor: start; }
+  .grafici .asse-x.fine { text-anchor: end; }
+  .legenda { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 4px;
+             font-size: 10px; color: #555b66; }
+  .legenda span { display: flex; align-items: center; gap: 5px; }
+  .legenda i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
   ul.voci { margin: 0 0 8px; padding-left: 18px; }
   ul.voci li { margin-bottom: 3px; }
   .corpi { display: flex; gap: 6px; page-break-inside: avoid; }

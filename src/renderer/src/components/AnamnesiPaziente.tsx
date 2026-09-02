@@ -98,7 +98,7 @@ export default function AnamnesiPaziente({
           {charts.map((c) => (
             <li key={c.id}>
               <div className="seduta-info">
-                <span className="seduta-data">{formatData(c.data)}</span>
+                <span className="seduta-data">Body chart · {formatData(c.data)}</span>
                 <span className="seduta-meta">
                   {c.num_segni === 1 ? '1 segno' : `${c.num_segni} segni`}
                 </span>

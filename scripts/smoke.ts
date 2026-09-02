@@ -239,7 +239,51 @@ const seduteExport = [
 const html = generaHtml(pazExport, seduteExport)
 assert.ok(html.includes('Rossi') && html.includes('Seduta del 10/08/2026'))
 assert.ok(html.includes('Mobilizzazione &amp; scivolamenti rotulei')) // escaping HTML
-assert.ok(html.includes('Riscaldamento') && html.includes('Recupero') && html.includes('1 min'))
+// La seduta si stampa come elenco puntato per categoria, non piu' come
+// tabella: restano il nome della sezione, la categoria e i dettagli in riga.
+assert.ok(html.includes('Riscaldamento'))
+assert.ok(html.includes('rec. 1 min'))
+assert.ok(html.includes('3 × 10'))
+// La scheda normale non porta mai foto, spiegazioni o link, anche se
+// l'esercizio li ha: e' quella corta per chi sa gia' cosa fare.
+assert.ok(!html.includes('<div class="scheda-es">'))
+
+// La scheda illustrata, da consegnare a chi si allena da solo: foto, come si
+// esegue e il link al video, che nel PDF resta cliccabile.
+const conFoto = [
+  {
+    ...seduteExport[0],
+    sezioni: [
+      {
+        nome: 'A casa',
+        esercizi: [
+          {
+            ...seduteExport[0].sezioni[0].esercizi[0],
+            nota_tecnica: 'Scendi lentamente, senza inarcare la schiena.',
+            link: 'https://www.youtube.com/watch?v=abc',
+            immagine: 'data:image/png;base64,iVBORw0KGgo='
+          },
+          { ...seduteExport[0].sezioni[0].esercizi[0], nome: 'Senza foto' }
+        ]
+      }
+    ]
+  }
+]
+const illustrata = generaHtml(pazExport, conFoto, true)
+assert.ok(illustrata.includes('data:image/png;base64,iVBORw0KGgo='))
+assert.ok(illustrata.includes('Scendi lentamente'))
+// gli esercizi sono numerati, come in un programma da portare a casa
+assert.ok(illustrata.includes('<span class="num">1</span>'))
+assert.ok(illustrata.includes('<span class="num">2</span>'))
+assert.ok(illustrata.includes('href="https://www.youtube.com/watch?v=abc"'))
+// il riquadro della foto resta anche dove la foto manca: i cartelli della
+// stessa riga devono restare allineati
+assert.equal(illustrata.split('<div class="foto">').length - 1, 2)
+// ma se nella sezione non c'e' nessuna foto, i riquadri vuoti spariscono
+const senzaFoto = generaHtml(pazExport, [seduteExport[0]], true)
+assert.ok(
+  senzaFoto.includes('<div class="scheda-es">') && !senzaFoto.includes('<div class="foto">')
+)
 
 // --- Autenticazione e cifratura ---
 const dirAuth = mkdtempSync(join(tmpdir(), 'riab-auth-'))
@@ -302,6 +346,10 @@ assert.equal(
       archiviato: 0
     },
     domande: mescolate,
+    // I punteggi arrivano con id negativi, come quelli appena creati
+    // nell'interfaccia: le fasce li citano cosi', e il salvataggio deve
+    // tradurli nei veri id. Se non lo facesse, la fascia resterebbe agganciata
+    // a un punteggio inesistente e l'esito sarebbe sempre vuoto.
     punteggi: [
       { id: -101, nome: 'Totale', domanda_ids: domande.map((d) => d.id) },
       { id: -102, nome: 'Sub', domanda_ids: [-5, -6, -7, -8, -9] }
@@ -361,6 +409,27 @@ assert.equal(
     { nome: 'Sub', valore: 5 }
   ])
   assert.equal(esito.fascia, 'Alto')
+
+  // Le fasce salvate devono puntare a punteggi che esistono davvero: un
+  // riferimento rimasto negativo o a zero non si avvererebbe mai.
+  const riferimenti = getDb()
+    .prepare(
+      `SELECT f.punteggio_id AS p1, f.punteggio2_id AS p2 FROM questionario_fasce f
+       WHERE f.questionario_id = ?`
+    )
+    .all(qId) as { p1: number | null; p2: number | null }[]
+  assert.equal(riferimenti.length, 3)
+  const idPunteggi = new Set(
+    (
+      getDb()
+        .prepare('SELECT id FROM questionario_punteggi WHERE questionario_id = ?')
+        .all(qId) as { id: number }[]
+    ).map((r) => r.id)
+  )
+  for (const r of riferimenti) {
+    if (r.p1 != null) assert.ok(idPunteggi.has(r.p1), 'fascia agganciata a un punteggio inesistente')
+    if (r.p2 != null) assert.ok(idPunteggi.has(r.p2), 'fascia agganciata a un punteggio inesistente')
+  }
 
   // Correzione di una compilazione gia' salvata: punteggi e fascia devono
   // essere ricalcolati sulle risposte nuove, non restare quelli di prima.
@@ -607,6 +676,21 @@ initDb(join(dirCartella, 'cartella.db'), dekHex)
     "INSERT INTO sintomo_punti (sintomo_id, grafico, data, dolore) VALUES (?, 'esordio', '2026-08-01', 7)",
     sint
   )
+  // Un secondo sintomo: nella cartella i due finiscono nello stesso grafico,
+  // distinti per colore, ed e' quello che la legenda deve dichiarare.
+  const sint2 = ins(
+    `INSERT INTO anamnesi_sintomi (paziente_id, descrizione, andamento, ordine)
+     VALUES (?, 'Rigidità mattutina', 'costante', 1)`,
+    pz
+  )
+  ins(
+    "INSERT INTO sintomo_punti (sintomo_id, grafico, minuti, dolore) VALUES (?, 'giorno', 1200, 4)",
+    sint2
+  )
+  ins(
+    "INSERT INTO sintomo_punti (sintomo_id, grafico, data, dolore) VALUES (?, 'esordio', '2026-08-20', 3)",
+    sint2
+  )
   ins(
     "INSERT INTO anamnesi_attivita (paziente_id, attivita, partecipazione, fattori_interni) VALUES (?, 'guida', 'palestra', 'timore')",
     pz
@@ -702,6 +786,19 @@ initDb(join(dirCartella, 'cartella.db'), dekHex)
   ]) {
     assert.ok(doc.includes(atteso), `la cartella non riporta "${atteso}"`)
   }
+
+  // L'andamento del dolore si legge in due grafici affiancati — le 24 ore e
+  // dall'esordio — con dentro tutti i sintomi, e sotto la legenda dei colori.
+  // Prima ogni sintomo aveva i suoi due disegni e non erano confrontabili.
+  assert.ok(doc.includes('Nelle 24 ore') && doc.includes('Dall’esordio'))
+  assert.equal(doc.split('<figure>').length - 1, 2)
+  assert.ok(doc.includes('class="legenda"'))
+  for (const c of ['#2563eb', '#d64545']) {
+    assert.ok(doc.includes(c), 'la legenda non distingue i due sintomi')
+  }
+  // i valori stanno nel disegno: elencarli di nuovo a parole era una ripetizione
+  assert.ok(!doc.includes('08:00 →'))
+  assert.ok(doc.includes('Rigidità mattutina'))
   // le sezioni escluse non devono comparire
   const soloDati = generaCartella(Number(pz), ['anagrafica'])
   assert.ok(soloDati.includes('Dott. Neri'))

@@ -1721,6 +1721,26 @@ span.row-actions button {
   width: 940px;
 }
 
+/* Cosa manca da riempire perche' la scheda illustrata sia completa: si dice
+   qui, sopra l'anteprima, e non nel foglio che va al paziente. */
+.avviso-scheda {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 8px;
+  padding: 8px 10px;
+  border: 1px solid #e2d4b0;
+  border-radius: var(--radius-sm);
+  background: #fbf4e4;
+  color: #6b5a2e;
+  font-size: 13px;
+}
+
+.avviso-scheda svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
 .anteprima-frame {
   width: 100%;
   height: 62vh;
@@ -2190,10 +2210,28 @@ textarea {
 }
 
 .segno.selezionato .segno-presa {
-  fill: rgba(37, 99, 235, 0.12);
+  fill: rgba(85, 128, 106, 0.14);
   stroke: var(--accent);
   stroke-width: 1;
   stroke-dasharray: 3 3;
+}
+
+/* Il numero dell'intensita' accanto al segno, solo al passaggio del mouse. */
+.segno-intensita {
+  font-size: 20px;
+  font-weight: 700;
+  fill: #b03030;
+  paint-order: stroke;
+  stroke: #fff;
+  stroke-width: 4;
+  opacity: 0;
+  transition: opacity 0.12s;
+  pointer-events: none;
+}
+
+.segno:hover .segno-intensita,
+.segno.selezionato .segno-intensita {
+  opacity: 1;
 }
 
 .segno-dolore {
@@ -2559,43 +2597,41 @@ textarea {
   color: var(--accent);
 }
 
-.tabella-scheda {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 15px;
-  /* larghezze fisse: cosi' le tabelle di sezioni diverse si incolonnano fra
-     loro invece di allargarsi ognuna sul proprio contenuto */
-  table-layout: fixed;
+/* Il programma del paziente e' un elenco puntato per categoria: si legge in
+   piedi e sta in una schermata anche con dieci esercizi. */
+.gruppo-esercizi {
+  margin-bottom: 12px;
 }
 
-.tabella-scheda th:first-child {
-  width: 38%;
-}
-
-.tabella-scheda th,
-.tabella-scheda td {
-  border: 1px solid var(--border-forte);
-  padding: 8px 10px;
-  text-align: left;
-  vertical-align: top;
-}
-
-.tabella-scheda th {
-  background: #f0e9dc;
-  font-size: 11px;
+.categoria-gruppo {
+  font-size: 13px;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: var(--text-dim);
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 2px;
 }
 
-.tabella-scheda td:first-child {
+.elenco-esercizi {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.elenco-esercizi li {
+  margin-bottom: 5px;
+  font-size: 15px;
+}
+
+.elenco-esercizi .nome {
   font-weight: 600;
 }
 
-.tabella-scheda .categoria {
+.elenco-esercizi .dettagli {
+  color: var(--text);
+}
+
+.elenco-esercizi .nota-es {
   display: block;
-  font-size: 12px;
-  font-weight: 400;
+  font-size: 13px;
   color: var(--text-dim);
 }
 
@@ -3323,4 +3359,17 @@ textarea {
 .righe-seduta .btn-togli {
   flex: none;
   padding: 6px;
+}
+
+/* Pannello dei filtri sotto la barra di ricerca: compare solo quando serve. */
+.pannello-filtri {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin: 10px 0 14px;
+  padding: 10px 12px;
+  background: var(--pannello);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
 }

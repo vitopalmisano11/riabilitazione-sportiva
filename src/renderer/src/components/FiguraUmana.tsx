@@ -244,6 +244,18 @@ export default function FiguraUmana({
           <Simbolo tipo={s.tipo} r={14 * s.dimensione} />
           {/* area invisibile piu' generosa: il segno si afferra senza mirare */}
           <circle className="segno-presa" cx="0" cy="0" r={Math.max(18, 16 * s.dimensione)} />
+          {/* L'intensita' compare passandoci sopra: sempre visibile riempirebbe
+              la figura di numeri, e il suggerimento di sistema si fa attendere
+              troppo. */}
+          {s.intensita != null && (
+            <text
+              className="segno-intensita"
+              x={14 * s.dimensione + 6}
+              y={-(14 * s.dimensione) + 6}
+            >
+              {s.intensita}
+            </text>
+          )}
           <title>
             {SEGNI.find((x) => x.valore === s.tipo)?.etichetta}
             {s.intensita != null ? ` — intensità ${s.intensita}/10` : ''}

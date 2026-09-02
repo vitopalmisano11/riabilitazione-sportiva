@@ -1,5 +1,6 @@
 import { useRef } from 'react'
 import type { PuntoAndamento, SintomoAnamnesi, TipoGrafico } from '../../../shared/types'
+import { COLORI_SINTOMI } from '../../../shared/sintomi'
 
 // Andamento del dolore nel tempo. Una linea per sintomo, come la legenda della
 // cartella cartacea: si vede se peggiorano insieme o uno per volta.
@@ -9,7 +10,7 @@ import type { PuntoAndamento, SintomoAnamnesi, TipoGrafico } from '../../../shar
 // data: un paziente puo' dire "cinque anni fa", e in scala reale i punti recenti
 // finirebbero ammassati in pochi millimetri.
 
-export const COLORI = ['#2563eb', '#d64545', '#1f9d61', '#b45309', '#7c3aed']
+export { COLORI_SINTOMI as COLORI }
 
 const L = 640
 const A = 280
@@ -164,7 +165,7 @@ export default function GraficoAndamento({
           .map((q) => ({ ...q, x: px(q.p), y: py(q.p.dolore) }))
           .sort((a, b) => a.x - b.x)
         if (indicizzati.length === 0) return null
-        const colore = COLORI[i % COLORI.length]
+        const colore = COLORI_SINTOMI[i % COLORI_SINTOMI.length]
         return (
           <g key={s.id ?? i}>
             {indicizzati.length > 1 && (

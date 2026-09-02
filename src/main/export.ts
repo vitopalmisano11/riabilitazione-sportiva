@@ -17,6 +17,8 @@ import {
 
 export type FormatoExport = 'pdf' | 'docx'
 
+import type { AnteprimaScheda } from '../shared/types'
+
 function leggiPaziente(id: number): DatiPazienteExport {
   const p = getDb()
     .prepare(
@@ -29,7 +31,12 @@ function leggiPaziente(id: number): DatiPazienteExport {
   return p
 }
 
-function leggiSeduta(id: number): DatiSedutaExport & { paziente_id: number } {
+// Le foto pesano: si leggono solo per la scheda illustrata, e non finiscono
+// nemmeno in memoria quando si esporta quella normale.
+function leggiSeduta(
+  id: number,
+  illustrata = false
+): DatiSedutaExport & { paziente_id: number } {
   const db = getDb()
   const s = db
     .prepare(
@@ -56,7 +63,10 @@ function leggiSeduta(id: number): DatiSedutaExport & { paziente_id: number } {
   }
   const esercizi = db
     .prepare(
-      `SELECT e.nome, c.nome AS categoria_nome, se.serie, se.ripetizioni, se.carico, se.recupero, se.nota, se.seduta_sezione_id
+      `SELECT e.nome, c.nome AS categoria_nome, se.serie, se.ripetizioni, se.carico, se.recupero,
+              se.nota, se.seduta_sezione_id${
+                illustrata ? ', e.nota_tecnica, e.link, e.immagine' : ''
+              }
        FROM seduta_esercizi se
        JOIN esercizi e ON e.id = se.esercizio_id
        JOIN categorie c ON c.id = e.categoria_id
@@ -100,7 +110,8 @@ async function salvaExport(
   paziente: DatiPazienteExport,
   sedute: DatiSedutaExport[],
   nomeBase: string,
-  formato: FormatoExport
+  formato: FormatoExport,
+  illustrata = false
 ): Promise<string | null> {
   const { canceled, filePath } = await dialog.showSaveDialog({
     title: 'Esporta',
@@ -114,7 +125,7 @@ async function salvaExport(
   if (formato === 'docx') {
     await writeFile(filePath, await generaDocx(paziente, sedute))
   } else {
-    await htmlToPdf(generaHtml(paziente, sedute), filePath)
+    await htmlToPdf(generaHtml(paziente, sedute, illustrata), filePath)
   }
   impostaCartellaExport(dirname(filePath)) // ricorda l'ultima cartella scelta
   shell.showItemInFolder(filePath)
@@ -122,19 +133,32 @@ async function salvaExport(
 }
 
 // Stesso HTML da cui nasce il PDF, restituito per la sola visualizzazione.
-export function anteprimaSeduta(sedutaId: number): string {
-  const seduta = leggiSeduta(sedutaId)
-  return generaHtml(leggiPaziente(seduta.paziente_id), [seduta])
+//
+// Insieme all'HTML tornano gli esercizi a cui manca la foto o la spiegazione:
+// la scheda illustrata vive di quelle due cose, e chi la prepara deve sapere
+// subito quali esercizi andare a completare in Configurazione, invece di
+// scoprirlo guardando il PDF finito.
+export function anteprimaSchedaIllustrata(sedutaId: number): AnteprimaScheda {
+  const seduta = leggiSeduta(sedutaId, true)
+  const esercizi = seduta.sezioni.flatMap((sez) => sez.esercizi)
+  return {
+    html: generaHtml(leggiPaziente(seduta.paziente_id), [seduta], true),
+    senzaFoto: esercizi.filter((e) => !e.immagine).map((e) => e.nome),
+    senzaSpiegazione: esercizi.filter((e) => !e.nota_tecnica).map((e) => e.nome)
+  }
 }
 
 export async function esportaSeduta(
   sedutaId: number,
-  formato: FormatoExport
+  formato: FormatoExport,
+  illustrata = false
 ): Promise<string | null> {
-  const seduta = leggiSeduta(sedutaId)
+  const seduta = leggiSeduta(sedutaId, illustrata)
   const paziente = leggiPaziente(seduta.paziente_id)
-  const nomeBase = `${slug(paziente.cognome)}_${slug(paziente.nome)}_seduta_${seduta.data}`
-  return salvaExport(paziente, [seduta], nomeBase, formato)
+  const nomeBase = `${slug(paziente.cognome)}_${slug(paziente.nome)}_${
+    illustrata ? 'scheda' : 'seduta'
+  }_${seduta.data}`
+  return salvaExport(paziente, [seduta], nomeBase, formato, illustrata)
 }
 
 export async function esportaStorico(
@@ -152,7 +176,7 @@ export async function esportaStorico(
   ).map((r) => r.id)
   if (ids.length === 0) throw new Error('Nessuna seduta nel periodo selezionato.')
   const paziente = leggiPaziente(pazienteId)
-  const sedute = ids.map(leggiSeduta)
+  const sedute = ids.map((id) => leggiSeduta(id))
   const nomeBase = `${slug(paziente.cognome)}_${slug(paziente.nome)}_sedute_${dal}_${al}`
   return salvaExport(paziente, sedute, nomeBase, formato)
 }

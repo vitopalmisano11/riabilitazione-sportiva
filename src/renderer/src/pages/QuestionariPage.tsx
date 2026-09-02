@@ -20,6 +20,11 @@ const TIPI: { valore: TipoDomanda; etichetta: string }[] = [
   { valore: 'scelta', etichetta: 'Scelta con punteggi' }
 ]
 
+// Id provvisori per quello che non e' ancora salvato: negativi e stabili per
+// tutta la sessione, cosi' una fascia puo' citare un punteggio appena creato.
+let prossimoIdTemporaneo = -1
+const idTemporaneo = (): number => prossimoIdTemporaneo--
+
 type Tab = 'domande' | 'punteggi' | 'fasce'
 
 const TABS: { key: Tab; label: string }[] = [
@@ -618,7 +623,11 @@ function TabPunteggi({
         </div>
       ))}
 
-      <button onClick={() => onChange([...punteggi, { id: null, nome: '', domanda_ids: [] }])}>
+      <button
+        onClick={() =>
+          onChange([...punteggi, { id: idTemporaneo(), nome: '', domanda_ids: [] }])
+        }
+      >
         <Plus size={16} /> Aggiungi punteggio
       </button>
     </div>
@@ -639,10 +648,13 @@ function TabFasce({
   const modifica = (i: number, patch: Partial<FasciaQuestionario>): void =>
     onChange(fasce.map((f, j) => (i === j ? { ...f, ...patch } : f)))
 
-  const opzioniPunteggio = punteggi.map((p, k) => ({
-    valore: p.id ?? 0,
-    nome: p.nome || `punteggio ${k + 1}`
-  }))
+  // Solo i punteggi che hanno un id: uno appena aggiunto ne riceve uno negativo
+  // provvisorio, tradotto nel vero id al salvataggio. Prima chi non l'aveva
+  // finiva in elenco con valore 0, e la fascia restava agganciata a un punteggio
+  // inesistente — quindi non si avverava mai e l'esito restava vuoto.
+  const opzioniPunteggio = punteggi
+    .filter((p): p is typeof p & { id: number } => p.id != null)
+    .map((p, k) => ({ valore: p.id, nome: p.nome || `punteggio ${k + 1}` }))
 
   const numero = (v: string): number | null => (v === '' ? null : Number(v))
 

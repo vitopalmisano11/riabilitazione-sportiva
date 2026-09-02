@@ -1,16 +1,19 @@
 import { useEffect, useRef, useState } from 'react'
 import {
+  AlertTriangle,
   ChevronRight,
+  Filter,
   Copy,
   Download,
-  Eye,
   FileText,
+  Images,
   Pencil,
   Plus,
   Presentation,
   Trash2
 } from 'lucide-react'
 import type {
+  AnteprimaScheda,
   Fase,
   Obiettivo,
   Patologia,
@@ -38,6 +41,11 @@ export default function PazientiPage({
   const [pazienti, setPazienti] = useState<PazienteDettaglio[]>([])
   const [selId, setSelId] = useState<number | null>(null)
   const [ricerca, setRicerca] = useState('')
+  // Filtri: nascosti finche' non servono, cosi' con pochi pazienti la barra
+  // resta quella di prima.
+  const [filtriAperti, setFiltriAperti] = useState(false)
+  const [filtroPatologia, setFiltroPatologia] = useState<number | ''>('')
+  const [filtroStato, setFiltroStato] = useState<'' | 'trattamento' | 'concluso'>('')
   const [patologie, setPatologie] = useState<Patologia[]>([])
   const [nuovo, setNuovo] = useState(false)
   const [builder, setBuilder] = useState<{ sedutaId: number | null; duplicaDa?: number } | null>(
@@ -74,15 +82,20 @@ export default function PazientiPage({
   }, [apriPaziente])
 
   const q = ricerca.trim().toLowerCase()
+  const filtriAttivi = filtroPatologia !== '' || filtroStato !== ''
   const trovati = pazienti.filter(
-    (p) => q === '' || `${p.cognome} ${p.nome} ${p.nome} ${p.cognome}`.toLowerCase().includes(q)
+    (p) =>
+      (q === '' || `${p.cognome} ${p.nome} ${p.nome} ${p.cognome}`.toLowerCase().includes(q)) &&
+      (filtroPatologia === '' || p.patologia_id === filtroPatologia) &&
+      (filtroStato === '' || p.stato === filtroStato)
   )
   // L'elenco arriva gia' ordinato per seduta piu' recente. Se ne mostrano dieci
   // e il resto va sotto, richiudibile: cercando invece si vede tutto, cosi'
   // nessun paziente diventa difficile da raggiungere.
   const IN_VISTA = 10
-  const inVista = q === '' ? trovati.slice(0, IN_VISTA) : trovati
-  const altri = q === '' ? trovati.slice(IN_VISTA) : []
+  const tutti = q !== '' || filtriAttivi
+  const inVista = tutti ? trovati : trovati.slice(0, IN_VISTA)
+  const altri = tutti ? [] : trovati.slice(IN_VISTA)
   const sel = pazienti.find((p) => p.id === selId) ?? null
 
   if (builder && sel) {
@@ -146,6 +159,13 @@ export default function PazientiPage({
               onChange={(e) => setRicerca(e.target.value)}
             />
             <button
+              className={`btn-icona${filtriAttivi ? ' scelta-attiva' : ''}`}
+              title="Filtra per patologia o stato"
+              onClick={() => setFiltriAperti(!filtriAperti)}
+            >
+              <Filter size={18} />
+            </button>
+            <button
               className="primary btn-icona"
               title="Nuovo paziente"
               onClick={() => setNuovo(true)}
@@ -153,6 +173,54 @@ export default function PazientiPage({
               <Plus size={18} />
             </button>
           </div>
+
+          {(filtriAperti || filtriAttivi) && (
+            <div className="pannello-filtri">
+              <label className="compila-data">
+                Patologia
+                <select
+                  value={filtroPatologia}
+                  onChange={(e) =>
+                    setFiltroPatologia(e.target.value === '' ? '' : Number(e.target.value))
+                  }
+                >
+                  <option value="">tutte</option>
+                  {patologie.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.nome}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="compila-data">
+                Stato
+                <select
+                  value={filtroStato}
+                  onChange={(e) =>
+                    setFiltroStato(e.target.value as '' | 'trattamento' | 'concluso')
+                  }
+                >
+                  <option value="">tutti</option>
+                  <option value="trattamento">in trattamento</option>
+                  <option value="concluso">concluso</option>
+                </select>
+              </label>
+              {filtriAttivi && (
+                <button
+                  className="btn-piccolo"
+                  onClick={() => {
+                    setFiltroPatologia('')
+                    setFiltroStato('')
+                  }}
+                >
+                  Togli i filtri
+                </button>
+              )}
+              <span className="hint">
+                {trovati.length === 1 ? '1 paziente' : `${trovati.length} pazienti`}
+              </span>
+            </div>
+          )}
 
           <div className="elenco-verticale">
             {inVista.map((p) => (
@@ -575,9 +643,13 @@ function DiarioCard({
     }
   }
 
-  const esportaSingola = async (id: number, formato: 'pdf' | 'docx'): Promise<void> => {
+  const esportaSingola = async (
+    id: number,
+    formato: 'pdf' | 'docx',
+    illustrata = false
+  ): Promise<void> => {
     try {
-      const path = await window.api.esporta.seduta(id, formato)
+      const path = await window.api.esporta.seduta(id, formato, illustrata)
       if (path) toast(`Seduta esportata${formato === 'pdf' ? ' in PDF' : ' in Word'}.`)
     } catch (e) {
       toastErrore(errMsg(e))
@@ -643,8 +715,11 @@ function DiarioCard({
                 >
                   <Presentation size={18} />
                 </button>
-                <button title="Anteprima della seduta" onClick={() => setAnteprima(s.id)}>
-                  <Eye size={18} />
+                <button
+                  title="Scheda illustrata per il paziente (foto e spiegazioni)"
+                  onClick={() => setAnteprima(s.id)}
+                >
+                  <Images size={18} />
                 </button>
                 <button title="Modifica la seduta" onClick={() => onApri(s.id)}>
                   <Pencil size={18} />
@@ -726,31 +801,38 @@ function DiarioCard({
       )}
 
       {anteprima != null && (
-        <AnteprimaSeduta sedutaId={anteprima} onClose={() => setAnteprima(null)} />
+        <SchedaIllustrata
+          sedutaId={anteprima}
+          onClose={() => setAnteprima(null)}
+          onScarica={() => void esportaSingola(anteprima, 'pdf', true)}
+        />
       )}
     </section>
   )
 }
 
-// Mostra la seduta com'e' fatta, senza salvare niente: e' lo stesso HTML da cui
-// nasce il PDF, cosi' l'anteprima non puo' discostarsi dal file esportato.
+// La scheda illustrata per il paziente: foto, spiegazione e link al video. Si
+// guarda com'e' venuta e da qui si scarica in PDF. E' lo stesso HTML del file,
+// cosi' l'anteprima non puo' discostarsi da quello che consegni.
 // Va in un iframe con sandbox vuota: nessuno script puo' girare li' dentro.
-function AnteprimaSeduta({
+function SchedaIllustrata({
   sedutaId,
-  onClose
+  onClose,
+  onScarica
 }: {
   sedutaId: number
   onClose: () => void
+  onScarica: () => void
 }): React.JSX.Element {
-  const [html, setHtml] = useState<string | null>(null)
+  const [dati, setDati] = useState<AnteprimaScheda | null>(null)
   const [errore, setErrore] = useState('')
 
   useEffect(() => {
     let annullato = false
     window.api.esporta
-      .anteprima(sedutaId)
-      .then((h) => {
-        if (!annullato) setHtml(h)
+      .schedaIllustrata(sedutaId)
+      .then((d) => {
+        if (!annullato) setDati(d)
       })
       .catch((e) => {
         if (!annullato) setErrore(errMsg(e))
@@ -760,18 +842,43 @@ function AnteprimaSeduta({
     }
   }, [sedutaId])
 
+  // Foto e spiegazione si impostano una volta per esercizio, in Configurazione:
+  // qui si dice solo quali mancano, senza sporcare la scheda.
+  const manca = (etichetta: string, nomi: string[]): React.JSX.Element | null =>
+    nomi.length === 0 ? null : (
+      <p className="avviso-scheda">
+        <AlertTriangle size={15} />
+        <span>
+          {etichetta}: {[...new Set(nomi)].join(', ')}. Puoi aggiungerla in Configurazione →
+          Esercizi.
+        </span>
+      </p>
+    )
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
-        <h3>Anteprima della seduta</h3>
+        <h3>Scheda illustrata per il paziente</h3>
         {errore ? (
           <p className="auth-error">{errore}</p>
-        ) : html == null ? (
+        ) : dati == null ? (
           <p className="hint">Caricamento…</p>
         ) : (
-          <iframe className="anteprima-frame" title="Anteprima della seduta" sandbox="" srcDoc={html} />
+          <>
+            {manca('Senza foto', dati.senzaFoto)}
+            {manca('Senza spiegazione', dati.senzaSpiegazione)}
+            <iframe
+              className="anteprima-frame"
+              title="Scheda illustrata"
+              sandbox=""
+              srcDoc={dati.html}
+            />
+          </>
         )}
         <div className="modal-actions">
+          <button onClick={onScarica}>
+            <Download size={16} /> Scarica PDF
+          </button>
           <button className="primary" onClick={onClose}>
             Chiudi
           </button>

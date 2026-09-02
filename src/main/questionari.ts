@@ -132,8 +132,15 @@ export function salvaQuestionario(dati: QuestionarioCompleto): void {
       }
     })
 
-    const risolviPunteggio = (rif: number | null): number | null =>
-      rif == null ? null : rif >= 0 ? rif : (idPunteggio.get(rif) ?? null)
+    // Un riferimento che non si risolve non deve diventare "nessuna condizione":
+    // la fascia si avvererebbe sempre, o mai, senza che nessuno se ne accorga.
+    const risolviPunteggio = (rif: number | null): number | null => {
+      if (rif == null) return null
+      if (rif > 0) return rif
+      const id = idPunteggio.get(rif)
+      if (id == null) throw new Error('Riferimento a un punteggio non valido.')
+      return id
+    }
 
     // --- fasce ---
     const idsFasce = dati.fasce.map((f) => f.id).filter((x): x is number => x != null && x > 0)

@@ -565,6 +565,12 @@ export interface ObiettivoTerapeutico {
 // ---- Scheda da mostrare al paziente ----
 // Una sola seduta, con dentro le immagini degli esercizi: la finestra che la
 // mostra riceve tutto in una volta e non chiede altro all'archivio.
+export interface AnteprimaScheda {
+  html: string
+  senzaFoto: string[]
+  senzaSpiegazione: string[]
+}
+
 export interface EsercizioScheda {
   nome: string
   categoria_nome: string
@@ -827,13 +833,19 @@ export interface Api {
   }
   esporta: {
     // HTML della seduta per la sola anteprima a schermo (nessun file salvato).
-    anteprima(sedutaId: number): Promise<string>
+    // Scheda illustrata: foto, spiegazione e link al video, per il paziente che
+    // si allena da solo. Torna anche l'elenco di cosa manca da riempire.
+    schedaIllustrata(sedutaId: number): Promise<AnteprimaScheda>
     // Cartella completa: si scelgono le sezioni da includere.
     // L'anteprima si apre in una finestra a parte, il PDF si salva su file.
     anteprimaCartella(pazienteId: number, sezioni: SezioneCartella[]): Promise<void>
     cartella(pazienteId: number, sezioni: SezioneCartella[]): Promise<string | null>
     // Ritornano il percorso del file salvato, o null se l'utente annulla.
-    seduta(sedutaId: number, formato: 'pdf' | 'docx'): Promise<string | null>
+    seduta(
+      sedutaId: number,
+      formato: 'pdf' | 'docx',
+      illustrata?: boolean
+    ): Promise<string | null>
     storico(
       pazienteId: number,
       dal: string,

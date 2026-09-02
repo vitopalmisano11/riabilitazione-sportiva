@@ -25,16 +25,15 @@ export default function SchedaPaziente({ sedutaId }: { sedutaId: number }): Reac
   if (errore) return <p className="auth-error">{errore}</p>
   if (!dati) return <p className="hint">Caricamento…</p>
 
-  // Una colonna si mostra solo se almeno un esercizio della seduta la usa:
-  // senza carico e senza recupero la tabella resta larga e leggibile.
-  const tutti = dati.sezioni.flatMap((s) => s.esercizi)
-  const colonne = {
-    serie: tutti.some((e) => e.serie),
-    ripetizioni: tutti.some((e) => e.ripetizioni),
-    carico: tutti.some((e) => e.carico),
-    recupero: tutti.some((e) => e.recupero),
-    nota: tutti.some((e) => e.nota)
-  }
+  // Dettagli di un esercizio su una riga sola: "3 × 10 · 20 kg · rec. 1'".
+  const dettagli = (e: Dati['sezioni'][number]['esercizi'][number]): string =>
+    [
+      e.serie && e.ripetizioni ? `${e.serie} × ${e.ripetizioni}` : e.serie || e.ripetizioni,
+      e.carico,
+      e.recupero ? `rec. ${e.recupero}` : null
+    ]
+      .filter(Boolean)
+      .join(' · ')
 
   return (
     <div className="scheda-paziente">
@@ -57,33 +56,18 @@ export default function SchedaPaziente({ sedutaId }: { sedutaId: number }): Reac
         dati.sezioni.map((sez, i) => (
           <section key={i}>
             <h2>{sez.nome}</h2>
-            <table className="tabella-scheda">
-              <thead>
-                <tr>
-                  <th>Esercizio</th>
-                  {colonne.serie && <th>Serie</th>}
-                  {colonne.ripetizioni && <th>Ripetizioni</th>}
-                  {colonne.carico && <th>Carico</th>}
-                  {colonne.recupero && <th>Recupero</th>}
-                  {colonne.nota && <th>Note</th>}
-                </tr>
-              </thead>
-              <tbody>
-                {sez.esercizi.map((e, j) => (
-                  <tr key={j}>
-                    <td>
-                      {e.nome}
-                      <span className="categoria">{e.categoria_nome}</span>
-                    </td>
-                    {colonne.serie && <td>{e.serie ?? ''}</td>}
-                    {colonne.ripetizioni && <td>{e.ripetizioni ?? ''}</td>}
-                    {colonne.carico && <td>{e.carico ?? ''}</td>}
-                    {colonne.recupero && <td>{e.recupero ?? ''}</td>}
-                    {colonne.nota && <td>{e.nota ?? ''}</td>}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            {/* Elenco puntato: una tabella per sezione allungava la scheda e la
+                riempiva di caselle vuote. La categoria non si scrive, perche'
+                spesso ripete il nome della sezione. */}
+            <ul className="elenco-esercizi">
+              {sez.esercizi.map((e, j) => (
+                <li key={j}>
+                  <span className="nome">{e.nome}</span>
+                  {dettagli(e) && <span className="dettagli"> — {dettagli(e)}</span>}
+                  {e.nota && <span className="nota-es">{e.nota}</span>}
+                </li>
+              ))}
+            </ul>
           </section>
         ))
       )}

@@ -30,7 +30,7 @@ import {
   apriAnteprimaCartella,
   apriAnteprimaReport,
   esportaReport,
-  anteprimaSeduta,
+  anteprimaSchedaIllustrata,
   esportaCartella,
   esportaSeduta,
   esportaStorico,
@@ -1394,15 +1394,17 @@ export function registerIpc(): void {
   })
 
   // ---- Export ----
-  handle('esporta:anteprima', (sedutaId: number) => anteprimaSeduta(sedutaId))
+  handle('esporta:schedaIllustrata', (sedutaId: number) =>
+    anteprimaSchedaIllustrata(sedutaId)
+  )
   handle('esporta:anteprimaCartella', (pazienteId: number, sezioni: SezioneCartella[]) =>
     apriAnteprimaCartella(pazienteId, sezioni)
   )
   handle('esporta:cartella', (pazienteId: number, sezioni: SezioneCartella[]) =>
     esportaCartella(pazienteId, sezioni)
   )
-  handle('esporta:seduta', (sedutaId: number, formato: FormatoExport) =>
-    esportaSeduta(sedutaId, formato)
+  handle('esporta:seduta', (sedutaId: number, formato: FormatoExport, illustrata?: boolean) =>
+    esportaSeduta(sedutaId, formato, illustrata === true)
   )
   handle('esporta:storico', (pazienteId: number, dal: string, al: string, formato: FormatoExport) =>
     esportaStorico(pazienteId, dal, al, formato)
