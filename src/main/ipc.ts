@@ -28,6 +28,8 @@ import {
 } from './auth'
 import {
   apriAnteprimaCartella,
+  apriAnteprimaReport,
+  esportaReport,
   anteprimaSeduta,
   esportaCartella,
   esportaSeduta,
@@ -675,6 +677,8 @@ export function registerIpc(): void {
     (id: number, questionarioId: number, compilazioneId: number) =>
       collegaCompilazione(id, questionarioId, compilazioneId)
   )
+  handle('screeningSvolti:anteprimaReport', (ids: number[]) => apriAnteprimaReport(ids))
+  handle('screeningSvolti:report', (ids: number[]) => esportaReport(ids))
   handle('screeningSvolti:delete', (id: number) => eliminaScreening(id))
 
   // ---- Follow-up ----

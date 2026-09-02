@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ChevronLeft, ClipboardList, HelpCircle, Plus, Save, Trash2 } from 'lucide-react'
+import {
+  ChevronLeft,
+  ChevronRight,
+  ClipboardList,
+  FileText,
+  HelpCircle,
+  Plus,
+  Save,
+  Trash2
+} from 'lucide-react'
 import type {
   MisuraTest,
   PazienteDettaglio,
@@ -30,6 +39,10 @@ export default function ScreeningRtpPage({
   tornaAllElenco: number
 }): React.JSX.Element {
   const [elenco, setElenco] = useState<ScreeningRiepilogo[]>([])
+  // Due passi prima di arrivare ai numeri: l'elenco dei pazienti, poi i suoi
+  // screening, poi quello aperto. Con dieci pazienti e cinque screening a testa
+  // una lista sola diventerebbe illeggibile.
+  const [pazienteId, setPazienteId] = useState<number | null>(null)
   const [apertoId, setApertoId] = useState<number | null>(null)
   const [nuovo, setNuovo] = useState(false)
 
@@ -48,25 +61,8 @@ export default function ScreeningRtpPage({
   useEffect(() => {
     if (tornaAllElenco === 0) return
     setApertoId(null)
+    setPazienteId(null)
   }, [tornaAllElenco])
-
-  const elimina = async (s: ScreeningRiepilogo): Promise<void> => {
-    if (
-      !confirm(
-        `Eliminare lo screening di ${s.paziente_cognome} ${s.paziente_nome} del ${formatData(
-          s.data
-        )}?\nI valori misurati andranno persi.`
-      )
-    ) {
-      return
-    }
-    try {
-      await window.api.screeningSvolti.remove(s.id)
-      await carica()
-    } catch (e) {
-      toastErrore(errMsg(e))
-    }
-  }
 
   if (apertoId != null) {
     return (
@@ -78,6 +74,26 @@ export default function ScreeningRtpPage({
       />
     )
   }
+
+  if (pazienteId != null) {
+    return (
+      <ScreeningDelPaziente
+        screening={elenco.filter((s) => s.paziente_id === pazienteId)}
+        onIndietro={() => setPazienteId(null)}
+        onApri={setApertoId}
+        onCambiato={carica}
+      />
+    )
+  }
+
+  // Un paziente per riga, con quanti screening ha e quando è l'ultimo.
+  const pazienti = elenco
+    .map((s) => s.paziente_id)
+    .filter((id, i, a) => a.indexOf(id) === i)
+    .map((id) => {
+      const suoi = elenco.filter((s) => s.paziente_id === id)
+      return { id, primo: suoi[0], quanti: suoi.length, ultimo: suoi[0].data }
+    })
 
   return (
     <div className="page">
@@ -92,35 +108,37 @@ export default function ScreeningRtpPage({
       <div className="scheda">
         <section className="card">
           <div className="card-header-row">
-            <h3>Screening svolti</h3>
+            <h3>Pazienti con screening</h3>
             <span className="row-actions">
               <button className="primary" title="Nuovo screening" onClick={() => setNuovo(true)}>
                 <Plus size={18} />
               </button>
             </span>
           </div>
-          {elenco.length === 0 ? (
+          {pazienti.length === 0 ? (
             <p className="hint">
               Nessuno screening ancora. Premi il + qui sopra per cominciarne uno.
             </p>
           ) : (
             <ul className="sedute-list">
-              {elenco.map((s) => (
-                <li key={s.id} className="riga-screening">
+              {pazienti.map((p) => (
+                <li key={p.id} className="riga-screening">
                   <button
                     className="nome-cliccabile"
-                    title="Apri lo screening"
-                    onClick={() => setApertoId(s.id)}
+                    title="Vedi i suoi screening"
+                    onClick={() => setPazienteId(p.id)}
                   >
-                    {s.paziente_cognome} {s.paziente_nome}
+                    {p.primo.paziente_cognome} {p.primo.paziente_nome}
                   </button>
-                  <span className="colonna-protocollo">{s.protocollo_nome}</span>
-                  <span className="colonna-sport">{s.sport}</span>
-                  <span className="colonna-data">{formatData(s.data)}</span>
-                  {s.num_valori === 0 && <span className="badge">da compilare</span>}
+                  <span className="colonna-protocollo">
+                    {p.quanti === 1 ? '1 screening' : `${p.quanti} screening`}
+                  </span>
+                  <span className="colonna-sport">{p.primo.sport}</span>
+                  <span className="colonna-data">ultimo {formatData(p.ultimo)}</span>
+                  <span />
                   <span className="row-actions">
-                    <button className="danger" title="Elimina" onClick={() => void elimina(s)}>
-                      <Trash2 size={18} />
+                    <button title="Vedi i suoi screening" onClick={() => setPazienteId(p.id)}>
+                      <ChevronRight size={18} />
                     </button>
                   </span>
                 </li>
@@ -139,6 +157,176 @@ export default function ScreeningRtpPage({
             }}
           />
         )}
+      </div>
+    </div>
+  )
+}
+
+// Gli screening di un solo paziente, e da qui il report che li mette a
+// confronto.
+function ScreeningDelPaziente({
+  screening,
+  onIndietro,
+  onApri,
+  onCambiato
+}: {
+  screening: ScreeningRiepilogo[]
+  onIndietro: () => void
+  onApri: (id: number) => void
+  onCambiato: () => Promise<void>
+}): React.JSX.Element {
+  const [scelta, setScelta] = useState(false)
+  const p = screening[0]
+
+  const elimina = async (s: ScreeningRiepilogo): Promise<void> => {
+    if (
+      !confirm(
+        `Eliminare lo screening del ${formatData(s.data)}?\nI valori misurati andranno persi.`
+      )
+    ) {
+      return
+    }
+    try {
+      await window.api.screeningSvolti.remove(s.id)
+      await onCambiato()
+      if (screening.length === 1) onIndietro()
+    } catch (e) {
+      toastErrore(errMsg(e))
+    }
+  }
+
+  if (!p) {
+    onIndietro()
+    return <p className="hint">Caricamento…</p>
+  }
+
+  return (
+    <div className="page">
+      <header className="page-header builder-header">
+        <h2>
+          {p.paziente_cognome} {p.paziente_nome}
+          <span className="titolo-sport"> · screening</span>
+        </h2>
+        <span className="row-actions">
+          <button onClick={onIndietro}>
+            <ChevronLeft size={18} /> Tutti i pazienti
+          </button>
+        </span>
+      </header>
+
+      <div className="scheda">
+        <section className="card">
+          <div className="card-header-row">
+            <h3>Screening svolti</h3>
+            <span className="row-actions">
+              <button
+                title="Report che confronta due screening"
+                disabled={screening.length === 0}
+                onClick={() => setScelta(true)}
+              >
+                <FileText size={18} /> Report
+              </button>
+            </span>
+          </div>
+          <ul className="sedute-list">
+            {screening.map((s) => (
+              <li key={s.id} className="riga-screening">
+                <button
+                  className="nome-cliccabile"
+                  title="Apri lo screening"
+                  onClick={() => onApri(s.id)}
+                >
+                  {formatData(s.data)}
+                </button>
+                <span className="colonna-protocollo">{s.protocollo_nome}</span>
+                <span className="colonna-sport">{s.sport}</span>
+                <span className="colonna-data" />
+                {s.num_valori === 0 ? <span className="badge">da compilare</span> : <span />}
+                <span className="row-actions">
+                  <button className="danger" title="Elimina" onClick={() => void elimina(s)}>
+                    <Trash2 size={18} />
+                  </button>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </div>
+
+      {scelta && (
+        <SceltaConfronto screening={screening} onChiudi={() => setScelta(false)} />
+      )}
+    </div>
+  )
+}
+
+// Quali screening mettere nel report. Due sono la scelta giusta quasi sempre —
+// il prima e il dopo — ma se ne possono spuntare di più: ogni screening in più
+// e' un punto in più sulle linee dell'andamento.
+function SceltaConfronto({
+  screening,
+  onChiudi
+}: {
+  screening: ScreeningRiepilogo[]
+  onChiudi: () => void
+}): React.JSX.Element {
+  // L'elenco arriva dal più recente: i due in cima sono il confronto naturale.
+  const [scelti, setScelti] = useState<number[]>(screening.slice(0, 2).map((s) => s.id))
+
+  const cambia = (id: number, dentro: boolean): void =>
+    setScelti((prec) =>
+      dentro ? [...prec, id] : prec.filter((x) => x !== id)
+    )
+
+  const apri = async (): Promise<void> => {
+    // dal più vecchio al più recente: l'ultimo è quello che si legge nelle
+    // tabelle del report
+    const ordinati = screening
+      .filter((s) => scelti.includes(s.id))
+      .slice()
+      .reverse()
+      .map((s) => s.id)
+    try {
+      await window.api.screeningSvolti.anteprimaReport(ordinati)
+      onChiudi()
+    } catch (e) {
+      toastErrore(errMsg(e))
+    }
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onChiudi}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <h3>Quali screening mettere a confronto?</h3>
+        <p className="modal-testo">
+          Il più recente fra quelli spuntati è quello che si legge nelle tabelle; gli altri
+          diventano i punti dei grafici dell&apos;andamento.
+        </p>
+        <div className="checkbox-list">
+          {screening.map((s) => (
+            <label key={s.id} className="checkbox-inline">
+              <input
+                type="checkbox"
+                checked={scelti.includes(s.id)}
+                onChange={(e) => cambia(s.id, e.target.checked)}
+              />
+              {formatData(s.data)} · {s.protocollo_nome}
+              {s.num_valori === 0 && ' · vuoto'}
+            </label>
+          ))}
+        </div>
+        <div className="modal-actions">
+          {scelti.length > 2 && (
+            <span className="hint">
+              Con più di due i grafici si affollano: due si leggono meglio.
+            </span>
+          )}
+          <span className="spacer" />
+          <button onClick={onChiudi}>Annulla</button>
+          <button className="primary" disabled={scelti.length === 0} onClick={() => void apri()}>
+            <FileText size={16} /> Apri il report
+          </button>
+        </div>
       </div>
     </div>
   )
@@ -292,6 +480,22 @@ function Esecuzione({
     onIndietro()
   }
 
+  // Il report legge dall'archivio, non dalle caselle: senza salvare mostrerebbe
+  // i valori di prima.
+  const apriReport = async (): Promise<void> => {
+    if (modificato) {
+      if (!confirm('Ci sono valori non salvati: il report non li conterrebbe.\n\nSalvo prima?')) {
+        return
+      }
+      await salva()
+    }
+    try {
+      await window.api.screeningSvolti.anteprimaReport([id])
+    } catch (e) {
+      toastErrore(errMsg(e))
+    }
+  }
+
   const scrivi = (k: string, testo: string): void => {
     setValori((prec) => ({ ...prec, [k]: testo }))
     setModificato(true)
@@ -312,6 +516,12 @@ function Esecuzione({
         <span className="row-actions">
           <button onClick={indietro}>
             <ChevronLeft size={18} /> Tutti gli screening
+          </button>
+          <button
+            title="Guarda il report, poi lo scarichi da lì"
+            onClick={() => void apriReport()}
+          >
+            <FileText size={16} /> Report
           </button>
           <button className="primary" disabled={!modificato} onClick={() => void salva()}>
             <Save size={16} /> Salva

@@ -661,6 +661,20 @@ export function generaCartella(pazienteId: number, sezioni: SezioneCartella[]): 
 <style>
   @page { size: A4; margin: 15mm; }
   body { font-family: 'Segoe UI', system-ui, sans-serif; color: #1f2733; font-size: 12px; margin: 0; }
+
+  /* Solo a schermo: il documento sta dentro la finestra come un foglio su una
+     scrivania, staccato dai bordi. In stampa non vale, i margini li da' @page. */
+  @media screen {
+    body { background: #eef1f5; padding: 28px 0; }
+    .foglio {
+      max-width: 210mm;
+      margin: 0 auto;
+      background: #fff;
+      padding: 26px 30px;
+      border-radius: 6px;
+      box-shadow: 0 6px 26px rgba(15, 23, 42, 0.16);
+    }
+  }
   h1 { font-size: 21px; margin: 0 0 2px; }
   .info { color: #555b66; margin: 0 0 4px; font-size: 11px; }
   h2 { font-size: 15px; border-bottom: 2px solid #2563eb; padding-bottom: 4px; margin: 20px 0 8px; }
@@ -686,10 +700,12 @@ export function generaCartella(pazienteId: number, sezioni: SezioneCartella[]): 
 </style>
 </head>
 <body>
+<div class="foglio">
   <h1>${esc(c.cognome)} ${esc(c.nome)}</h1>
   <p class="info">Cartella fisioterapica · stampata il ${data(oggiIso())}</p>
   ${corpo || '<p class="testo">Nessun contenuto nelle sezioni scelte.</p>'}
   <p class="pie">Documento generato da Riabilitazione Sportiva. Contiene dati sanitari: trattare con riservatezza.</p>
+</div>
 </body>
 </html>`
 }

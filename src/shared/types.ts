@@ -334,6 +334,9 @@ export interface MisuraTest {
   riassunto: RiassuntoMisura
   cutoff: number | null
   cutoff_direzione: DirezioneCutoff | null
+  // Valore normativo facoltativo: diventa la riga tratteggiata nei grafici
+  // dell'andamento. Niente valore, niente riga.
+  riferimento: number | null
   // Se valorizzato, la misura non si scrive: si calcola dalle due indicate.
   calcolo: CalcoloMisura | null
   calcolo_a: number | null
@@ -904,6 +907,10 @@ export interface Api {
       questionarioId: number,
       compilazioneId: number
     ): Promise<void>
+    // Il report: gli screening da confrontare, dal piu' vecchio al piu' recente.
+    // L'ultimo e' quello che si legge nelle tabelle, gli altri fanno l'andamento.
+    anteprimaReport(ids: number[]): Promise<void>
+    report(ids: number[]): Promise<string | null>
     remove(id: number): Promise<void>
   }
   bodyChart: {

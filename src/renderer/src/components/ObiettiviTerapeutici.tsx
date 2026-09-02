@@ -130,19 +130,24 @@ export default function ObiettiviTerapeutici({
                     const dnd = contenitore(o.id)
                     return (
                       <li key={o.id} {...dnd} className={dnd.className}>
-                        <button {...maniglia(o.id)}>
-                          <GripVertical size={16} />
-                        </button>
-                        <input
-                          className="obiettivo-testo"
-                          value={o.testo}
-                          onChange={(e) =>
-                            setLista((prec) =>
-                              prec.map((x) => (x.id === o.id ? { ...x, testo: e.target.value } : x))
-                            )
-                          }
-                          onBlur={() => void salva(o)}
-                        />
+                        {/* La maniglia sta dentro alla casella del testo: si
+                            afferra l'obiettivo da dove c'e' scritto. */}
+                        <span className="campo-con-maniglia obiettivo-testo">
+                          <button {...maniglia(o.id)}>
+                            <GripVertical size={16} />
+                          </button>
+                          <input
+                            value={o.testo}
+                            onChange={(e) =>
+                              setLista((prec) =>
+                                prec.map((x) =>
+                                  x.id === o.id ? { ...x, testo: e.target.value } : x
+                                )
+                              )
+                            }
+                            onBlur={() => void salva(o)}
+                          />
+                        </span>
                         <select
                           value={o.termine}
                           onChange={(e) =>

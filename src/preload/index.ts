@@ -214,6 +214,8 @@ const api: Api = {
       invoke('screeningSvolti:salva', id, data, note, valori),
     collegaQuestionario: (id: number, questionarioId: number, compilazioneId: number) =>
       invoke('screeningSvolti:collegaQuestionario', id, questionarioId, compilazioneId),
+    anteprimaReport: (ids: number[]) => invoke('screeningSvolti:anteprimaReport', ids),
+    report: (ids: number[]) => invoke('screeningSvolti:report', ids),
     remove: (id: number) => invoke('screeningSvolti:delete', id)
   },
   bodyChart: {

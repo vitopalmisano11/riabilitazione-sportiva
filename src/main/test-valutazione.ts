@@ -26,7 +26,7 @@ export function leggiTest(id: number): TestValutazioneCompleto {
     .all(id) as ParametroTest[]
   const misure = db
     .prepare(
-      `SELECT id, nome, unita, per_prova, riassunto, cutoff, cutoff_direzione,
+      `SELECT id, nome, unita, per_prova, riassunto, cutoff, cutoff_direzione, riferimento,
               calcolo, calcolo_a, calcolo_b
        FROM test_misure WHERE test_id = ? ORDER BY ordine, id`
     )
@@ -98,12 +98,13 @@ function riscriviMisure(db: Db, testId: number, misure: MisuraTest[]): void {
   )
   const insert = db.prepare(
     `INSERT INTO test_misure (test_id, nome, unita, per_prova, riassunto, cutoff,
-       cutoff_direzione, calcolo, calcolo_a, calcolo_b, ordine)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       cutoff_direzione, riferimento, calcolo, calcolo_a, calcolo_b, ordine)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   )
   const update = db.prepare(
     `UPDATE test_misure SET nome = ?, unita = ?, per_prova = ?, riassunto = ?, cutoff = ?,
-     cutoff_direzione = ?, calcolo = ?, calcolo_a = ?, calcolo_b = ?, ordine = ? WHERE id = ?`
+     cutoff_direzione = ?, riferimento = ?, calcolo = ?, calcolo_a = ?, calcolo_b = ?,
+     ordine = ? WHERE id = ?`
   )
   // Le fonti di un calcolo devono essere misure di questo test gia' salvate:
   // un riferimento a una misura appena aggiunta non avrebbe ancora un id.
@@ -125,12 +126,12 @@ function riscriviMisure(db: Db, testId: number, misure: MisuraTest[]): void {
     if (m.id == null) {
       insert.run(
         testId, m.nome.trim(), m.unita, m.per_prova, m.riassunto, m.cutoff, direzione,
-        calcolo, a, b, i
+        m.riferimento, calcolo, a, b, i
       )
     } else {
       update.run(
         m.nome.trim(), m.unita, m.per_prova, m.riassunto, m.cutoff, direzione,
-        calcolo, a, b, i, m.id
+        m.riferimento, calcolo, a, b, i, m.id
       )
     }
   })

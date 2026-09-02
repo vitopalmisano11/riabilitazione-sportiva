@@ -84,7 +84,7 @@ export function leggiScreening(id: number): ScreeningCompleto {
      WHERE v.sezione_id = ? ORDER BY v.ordine, v.id`
   )
   const misureStmt = db.prepare(
-    `SELECT id, nome, unita, per_prova, riassunto, cutoff, cutoff_direzione,
+    `SELECT id, nome, unita, per_prova, riassunto, cutoff, cutoff_direzione, riferimento,
             calcolo, calcolo_a, calcolo_b
      FROM test_misure WHERE test_id = ? ORDER BY ordine, id`
   )

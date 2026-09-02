@@ -2355,6 +2355,19 @@ textarea {
   min-width: 0;
 }
 
+/* La casella del testo e il menu del termine devono essere alti uguali: la
+   prima e' un contenitore con dentro maniglia e input, il secondo un select. */
+.sedute-list li .campo-con-maniglia,
+.sedute-list li > select {
+  min-height: 44px;
+}
+
+.sedute-list li .campo-con-maniglia input {
+  padding-top: 0;
+  padding-bottom: 0;
+  align-self: stretch;
+}
+
 /* Scheda mostrata al paziente: si legge da lontano, in piedi, mentre si
    esegue l'esercizio. Percio' caratteri grandi e molta aria. */
 .scheda-paziente {
@@ -2754,7 +2767,9 @@ textarea {
    colonne della griglia non verrebbero applicate. */
 .sedute-list li.riga-screening {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.4fr) minmax(0, 0.8fr) 110px auto auto;
+  /* la colonna della data ha una larghezza sua: con "ultimo 16/07/2026" i 110px
+     di prima non bastavano e la scritta veniva troncata */
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.2fr) minmax(0, 0.7fr) 150px auto auto;
   align-items: center;
   gap: 12px;
 }

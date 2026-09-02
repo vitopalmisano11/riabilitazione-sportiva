@@ -707,6 +707,15 @@ const MIGRATIONS: string[] = [
     REFERENCES test_misure(id) ON DELETE SET NULL;
   ALTER TABLE test_misure ADD COLUMN calcolo_b INTEGER
     REFERENCES test_misure(id) ON DELETE SET NULL;
+  `,
+
+  // 22 - valore normativo della misura, facoltativo. E' cosa diversa dal
+  //      cutoff: il cutoff dice se il test e' superato, questo e' solo la riga
+  //      di riferimento nei grafici dell'andamento. Sta separato perche' una
+  //      soglia di passaggio e un valore atteso di popolazione non sono la
+  //      stessa cosa, e chi non ha valori normativi lascia il campo vuoto.
+  `
+  ALTER TABLE test_misure ADD COLUMN riferimento REAL;
   `
 ]
 

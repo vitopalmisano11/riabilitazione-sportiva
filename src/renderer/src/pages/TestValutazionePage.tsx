@@ -588,6 +588,26 @@ function Misure({
               {m.cutoff == null && <span className="hint">senza soglia: solo registrata</span>}
             </div>
 
+            {/* Il valore normativo non giudica niente: e' solo la riga di
+                riferimento nei grafici del report. Chi non ne ha lascia vuoto. */}
+            <div className="regola-fascia">
+              <span className="regola-parola">valore di riferimento</span>
+              <input
+                type="number"
+                placeholder="facoltativo"
+                value={m.riferimento ?? ''}
+                onChange={(e) =>
+                  modifica(i, {
+                    riferimento: e.target.value === '' ? null : Number(e.target.value)
+                  })
+                }
+              />
+              <span className="regola-parola">{m.unita ?? ''}</span>
+              {m.riferimento == null && (
+                <span className="hint">senza valore, nessuna riga nei grafici</span>
+              )}
+            </div>
+
             {/* Misure ricavate da altre due dello stesso test: l'EUR e' CMJ
                 diviso Squat Jump. Le fonti devono essere gia' salvate, perche'
                 una misura appena aggiunta non ha ancora un id da citare. */}
@@ -644,6 +664,7 @@ function Misure({
               calcolo: null,
               calcolo_a: null,
               calcolo_b: null,
+              riferimento: null,
               cutoff: null,
               cutoff_direzione: null
             }

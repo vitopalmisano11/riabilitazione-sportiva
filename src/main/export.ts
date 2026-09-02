@@ -1,10 +1,12 @@
 // Export sedute in PDF (via finestra nascosta + printToPDF) e Word (docx).
 import { app, BrowserWindow, dialog, shell } from 'electron'
+import icona from '../../resources/icon.png?asset'
 import { unlink, writeFile } from 'fs/promises'
 import { dirname, join } from 'path'
 import { getDb } from './db'
 import { cartellaExport, impostaCartellaExport } from './impostazioni'
 import { componiCartella, generaCartella, oggiIso } from './export-cartella'
+import { generaReportScreening } from './report-screening'
 import type { SezioneCartella } from '../shared/types'
 import {
   generaDocx,
@@ -193,6 +195,7 @@ export async function apriAnteprimaCartella(
     height: 1000,
     title: `Anteprima — ${cognome} ${nome}`,
     autoHideMenuBar: true,
+    icon: icona,
     webPreferences: { sandbox: true }
   })
   win.on('page-title-updated', (e) => e.preventDefault())
@@ -215,6 +218,56 @@ export async function esportaCartella(
   })
   if (canceled || !filePath) return null
   await htmlToPdf(generaCartella(pazienteId, sezioni), filePath)
+  impostaCartellaExport(dirname(filePath))
+  shell.showItemInFolder(filePath)
+  return filePath
+}
+
+// ---- Report di uno screening ----
+// Stessa coppia di funzioni della cartella: si guarda in una finestra a parte e
+// si salva in PDF, dallo stesso identico HTML.
+const reportAperti = new Map<number, BrowserWindow>()
+
+export async function apriAnteprimaReport(sessioneIds: number[]): Promise<void> {
+  const r = generaReportScreening(sessioneIds)
+  const sessioneId = sessioneIds[sessioneIds.length - 1]
+  const tmp = join(app.getPath('temp'), `riab-report-${sessioneId}-${Date.now()}.html`)
+  await writeFile(tmp, r.html, 'utf-8')
+
+  const gia = reportAperti.get(sessioneId)
+  if (gia && !gia.isDestroyed()) {
+    await gia.loadFile(tmp)
+    gia.focus()
+    void unlink(tmp).catch(() => undefined)
+    return
+  }
+  const win = new BrowserWindow({
+    width: 980,
+    height: 1000,
+    title: `Report — ${r.cognome} ${r.nome}`,
+    autoHideMenuBar: true,
+    icon: icona,
+    webPreferences: { sandbox: true }
+  })
+  win.on('page-title-updated', (e) => e.preventDefault())
+  win.on('closed', () => reportAperti.delete(sessioneId))
+  reportAperti.set(sessioneId, win)
+  await win.loadFile(tmp)
+  void unlink(tmp).catch(() => undefined)
+}
+
+export async function esportaReport(sessioneIds: number[]): Promise<string | null> {
+  const r = generaReportScreening(sessioneIds)
+  const { canceled, filePath } = await dialog.showSaveDialog({
+    title: 'Esporta il report dello screening',
+    defaultPath: join(
+      cartellaExport(),
+      `${slug(r.cognome)}_${slug(r.nome)}_screening_${r.data}.pdf`
+    ),
+    filters: [{ name: 'PDF', extensions: ['pdf'] }]
+  })
+  if (canceled || !filePath) return null
+  await htmlToPdf(r.html, filePath)
   impostaCartellaExport(dirname(filePath))
   shell.showItemInFolder(filePath)
   return filePath
