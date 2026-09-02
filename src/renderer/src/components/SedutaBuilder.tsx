@@ -110,30 +110,33 @@ export default function SedutaBuilder({
     return cats.flatMap((cid) => libreria.filter((e) => e.categoria_id === cid))
   }
 
+  // L'esercizio nuovo si infila subito dopo l'ultimo della sua categoria, non in
+  // fondo: cosi' l'elenco resta raggruppato da solo e ogni categoria ha una sola
+  // intestazione, anche aggiungendo gli esercizi in ordine sparso.
   const aggiungi = (idx: number, e: EsercizioConCategoria): void => {
     setSezioni(
-      sezioni.map((s, i) =>
-        i === idx && !s.righe.some((r) => r.esercizio_id === e.id)
-          ? {
-              ...s,
-              righe: [
-                ...s.righe,
-                {
-                  esercizio_id: e.id,
-                  nome: e.nome,
-                  categoria_nome: e.categoria_nome,
-                  serie: e.serie_default,
-                  ripetizioni: e.ripetizioni_default,
-                  carico: e.carico_default,
-                  recupero: e.recupero_default,
-                  nota: null,
-                  link: e.link,
-                  ha_immagine: e.ha_immagine
-                }
-              ]
-            }
-          : s
-      )
+      sezioni.map((s, i) => {
+        if (i !== idx || s.righe.some((r) => r.esercizio_id === e.id)) return s
+        const riga = {
+          esercizio_id: e.id,
+          nome: e.nome,
+          categoria_nome: e.categoria_nome,
+          serie: e.serie_default,
+          ripetizioni: e.ripetizioni_default,
+          carico: e.carico_default,
+          recupero: e.recupero_default,
+          nota: null,
+          link: e.link,
+          ha_immagine: e.ha_immagine
+        }
+        let dopo = -1
+        s.righe.forEach((r, k) => {
+          if (r.categoria_nome === e.categoria_nome) dopo = k
+        })
+        const righe = [...s.righe]
+        righe.splice(dopo + 1 === 0 ? righe.length : dopo + 1, 0, riga)
+        return { ...s, righe }
+      })
     )
   }
 
@@ -365,8 +368,17 @@ export default function SedutaBuilder({
               <ul className="righe-seduta">
                 {s.righe.map((r, idxRiga) => {
                   const dndRiga = contRiga(`${idxSez}:${idxRiga}`)
+                  // Gli esercizi della stessa categoria restano vicini perche'
+                  // e' li' che vengono inseriti, ma senza scriverne il nome: con
+                  // categorie fini ("Rinforzo quadricipite", "Rinforzo
+                  // hamstring") le intestazioni erano piu' delle righe.
                   return (
                   <li key={r.esercizio_id} {...dndRiga} className={dndRiga.className}>
+                    <span className="maniglia-riga">
+                      <button {...manRiga(`${idxSez}:${idxRiga}`)}>
+                        <GripVertical size={16} />
+                      </button>
+                    </span>
                     <div className="riga-testata">
                       <span className="item-nome">
                         {r.nome}
@@ -393,59 +405,50 @@ export default function SedutaBuilder({
                           </button>
                         )}
                       </span>
-                      <span className="default-hint">{r.categoria_nome}</span>
-                      <span className="item-actions-static">
-                        <button {...manRiga(`${idxSez}:${idxRiga}`)}>
-                          <GripVertical size={16} />
-                        </button>
-                        <button
-                          title="Rimuovi"
-                          className="danger"
-                          onClick={() => rimuoviRiga(idxSez, idxRiga)}
-                        >
-                          <X size={16} />
-                        </button>
-                      </span>
                     </div>
+                    {/* Parametri e nota sulla stessa riga del nome: le etichette
+                        sono nei segnaposto, cosi' un esercizio occupa una riga
+                        invece di tre. */}
                     <div className="riga-params">
-                      <label>
-                        Serie
-                        <input
-                          value={r.serie ?? ''}
-                          onChange={(e) => updateRiga(idxSez, idxRiga, 'serie', e.target.value)}
-                        />
-                      </label>
-                      <label>
-                        Ripetizioni
-                        <input
-                          value={r.ripetizioni ?? ''}
-                          onChange={(e) =>
-                            updateRiga(idxSez, idxRiga, 'ripetizioni', e.target.value)
-                          }
-                        />
-                      </label>
-                      <label>
-                        Carico
-                        <input
-                          value={r.carico ?? ''}
-                          onChange={(e) => updateRiga(idxSez, idxRiga, 'carico', e.target.value)}
-                        />
-                      </label>
-                      <label>
-                        Recupero
-                        <input
-                          value={r.recupero ?? ''}
-                          placeholder={'es. 1′'}
-                          onChange={(e) => updateRiga(idxSez, idxRiga, 'recupero', e.target.value)}
-                        />
-                      </label>
+                      <input
+                        title="Serie"
+                        placeholder="serie"
+                        value={r.serie ?? ''}
+                        onChange={(e) => updateRiga(idxSez, idxRiga, 'serie', e.target.value)}
+                      />
+                      <input
+                        title="Ripetizioni"
+                        placeholder="rip."
+                        value={r.ripetizioni ?? ''}
+                        onChange={(e) => updateRiga(idxSez, idxRiga, 'ripetizioni', e.target.value)}
+                      />
+                      <input
+                        title="Carico"
+                        placeholder="carico"
+                        value={r.carico ?? ''}
+                        onChange={(e) => updateRiga(idxSez, idxRiga, 'carico', e.target.value)}
+                      />
+                      <input
+                        title="Recupero"
+                        placeholder="rec."
+                        value={r.recupero ?? ''}
+                        onChange={(e) => updateRiga(idxSez, idxRiga, 'recupero', e.target.value)}
+                      />
+                      <input
+                        className="riga-nota"
+                        title="Nota"
+                        placeholder="nota…"
+                        value={r.nota ?? ''}
+                        onChange={(e) => updateRiga(idxSez, idxRiga, 'nota', e.target.value)}
+                      />
                     </div>
-                    <input
-                      className="riga-nota"
-                      placeholder="Nota per questo esercizio…"
-                      value={r.nota ?? ''}
-                      onChange={(e) => updateRiga(idxSez, idxRiga, 'nota', e.target.value)}
-                    />
+                    <button
+                      title="Rimuovi"
+                      className="danger btn-togli"
+                      onClick={() => rimuoviRiga(idxSez, idxRiga)}
+                    >
+                      <X size={16} />
+                    </button>
                   </li>
                   )
                 })}

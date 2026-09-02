@@ -227,26 +227,27 @@ export default function AnamnesiProssima({
             onChange={(e) => aggiornaAttivita({ attivita: e.target.value || null })}
           />
         </label>
-        <div className="form-row-2">
-          <label>
-            Partecipazione
-            <textarea
-              rows={2}
-              placeholder="Lavoro, sport, vita sociale"
-              value={attivita?.partecipazione ?? ''}
-              onChange={(e) => aggiornaAttivita({ partecipazione: e.target.value || null })}
-            />
-          </label>
-          <label>
-            Impairment psicologici e fattori interni
-            <textarea
-              rows={2}
-              placeholder="Paure, aspettative, convinzioni sul dolore"
-              value={attivita?.fattori_interni ?? ''}
-              onChange={(e) => aggiornaAttivita({ fattori_interni: e.target.value || null })}
-            />
-          </label>
-        </div>
+        {/* Le tre caselle una sotto l'altra: sono tre risposte alla stessa
+            domanda e affiancarne due faceva sembrare la prima diversa dalle
+            altre. */}
+        <label>
+          Partecipazione
+          <textarea
+            rows={2}
+            placeholder="Lavoro, sport, vita sociale"
+            value={attivita?.partecipazione ?? ''}
+            onChange={(e) => aggiornaAttivita({ partecipazione: e.target.value || null })}
+          />
+        </label>
+        <label>
+          Impairment psicologici e fattori interni
+          <textarea
+            rows={2}
+            placeholder="Paure, aspettative, convinzioni sul dolore"
+            value={attivita?.fattori_interni ?? ''}
+            onChange={(e) => aggiornaAttivita({ fattori_interni: e.target.value || null })}
+          />
+        </label>
 
         <div className="modal-actions">
           <button className="primary" onClick={chiudi}>

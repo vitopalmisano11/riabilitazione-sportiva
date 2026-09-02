@@ -72,12 +72,13 @@ export default function PannelloBackup(): React.JSX.Element {
 
       <div className="cartella-path">{info.cartella}</div>
 
-      <div className="modal-actions">
-        <label className="compila-data">
+      <div className="modal-actions riga-backup">
+        {/* Scritta sopra alla casella, come tutti gli altri campi: accanto
+            restava schiacciata contro il numero. */}
+        <label className="campo-copie">
           Copie da tenere
           <input
             type="number"
-            className="campo-stretto"
             min={1}
             max={100}
             value={info.daTenere}

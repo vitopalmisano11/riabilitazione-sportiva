@@ -391,8 +391,12 @@ function sezValutazioni(pazienteId: number): Blocco[] {
     .all(pazienteId) as Record<string, unknown>[]
   if (righe.length === 0) return []
 
-  const grado = ['—', 'lieve', 'moder.', 'severa']
+  // Gli stessi segni che si usano a schermo: +, ++, +++.
+  const grado = ['', '+', '++', '+++']
   const g = (x: unknown): string => (x == null ? '' : (grado[Number(x)] ?? ''))
+  // Il dolore e' presente o assente: i rilievi vecchi lo avevano graduato, e
+  // qualunque valore diverso da zero vuol dire che c'era.
+  const dol = (x: unknown): string => (x == null ? '' : Number(x) > 0 ? 'sì' : 'no')
   const num = (x: unknown): string => (x == null ? '' : `${x}°`)
 
   return righe.flatMap((v): Blocco[] => {
@@ -447,20 +451,20 @@ function sezValutazioni(pazienteId: number): Blocco[] {
                 tipo: 'tabella',
                 intestazioni: [
                   'Movimento',
-                  'Attivo — restrizione',
-                  'Attivo — dolore',
+                  'Attivo · restrizione',
+                  'Attivo · dolore',
                   ...(conGradi ? ['Attivo °'] : []),
-                  'Passivo — restrizione',
-                  'Passivo — dolore',
+                  'Passivo · restrizione',
+                  'Passivo · dolore',
                   ...(conGradi ? ['Passivo °'] : [])
                 ],
                 righe: compilati.map((m) => [
                   String(m.nome),
                   g(m.attivo_restrizione),
-                  g(m.attivo_dolore),
+                  dol(m.attivo_dolore),
                   ...(conGradi ? [num(m.attivo_gradi)] : []),
                   g(m.passivo_restrizione),
-                  g(m.passivo_dolore),
+                  dol(m.passivo_dolore),
                   ...(conGradi ? [num(m.passivo_gradi)] : [])
                 ])
               }
@@ -660,6 +664,7 @@ export function generaCartella(pazienteId: number, sezioni: SezioneCartella[]): 
 <meta charset="utf-8">
 <style>
   @page { size: A4; margin: 15mm; }
+  * { box-sizing: border-box; }
   body { font-family: 'Segoe UI', system-ui, sans-serif; color: #1f2733; font-size: 12px; margin: 0; }
 
   /* Solo a schermo: il documento sta dentro la finestra come un foglio su una
@@ -677,9 +682,15 @@ export function generaCartella(pazienteId: number, sezioni: SezioneCartella[]): 
   }
   h1 { font-size: 21px; margin: 0 0 2px; }
   .info { color: #555b66; margin: 0 0 4px; font-size: 11px; }
-  h2 { font-size: 15px; border-bottom: 2px solid #2563eb; padding-bottom: 4px; margin: 20px 0 8px; }
-  h3 { font-size: 13px; margin: 12px 0 4px; color: #2563eb; }
-  section { page-break-inside: auto; }
+  h2 { font-size: 15px; border-bottom: 2px solid #55806a; padding-bottom: 4px; margin: 20px 0 8px; }
+  h3 { font-size: 13px; margin: 12px 0 4px; color: #55806a; }
+  /* Ogni sezione dentro il suo riquadro: con anamnesi, valutazione e sedute una
+     dopo l'altra, senza una cornice si confondono fra loro. Il titolo fa da
+     testata del riquadro. */
+  section { page-break-inside: auto; border: 1px solid #dfe4ea; border-radius: 5px;
+            padding: 0 12px 10px; margin-bottom: 12px; }
+  section > h2 { margin: 0 -12px 10px; padding: 6px 12px; border-bottom: 2px solid #55806a;
+                 background: #f0e9dc; border-radius: 5px 5px 0 0; }
   .testo { margin: 0 0 6px; }
   dl.dati { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 20px; margin: 0 0 8px; }
   dl.dati div { display: flex; gap: 6px; }
@@ -688,7 +699,7 @@ export function generaCartella(pazienteId: number, sezioni: SezioneCartella[]): 
   dl.dati dd { margin: 0; font-weight: 600; }
   table { width: 100%; border-collapse: collapse; margin: 0 0 8px; }
   th, td { border: 1px solid #ccd2da; padding: 5px 7px; text-align: left; vertical-align: top; }
-  th { background: #eef2f7; font-size: 10px; text-transform: uppercase; letter-spacing: 0.03em; }
+  th { background: #f0e9dc; font-size: 10px; text-transform: uppercase; letter-spacing: 0.03em; }
   tr { page-break-inside: avoid; }
   ul.voci { margin: 0 0 8px; padding-left: 18px; }
   ul.voci li { margin-bottom: 3px; }

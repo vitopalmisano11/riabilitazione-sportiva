@@ -84,13 +84,19 @@ export default function QuestionariPaziente({
             <li key={c.id}>
               <div className="seduta-info">
                 <span className="seduta-data">{formatData(c.data)}</span>
-                <span className="seduta-meta">
-                  {c.questionario_nome}
-                  {c.punteggi.length > 0 && ' · '}
-                  {c.punteggi.map((p) => `${p.nome} ${p.valore}`).join(' · ')}
-                </span>
+                <span className="seduta-meta">{c.questionario_nome}</span>
                 {c.note && <span className="seduta-obiettivi">{c.note}</span>}
               </div>
+              {/* Il punteggio e' il risultato e si vede sempre; la fascia di
+                  rischio solo dove il questionario ne prevede una. */}
+              <span className="punteggi-compilazione">
+                {c.punteggi.map((p) => (
+                  <span key={p.nome} className="punteggio">
+                    <span className="etichetta">{p.nome}</span>
+                    <span className="valore">{p.valore}</span>
+                  </span>
+                ))}
+              </span>
               <span className="row-actions">
                 {c.fascia && <span className="badge-fascia">{c.fascia}</span>}
                 <button

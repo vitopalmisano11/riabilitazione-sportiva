@@ -593,7 +593,16 @@ export interface Bioimmagine {
 // ---- Valutazione obiettiva ----
 // Movimenti e test stanno nel distretto: si scrivono una volta e si riusano su
 // tutte le patologie che riguardano quella zona.
-export type GruppoTest = 'provocazione' | 'forza' | 'neurologico' | 'altri'
+// I gruppi in cui si dividono i test di un distretto. Il valore salvato non
+// cambia mai una volta usato: rinominare l'etichetta e' libero, cambiare il
+// valore lascerebbe i test gia' scritti in un gruppo che non esiste piu'.
+export type GruppoTest =
+  | 'provocazione'
+  | 'forza'
+  | 'legamentosa'
+  | 'flessibilita'
+  | 'neurologico'
+  | 'altri'
 
 // Come si risponde a un test: positivo/negativo, scala di forza 0-5, testo.
 export type RispostaTest = 'posneg' | 'scala5' | 'testo'

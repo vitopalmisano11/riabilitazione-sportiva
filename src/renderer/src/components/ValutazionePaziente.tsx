@@ -24,9 +24,11 @@ const GRADI: { valore: Grado; etichetta: string }[] = [
 ]
 
 const ANDAMENTI: { valore: Andamento; etichetta: string }[] = [
-  { valore: 'aumentato', etichetta: 'Aumentato' },
-  { valore: 'invariato', etichetta: 'Invariato' },
-  { valore: 'diminuito', etichetta: 'Diminuito' }
+  // Le etichette concordano con "capacita' di carico", che e' femminile. Il
+  // valore salvato resta quello di prima: le valutazioni gia' fatte non cambiano.
+  { valore: 'aumentato', etichetta: 'Aumentata' },
+  { valore: 'invariato', etichetta: 'Invariata' },
+  { valore: 'diminuito', etichetta: 'Diminuita' }
 ]
 
 // Storico delle valutazioni obiettive: si aggiunge, si rivede e si modifica,
@@ -67,10 +69,12 @@ export default function ValutazionePaziente({
     }
   }
 
-  const crea = async (): Promise<void> => {
-    if (!scelta) return
+  // Un clic sul distretto apre subito la valutazione: sceglierlo e poi premere
+  // un secondo pulsante era un passaggio in piu' per la cosa che si fa sempre.
+  const crea = async (distretti: number[]): Promise<void> => {
+    if (distretti.length === 0) return
     try {
-      const id = await window.api.valutazioni.create(paziente.id, oggiIso(), scelta)
+      const id = await window.api.valutazioni.create(paziente.id, oggiIso(), distretti)
       setScelta(null)
       await load()
       setAperta({ id, soloLettura: false })
@@ -142,34 +146,34 @@ export default function ValutazionePaziente({
       {scelta != null && (
         <div className="modal-overlay" onClick={() => setScelta(null)}>
           <div className="modal modal-sm" onClick={(e) => e.stopPropagation()}>
-            <h3>Quali distretti valuti?</h3>
+            <h3>Quale distretto valuti?</h3>
             <p className="modal-testo">
-              Quelli abituali della patologia sono già scelti. Cliccane altri se il paziente ha
-              più problemi, o riclicca per toglierli.
+              {scelta.length > 0
+                ? 'Quelli abituali della patologia sono in cima. Clicca il distretto: la valutazione si apre subito.'
+                : 'Clicca il distretto: la valutazione si apre subito.'}
             </p>
             <ul className="scelte-questionari">
-              {distretti.map((d) => (
-                <li key={d.id}>
-                  <button
-                    className={scelta.includes(d.id) ? 'scelta-attiva' : ''}
-                    onClick={() =>
-                      setScelta(
-                        scelta.includes(d.id)
-                          ? scelta.filter((x) => x !== d.id)
-                          : [...scelta, d.id]
-                      )
-                    }
-                  >
-                    {d.nome}
-                  </button>
-                </li>
-              ))}
+              {/* Prima quelli abituali della patologia, poi gli altri: la scelta
+                  piu' probabile sta in cima e si trova senza cercare. */}
+              {[...distretti]
+                .sort(
+                  (a, b) =>
+                    Number(scelta.includes(b.id)) - Number(scelta.includes(a.id)) ||
+                    a.nome.localeCompare(b.nome)
+                )
+                .map((d) => (
+                  <li key={d.id}>
+                    <button
+                      className={scelta.includes(d.id) ? 'scelta-attiva' : ''}
+                      onClick={() => void crea([d.id])}
+                    >
+                      {d.nome}
+                    </button>
+                  </li>
+                ))}
             </ul>
             <div className="modal-actions">
               <button onClick={() => setScelta(null)}>Annulla</button>
-              <button className="primary" disabled={scelta.length === 0} onClick={() => void crea()}>
-                Apri la valutazione
-              </button>
             </div>
           </div>
         </div>
@@ -434,8 +438,22 @@ function SchedaValutazione({
   )
 }
 
-// Le colonne dei gradi compaiono solo se almeno un movimento del distretto e'
-// segnato come misurabile: altrove la tabella resta a cinque colonne.
+// Movimento attivo e passivo in due riquadri affiancati.
+//
+// Prima erano le colonne di un'unica tabella, con intestazioni come "Attivo —
+// restrizione" che andavano a capo e si leggevano male. Separandoli, ogni
+// riquadro ha le sue tre colonnine corte e il confronto fra attivo e passivo si
+// fa guardando a destra e a sinistra.
+//
+// La restrizione si segna con +, ++ e +++ invece che con un menu: sono i segni
+// che si usano a mano sul foglio e si clicca una volta sola, invece di aprire
+// una tendina. Il dolore e' una spunta: c'e' o non c'e'.
+const SEGNI: { valore: Grado; segno: string; titolo: string }[] = [
+  { valore: 1, segno: '+', titolo: 'Restrizione lieve' },
+  { valore: 2, segno: '++', titolo: 'Restrizione moderata' },
+  { valore: 3, segno: '+++', titolo: 'Restrizione severa' }
+]
+
 function TabellaMovimenti({
   movimenti,
   soloLettura,
@@ -449,81 +467,95 @@ function TabellaMovimenti({
 }): React.JSX.Element {
   const conGradi = movimenti.some((m) => m.gradi === 1)
 
-  const cella = (id: number, campo: keyof RilievoMovimento, valore: Grado): React.JSX.Element => (
-    <select
-      disabled={soloLettura}
-      value={valore ?? ''}
-      onChange={(e) =>
-        onCambia(id, {
-          [campo]: e.target.value === '' ? null : (Number(e.target.value) as Grado)
-        })
-      }
-    >
-      <option value="">—</option>
-      {GRADI.filter((g) => g.valore !== 0).map((g) => (
-        <option key={g.valore} value={g.valore as number}>
-          {g.etichetta}
-        </option>
-      ))}
-    </select>
+  const blocco = (
+    titolo: string,
+    campoRestrizione: 'attivo_restrizione' | 'passivo_restrizione',
+    campoDolore: 'attivo_dolore' | 'passivo_dolore',
+    campoGradi: 'attivo_gradi' | 'passivo_gradi'
+  ): React.JSX.Element => (
+    <div className="blocco-movimento">
+      <div className="sotto-titolo">{titolo}</div>
+      <table className="tabella-movimenti">
+        <thead>
+          <tr>
+            <th className="col-nome">Movimento</th>
+            <th className="col-restrizione">Restrizione</th>
+            <th>Dolore</th>
+            {conGradi && <th className="col-gradi">Gradi</th>}
+          </tr>
+        </thead>
+        <tbody>
+          {movimenti.map((m) => {
+            const id = m.id as number
+            const r = rilievo(id)
+            const restrizione = r[campoRestrizione]
+            return (
+              <tr key={id}>
+                <td className="col-nome">{m.nome}</td>
+                <td className="col-restrizione">
+                  <span className="scala-segni">
+                    {SEGNI.map((g) => (
+                      <button
+                        key={g.valore}
+                        type="button"
+                        title={g.titolo}
+                        disabled={soloLettura}
+                        className={restrizione === g.valore ? 'scelta-attiva' : ''}
+                        // ripremendo lo stesso segno si toglie: e' il modo piu'
+                        // veloce per correggere un clic sbagliato
+                        onClick={() =>
+                          onCambia(id, {
+                            [campoRestrizione]: restrizione === g.valore ? null : g.valore
+                          })
+                        }
+                      >
+                        {g.segno}
+                      </button>
+                    ))}
+                  </span>
+                </td>
+                <td className="col-dolore">
+                  <input
+                    type="checkbox"
+                    title="Dolore durante il movimento"
+                    disabled={soloLettura}
+                    // i rilievi vecchi avevano il dolore graduato: qualunque
+                    // valore diverso da zero vuol dire che il dolore c'era
+                    checked={(r[campoDolore] ?? 0) > 0}
+                    onChange={(e) => onCambia(id, { [campoDolore]: e.target.checked ? 1 : null })}
+                  />
+                </td>
+                {conGradi && (
+                  <td className="col-gradi">
+                    {m.gradi === 1 ? (
+                      <input
+                        type="number"
+                        className="campo-gradi"
+                        disabled={soloLettura}
+                        value={r[campoGradi] ?? ''}
+                        onChange={(e) =>
+                          onCambia(id, {
+                            [campoGradi]: e.target.value === '' ? null : Number(e.target.value)
+                          })
+                        }
+                      />
+                    ) : (
+                      <span className="hint">—</span>
+                    )}
+                  </td>
+                )}
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
   )
 
-  const gradi = (
-    id: number,
-    campo: 'attivo_gradi' | 'passivo_gradi',
-    valore: number | null,
-    misurabile: boolean
-  ): React.JSX.Element =>
-    misurabile ? (
-      <input
-        type="number"
-        className="campo-gradi"
-        disabled={soloLettura}
-        value={valore ?? ''}
-        onChange={(e) => onCambia(id, { [campo]: e.target.value === '' ? null : Number(e.target.value) })}
-      />
-    ) : (
-      <span className="hint">—</span>
-    )
-
   return (
-    <table className="data-table tabella-movimenti">
-      <thead>
-        <tr>
-          <th className="col-nome">Movimento</th>
-          <th>Attivo — restrizione</th>
-          <th>Attivo — dolore</th>
-          {conGradi && <th className="col-gradi">Attivo °</th>}
-          <th>Passivo — restrizione</th>
-          <th>Passivo — dolore</th>
-          {conGradi && <th className="col-gradi">Passivo °</th>}
-        </tr>
-      </thead>
-      <tbody>
-        {movimenti.map((m) => {
-          const id = m.id as number
-          const r = rilievo(id)
-          return (
-            <tr key={id}>
-              <td className="col-nome">{m.nome}</td>
-              <td>{cella(id, 'attivo_restrizione', r.attivo_restrizione)}</td>
-              <td>{cella(id, 'attivo_dolore', r.attivo_dolore)}</td>
-              {conGradi && (
-                <td className="col-gradi">
-                  {gradi(id, 'attivo_gradi', r.attivo_gradi, m.gradi === 1)}
-                </td>
-              )}
-              <td>{cella(id, 'passivo_restrizione', r.passivo_restrizione)}</td>
-              <td>{cella(id, 'passivo_dolore', r.passivo_dolore)}</td>
-              {conGradi && (
-                <td className="col-gradi">
-                  {gradi(id, 'passivo_gradi', r.passivo_gradi, m.gradi === 1)}
-                </td>
-              )}
-            </tr>
-          )
-        })}
-      </tbody>
-    </table>
+    <div className="movimenti-attivo-passivo">
+      {blocco('Movimento attivo', 'attivo_restrizione', 'attivo_dolore', 'attivo_gradi')}
+      {blocco('Movimento passivo', 'passivo_restrizione', 'passivo_dolore', 'passivo_gradi')}
+    </div>
   )
 }

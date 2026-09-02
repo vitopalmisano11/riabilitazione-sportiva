@@ -109,14 +109,14 @@ export function generaHtml(p: DatiPazienteExport, sedute: DatiSedutaExport[]): s
   body { font-family: 'Segoe UI', system-ui, sans-serif; color: #1f2733; font-size: 12px; margin: 0; }
   h1 { font-size: 20px; margin: 0 0 2px; }
   .info { color: #555b66; margin: 0 0 6px; font-size: 11px; }
-  h2 { font-size: 15px; border-bottom: 2px solid #2563eb; padding-bottom: 4px; margin: 18px 0 8px; }
-  h2 .fase { color: #2563eb; font-weight: 600; }
-  h3 { font-size: 13px; margin: 12px 0 4px; color: #2563eb; }
+  h2 { font-size: 15px; border-bottom: 2px solid #55806a; padding-bottom: 4px; margin: 18px 0 8px; }
+  h2 .fase { color: #55806a; font-weight: 600; }
+  h3 { font-size: 13px; margin: 12px 0 4px; color: #55806a; }
   .nuova-pagina { page-break-before: always; }
   .obiettivi { margin: 0 0 8px; }
   table { width: 100%; border-collapse: collapse; }
   th, td { border: 1px solid #ccd2da; padding: 6px 8px; text-align: left; vertical-align: top; }
-  th { background: #eef2f7; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; }
+  th { background: #f0e9dc; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; }
   tr { page-break-inside: avoid; }
   .cat { color: #777e88; font-size: 10px; }
   .note { margin: 10px 0 0; background: #f5f6f8; padding: 8px 10px; border-radius: 4px; }

@@ -47,12 +47,22 @@ function numero(v: number | null, decimali = 1): string {
 
 // Quanto e' cambiato rispetto al primo screening del confronto, in percentuale.
 // E' il "+92%" del referto: dice in un colpo d'occhio se si sta recuperando.
-function variazione(adesso: number | null, prima: number | null): string {
+//
+// Il verde non e' "e' salito", e' "e' migliorato": in un tempo cronometrato
+// scendere e' un progresso. Il verso lo dice la direzione del cutoff della
+// misura ('max' = "al massimo", quindi meno e' meglio). Dove il cutoff non c'e'
+// si assume che piu' alto sia meglio, che e' il caso di forze e distanze.
+function variazione(
+  adesso: number | null,
+  prima: number | null,
+  menoEMeglio: boolean
+): string {
   if (adesso == null || prima == null || prima === 0) return ''
   const delta = ((adesso - prima) / Math.abs(prima)) * 100
   if (!Number.isFinite(delta)) return ''
   const segno = delta >= 0 ? '+' : '−'
-  const classe = delta >= 0 ? 'su' : 'giu'
+  const migliorato = menoEMeglio ? delta < 0 : delta > 0
+  const classe = delta === 0 ? 'pari' : migliorato ? 'su' : 'giu'
   return `<span class="variazione ${classe}">${segno}${Math.abs(delta).toFixed(0)}%</span>`
 }
 
@@ -312,6 +322,7 @@ export function generaReportScreening(sessioneIds: number[]): DatiReport {
 
               // il primo degli screening scelti e' il termine di paragone
               const iniziale = storico.length > 1 ? storico[0] : null
+              const menoEMeglio = m.cutoff_direzione === 'max'
 
               const valLsi = perLato ? lsi(dx, sx, latoInteressato) : null
               const valAsim = perLato ? asimmetria(dx, sx) : null
@@ -337,7 +348,8 @@ export function generaReportScreening(sessioneIds: number[]): DatiReport {
                       latoInteressato === lato ? ' <span class="interessato">(interessato)</span>' : ''
                     }</th>${celle}<td class="sintesi">${numero(sintesi)}${variazione(
                       sintesi,
-                      prima
+                      prima,
+                      menoEMeglio
                     )}</td></tr>`
                   }).join('')
                 : // test bilaterale: nessun lato da nominare, quindi nessuna
@@ -349,7 +361,8 @@ export function generaReportScreening(sessioneIds: number[]): DatiReport {
                     return `<td>${r ? numero(r.valore) : ''}</td>`
                   }).join('')}<td class="sintesi">${numero(dx)}${variazione(
                     dx,
-                    iniziale ? iniziale.dx : null
+                    iniziale ? iniziale.dx : null,
+                    menoEMeglio
                   )}</td></tr>`
 
               const intestazioni = Array.from(
@@ -376,13 +389,13 @@ export function generaReportScreening(sessioneIds: number[]): DatiReport {
                             <div class="lato sinistra">
                               <span class="etichetta">Sinistra</span>
                               <span class="numero">${numero(sx)}</span>
-                              ${variazione(sx, iniziale ? iniziale.sx : null)}
+                              ${variazione(sx, iniziale ? iniziale.sx : null, menoEMeglio)}
                             </div>
                             ${ciambella(dx, sx)}
                             <div class="lato destra">
                               <span class="etichetta">Destra</span>
                               <span class="numero">${numero(dx)}</span>
-                              ${variazione(dx, iniziale ? iniziale.dx : null)}
+                              ${variazione(dx, iniziale ? iniziale.dx : null, menoEMeglio)}
                             </div>
                           </div>
                           <p class="asimmetria">${
@@ -460,6 +473,9 @@ export function generaReportScreening(sessioneIds: number[]): DatiReport {
 <meta charset="utf-8">
 <style>
   @page { size: A4; margin: 12mm; }
+  /* I margini interni stanno dentro la larghezza dichiarata: senza, il foglio
+     e' piu' largo di 210mm e la barra dei comandi qui sopra non gli si allinea. */
+  * { box-sizing: border-box; }
   body { font-family: 'Segoe UI', system-ui, sans-serif; color: #1f2733; font-size: 11px; margin: 0; }
 
   /* Solo a schermo: il foglio sta dentro la finestra come un foglio su una
@@ -483,15 +499,18 @@ export function generaReportScreening(sessioneIds: number[]): DatiReport {
   dl.info dt { color: #6b7280; margin: 0; }
   dl.info dt::after { content: ':'; }
   dl.info dd { margin: 0; font-weight: 600; }
-  h3 { font-size: 13px; margin: 16px 0 6px; padding: 5px 8px; background: #1f6b73; color: #fff;
+  h3 { font-size: 13px; margin: 16px 0 6px; padding: 5px 8px; background: #55806a; color: #fff;
        border-radius: 3px; }
-  h4 { font-size: 12px; margin: 10px 0 4px; padding: 4px 8px; background: #eef2f7; color: #1f6b73;
-       border-radius: 3px; }
+  /* Il titolo del test non e' una casella colorata: e' una riga bianca con una
+     sottolineatura. Dentro al report resta tutto bianco tranne le intestazioni
+     delle colonne. */
+  h4 { font-size: 12px; margin: 10px 0 6px; padding: 0 0 4px; color: #3f6553;
+       border-bottom: 1px solid #e0d7c6; }
   /* Ogni test dentro il suo riquadro: con quattro o cinque test di fila,
      tabelle e grafici si confonderebbero fra loro. */
   .test { page-break-inside: avoid; margin: 0 0 12px; border: 1px solid #e4e9f0;
           border-radius: 5px; padding: 0 10px 10px; }
-  .test h4 { margin: 0 -10px 8px; border-radius: 5px 5px 0 0; }
+  .test h4 { margin: 0 0 8px; }
   .misura + .misura { border-top: 1px dashed #e4e9f0; padding-top: 8px; }
   .misura { display: block; margin: 6px 0 10px; }
   .misura-testa { display: flex; align-items: baseline; gap: 6px; margin-bottom: 3px; }
@@ -505,10 +524,13 @@ export function generaReportScreening(sessioneIds: number[]): DatiReport {
   .misura-corpo.bilaterale .colonna-numeri { flex: 0 1 auto; }
   .misura-corpo.bilaterale .colonna-grafico { flex: 1 1 auto; }
   table.prove { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
-  table.prove th, table.prove td { border: 1px solid #ccd2da; padding: 3px 6px; text-align: right;
-                                   white-space: nowrap; }
-  table.prove thead th { background: #eef2f7; font-size: 10px; text-align: center; }
+  table.prove th, table.prove td { border: 1px solid #ccd2da; padding: 3px 6px;
+                                   text-align: center; white-space: nowrap; }
+  table.prove thead th { background: #f0e9dc; font-size: 10px; }
   table.prove tbody th { text-align: left; font-weight: 400; color: #555b66; white-space: nowrap; }
+  /* La variazione va sotto al numero: di fianco allargava la colonna e i
+     valori non erano piu' incolonnati. */
+  td.sintesi .variazione { display: block; margin: 1px 0 0; }
   table.prove td.sintesi { font-weight: 700; }
   /* Solo un'annotazione su quale dei due lati e' quello interessato: il rosso
      lo faceva sembrare un allarme. */
@@ -536,7 +558,7 @@ export function generaReportScreening(sessioneIds: number[]): DatiReport {
   .tratteggio { display: inline-block; width: 12px; border-top: 1.4px dashed #d64545; margin: 0 3px 0 8px;
                 vertical-align: middle; }
   .riga-questionario { margin: 2px 0 0; }
-  .fascia { margin-left: 6px; padding: 1px 7px; border-radius: 999px; background: #e8effd; color: #2563eb; }
+  .fascia { margin-left: 6px; padding: 1px 7px; border-radius: 999px; background: #f0e9dc; color: #3f6553; }
   .vuoto-test { color: #8b93a0; margin: 2px 0; }
   .attenzione { border: 1px solid #f0c6c6; background: #fdf3f3; border-radius: 4px;
                 padding: 8px 10px; margin: 0 0 12px; }
@@ -545,8 +567,10 @@ export function generaReportScreening(sessioneIds: number[]): DatiReport {
   .note { margin-top: 14px; }
   .pie { margin-top: 14px; color: #8b93a0; font-size: 9px; }
   .variazione { display: inline-block; margin-left: 6px; font-size: 10px; font-weight: 700; }
+  td.sintesi { line-height: 1.25; }
   .variazione.su { color: #1f9d61; }
   .variazione.giu { color: #d64545; }
+  .variazione.pari { color: #8b93a0; }
   .lato .variazione { display: block; margin: 1px 0 0; }
 
   /* La barra dei comandi vive solo a schermo: in stampa non deve esserci. */
@@ -562,13 +586,13 @@ export function generaReportScreening(sessioneIds: number[]): DatiReport {
       font: inherit;
       font-size: 13px;
       padding: 9px 16px;
-      border: 1px solid #2563eb;
+      border: 1px solid #55806a;
       border-radius: 8px;
-      background: #2563eb;
+      background: #55806a;
       color: #fff;
       cursor: pointer;
     }
-    .comandi button:hover { background: #1d4fc7; }
+    .comandi button:hover { background: #446a57; }
   }
 </style>
 </head>

@@ -24,6 +24,9 @@ export function apriScheda(sedutaId: number): void {
   const win = new BrowserWindow({
     width: 820,
     height: 980,
+    // il bianco e' anche il fondo della finestra: senza, mentre carica si vede
+    // un lampo del colore di sistema
+    backgroundColor: '#ffffff',
     title: `Scheda — ${dati.paziente}`,
     autoHideMenuBar: true,
     icon: icona,

@@ -1,23 +1,32 @@
 :root {
-  --bg: #f2f5f9;
+  /* Tutta la scala dei grigi e' calda: un grigio azzurrato accanto a una barra
+     beige darebbe uno stacco netto, come due fogli di carta diversi. */
+  --bg: #f4efe5;
   --surface: #ffffff;
-  --border: #e4e9f0;
-  --border-forte: #d3dae3;
-  --text: #17222f;
-  --text-dim: #64748b;
-  --accent: #2563eb;
-  --accent-hover: #1d4fc7;
-  --accent-soft: #e8effd;
+  --border: #e6dfd3;
+  --border-forte: #d6ccbb;
+  --text: #241f19;
+  --text-dim: #77706a;
+  /* Verde salvia. Il colore vive tutto qui dentro: per tornare al blu bastano
+     queste tre righe (#2563eb, #1d4fc7, #e8effd) piu' le intestazioni dei
+     documenti in export-cartella.ts, export-doc.ts e report-screening.ts. */
+  --accent: #55806a;
+  --accent-hover: #446a57;
+  --accent-soft: #e7efe9;
   /* fondo dei riquadri di dati e interno delle caselle in cui si scrive:
      appena piu' chiari del grigio della pagina, cosi' si distinguono */
-  --pannello: #f7f9fc;
-  --campo: #f8fafc;
+  /* Un riquadro dentro un riquadro bianco e' grigio chiaro: il beige, che e' il
+     colore del fondo pagina, li' dentro sembrerebbe un buco. */
+  --pannello: #f3f3f2;
+  /* Le caselle in cui si scrive sono bianche sempre, non solo quando ci si
+     clicca dentro. */
+  --campo: #ffffff;
   --danger: #d64545;
   --success: #1f9d61;
   --radius: 10px;
   --radius-sm: 8px;
-  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
-  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
+  --shadow-sm: 0 1px 2px rgba(60, 48, 32, 0.07);
+  --shadow-md: 0 4px 12px rgba(60, 48, 32, 0.1);
   --shadow-lg: 0 18px 50px rgba(15, 23, 42, 0.25);
   font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
   color: var(--text);
@@ -42,14 +51,14 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #c4cdd8;
+  background: #cec4b4;
   border-radius: 6px;
   border: 2px solid transparent;
   background-clip: content-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #a8b4c2;
+  background: #b8ac98;
   background-clip: content-box;
   border: 2px solid transparent;
 }
@@ -195,11 +204,15 @@ button.danger:hover:not(:disabled) {
   height: 100vh;
 }
 
+/* Beige invece del blu scuro: su una barra chiara le scritte diventano scure,
+   quindi cambiano anche i colori del testo, del passaggio del mouse e dei
+   pulsanti in fondo. */
 .sidebar {
   width: 252px;
   flex-shrink: 0;
-  background: linear-gradient(180deg, #18202b 0%, #1c2634 100%);
-  color: #e6eaf0;
+  background: linear-gradient(180deg, #e6dcc9 0%, #dcd1bb 100%);
+  color: #4a4237;
+  border-right: 1px solid #cfc2a9;
   padding: 18px 12px;
   display: flex;
   flex-direction: column;
@@ -220,7 +233,7 @@ button.danger:hover:not(:disabled) {
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background: linear-gradient(135deg, #3b82f6, #1e40af);
+  background: linear-gradient(135deg, #6d9c83, #46705b);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -249,20 +262,20 @@ button.danger:hover:not(:disabled) {
   gap: 10px;
   background: none;
   border: none;
-  color: #cbd4de;
+  color: #4a4237;
   padding: 11px 12px;
   border-radius: var(--radius-sm);
 }
 
 .sidebar nav button:hover:not(:disabled) {
-  background: #2a3644;
-  color: #fff;
+  background: #d3c6ae;
+  color: #2f2a22;
 }
 
 .sidebar nav button.active {
   background: var(--accent);
   color: #fff;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
+  box-shadow: 0 2px 8px rgba(85, 128, 106, 0.45);
 }
 
 .content {
@@ -312,27 +325,38 @@ button.danger:hover:not(:disabled) {
   min-width: 0;
 }
 
+/* Le schede sono un gruppo dentro una fascia beige, non scritte in fila su
+   fondo pagina: cosi' si vede dove comincia e dove finisce la scelta, e quella
+   attiva si stacca perche' e' l'unica bianca. */
 .config-tabs {
-  display: flex;
+  display: inline-flex;
   gap: 4px;
-  margin-bottom: 14px;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 8px;
+  margin-bottom: 16px;
+  padding: 4px;
+  background: #f0e9dc;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
   flex-wrap: wrap;
 }
 
 .config-tabs button {
   border: none;
   background: none;
-  color: var(--text-dim);
-  padding: 6px 12px;
-  border-radius: var(--radius);
+  color: #6b6152;
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+}
+
+.config-tabs button:hover:not(:disabled) {
+  background: #e6dcc9;
+  color: #2f2a22;
 }
 
 .config-tabs button.active {
-  background: var(--accent-soft);
+  background: var(--surface);
   color: var(--accent);
   font-weight: 600;
+  box-shadow: var(--shadow-sm);
 }
 
 .config-tabs-top {
@@ -352,9 +376,24 @@ button.danger:hover:not(:disabled) {
   align-items: start;
 }
 
+/* Il riquadro grande e' bianco come tutte le schede; l'elenco che ci sta
+   dentro — quello su cui si lavora — e' grigio chiaro, cosi' si vede che e' una
+   cosa dentro un'altra e non due riquadri affiancati. */
 .struttura-tab .crud-list {
-  box-shadow: none;
-  background: #fafbfd;
+  background: var(--surface);
+}
+
+.struttura-tab .crud-list ul,
+.struttura-tab .crud-list .checkbox-list {
+  background: var(--pannello);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  margin-bottom: 10px;
+}
+
+.struttura-tab .crud-list ul:empty {
+  display: none;
 }
 
 /* colonna nome: senza a capo, prende lo spazio che serve */
@@ -417,12 +456,27 @@ button.danger:hover:not(:disabled) {
   background: var(--accent-soft);
 }
 
+/* I sottotitoli sono fasce beige e non scritte sciolte: dentro un riquadro
+   bianco pieno di elenchi, una scritta piccola in grigio si perde e non si
+   capisce dove finisce un gruppo e comincia il successivo. */
 .sotto-titolo {
   font-size: 13px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--text-dim);
-  margin: 12px 0 4px;
+  color: #6b6152;
+  background: #f0e9dc;
+  border-radius: var(--radius-sm);
+  padding: 5px 10px;
+  margin: 14px 0 8px;
+}
+
+/* Fuori dai riquadri bianchi la fascia non serve: li' il sottotitolo sta gia'
+   su un fondo suo. */
+.riga-filtro .sotto-titolo,
+.testata-grafico .sotto-titolo {
+  background: none;
+  padding: 0;
+  margin: 0;
 }
 
 .tab-hint {
@@ -672,12 +726,18 @@ button.danger:hover:not(:disabled) {
   box-shadow: var(--shadow-sm);
 }
 
+/* Il titolo del riquadro e' una testata vera e propria: fondo beige a tutta
+   larghezza, cosi' si distingue dagli elenchi che ha sotto. */
 .crud-list h3 {
-  margin: 0 0 10px;
-  font-size: 16px;
+  margin: -16px -16px 12px;
+  padding: 10px 16px;
+  font-size: 15px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--text-dim);
+  color: #6b6152;
+  background: #f0e9dc;
+  border-radius: var(--radius) var(--radius) 0 0;
+  border-bottom: 1px solid var(--border);
 }
 
 .crud-list ul {
@@ -890,13 +950,19 @@ button.danger:hover:not(:disabled) {
   opacity: 0.55;
 }
 
+/* Un'etichettina discreta: dice com'e' fatto il test, non e' un'azione ne' un
+   allarme. Contorno invece di riempimento, cosi' non pesa accanto al nome. */
 .badge {
   margin-left: 8px;
-  font-size: 13px;
-  background: var(--border);
-  border-radius: 10px;
-  padding: 2px 8px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: none;
+  border: 1px solid var(--border-forte);
+  border-radius: 999px;
+  padding: 1px 8px;
   color: var(--text-dim);
+  white-space: nowrap;
 }
 
 .row-actions {
@@ -1061,8 +1127,36 @@ span.row-actions button {
   margin-bottom: 0;
 }
 
-.sezione-card {
+/* Ogni sezione della seduta e' un riquadro bianco a se', come gli obiettivi:
+   con quattro sezioni di fila senza cornice non si capisce dove finisce una e
+   comincia l'altra. Quello che ci sta dentro — l'elenco degli esercizi e la
+   zona da cui si aggiungono — e' grigio chiaro. */
+.sezione-card,
+.obiettivi-info {
   min-width: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 16px 18px;
+}
+
+.sezione-card .righe-seduta,
+.sezione-card .aggiungi-area {
+  background: var(--pannello);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+}
+
+.sezione-card .righe-seduta {
+  margin-bottom: 10px;
+}
+
+.sezione-card .righe-seduta li {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
 }
 
 .sezione-testata {
@@ -1346,10 +1440,11 @@ span.row-actions button {
 .auth-screen {
   position: fixed;
   inset: 0;
+  /* Beige caldo con due aloni verde salvia appena accennati. */
   background:
-    radial-gradient(700px 500px at 15% -10%, rgba(59, 130, 246, 0.35), transparent 60%),
-    radial-gradient(800px 600px at 110% 110%, rgba(30, 64, 175, 0.5), transparent 60%),
-    linear-gradient(160deg, #101724 0%, #17233a 55%, #101724 100%);
+    radial-gradient(700px 500px at 15% -10%, rgba(85, 128, 106, 0.18), transparent 60%),
+    radial-gradient(800px 600px at 110% 110%, rgba(85, 128, 106, 0.22), transparent 60%),
+    linear-gradient(160deg, #ece3d3 0%, #ddd2bd 55%, #e8dfcd 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1372,7 +1467,7 @@ span.row-actions button {
   width: 56px;
   height: 56px;
   border-radius: 15px;
-  background: linear-gradient(135deg, #3b82f6, #1e40af);
+  background: linear-gradient(135deg, #6d9c83, #46705b);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1471,6 +1566,7 @@ span.row-actions button {
 .sidebar-footer {
   margin-top: auto;
   padding-top: 12px;
+  border-top: 1px solid #cfc2a9;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -1480,7 +1576,7 @@ span.row-actions button {
   width: 100%;
   background: none;
   border: 1px solid #3a4756;
-  color: #8d99a8;
+  color: #6b6152;
   font-size: 15px;
 }
 
@@ -1488,9 +1584,9 @@ span.row-actions button {
    mouse ne mette uno chiaro, e su una barra scura restava scritta bianca su
    riquadro bianco. Qui si usa lo stesso grigio delle voci di menu sopra. */
 .sidebar-footer button:hover:not(:disabled) {
-  background: #2a3644;
-  color: #fff;
-  border-color: #8d99a8;
+  background: #d3c6ae;
+  color: #2f2a22;
+  border-color: #b3a488;
 }
 
 .sidebar-footer button {
@@ -1791,6 +1887,23 @@ span.row-actions button {
   min-width: 62px;
   padding: 8px 14px;
   font-size: 14px;
+}
+
+/* Un pulsante-scelta gia' selezionato deve vedersi, sempre. Mancava una regola
+   generale: nella finestra dei distretti quelli gia' scelti erano identici agli
+   altri, quindi cliccandone uno lo si toglieva credendo di aggiungerlo, e il
+   pulsante "Apri la valutazione" si spegneva. */
+button.scelta-attiva {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+button.scelta-attiva:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  color: #fff;
 }
 
 .compila-risposte button.scelta-attiva {
@@ -2355,6 +2468,45 @@ textarea {
   min-width: 0;
 }
 
+/* La maniglia del trascinamento sta dentro alla casella, non accanto: si
+   afferra l'obiettivo da dove c'e' scritto, e le due cose sembrano un campo
+   solo invece di un campo piu' un pulsante. Questa regola era stata tolta per
+   sbaglio quando le sezioni dello screening hanno smesso di usarla. */
+.campo-con-maniglia {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-left: 6px;
+  border: 1px solid var(--border-forte);
+  border-radius: var(--radius-sm);
+  background: var(--campo);
+}
+
+.campo-con-maniglia input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  padding-left: 6px;
+}
+
+.campo-con-maniglia input:focus {
+  box-shadow: none;
+}
+
+.campo-con-maniglia > button {
+  border: none;
+  background: none;
+  padding: 4px;
+  color: var(--text-dim);
+  cursor: grab;
+}
+
+.campo-con-maniglia > button:hover:not(:disabled) {
+  background: none;
+  color: var(--accent);
+}
+
 /* La casella del testo e il menu del termine devono essere alti uguali: la
    prima e' un contenitore con dentro maniglia e input, il secondo un select. */
 .sedute-list li .campo-con-maniglia,
@@ -2370,10 +2522,14 @@ textarea {
 
 /* Scheda mostrata al paziente: si legge da lontano, in piedi, mentre si
    esegue l'esercizio. Percio' caratteri grandi e molta aria. */
+/* Bianca come l'anteprima della seduta: e' lo stesso documento, mostrato a
+   schermo invece che stampato. Il fondo beige della pagina qui non c'entra. */
 .scheda-paziente {
   max-width: 760px;
   margin: 0 auto;
   padding: 28px 24px 48px;
+  background: var(--surface);
+  min-height: 100vh;
 }
 
 .scheda-paziente header {
@@ -2425,7 +2581,7 @@ textarea {
 }
 
 .tabella-scheda th {
-  background: var(--pannello);
+  background: #f0e9dc;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.03em;
@@ -2474,6 +2630,12 @@ textarea {
   text-align: center;
   width: 1%;
   white-space: nowrap;
+}
+
+/* La regola generale delle tabelle allinea in alto: le spunte e le date
+   restavano attaccate al bordo superiore invece che al centro della riga. */
+.tabella-followup td {
+  vertical-align: middle;
 }
 
 .tabella-followup input[type='date'] {
@@ -2543,6 +2705,16 @@ textarea {
   gap: 6px;
   font-size: 15px;
   color: var(--text-dim);
+}
+
+/* Le voci con la spunta fanno eccezione: la regola qui sopra le metterebbe in
+   colonna, con la casella sopra alla scritta. E' piu' in basso di
+   .checkbox-list label, quindi senza questa vincerebbe lei. */
+.crud-list .checkbox-list label,
+.crud-list label.checkbox-inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 9px;
 }
 
 .crud-list label input,
@@ -2895,4 +3067,260 @@ textarea {
 .btn-icona-tonda:hover:not(:disabled) {
   background: var(--accent-soft);
   color: var(--accent);
+}
+
+/* Riga delle copie di sicurezza: la casella del numero con la sua scritta
+   sopra, i tre pulsanti allineati in basso e tutti della stessa altezza. */
+.riga-backup {
+  align-items: flex-end;
+}
+
+.campo-copie {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 15px;
+  color: var(--text-dim);
+}
+
+.campo-copie input {
+  width: 110px;
+  color: var(--text);
+}
+
+.riga-backup button,
+.campo-copie input {
+  min-height: 46px;
+}
+
+/* Tre pulsanti piu' la casella in 620px di finestra: senza questo le scritte
+   andavano a capo dentro al pulsante. */
+.riga-backup button {
+  white-space: nowrap;
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+/* Movimento attivo e passivo affiancati, ognuno nel suo riquadro. Sotto una
+   certa larghezza vanno uno sopra l'altro: schiacciati diventerebbero
+   illeggibili. */
+.movimenti-attivo-passivo {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 14px;
+  align-items: start;
+  margin-bottom: 12px;
+}
+
+.blocco-movimento {
+  background: var(--pannello);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px 12px;
+}
+
+.blocco-movimento .sotto-titolo {
+  margin-top: 0;
+}
+
+.tabella-movimenti {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* Larghezze fisse: senza, la colonna dei gradi si allargava sul contenuto e la
+   casella usciva dal riquadro. */
+.tabella-movimenti {
+  table-layout: fixed;
+}
+
+.tabella-movimenti th,
+.tabella-movimenti td {
+  padding: 6px 4px;
+  text-align: center;
+}
+
+/* Tutte le righe della stessa altezza: le celle con la casella dei gradi erano
+   piu' alte di quelle col trattino, e le due tabelle affiancate non si
+   corrispondevano riga per riga. */
+.tabella-movimenti tbody td {
+  height: 50px;
+}
+
+.tabella-movimenti thead th {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+/* Il nome del movimento va a capo se e' lungo: con le colonne a larghezza
+   fissa, tenerlo su una riga sola lo faceva uscire e finire sotto ai pulsanti
+   della restrizione ("Rotazione interna" era il caso). */
+.tabella-movimenti td.col-nome {
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.25;
+  padding-right: 10px;
+}
+
+.tabella-movimenti th.col-nome {
+  text-align: left;
+  white-space: nowrap;
+}
+
+/* Niente righe orizzontali: due tabelle affiancate con le stesse righe
+   sembravano una griglia sola che attraversa lo spazio fra i due riquadri. Le
+   righe si distinguono con un fondo alternato, che non esce dal riquadro. */
+.tabella-movimenti tbody tr:nth-child(odd) {
+  background: var(--surface);
+}
+
+.tabella-movimenti tbody tr td:first-child {
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+}
+
+.tabella-movimenti tbody tr td:last-child {
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.tabella-movimenti th.col-restrizione,
+.tabella-movimenti td.col-restrizione {
+  /* larga quanto i tre segni piu' i loro spazi: senza, con le colonne fisse
+     finivano sopra al nome del movimento */
+  width: 132px;
+}
+
+.tabella-movimenti th.col-dolore,
+.tabella-movimenti td.col-dolore {
+  width: 62px;
+}
+
+.tabella-movimenti th.col-gradi,
+.tabella-movimenti td.col-gradi {
+  width: 78px;
+}
+
+/* I tre segni della restrizione: uno accanto all'altro, senza spazi in mezzo,
+   come una scala. */
+.scala-segni {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.scala-segni button {
+  min-width: 38px;
+  padding: 4px 4px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  background: var(--surface);
+}
+
+.scala-segni button.scelta-attiva {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.tabella-movimenti .campo-gradi {
+  width: 100%;
+  max-width: 70px;
+  padding: 5px 6px;
+  text-align: right;
+}
+
+/* Il punteggio di un questionario e' il risultato: si legge senza cercarlo. */
+.punteggi-compilazione {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-right: 12px;
+  white-space: nowrap;
+}
+
+.punteggi-compilazione .punteggio {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.15;
+}
+
+.punteggi-compilazione .etichetta {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.punteggi-compilazione .valore {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+/* Intestazione di categoria dentro una sezione della seduta: separa i gruppi
+   senza aggiungere un riquadro dentro il riquadro. */
+.intestazione-categoria {
+  padding: 4px 8px;
+  margin-top: 6px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+  background: none;
+  border: none;
+}
+
+.righe-seduta > .intestazione-categoria:first-child {
+  margin-top: 0;
+}
+
+/* Un esercizio della seduta sta su una riga sola: maniglia, nome, i quattro
+   parametri e la nota. Le etichette sono nei segnaposto delle caselle: scritte
+   sopra ogni campo occupavano tre righe per esercizio. */
+.righe-seduta li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+}
+
+.righe-seduta .maniglia-riga button {
+  border: none;
+  background: none;
+  padding: 4px;
+  color: var(--text-dim);
+  cursor: grab;
+}
+
+.righe-seduta .riga-testata {
+  flex: 1 1 auto;
+  min-width: 130px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+
+.righe-seduta .riga-params {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+
+.righe-seduta .riga-params input {
+  width: 74px;
+  padding: 6px 8px;
+  font-size: 14px;
+}
+
+.righe-seduta .riga-params .riga-nota {
+  width: 190px;
+}
+
+.righe-seduta .btn-togli {
+  flex: none;
+  padding: 6px;
 }
