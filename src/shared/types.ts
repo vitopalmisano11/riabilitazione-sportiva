@@ -1012,7 +1012,13 @@ export interface Api {
   }
   impostazioni: {
     setTema(t: Tema): Promise<void>
-    info(): Promise<{ cartella: string; cartellaExport: string; tema: Tema }>
+    setScuro(valore: boolean): Promise<void>
+    info(): Promise<{
+      cartella: string
+      cartellaExport: string
+      tema: Tema
+      scuro: boolean
+    }>
     apriCartella(): Promise<void>
     // Ritornano il nuovo percorso, o null se l'utente annulla.
     cambiaCartella(): Promise<string | null>

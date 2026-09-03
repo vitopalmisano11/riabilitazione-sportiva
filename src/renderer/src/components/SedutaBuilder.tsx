@@ -11,6 +11,7 @@ import { GripVertical, ImageIcon, Pencil, Plus, Video, X } from 'lucide-react'
 import { toastErrore } from './Toast'
 import ImmagineEsercizio from './ImmagineEsercizio'
 import { errMsg, oggiIso } from '../lib'
+import { useScorciatoie } from '../scorciatoie'
 import { sposta, useRiordino } from '../riordino'
 
 interface Props {
@@ -197,6 +198,13 @@ export default function SedutaBuilder({
     setSezioni([...sezioni, { sezione_id: null, nome, righe: [] }])
     setNuovaSezione('')
   }
+
+  // Esc annulla, Ctrl+S salva: la seduta si compila con la tastiera, senza
+  // tornare col mouse in fondo alla finestra.
+  useScorciatoie([
+    { tasto: 'Escape', azione: () => onClose(false) },
+    { tasto: 's', ctrl: true, azione: () => void salva() }
+  ])
 
   const salva = async (): Promise<void> => {
     if (!data) {

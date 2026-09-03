@@ -152,9 +152,11 @@ function graficoAndamento(
   tacche: { x: number; testo: string }[],
   nomeAsse: string
 ): string {
-  const L = 380
-  const A = 250
-  const M = { su: 12, giu: 46, sx: 26, dx: 12 }
+  // Riquadro largo e basso: i due grafici stanno affiancati e insieme riempiono
+  // la riga, senza rubare mezza pagina in altezza.
+  const L = 400
+  const A = 200
+  const M = { su: 12, giu: 42, sx: 26, dx: 12 }
   const largo = L - M.sx - M.dx
   const alto = A - M.su - M.giu
   const px = (x: number): number => M.sx + x * largo
@@ -996,9 +998,9 @@ export function generaCartella(pazienteId: number, sezioni: SezioneCartella[]): 
   .riquadro dl.dati { margin-bottom: 4px; }
   /* I due grafici affiancati, la legenda sotto: e' la disposizione della
      raccolta anamnestica, cosi' chi ha compilato ritrova quello che ha visto. */
-  /* I due grafici sono piccoli: dicono l'andamento in un colpo d'occhio, non
-     servono a leggerci dei valori — quelli stanno nei riquadri sopra. */
-  .grafici { page-break-inside: avoid; margin: 0 0 10px; max-width: 460px; }
+  /* I due grafici riempiono la riga, meta' per uno: dicono l'andamento in un
+     colpo d'occhio, i valori esatti stanno nei riquadri sopra. */
+  .grafici { page-break-inside: avoid; margin: 0 0 10px; }
   .grafici .disegni { display: flex; gap: 12px; }
   .grafici figure { margin: 0; flex: 1; min-width: 0; }
   .grafici figcaption { font-size: 11px; font-weight: 600; color: ${accento}; margin-bottom: 2px; }

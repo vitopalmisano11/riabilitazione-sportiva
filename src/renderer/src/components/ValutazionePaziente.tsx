@@ -15,6 +15,7 @@ import type {
 } from '../../../shared/types'
 import { toast, toastErrore } from './Toast'
 import { errMsg, formatData, oggiIso } from '../lib'
+import { useScorciatoie } from '../scorciatoie'
 import { GRUPPI } from '../pages/DistrettiPage'
 
 const GRADI: { valore: Grado; etichetta: string }[] = [
@@ -208,6 +209,18 @@ function SchedaValutazione({
   const [librerie, setLibrerie] = useState<DistrettoCompleto[]>([])
   const [modificato, setModificato] = useState(false)
 
+  useScorciatoie([
+    { tasto: 'Escape', azione: () => chiudi() },
+    { tasto: 's', ctrl: true, azione: () => void salva(), attiva: !soloLettura && modificato }
+  ])
+
+  // Come nella body chart: un clic fuori dalla finestra non deve buttare via
+  // una valutazione appena compilata.
+  const chiudi = (): void => {
+    if (modificato && !confirm('Hai modifiche non salvate. Vuoi uscire lo stesso?')) return
+    onChiudi(false)
+  }
+
   useEffect(() => {
     void (async () => {
       try {
@@ -294,7 +307,7 @@ function SchedaValutazione({
   }
 
   return (
-    <div className="modal-overlay" onClick={() => onChiudi(false)}>
+    <div className="modal-overlay" onClick={chiudi}>
       <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
         <div className="card-header-row">
           <h3>{soloLettura ? 'Valutazione obiettiva' : 'Valutazione obiettiva — modifica'}</h3>
@@ -446,7 +459,7 @@ function SchedaValutazione({
         </label>
 
         <div className="modal-actions">
-          <button onClick={() => onChiudi(false)}>{soloLettura ? 'Chiudi' : 'Annulla'}</button>
+          <button onClick={chiudi}>{soloLettura ? 'Chiudi' : 'Annulla'}</button>
           {!soloLettura && (
             <button className="primary" disabled={!modificato} onClick={() => void salva()}>
               Salva

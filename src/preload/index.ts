@@ -23,6 +23,35 @@ import type {
   ValutazioneCompleta
 } from '../shared/types'
 
+// Il tema scelto si applica prima che la pagina compaia: e' l'unica cosa chiesta
+// in modo immediato, perche' leggerlo dopo vorrebbe dire vedere un lampo dei
+// colori di partenza ogni volta che si apre il programma.
+//
+// Il ponte non e' compilato con i tipi del browser (qui gira codice di sistema),
+// percio' della pagina si dichiara solo il poco che serve.
+interface PaginaMinima {
+  readyState: string
+  documentElement: { dataset: Record<string, string> }
+  addEventListener(tipo: string, ascoltatore: () => void): void
+}
+
+try {
+  const salvato = ipcRenderer.sendSync('impostazioni:temaSubito') as {
+    tema: string
+    scuro: boolean
+  }
+  const pagina = (globalThis as { document?: PaginaMinima }).document
+  const applica = (): void => {
+    if (!pagina) return
+    pagina.documentElement.dataset.tema = salvato.tema
+    if (salvato.scuro) pagina.documentElement.dataset.scuro = 'si'
+  }
+  if (pagina?.readyState === 'loading') pagina.addEventListener('DOMContentLoaded', applica)
+  else applica()
+} catch {
+  // senza risposta resta il tema di partenza: non e' un motivo per non aprire
+}
+
 const invoke = (channel: string, ...args: unknown[]): Promise<never> =>
   ipcRenderer.invoke(channel, ...args) as Promise<never>
 
@@ -270,6 +299,7 @@ const api: Api = {
   },
   impostazioni: {
     setTema: (t: Tema) => invoke('impostazioni:setTema', t),
+    setScuro: (valore: boolean) => invoke('impostazioni:setScuro', valore),
     info: () => invoke('impostazioni:info'),
     apriCartella: () => invoke('impostazioni:apriCartella'),
     cambiaCartella: () => invoke('impostazioni:cambiaCartella'),

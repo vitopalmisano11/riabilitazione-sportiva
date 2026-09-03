@@ -48,25 +48,31 @@ export default function App(): React.JSX.Element {
   // stile ridichiara i suoi colori. Arriva dal file delle impostazioni, cosi'
   // resta anche al riavvio, e lo conoscono anche i documenti stampati.
   const [tema, setTema] = useState<Tema>('verde')
+  const [scuro, setScuro] = useState(false)
 
-  const applicaTema = (t: Tema): void => {
-    setTema(t)
-    document.documentElement.dataset.tema = t
-  }
-
-  // Il tema si legge prima del login: altrimenti la schermata di accesso
-  // resterebbe con i colori di partenza e cambierebbe sotto gli occhi.
+  // Il ponte applica gia' i colori prima che la pagina compaia: qui si legge lo
+  // stesso valore solo per sapere cosa mostrare come scelto in Impostazioni.
   useEffect(() => {
     window.api.impostazioni
       .info()
-      .then((i) => applicaTema(i.tema))
+      .then((i) => {
+        setTema(i.tema)
+        setScuro(i.scuro)
+      })
       .catch(() => undefined)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const scegliTema = (t: Tema): void => {
-    applicaTema(t)
+    setTema(t)
+    document.documentElement.dataset.tema = t
     window.api.impostazioni.setTema(t).catch((e) => toastErrore(errMsg(e)))
+  }
+
+  const scegliScuro = (valore: boolean): void => {
+    setScuro(valore)
+    if (valore) document.documentElement.dataset.scuro = 'si'
+    else delete document.documentElement.dataset.scuro
+    window.api.impostazioni.setScuro(valore).catch((e) => toastErrore(errMsg(e)))
   }
   // Ripremere la voce della sezione in cui si e' gia' significa "torna alla
   // prima pagina di questa sezione". Da qui non si puo' azzerare cosa c'e'
@@ -159,6 +165,8 @@ export default function App(): React.JSX.Element {
             tornaAllInizio={tornaAllElenco}
             tema={tema}
             onTema={scegliTema}
+            scuro={scuro}
+            onScuro={scegliScuro}
           />
         )}
       </main>

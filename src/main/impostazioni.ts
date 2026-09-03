@@ -18,6 +18,7 @@ interface Impostazioni {
   cartellaExport?: string
   cartellaBackup?: string
   tema?: string
+  scuro?: boolean
   backupAttivo?: boolean
   backupDaTenere?: number
 }
@@ -63,6 +64,16 @@ export function tema(): Tema {
 export function impostaTema(t: Tema): void {
   salva({ tema: temaValido(t) })
   impostaTemaCorrente(t)
+}
+
+// Modalita' scura: si accende sopra alla tavolozza scelta e riguarda solo
+// l'interfaccia. I documenti restano chiari, perche' si stampano su carta.
+export function scuro(): boolean {
+  return leggi().scuro === true
+}
+
+export function impostaScuro(valore: boolean): void {
+  salva({ scuro: valore })
 }
 
 export function coloriDocumento(): ColoriDocumento {

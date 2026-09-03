@@ -22,11 +22,15 @@ const SCHEDE: { key: Scheda; label: string }[] = [
 export default function ImpostazioniPage({
   tornaAllInizio,
   tema,
-  onTema
+  onTema,
+  scuro,
+  onScuro
 }: {
   tornaAllInizio: number
   tema: Tema
   onTema: (t: Tema) => void
+  scuro: boolean
+  onScuro: (valore: boolean) => void
 }): React.JSX.Element {
   const [scheda, setScheda] = useState<Scheda>('dati')
 
@@ -56,7 +60,12 @@ export default function ImpostazioniPage({
       <div className="scheda">
         {scheda === 'dati' && <SchedaDati />}
         {scheda === 'password' && <SchedaPassword />}
-        {scheda === 'aspetto' && <SchedaAspetto tema={tema} onTema={onTema} />}
+        {scheda === 'aspetto' && (
+          <>
+            <SchedaAspetto tema={tema} onTema={onTema} />
+            <SchedaLuce scuro={scuro} onScuro={onScuro} />
+          </>
+        )}
       </div>
     </div>
   )
@@ -210,6 +219,34 @@ function SchedaAspetto({
           </button>
         ))}
       </div>
+
+    </section>
+  )
+}
+
+// La modalita' scura non e' una tavolozza a parte: si accende sopra a quella
+// scelta, che resta riconoscibile dal colore dei pulsanti. Percio' e' un
+// riquadro suo, con l'interruttore a destra come si fa con le impostazioni che
+// si accendono e si spengono.
+function SchedaLuce({
+  scuro,
+  onScuro
+}: {
+  scuro: boolean
+  onScuro: (valore: boolean) => void
+}): React.JSX.Element {
+  return (
+    <section className="card single-col">
+      <label className="riga-interruttore">
+        <span>
+          <span className="nome-interruttore">Modalità scura</span>
+          <span className="modal-testo">
+            Fondi scuri e scritte chiare, con il colore della tavolozza che hai scelto. I
+            documenti che stampi restano chiari: vanno sulla carta.
+          </span>
+        </span>
+        <input type="checkbox" checked={scuro} onChange={(e) => onScuro(e.target.checked)} />
+      </label>
     </section>
   )
 }

@@ -14,7 +14,9 @@ import {
   impostaCartellaBackup,
   impostaCartellaDati,
   impostaCartellaExport,
+  impostaScuro,
   impostaTema,
+  scuro,
   tema
 } from './impostazioni'
 import { spostaFileDati } from './file-dati'
@@ -195,9 +197,17 @@ export function registerIpc(): void {
   handle('impostazioni:info', () => ({
     cartella: cartellaDati(),
     cartellaExport: cartellaExport(),
-    tema: tema()
+    tema: tema(),
+    scuro: scuro()
   }))
+  handle('impostazioni:setScuro', (valore: boolean) => impostaScuro(valore))
   handle('impostazioni:setTema', (t: Tema) => impostaTema(t))
+  // Il tema serve al preload prima ancora che la pagina si disegni, percio' e'
+  // l'unica risposta immediata: chiesta dopo, si vedrebbe un lampo dei colori
+  // di partenza a ogni avvio.
+  ipcMain.on('impostazioni:temaSubito', (e) => {
+    e.returnValue = { tema: tema(), scuro: scuro() }
+  })
   handle('impostazioni:cambiaCartellaExport', async () => {
     const { canceled, filePaths } = await dialog.showOpenDialog({
       title: "Scegli la cartella di destinazione per l'export",

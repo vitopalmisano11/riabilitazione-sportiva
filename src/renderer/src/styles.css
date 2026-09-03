@@ -46,11 +46,48 @@
   --success: #1f9d61;
   --radius: 10px;
   --radius-sm: 8px;
+  /* Lo spazio fra una sezione e l'altra e' sempre questo, e il riquadro di una
+     sezione ha sempre questo margine interno: prima ogni pagina aveva il suo
+     (12, 14, 16, 18, 20, 22) e si vedeva passando da una all'altra. */
+  --spazio: 16px;
+  --spazio-interno: 16px;
   --shadow-sm: 0 1px 2px rgba(60, 48, 32, 0.07);
   --shadow-md: 0 4px 12px rgba(60, 48, 32, 0.1);
   --shadow-lg: 0 18px 50px rgba(15, 23, 42, 0.25);
   font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
   color: var(--text);
+}
+
+/* Tema terracotta: argilla su sabbia. Il verde e il blu sono due colori freddi,
+   questo e' caldo: e' la differenza che si vede di piu' passando dall'uno
+   all'altro, e in uno studio dove lo schermo lo guarda anche il paziente un
+   colore caldo pesa meno di un blu da ufficio. Il fondo e' piu' chiaro del beige
+   del tema verde, perche' l'argilla e' gia' satura di suo. */
+:root[data-tema='terracotta'] {
+  --bg: #f7f1ea;
+  --border: #e8ded3;
+  --border-forte: #d8cabb;
+  --text: #2a211b;
+  --text-dim: #7b6c60;
+  --accent: #a15843;
+  --accent-hover: #85452f;
+  --accent-soft: #f6e9e2;
+  --accent-ombra: rgba(161, 88, 67, 0.4);
+  --logo: linear-gradient(135deg, #c2755a, #8c4732);
+  --barra: linear-gradient(180deg, #efe1d3 0%, #e5d3c1 100%);
+  --barra-testo: #524134;
+  --barra-voce: #524134;
+  --barra-hover: #dcc6ae;
+  --barra-hover-testo: #33251b;
+  --barra-bordo: #d6bfa8;
+  --barra-bordo-pulsante: #cbb096;
+  --barra-etichetta: #9a8878;
+  --intestazione: #f3e7dc;
+  --intestazione-hover: #ebdbcc;
+  --intestazione-testo: #6f5f52;
+  --intestazione-testo-forte: #33251b;
+  --pannello: #f4f1ee;
+  --login: linear-gradient(160deg, #f0e2d5 0%, #e2cdb8 55%, #eee0d2 100%);
 }
 
 /* Tema blu: quello con cui e' nata l'app, con la barra laterale scura. Solo
@@ -83,6 +120,64 @@
   --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
   --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
 }
+
+/* Modalità scura: si accende sopra al tema scelto e cambia solo i fondi, i
+   bordi e le scritte. L'accento resta quello della tavolozza — verde, blu o
+   terracotta — schiarito quel tanto che serve a staccare dal fondo scuro.
+   Sta dopo i temi perche', a parita' di peso, vince la regola scritta dopo. */
+:root[data-scuro='si'] {
+  --bg: #16161a;
+  --surface: #1e1e23;
+  --border: #32323a;
+  --border-forte: #45454f;
+  --text: #eae7e3;
+  --text-dim: #a49d96;
+  --pannello: #26262c;
+  --campo: #1a1a1f;
+  --intestazione: #2c2c33;
+  --intestazione-hover: #35353d;
+  --intestazione-testo: #b6afa8;
+  --intestazione-testo-forte: #f2efec;
+  --barra: linear-gradient(180deg, #131317 0%, #191920 100%);
+  --barra-testo: #e6e2de;
+  --barra-voce: #b9b2ab;
+  --barra-hover: #2b2b33;
+  --barra-hover-testo: #ffffff;
+  --barra-bordo: #101014;
+  --barra-bordo-pulsante: #3b3b45;
+  --barra-etichetta: #7d766f;
+  --login: linear-gradient(160deg, #131317 0%, #1d1d24 55%, #131317 100%);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 18px 50px rgba(0, 0, 0, 0.7);
+}
+
+/* Gli accenti al buio: gli stessi colori, un po' piu' chiari, altrimenti sul
+   fondo scuro affogano. */
+:root[data-scuro='si'] {
+  --accent: #6fa287;
+  --accent-hover: #85b69b;
+  --accent-soft: #24352c;
+  --accent-ombra: rgba(111, 162, 135, 0.35);
+  --logo: linear-gradient(135deg, #6fa287, #46705b);
+}
+
+:root[data-scuro='si'][data-tema='blu'] {
+  --accent: #5b8def;
+  --accent-hover: #7ba4f5;
+  --accent-soft: #1e2a44;
+  --accent-ombra: rgba(91, 141, 239, 0.35);
+  --logo: linear-gradient(135deg, #5b8def, #2b4fa8);
+}
+
+:root[data-scuro='si'][data-tema='terracotta'] {
+  --accent: #c8785e;
+  --accent-hover: #d78e75;
+  --accent-soft: #3a271f;
+  --accent-ombra: rgba(200, 120, 94, 0.35);
+  --logo: linear-gradient(135deg, #c8785e, #8c4732);
+}
+
 
 * {
   box-sizing: border-box;
@@ -349,7 +444,7 @@ button.danger:hover:not(:disabled) {
 }
 
 .page-header p {
-  margin: 0 0 20px;
+  margin: 0 0 var(--spazio);
   color: var(--text-dim);
   max-width: 720px;
 }
@@ -382,7 +477,7 @@ button.danger:hover:not(:disabled) {
 .config-tabs {
   display: inline-flex;
   gap: 4px;
-  margin-bottom: 16px;
+  margin-bottom: var(--spazio);
   padding: 4px;
   background: var(--intestazione);
   border: 1px solid var(--border);
@@ -588,7 +683,7 @@ button.danger:hover:not(:disabled) {
   background: var(--intestazione);
   border-radius: var(--radius-sm);
   padding: 5px 10px;
-  margin: 14px 0 8px;
+  margin: var(--spazio) 0 8px;
 }
 
 /* Fuori dai riquadri bianchi la fascia non serve: li' il sottotitolo sta gia'
@@ -803,7 +898,7 @@ button.danger:hover:not(:disabled) {
   border-style: dashed;
   cursor: default;
   box-shadow: none;
-  background: #fafbfd;
+  background: var(--pannello);
   align-items: stretch;
   justify-content: center;
   padding: 20px 14px;
@@ -843,7 +938,7 @@ button.danger:hover:not(:disabled) {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 16px;
+  padding: var(--spazio-interno);
   box-shadow: var(--shadow-sm);
 }
 
@@ -1039,7 +1134,7 @@ button.danger:hover:not(:disabled) {
 }
 
 .data-table tbody tr:not(.archiviato):hover td {
-  background: #f8fafc;
+  background: var(--pannello);
 }
 
 .data-table th,
@@ -1055,7 +1150,7 @@ button.danger:hover:not(:disabled) {
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--text-dim);
-  background: #fafbfc;
+  background: var(--pannello);
 }
 
 .data-table tr:last-child td {
@@ -1503,7 +1598,22 @@ span.row-actions button {
 .scheda {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--spazio);
+}
+
+/* Barra della scheda paziente: a sinistra le linguette, a destra i due gesti
+   che si ripetono ogni giorno. Su finestre strette i comandi vanno a capo sotto
+   alle linguette invece di schiacciarle. */
+.barra-scheda {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.barra-scheda .config-tabs {
+  margin-bottom: 0;
 }
 
 .scheda > .card {
@@ -1511,7 +1621,7 @@ span.row-actions button {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
-  padding: 18px 22px;
+  padding: var(--spazio-interno) calc(var(--spazio-interno) + 4px);
 }
 
 /* Dentro il riquadro il titolo sta in cima: lo stacco fra le sezioni ora lo da'
@@ -1865,7 +1975,7 @@ span.row-actions button {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   object-fit: contain;
-  background: #fafbfd;
+  background: var(--pannello);
 }
 
 .immagine-grande {
@@ -1916,8 +2026,8 @@ span.row-actions button {
 .lista-domande {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-top: 12px;
+  gap: var(--spazio);
+  margin-top: var(--spazio);
 }
 
 .domanda-card {
@@ -2148,10 +2258,34 @@ textarea {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+  /* staccati dalla riga che li spiega: attaccati sembravano parte del testo */
+  margin-top: 12px;
 }
 
 .scelta-tema button {
   gap: 9px;
+}
+
+/* Impostazione che si accende o si spegne: il nome e la spiegazione a sinistra,
+   la casella a destra, staccata dal testo invece che appiccicata davanti. */
+.card :where(label).riga-interruttore {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  cursor: pointer;
+}
+
+.riga-interruttore .nome-interruttore {
+  display: block;
+  font-size: 16px;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.riga-interruttore input[type='checkbox'] {
+  flex: 0 0 auto;
 }
 
 .pallino-tema {
@@ -2165,7 +2299,7 @@ textarea {
 .blocco-impostazione {
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 14px 16px;
+  padding: var(--spazio-interno);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -2222,8 +2356,8 @@ textarea {
 .blocco-apribile {
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  margin-bottom: 14px;
-  background: #fafbfd;
+  margin-bottom: var(--spazio);
+  background: var(--pannello);
 }
 
 .blocco-apribile > summary {
@@ -3355,9 +3489,9 @@ textarea {
 .movimenti-attivo-passivo {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-  gap: 14px;
+  gap: var(--spazio);
   align-items: start;
-  margin-bottom: 12px;
+  margin-bottom: var(--spazio);
 }
 
 /* La casella delle note sta dentro al riquadro del suo lato, sotto la tabella:
@@ -3376,7 +3510,7 @@ textarea {
   background: var(--pannello);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 10px 12px 12px;
+  padding: 12px var(--spazio-interno) var(--spazio-interno);
 }
 
 .blocco-movimento .sotto-titolo {

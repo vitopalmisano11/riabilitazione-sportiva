@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   AlertTriangle,
   ChevronRight,
@@ -28,6 +28,7 @@ import AnamnesiPaziente from '../components/AnamnesiPaziente'
 import ValutazionePaziente from '../components/ValutazionePaziente'
 import { toast, toastErrore } from '../components/Toast'
 import { errMsg, formatData } from '../lib'
+import { useScorciatoie } from '../scorciatoie'
 
 export default function PazientiPage({
   tornaAllElenco,
@@ -98,6 +99,25 @@ export default function PazientiPage({
   const altri = tutti ? [] : trovati.slice(IN_VISTA)
   const sel = pazienti.find((p) => p.id === selId) ?? null
 
+  // Ctrl+N crea (un paziente nell'elenco, una seduta dentro alla scheda) e
+  // Ctrl+F porta il cursore nella ricerca: sono i due gesti che si ripetono
+  // decine di volte in una giornata.
+  const ricercaRef = useRef<HTMLInputElement>(null)
+  useScorciatoie([
+    {
+      tasto: 'n',
+      ctrl: true,
+      azione: () => (sel ? setBuilder({ sedutaId: null }) : setNuovo(true)),
+      attiva: builder == null
+    },
+    {
+      tasto: 'f',
+      ctrl: true,
+      azione: () => ricercaRef.current?.focus(),
+      attiva: sel == null && builder == null
+    }
+  ])
+
   if (builder && sel) {
     return (
       <SedutaBuilder
@@ -153,6 +173,7 @@ export default function PazientiPage({
         <section className="card step-card colonna-centrata">
           <div className="ricerca-sopra">
             <input
+              ref={ricercaRef}
               type="search"
               placeholder="Cerca paziente…"
               value={ricerca}
@@ -276,6 +297,14 @@ export default function PazientiPage({
   )
 }
 
+type SchedaAperta = 'diario' | 'clinica' | 'percorso'
+
+const SCHEDE_PAZIENTE: { key: SchedaAperta; label: string }[] = [
+  { key: 'diario', label: 'Diario sedute' },
+  { key: 'clinica', label: 'Clinica' },
+  { key: 'percorso', label: 'Percorso' }
+]
+
 function SchedaPaziente({
   paziente,
   patologie,
@@ -294,6 +323,24 @@ function SchedaPaziente({
   onDuplicaSeduta: (id: number) => void
 }): React.JSX.Element {
   const [fasi, setFasi] = useState<Fase[]>([])
+  // La scheda si apre sul diario: e' quello che si guarda tutti i giorni.
+  // L'anamnesi e la valutazione si riempiono alla prima visita e poi si
+  // consultano di rado, quindi stanno dietro alla loro linguetta invece di
+  // allungare la pagina.
+  const [scheda, setScheda] = useState<SchedaAperta>('diario')
+  // Serve solo a sapere se c'e' una seduta da riprendere e quale.
+  const [ultimaSeduta, setUltimaSeduta] = useState<number | null>(null)
+
+  // Dipende dal paziente intero e non dal solo id: quando si salva una seduta
+  // l'elenco dei pazienti si ricarica, l'oggetto cambia, e cosi' "Riprendi
+  // l'ultima" punta davvero all'ultima.
+  const ricaricaUltima = useCallback((): void => {
+    void window.api.sedute
+      .list(paziente.id)
+      .then((righe) => setUltimaSeduta(righe[0]?.id ?? null))
+  }, [paziente])
+
+  useEffect(ricaricaUltima, [ricaricaUltima])
 
   useEffect(() => {
     if (paziente.patologia_id == null) {
@@ -361,12 +408,56 @@ function SchedaPaziente({
     <div className="scheda">
       <AnagraficaPaziente paziente={paziente} onChanged={onChanged} onDeleted={onDeleted} />
 
-      <AnamnesiPaziente paziente={paziente} />
+      {/* I due gesti di tutti i giorni restano sempre a portata di clic, in
+          qualunque linguetta ti trovi: creare la seduta di oggi, o ripartire da
+          quella di ieri invece di rifarla da zero. */}
+      <div className="barra-scheda">
+        <div className="config-tabs">
+          {SCHEDE_PAZIENTE.map((t) => (
+            <button
+              key={t.key}
+              className={scheda === t.key ? 'active' : ''}
+              onClick={() => setScheda(t.key)}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <span className="row-actions">
+          <button
+            disabled={ultimaSeduta == null}
+            title="Nuova seduta copiando l'ultima"
+            onClick={() => ultimaSeduta != null && onDuplicaSeduta(ultimaSeduta)}
+          >
+            <Copy size={17} /> Riprendi l&apos;ultima
+          </button>
+          <button className="primary" onClick={onNuovaSeduta}>
+            <Plus size={17} /> Nuova seduta
+          </button>
+        </span>
+      </div>
 
-      <ValutazionePaziente paziente={paziente} />
+      {scheda === 'diario' && (
+        <DiarioCard
+          paziente={paziente}
+          onNuova={onNuovaSeduta}
+          onApri={onApriSeduta}
+          onDuplica={onDuplicaSeduta}
+        />
+      )}
 
-      <QuestionariPaziente paziente={paziente} />
+      {scheda === 'clinica' && (
+        <>
+          <AnamnesiPaziente paziente={paziente} />
 
+          <ValutazionePaziente paziente={paziente} />
+
+          <QuestionariPaziente paziente={paziente} />
+        </>
+      )}
+
+      {scheda === 'percorso' && (
+        <>
       <section className="card">
         <h3>Percorso riabilitativo</h3>
         {/* Patologia, fase e il pulsante che fa avanzare stanno su una riga
@@ -426,13 +517,8 @@ function SchedaPaziente({
       </section>
 
       <ObiettiviCard paziente={paziente} />
-
-      <DiarioCard
-        paziente={paziente}
-        onNuova={onNuovaSeduta}
-        onApri={onApriSeduta}
-        onDuplica={onDuplicaSeduta}
-      />
+        </>
+      )}
     </div>
   )
 }
@@ -676,7 +762,9 @@ function DiarioCard({
   return (
     <section className="card">
       <div className="card-header-row">
-        <h3>Diario sedute</h3>
+        {/* Il titolo e il pulsante "Nuova seduta" stanno gia' nella barra qui
+            sopra: ripeterli dentro al riquadro era solo rumore. */}
+        <h3>Sedute</h3>
         <span className="row-actions">
           {sedute.length > 0 && (
             <button
@@ -687,9 +775,6 @@ function DiarioCard({
               Esporta sedute
             </button>
           )}
-          <button className="primary" title="Nuova seduta" onClick={onNuova}>
-            <Plus size={18} />
-          </button>
         </span>
       </div>
       {sedute.length === 0 ? (

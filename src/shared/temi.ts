@@ -8,10 +8,11 @@
 // Il tema scelto e' ricordato in impostazioni.json, cosi' l'app e i documenti
 // restano d'accordo fra un avvio e l'altro.
 
-export type Tema = 'verde' | 'blu'
+export type Tema = 'verde' | 'blu' | 'terracotta'
 
 export const TEMI: { valore: Tema; etichetta: string; colore: string }[] = [
   { valore: 'verde', etichetta: 'Verde salvia', colore: '#55806a' },
+  { valore: 'terracotta', etichetta: 'Terracotta', colore: '#a15843' },
   { valore: 'blu', etichetta: 'Blu', colore: '#2563eb' }
 ]
 
@@ -26,11 +27,12 @@ export interface ColoriDocumento {
 
 export const COLORI_DOCUMENTO: Record<Tema, ColoriDocumento> = {
   verde: { accento: '#55806a', accentoScuro: '#446a57', intestazione: '#f0e9dc' },
-  blu: { accento: '#2563eb', accentoScuro: '#1d4fc7', intestazione: '#eef2f8' }
+  blu: { accento: '#2563eb', accentoScuro: '#1d4fc7', intestazione: '#eef2f8' },
+  terracotta: { accento: '#a15843', accentoScuro: '#85452f', intestazione: '#f3e7dc' }
 }
 
 export function temaValido(v: unknown): Tema {
-  return v === 'blu' ? 'blu' : 'verde'
+  return TEMI.some((t) => t.valore === v) ? (v as Tema) : 'verde'
 }
 
 // Il tema in uso, per chi costruisce i documenti.
