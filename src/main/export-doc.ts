@@ -1,5 +1,6 @@
 // Generazione documenti (HTML per il PDF, docx per Word) da dati già letti.
 // Nessuna dipendenza da Electron: testabile con Node (vedi scripts/smoke.ts).
+import { coloriTema } from '../shared/temi'
 import {
   Document,
   HeadingLevel,
@@ -122,15 +123,18 @@ export function generaHtml(
                 : ''
             }
             <div class="testo">
-              <div class="nome"><span class="num">${numero}</span>${esc(e.nome)}</div>
-              ${d ? `<div class="dose">${d}</div>` : ''}
-              ${
-                e.nota_tecnica
-                  ? `<div class="come">${esc(e.nota_tecnica).replace(/\n/g, '<br>')}</div>`
-                  : ''
-              }
-              ${e.nota ? `<div class="nota-es">${esc(e.nota)}</div>` : ''}
-              ${e.link ? `<a class="video" href="${esc(e.link)}">Guarda il video</a>` : ''}
+              <span class="num">${numero}</span>
+              <div class="corpo">
+                <div class="nome">${esc(e.nome)}</div>
+                ${d ? `<div class="dose">${d}</div>` : ''}
+                ${
+                  e.nota_tecnica
+                    ? `<div class="come">${esc(e.nota_tecnica).replace(/\n/g, '<br>')}</div>`
+                    : ''
+                }
+                ${e.nota ? `<div class="nota-es">${esc(e.nota)}</div>` : ''}
+                ${e.link ? `<a class="video" href="${esc(e.link)}">Guarda il video</a>` : ''}
+              </div>
             </div>
           </div>`
         })
@@ -163,6 +167,8 @@ export function generaHtml(
     })
     .join('')
 
+  const { accento, intestazione } = coloriTema()
+
   return `<!doctype html>
 <html lang="it">
 <head>
@@ -172,21 +178,21 @@ export function generaHtml(
   body { font-family: 'Segoe UI', system-ui, sans-serif; color: #1f2733; font-size: 12px; margin: 0; }
   h1 { font-size: 20px; margin: 0 0 2px; }
   .info { color: #555b66; margin: 0 0 6px; font-size: 11px; }
-  h2 { font-size: 15px; border-bottom: 2px solid #55806a; padding-bottom: 4px; margin: 18px 0 8px; }
-  h2 .fase { color: #55806a; font-weight: 600; }
-  h3 { font-size: 13px; margin: 12px 0 4px; color: #55806a; }
+  h2 { font-size: 15px; border-bottom: 2px solid ${accento}; padding-bottom: 4px; margin: 18px 0 8px; }
+  h2 .fase { color: ${accento}; font-weight: 600; }
+  h3 { font-size: 13px; margin: 12px 0 4px; color: ${accento}; }
   .nuova-pagina { page-break-before: always; }
   .obiettivi { margin: 0 0 8px; }
   .gruppo-esercizi { margin: 0 0 8px; page-break-inside: avoid; }
   .gruppo-esercizi .cat { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
-                          color: #55806a; margin-bottom: 2px; }
+                          color: ${accento}; margin-bottom: 2px; }
   ul.elenco-esercizi { margin: 0; padding-left: 18px; }
   ul.elenco-esercizi li { margin-bottom: 3px; }
   ul.elenco-esercizi .nome { font-weight: 600; }
   ul.elenco-esercizi .nota-es { display: block; color: #555b66; font-size: 11px; }
   table { width: 100%; border-collapse: collapse; }
   th, td { border: 1px solid #ccd2da; padding: 6px 8px; text-align: left; vertical-align: top; }
-  th { background: #f0e9dc; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; }
+  th { background: ${intestazione}; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; }
   tr { page-break-inside: avoid; }
   .cat { color: #777e88; font-size: 10px; }
   .note { margin: 10px 0 0; background: #f5f6f8; padding: 8px 10px; border-radius: 4px; }
@@ -199,15 +205,18 @@ export function generaHtml(
   .scheda-es .foto { flex: 0 0 150px; height: 110px; background: #f2f3f5; border-radius: 4px;
                      overflow: hidden; }
   .scheda-es .foto img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .scheda-es .testo { flex: 1; min-width: 0; }
+  /* Il numero sta in una colonna sua: dentro la riga del nome, tutto quello che
+     segue (dosaggio, spiegazione) partiva dal bordo del pallino e non dal nome. */
+  .scheda-es .testo { flex: 1; min-width: 0; display: flex; gap: 7px; }
+  .scheda-es .corpo { flex: 1; min-width: 0; }
   .scheda-es .nome { font-weight: 700; font-size: 13px; }
-  .scheda-es .num { display: inline-block; min-width: 17px; height: 17px; margin-right: 7px;
-                    border-radius: 50%; background: #55806a; color: #fff; font-size: 10px;
+  .scheda-es .num { flex: 0 0 auto; width: 17px; height: 17px; margin-top: 1px;
+                    border-radius: 50%; background: ${accento}; color: #fff; font-size: 10px;
                     text-align: center; line-height: 17px; }
   .scheda-es .dose { margin-top: 3px; font-weight: 600; }
   .scheda-es .come { color: #555b66; margin-top: 4px; }
   .scheda-es .nota-es { color: #555b66; margin-top: 4px; font-style: italic; }
-  .scheda-es .video { display: inline-block; margin-top: 6px; color: #55806a; font-weight: 600; }
+  .scheda-es .video { display: inline-block; margin-top: 6px; color: ${accento}; font-weight: 600; }
 </style>
 </head>
 <body>

@@ -7,12 +7,33 @@
   --border-forte: #d6ccbb;
   --text: #241f19;
   --text-dim: #77706a;
-  /* Verde salvia. Il colore vive tutto qui dentro: per tornare al blu bastano
-     queste tre righe (#2563eb, #1d4fc7, #e8effd) piu' le intestazioni dei
-     documenti in export-cartella.ts, export-doc.ts e report-screening.ts. */
+  /* Verde salvia su fondo beige: e' il tema di partenza. L'altro tema (blu, con
+     la barra laterale scura) ridichiara queste stesse variabili piu' sotto, in
+     [data-tema='blu']: nel resto del foglio non compare nessun colore del tema
+     scritto a mano, altrimenti cambiarlo vorrebbe dire ricontrollare mille
+     righe. Il tema si scegle in Impostazioni ed e' ricordato fra un avvio e
+     l'altro; i documenti stampati usano gli stessi due colori (vedi
+     src/shared/temi.ts). */
   --accent: #55806a;
   --accent-hover: #446a57;
   --accent-soft: #e7efe9;
+  --accent-ombra: rgba(85, 128, 106, 0.45);
+  --logo: linear-gradient(135deg, #6d9c83, #46705b);
+  /* barra laterale: chiara in questo tema, scura nell'altro */
+  --barra: linear-gradient(180deg, #e6dcc9 0%, #dcd1bb 100%);
+  --barra-testo: #4a4237;
+  --barra-voce: #4a4237;
+  --barra-hover: #d3c6ae;
+  --barra-hover-testo: #2f2a22;
+  --barra-bordo: #cfc2a9;
+  --barra-bordo-pulsante: #c3b498;
+  --barra-etichetta: #8d99a8;
+  /* fondo delle intestazioni: righe dei titoli, sottotitoli, barra delle schede */
+  --intestazione: var(--intestazione);
+  --intestazione-hover: #e6dcc9;
+  --intestazione-testo: var(--intestazione-testo);
+  --intestazione-testo-forte: #2f2a22;
+  --login: linear-gradient(160deg, #ece3d3 0%, #ddd2bd 55%, #e8dfcd 100%);
   /* fondo dei riquadri di dati e interno delle caselle in cui si scrive:
      appena piu' chiari del grigio della pagina, cosi' si distinguono */
   /* Un riquadro dentro un riquadro bianco e' grigio chiaro: il beige, che e' il
@@ -30,6 +51,37 @@
   --shadow-lg: 0 18px 50px rgba(15, 23, 42, 0.25);
   font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
   color: var(--text);
+}
+
+/* Tema blu: quello con cui e' nata l'app, con la barra laterale scura. Solo
+   variabili: le regole sono le stesse del tema verde. */
+:root[data-tema='blu'] {
+  --bg: #f2f5f9;
+  --border: #e4e9f0;
+  --border-forte: #d3dae3;
+  --text: #17222f;
+  --text-dim: #64748b;
+  --accent: #2563eb;
+  --accent-hover: #1d4fc7;
+  --accent-soft: #e8effd;
+  --accent-ombra: rgba(37, 99, 235, 0.4);
+  --logo: linear-gradient(135deg, #3b82f6, #1e40af);
+  --barra: linear-gradient(180deg, #18202b 0%, #1c2634 100%);
+  --barra-testo: #e6eaf0;
+  --barra-voce: #cbd4de;
+  --barra-hover: #2a3644;
+  --barra-hover-testo: #ffffff;
+  --barra-bordo: #131a24;
+  --barra-bordo-pulsante: #3a4756;
+  --barra-etichetta: #8d99a8;
+  --intestazione: #eef2f8;
+  --intestazione-hover: #e2e8f1;
+  --intestazione-testo: #64748b;
+  --intestazione-testo-forte: #17222f;
+  --pannello: #f7f9fc;
+  --login: linear-gradient(160deg, #101724 0%, #17233a 55%, #101724 100%);
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
 }
 
 * {
@@ -204,15 +256,14 @@ button.danger:hover:not(:disabled) {
   height: 100vh;
 }
 
-/* Beige invece del blu scuro: su una barra chiara le scritte diventano scure,
-   quindi cambiano anche i colori del testo, del passaggio del mouse e dei
-   pulsanti in fondo. */
+/* Colori dal tema: chiara col verde, scura col blu. Le scritte, il passaggio
+   del mouse e i bordi seguono, cosi' la barra si legge in entrambi. */
 .sidebar {
   width: 252px;
   flex-shrink: 0;
-  background: linear-gradient(180deg, #e6dcc9 0%, #dcd1bb 100%);
-  color: #4a4237;
-  border-right: 1px solid #cfc2a9;
+  background: var(--barra);
+  color: var(--barra-testo);
+  border-right: 1px solid var(--barra-bordo);
   padding: 18px 12px;
   display: flex;
   flex-direction: column;
@@ -233,7 +284,7 @@ button.danger:hover:not(:disabled) {
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background: linear-gradient(135deg, #6d9c83, #46705b);
+  background: var(--logo);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -246,7 +297,7 @@ button.danger:hover:not(:disabled) {
   font-size: 13px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #8d99a8;
+  color: var(--barra-etichetta);
   margin: 12px 8px 4px;
 }
 
@@ -262,20 +313,20 @@ button.danger:hover:not(:disabled) {
   gap: 10px;
   background: none;
   border: none;
-  color: #4a4237;
+  color: var(--barra-voce);
   padding: 11px 12px;
   border-radius: var(--radius-sm);
 }
 
 .sidebar nav button:hover:not(:disabled) {
-  background: #d3c6ae;
-  color: #2f2a22;
+  background: var(--barra-hover);
+  color: var(--barra-hover-testo);
 }
 
 .sidebar nav button.active {
   background: var(--accent);
   color: #fff;
-  box-shadow: 0 2px 8px rgba(85, 128, 106, 0.45);
+  box-shadow: 0 2px 8px var(--accent-ombra);
 }
 
 .content {
@@ -333,7 +384,7 @@ button.danger:hover:not(:disabled) {
   gap: 4px;
   margin-bottom: 16px;
   padding: 4px;
-  background: #f0e9dc;
+  background: var(--intestazione);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   flex-wrap: wrap;
@@ -342,14 +393,14 @@ button.danger:hover:not(:disabled) {
 .config-tabs button {
   border: none;
   background: none;
-  color: #6b6152;
+  color: var(--intestazione-testo);
   padding: 7px 14px;
   border-radius: var(--radius-sm);
 }
 
 .config-tabs button:hover:not(:disabled) {
-  background: #e6dcc9;
-  color: #2f2a22;
+  background: var(--intestazione-hover);
+  color: var(--intestazione-testo-forte);
 }
 
 .config-tabs button.active {
@@ -396,18 +447,88 @@ button.danger:hover:not(:disabled) {
   display: none;
 }
 
-/* colonna nome: senza a capo, prende lo spazio che serve */
+/* Colonna nome: va a capo invece di allargare la tabella, ma non si stringe
+   sotto una misura leggibile. */
 .data-table th.col-nome,
 .data-table td.col-nome {
-  white-space: nowrap;
-  min-width: 220px;
+  width: 34%;
+  min-width: 230px;
 }
 
-.data-table th.col-num,
-.data-table td.col-num {
-  text-align: center;
-  width: 80px;
+.cella-nome {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+/* Al massimo due righe: un nome lunghissimo verrebbe accorciato con i puntini
+   invece di far crescere la riga. Per intero si legge passandoci sopra. */
+.nome-esercizio {
+  font-weight: 600;
+  flex: 1;
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+/* Video, immagine ed etichetta stanno in colonna a se': restano a destra del
+   nome anche quando il nome occupa due righe. */
+.icone-nome {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  /* Lo spazio delle due icone e' sempre riservato, anche dove non ci sono: cosi'
+     i nomi vanno a capo nello stesso punto in tutte le righe. */
+  min-width: 56px;
   white-space: nowrap;
+}
+
+/* Le azioni sono tre icone: la colonna e' larga quanto basta a loro e lascia il
+   resto al nome. Larghezza dichiarata, non "quanto serve": con le colonne a
+   larghezza fissa i pulsanti sarebbero usciti dalla casella. */
+.data-table th.col-azioni,
+.data-table td.col-azioni {
+  width: 120px;
+  text-align: right;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.data-table td.col-azioni button {
+  padding: 4px 6px;
+}
+
+/* Serie, ripetizioni, carico e recupero sono valori brevi (3, 12, 5 kg, 1'):
+   colonne strette e incolonnate al centro, cosi' si leggono come una tabella di
+   numeri e lo spazio in piu' va al nome. */
+/* La categoria prende lo spazio che avanza, ma su una riga sola: un nome lungo
+   sconfinava nella colonna delle serie. Se non ci sta, finisce con i puntini e
+   per intero si legge passandoci sopra. */
+.data-table th.col-categoria,
+.data-table td.col-categoria {
+  /* Una larghezza sua: senza, le restava solo l'avanzo e in finestre strette si
+     riduceva a tre lettere e i puntini. */
+  width: 20%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.data-table th.col-param,
+.data-table td.col-param {
+  width: 84px;
+  text-align: center;
+  white-space: nowrap;
+  /* Valori di due o tre caratteri: il grosso della casella era margine. */
+  padding-left: 6px;
+  padding-right: 6px;
+}
+
+.data-table th.col-param {
+  font-size: 12px;
 }
 
 .form-row-4 {
@@ -463,8 +584,8 @@ button.danger:hover:not(:disabled) {
   font-size: 13px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #6b6152;
-  background: #f0e9dc;
+  color: var(--intestazione-testo);
+  background: var(--intestazione);
   border-radius: var(--radius-sm);
   padding: 5px 10px;
   margin: 14px 0 8px;
@@ -734,8 +855,8 @@ button.danger:hover:not(:disabled) {
   font-size: 15px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #6b6152;
-  background: #f0e9dc;
+  color: var(--intestazione-testo);
+  background: var(--intestazione);
   border-radius: var(--radius) var(--radius) 0 0;
   border-bottom: 1px solid var(--border);
 }
@@ -909,6 +1030,14 @@ button.danger:hover:not(:disabled) {
   box-shadow: var(--shadow-sm);
 }
 
+/* Nella libreria esercizi le larghezze delle colonne sono decise tutte qui:
+   sommate come semplici indicazioni la tabella sporgeva dalla finestra e
+   comparivano le frecce di scorrimento in orizzontale. Cosi' vengono rispettate
+   e la tabella sta dentro. Le altre tabelle restano automatiche. */
+.data-table.tabella-esercizi {
+  table-layout: fixed;
+}
+
 .data-table tbody tr:not(.archiviato):hover td {
   background: #f8fafc;
 }
@@ -933,10 +1062,43 @@ button.danger:hover:not(:disabled) {
   border-bottom: none;
 }
 
-.data-table td.nota {
-  color: var(--text-dim);
-  font-size: 15px;
-  max-width: 280px;
+/* La nota tecnica non sta piu' nella tabella: la colonna e' larga quanto
+   l'icona, cosi' il testo lungo non allarga piu' la riga. */
+.data-table th.col-nota,
+.data-table td.col-nota {
+  width: 46px;
+  text-align: center;
+  padding-left: 4px;
+  padding-right: 4px;
+  font-size: 12px;
+}
+
+.nota-aiuto {
+  display: inline-flex;
+  cursor: help;
+}
+
+/* Il cartellino galleggia sopra la pagina: dentro la tabella lo taglierebbe il
+   bordo arrotondato. Si ancora all'angolo dell'icona. */
+.bolla-nota {
+  position: fixed;
+  z-index: 60;
+  transform: translateX(-100%);
+  max-width: 340px;
+  padding: 9px 11px;
+  background: var(--pannello);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.35;
+  white-space: pre-wrap;
+  pointer-events: none;
+}
+
+.bolla-nota.sopra {
+  transform: translate(-100%, -100%);
 }
 
 .data-table td.empty {
@@ -1444,7 +1606,7 @@ span.row-actions button {
   background:
     radial-gradient(700px 500px at 15% -10%, rgba(85, 128, 106, 0.18), transparent 60%),
     radial-gradient(800px 600px at 110% 110%, rgba(85, 128, 106, 0.22), transparent 60%),
-    linear-gradient(160deg, #ece3d3 0%, #ddd2bd 55%, #e8dfcd 100%);
+    var(--login);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1467,7 +1629,7 @@ span.row-actions button {
   width: 56px;
   height: 56px;
   border-radius: 15px;
-  background: linear-gradient(135deg, #6d9c83, #46705b);
+  background: var(--logo);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1566,7 +1728,7 @@ span.row-actions button {
 .sidebar-footer {
   margin-top: auto;
   padding-top: 12px;
-  border-top: 1px solid #cfc2a9;
+  border-top: 1px solid var(--barra-bordo);
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -1575,8 +1737,8 @@ span.row-actions button {
 .sidebar-footer button {
   width: 100%;
   background: none;
-  border: 1px solid #3a4756;
-  color: #6b6152;
+  border: 1px solid var(--barra-bordo-pulsante);
+  color: var(--barra-voce);
   font-size: 15px;
 }
 
@@ -1584,9 +1746,9 @@ span.row-actions button {
    mouse ne mette uno chiaro, e su una barra scura restava scritta bianca su
    riquadro bianco. Qui si usa lo stesso grigio delle voci di menu sopra. */
 .sidebar-footer button:hover:not(:disabled) {
-  background: #d3c6ae;
-  color: #2f2a22;
-  border-color: #b3a488;
+  background: var(--barra-hover);
+  color: var(--barra-hover-testo);
+  border-color: var(--barra-hover);
 }
 
 .sidebar-footer button {
@@ -1980,6 +2142,26 @@ textarea {
 }
 
 /* due impostazioni distinte dentro la stessa finestra */
+/* Scelta del tema: due pulsanti con il pallino del colore, cosi' si vede cosa
+   si sta scegliendo prima di premere. */
+.scelta-tema {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.scelta-tema button {
+  gap: 9px;
+}
+
+.pallino-tema {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+
 .blocco-impostazione {
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -2141,6 +2323,13 @@ textarea {
   }
 }
 
+/* Le viste del piede sono larghe quanto alte (due piedi affiancati): in fila da
+   quattro diventerebbero francobolli. Due per riga, grandi. */
+.corpi-piede {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 780px;
+}
+
 .corpo-riquadro {
   display: flex;
   flex-direction: column;
@@ -2295,7 +2484,8 @@ textarea {
 .icona-sagoma {
   fill: none;
   stroke: currentColor;
-  stroke-width: 6;
+  /* come il tratto delle icone vicine, che su 24 punti ne usano 2 */
+  stroke-width: 7;
   stroke-linejoin: round;
   stroke-linecap: round;
 }
@@ -2543,6 +2733,28 @@ textarea {
 .campo-con-maniglia > button:hover:not(:disabled) {
   background: none;
   color: var(--accent);
+}
+
+/* Maniglia a destra del testo, e visibile solo passando sopra alla riga: negli
+   obiettivi si legge quasi sempre, si trascina di rado. Resta in posizione
+   anche da invisibile, cosi' la riga non si sposta quando compare. */
+.campo-con-maniglia.maniglia-destra {
+  padding-left: 0;
+  padding-right: 4px;
+}
+
+.campo-con-maniglia.maniglia-destra input {
+  padding-left: 10px;
+}
+
+.campo-con-maniglia.maniglia-destra > button {
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.campo-con-maniglia.maniglia-destra:hover > button,
+.campo-con-maniglia.maniglia-destra > button:focus-visible {
+  opacity: 1;
 }
 
 /* La casella del testo e il menu del termine devono essere alti uguali: la
@@ -3148,6 +3360,18 @@ textarea {
   margin-bottom: 12px;
 }
 
+/* La casella delle note sta dentro al riquadro del suo lato, sotto la tabella:
+   quello che si annota riguarda l'insieme dei movimenti provati in quel modo. */
+.nota-movimenti {
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+.nota-movimenti textarea {
+  font-size: 14px;
+  padding: 6px 8px;
+}
+
 .blocco-movimento {
   background: var(--pannello);
   border: 1px solid var(--border);
@@ -3223,16 +3447,19 @@ textarea {
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
 }
 
+/* Restrizione e dolore stanno vicine e strette quanto basta ai tre segni e alla
+   spunta: sono i due dati che si guardano insieme, e lo spazio risparmiato va al
+   nome del movimento, che e' quello che si legge. */
 .tabella-movimenti th.col-restrizione,
 .tabella-movimenti td.col-restrizione {
-  /* larga quanto i tre segni piu' i loro spazi: senza, con le colonne fisse
-     finivano sopra al nome del movimento */
-  width: 132px;
+  width: 106px;
+  padding-right: 0;
 }
 
 .tabella-movimenti th.col-dolore,
 .tabella-movimenti td.col-dolore {
-  width: 62px;
+  width: 48px;
+  padding-left: 2px;
 }
 
 .tabella-movimenti th.col-gradi,
@@ -3248,8 +3475,8 @@ textarea {
 }
 
 .scala-segni button {
-  min-width: 38px;
-  padding: 4px 4px;
+  min-width: 30px;
+  padding: 4px 3px;
   font-size: 13px;
   font-weight: 700;
   letter-spacing: -0.03em;

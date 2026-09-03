@@ -716,6 +716,23 @@ const MIGRATIONS: string[] = [
   //      stessa cosa, e chi non ha valori normativi lascia il campo vuoto.
   `
   ALTER TABLE test_misure ADD COLUMN riferimento REAL;
+  `,
+
+  // 23 - tipi di body chart. Oltre al corpo intero servono figure mirate a una
+  //      zona (per ora il piede e la caviglia): stesso modo di segnare, viste
+  //      diverse. Le body chart gia' salvate sono tutte del corpo intero.
+  `
+  ALTER TABLE body_chart ADD COLUMN tipo TEXT NOT NULL DEFAULT 'corpo';
+  `,
+
+  // 24 - una nota per il movimento attivo e una per il passivo, per ogni
+  //      distretto della valutazione: quello che si annota ("in inclinazione a
+  //      destra tira a sinistra") riguarda l'insieme dei movimenti provati, non
+  //      il singolo movimento. Stanno sulla riga del distretto perche' una
+  //      valutazione puo' comprenderne piu' d'uno.
+  `
+  ALTER TABLE valutazione_distretti ADD COLUMN nota_attivo TEXT;
+  ALTER TABLE valutazione_distretti ADD COLUMN nota_passivo TEXT;
   `
 ]
 

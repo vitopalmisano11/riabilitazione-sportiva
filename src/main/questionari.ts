@@ -212,6 +212,40 @@ export function calcola(
   return { punteggi: risultato, fascia: fascia?.etichetta ?? null }
 }
 
+// Le compilazioni di un paziente, con l'esito ricalcolato sulle fasce di oggi.
+//
+// L'esito veniva solo letto com'era stato salvato, e allora una fascia definita
+// dopo non compariva sulle compilazioni gia' fatte: lo stesso questionario
+// mostrava il profilo di rischio in alcune date e in altre no. Qui si ricalcola
+// dalle risposte, che non cambiano mai, e si riscrive se e' diverso — cosi'
+// anche la cartella stampata, che legge il valore memorizzato, resta allineata.
+export function elencoCompilazioni(pazienteId: number): Record<string, unknown>[] {
+  const db = getDb()
+  const righe = db
+    .prepare(
+      `SELECT pq.id, pq.data, pq.questionario_id, pq.fascia, pq.note, q.nome AS questionario_nome
+       FROM paziente_questionari pq JOIN questionari q ON q.id = pq.questionario_id
+       WHERE pq.paziente_id = ?
+       ORDER BY pq.data DESC, pq.id DESC`
+    )
+    .all(pazienteId) as { id: number; questionario_id: number; fascia: string | null }[]
+
+  const risposteStmt = db.prepare(
+    'SELECT domanda_id, valore FROM questionario_risposte WHERE compilazione_id = ?'
+  )
+  const punteggiStmt = db.prepare(
+    'SELECT nome, valore FROM compilazione_punteggi WHERE compilazione_id = ? ORDER BY ordine'
+  )
+  const aggiorna = db.prepare('UPDATE paziente_questionari SET fascia = ? WHERE id = ?')
+
+  return righe.map((r) => {
+    const risposte = risposteStmt.all(r.id) as { domanda_id: number; valore: number }[]
+    const { fascia } = calcola(r.questionario_id, risposte)
+    if (fascia !== r.fascia) aggiorna.run(fascia, r.id)
+    return { ...r, fascia, punteggi: punteggiStmt.all(r.id) }
+  })
+}
+
 // Correzione di una compilazione gia' salvata: risposte e punteggi si
 // riscrivono da zero, perche' un punteggio calcolato su risposte vecchie non
 // vale piu' niente. Il questionario di partenza non cambia: per usarne un

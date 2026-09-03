@@ -3,7 +3,7 @@ import { Trash2 } from 'lucide-react'
 import type { BodyChartCompleta, SegnoBodyChart, TipoSegno } from '../../../shared/types'
 import { toast, toastErrore } from './Toast'
 import { errMsg } from '../lib'
-import FiguraUmana, { SEGNI, VISTE, type SegnoDisegnato } from './FiguraUmana'
+import FiguraChart, { SEGNI, viste, type SegnoDisegnato } from './FiguraUmana'
 
 // I segni in memoria hanno una chiave stabile: l'id del database non c'e'
 // ancora per quelli appena messi, e serve poterli selezionare e trascinare.
@@ -209,10 +209,11 @@ export default function BodyChartEditor({
         )}
 
 
-        <div className="corpi">
-          {VISTE.map((v) => (
+        {/* Le viste dipendono dal tipo di chart: corpo intero o piede. */}
+        <div className={`corpi${dati.chart.tipo === 'piede' ? ' corpi-piede' : ''}`}>
+          {viste(dati.chart.tipo).map((v) => (
             <div key={v.valore} className="corpo-riquadro">
-              <FiguraUmana
+              <FiguraChart
                 vista={v.valore}
                 segni={disegnati(v.valore)}
                 attivo={!soloLettura}

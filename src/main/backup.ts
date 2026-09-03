@@ -85,6 +85,32 @@ export function eseguiBackup(prefisso = ''): string {
   return dest
 }
 
+// Copia dell'archivio in una cartella scelta dall'utente: una chiavetta, un
+// disco esterno, una cartella sincronizzata.
+//
+// Le copie automatiche stanno sullo stesso disco dell'archivio: se il disco si
+// rompe o il computer sparisce, se ne vanno insieme all'originale. Questa e'
+// l'unica copia che puo' trovarsi altrove. Non entra nella rotazione e non
+// cancella niente: quello che c'e' nella cartella scelta resta dov'e'.
+export function copiaFuori(destinazione: string): string {
+  const origine = cartellaDati()
+  const db = join(origine, DB)
+  if (!existsSync(db)) throw new Error('Non c’è ancora un archivio da copiare.')
+
+  try {
+    getDb().pragma('wal_checkpoint(TRUNCATE)')
+  } catch {
+    // database non aperto: il file e' comunque coerente
+  }
+
+  const dest = join(destinazione, `riabilitazione_${nomeCartella()}`)
+  mkdirSync(dest, { recursive: true })
+  copyFileSync(db, join(dest, DB))
+  const auth = join(origine, AUTH)
+  if (existsSync(auth)) copyFileSync(auth, join(dest, AUTH))
+  return dest
+}
+
 // Backup automatico: uno al giorno basta, il resto sarebbero copie identiche.
 export function backupSeServe(): void {
   if (!backupAttivo()) return

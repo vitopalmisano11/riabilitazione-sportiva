@@ -2,6 +2,13 @@
 // (posizione fissa); indica dove si trova la cartella dati (db + auth),
 // di default Documenti/Riabilitazione per rendere banale il backup manuale.
 import { app } from 'electron'
+import {
+  COLORI_DOCUMENTO,
+  type ColoriDocumento,
+  impostaTemaCorrente,
+  temaValido,
+  type Tema
+} from '../shared/temi'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { spostaFileDati } from './file-dati'
@@ -10,6 +17,7 @@ interface Impostazioni {
   cartellaDati?: string
   cartellaExport?: string
   cartellaBackup?: string
+  tema?: string
   backupAttivo?: boolean
   backupDaTenere?: number
 }
@@ -32,6 +40,10 @@ function salva(patch: Impostazioni): void {
 const nomeCartellaDati = (): string =>
   app.isPackaged ? 'Riabilitazione' : 'Riabilitazione (dev)'
 
+// All'avvio il tema salvato diventa quello corrente: da qui lo leggono i
+// generatori dei documenti, che non possono aprire questo file da soli.
+impostaTemaCorrente(temaValido(leggi().tema))
+
 export function cartellaDati(): string {
   const dir = leggi().cartellaDati || join(app.getPath('documents'), nomeCartellaDati())
   mkdirSync(dir, { recursive: true })
@@ -40,6 +52,21 @@ export function cartellaDati(): string {
 
 export function impostaCartellaDati(dir: string): void {
   salva({ cartellaDati: dir })
+}
+
+// Tema di colore scelto. Lo leggono l'app, per il foglio di stile, e i
+// documenti stampati, che si costruiscono qui nel processo principale.
+export function tema(): Tema {
+  return temaValido(leggi().tema)
+}
+
+export function impostaTema(t: Tema): void {
+  salva({ tema: temaValido(t) })
+  impostaTemaCorrente(t)
+}
+
+export function coloriDocumento(): ColoriDocumento {
+  return COLORI_DOCUMENTO[tema()]
 }
 
 export function cartellaExport(): string {

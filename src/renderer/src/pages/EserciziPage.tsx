@@ -1,5 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ImageIcon, Video } from 'lucide-react'
+import {
+  Archive,
+  ArchiveRestore,
+  HelpCircle,
+  ImageIcon,
+  Pencil,
+  Trash2,
+  Video
+} from 'lucide-react'
 import type { Categoria, EsercizioConCategoria, EsercizioInput } from '../../../shared/types'
 import { toastErrore } from '../components/Toast'
 import CrudList from '../components/CrudList'
@@ -51,6 +59,13 @@ export default function EserciziPage(): React.JSX.Element {
   const [filtroCategoria, setFiltroCategoria] = useState<number | ''>('')
   const [form, setForm] = useState<FormState | null>(null)
   const [immagineAperta, setImmagineAperta] = useState<EsercizioConCategoria | null>(null)
+  // La nota tecnica e' lunga quanto serve: scritta nella tabella, allargava la
+  // riga e sfasava tutta la griglia. Sta dietro a un punto interrogativo e
+  // compare passandoci sopra, in un cartellino che galleggia sopra la pagina
+  // (posizione fissa, cosi' non lo taglia il bordo della tabella).
+  const [bolla, setBolla] = useState<{ testo: string; x: number; y: number; sopra: boolean } | null>(
+    null
+  )
 
   const load = async (archiviati = mostraArchiviati): Promise<void> => {
     setEsercizi(await window.api.esercizi.list(archiviati))
@@ -242,24 +257,32 @@ export default function EserciziPage(): React.JSX.Element {
         </button>
       </div>
 
-      <table className="data-table">
+      <table className="data-table tabella-esercizi">
         <thead>
           <tr>
             <th className="col-nome">Nome</th>
-            <th>Categoria</th>
-            <th className="col-num">Serie</th>
-            <th>Ripetizioni</th>
-            <th>Carico</th>
-            <th>Recupero</th>
-            <th>Nota tecnica</th>
-            <th></th>
+            <th className="col-categoria">Categoria</th>
+            <th className="col-param">Serie</th>
+            <th className="col-param" title="Ripetizioni">
+              Rip.
+            </th>
+            <th className="col-param">Carico</th>
+            <th className="col-param">Recupero</th>
+            <th className="col-nota">Nota</th>
+            <th className="col-azioni"></th>
           </tr>
         </thead>
         <tbody>
           {visibili.map((e) => (
             <tr key={e.id} className={e.archiviato ? 'archiviato' : ''}>
               <td className="col-nome">
-                {e.nome}
+                {/* Nome e icone in due colonne: in linea, con un nome lungo che
+                    va a capo, le icone finivano sotto la seconda riga. */}
+                <div className="cella-nome">
+                  <span className="nome-esercizio" title={e.nome}>
+                    {e.nome}
+                  </span>
+                  <span className="icone-nome">
                 {e.link && (
                   <button
                     className="icona-esercizio"
@@ -279,20 +302,52 @@ export default function EserciziPage(): React.JSX.Element {
                   </button>
                 )}
                 {e.archiviato ? <span className="badge">archiviato</span> : null}
+                  </span>
+                </div>
               </td>
-              <td>{e.categoria_nome}</td>
-              <td className="col-num">{e.serie_default ?? '—'}</td>
-              <td>{e.ripetizioni_default ?? '—'}</td>
-              <td>{e.carico_default ?? '—'}</td>
-              <td>{e.recupero_default ?? '—'}</td>
-              <td className="nota">{e.nota_tecnica ?? ''}</td>
-              <td className="row-actions">
-                <button onClick={() => void apriModifica(e)}>Modifica</button>
-                <button onClick={() => void archivia(e)}>
-                  {e.archiviato ? 'Ripristina' : 'Archivia'}
+              <td className="col-categoria" title={e.categoria_nome}>
+                {e.categoria_nome}
+              </td>
+              <td className="col-param">{e.serie_default ?? '—'}</td>
+              <td className="col-param">{e.ripetizioni_default ?? '—'}</td>
+              <td className="col-param">{e.carico_default ?? '—'}</td>
+              <td className="col-param">{e.recupero_default ?? '—'}</td>
+              <td className="col-nota">
+                {e.nota_tecnica && (
+                  <span
+                    className="icona-esercizio nota-aiuto"
+                    onMouseEnter={(ev) => {
+                      const r = ev.currentTarget.getBoundingClientRect()
+                      const sopra = r.bottom > window.innerHeight - 180
+                      setBolla({
+                        testo: e.nota_tecnica!,
+                        x: r.right,
+                        y: sopra ? r.top - 6 : r.bottom + 6,
+                        sopra
+                      })
+                    }}
+                    onMouseLeave={() => setBolla(null)}
+                  >
+                    <HelpCircle size={16} />
+                  </span>
+                )}
+              </td>
+              <td className="row-actions col-azioni">
+                <button title="Modifica" onClick={() => void apriModifica(e)}>
+                  <Pencil size={16} />
                 </button>
-                <button className="danger" onClick={() => void elimina(e)}>
-                  Elimina
+                <button
+                  title={
+                    e.archiviato
+                      ? 'Rimetti in elenco'
+                      : "Togli dall'elenco, tenendo le sedute in cui l'hai usato"
+                  }
+                  onClick={() => void archivia(e)}
+                >
+                  {e.archiviato ? <ArchiveRestore size={16} /> : <Archive size={16} />}
+                </button>
+                <button className="danger" title="Elimina" onClick={() => void elimina(e)}>
+                  <Trash2 size={16} />
                 </button>
               </td>
             </tr>
@@ -421,6 +476,15 @@ export default function EserciziPage(): React.JSX.Element {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {bolla && (
+        <div
+          className={`bolla-nota${bolla.sopra ? ' sopra' : ''}`}
+          style={{ left: bolla.x, top: bolla.y }}
+        >
+          {bolla.testo}
         </div>
       )}
 

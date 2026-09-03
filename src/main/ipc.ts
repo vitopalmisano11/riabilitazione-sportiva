@@ -13,12 +13,20 @@ import {
   impostaBackupDaTenere,
   impostaCartellaBackup,
   impostaCartellaDati,
-  impostaCartellaExport
+  impostaCartellaExport,
+  impostaTema,
+  tema
 } from './impostazioni'
 import { spostaFileDati } from './file-dati'
 import { apriScheda } from './scheda'
 import { datiScheda } from './scheda-dati'
-import { elencoBackup, eseguiBackup, backupSeServe, ripristinaBackup } from './backup'
+import {
+  copiaFuori,
+  elencoBackup,
+  eseguiBackup,
+  backupSeServe,
+  ripristinaBackup
+} from './backup'
 import {
   authExists,
   cambiaPasswordAuth,
@@ -40,7 +48,8 @@ import {
   aggiornaCompilazione,
   leggiQuestionario,
   salvaCompilazione,
-  salvaQuestionario
+  salvaQuestionario,
+  elencoCompilazioni
 } from './questionari'
 import { duplicaProtocollo, leggiProtocollo, salvaProtocollo } from './screening'
 import {
@@ -58,7 +67,9 @@ import {
   salvaDistretto,
   salvaValutazione
 } from './valutazione'
+import type { Tema } from '../shared/temi'
 import type {
+  TipoChart,
   AnamnesiProssima,
   AnamnesiRemota,
   AttivitaPartecipazione,
@@ -169,9 +180,24 @@ export function registerIpc(): void {
     void shell.openPath(cartellaBackup())
   })
   handle('backup:ripristina', (nome: string) => ripristinaBackup(nome))
+  handle('backup:copiaFuori', async () => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+      title: 'Scegli dove mettere la copia (chiavetta, disco esterno…)',
+      properties: ['openDirectory', 'createDirectory']
+    })
+    if (canceled || filePaths.length === 0) return null
+    const dest = copiaFuori(filePaths[0])
+    shell.showItemInFolder(dest)
+    return dest
+  })
 
   // ---- Impostazioni / cartella dati ----
-  handle('impostazioni:info', () => ({ cartella: cartellaDati(), cartellaExport: cartellaExport() }))
+  handle('impostazioni:info', () => ({
+    cartella: cartellaDati(),
+    cartellaExport: cartellaExport(),
+    tema: tema()
+  }))
+  handle('impostazioni:setTema', (t: Tema) => impostaTema(t))
   handle('impostazioni:cambiaCartellaExport', async () => {
     const { canceled, filePaths } = await dialog.showOpenDialog({
       title: "Scegli la cartella di destinazione per l'export",
@@ -503,6 +529,17 @@ export function registerIpc(): void {
     getDb().prepare('UPDATE esercizi SET archiviato = ? WHERE id = ?').run(archiviato ? 1 : 0, id)
   })
   handle('esercizi:delete', (id: number) => {
+    // Un esercizio citato da una seduta non si cancella: le sedute passate
+    // devono restare leggibili. Il vincolo del database lo impedisce comunque,
+    // ma da solo direbbe "FOREIGN KEY constraint failed": qui si dice cosa fare.
+    const usi = getDb()
+      .prepare('SELECT COUNT(*) AS n FROM seduta_esercizi WHERE esercizio_id = ?')
+      .get(id) as { n: number }
+    if (usi.n > 0) {
+      throw new Error(
+        `Questo esercizio è usato in ${usi.n === 1 ? 'una seduta' : `${usi.n} sedute`} già registrate e non si può eliminare: usa "Archivia" per toglierlo dall'elenco senza perdere quelle sedute.`
+      )
+    }
     getDb().prepare('DELETE FROM esercizi WHERE id = ?').run(id)
   })
 
@@ -959,21 +996,7 @@ export function registerIpc(): void {
   })
 
   // ---- Compilazioni di un paziente ----
-  handle('compilazioni:list', (pazienteId: number) => {
-    const db = getDb()
-    const righe = db
-      .prepare(
-        `SELECT pq.id, pq.data, pq.questionario_id, pq.fascia, pq.note, q.nome AS questionario_nome
-         FROM paziente_questionari pq JOIN questionari q ON q.id = pq.questionario_id
-         WHERE pq.paziente_id = ?
-         ORDER BY pq.data DESC, pq.id DESC`
-      )
-      .all(pazienteId) as { id: number }[]
-    const pStmt = db.prepare(
-      'SELECT nome, valore FROM compilazione_punteggi WHERE compilazione_id = ? ORDER BY ordine'
-    )
-    return righe.map((r) => ({ ...r, punteggi: pStmt.all(r.id) }))
-  })
+  handle('compilazioni:list', (pazienteId: number) => elencoCompilazioni(pazienteId))
   handle('compilazioni:risposte', (compilazioneId: number) =>
     getDb()
       .prepare('SELECT domanda_id, valore FROM questionario_risposte WHERE compilazione_id = ?')
@@ -1344,7 +1367,7 @@ export function registerIpc(): void {
   handle('bodyChart:list', (pazienteId: number) =>
     getDb()
       .prepare(
-        `SELECT b.id, b.data, b.note,
+        `SELECT b.id, b.data, b.note, b.tipo,
                 (SELECT COUNT(*) FROM body_chart_segni s WHERE s.chart_id = b.id) AS num_segni
          FROM body_chart b
          WHERE b.paziente_id = ?
@@ -1364,11 +1387,11 @@ export function registerIpc(): void {
       .all(id)
     return { chart, segni }
   })
-  handle('bodyChart:create', (pazienteId: number, data: string) =>
+  handle('bodyChart:create', (pazienteId: number, data: string, tipo: TipoChart) =>
     Number(
       getDb()
-        .prepare('INSERT INTO body_chart (paziente_id, data) VALUES (?, ?)')
-        .run(pazienteId, data).lastInsertRowid
+        .prepare('INSERT INTO body_chart (paziente_id, data, tipo) VALUES (?, ?, ?)')
+        .run(pazienteId, data, tipo === 'piede' ? 'piede' : 'corpo').lastInsertRowid
     )
   )
   handle('bodyChart:salva', (dati: BodyChartCompleta) => {

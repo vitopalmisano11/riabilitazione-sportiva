@@ -2,10 +2,9 @@ import { useEffect, useState } from 'react'
 import {
   CalendarClock,
   ClipboardCheck,
-  FolderCog,
   HeartPulse,
-  KeyRound,
   Settings,
+  SlidersHorizontal,
   Users
 } from 'lucide-react'
 import PatologiePage from './pages/PatologiePage'
@@ -17,12 +16,13 @@ import ScreeningRtpPage from './pages/ScreeningRtpPage'
 import DistrettiPage from './pages/DistrettiPage'
 import PazientiPage from './pages/PazientiPage'
 import FollowUpPage from './pages/FollowUpPage'
+import ImpostazioniPage from './pages/ImpostazioniPage'
 import AuthGate from './components/AuthGate'
-import ToastHost, { toast, toastErrore } from './components/Toast'
-import PannelloBackup from './components/PannelloBackup'
+import ToastHost, { toastErrore } from './components/Toast'
 import { errMsg } from './lib'
+import type { Tema } from '../../shared/temi'
 
-type Sezione = 'pazienti' | 'followup' | 'screening' | 'configurazione'
+type Sezione = 'pazienti' | 'followup' | 'screening' | 'configurazione' | 'impostazioni'
 
 type TabConfig =
   | 'patologie'
@@ -44,8 +44,30 @@ const TAB_CONFIG: { key: TabConfig; label: string }[] = [
 export default function App(): React.JSX.Element {
   const [sbloccata, setSbloccata] = useState(false)
   const [sezione, setSezione] = useState<Sezione>('pazienti')
-  const [cambiaPw, setCambiaPw] = useState(false)
-  const [impostazioni, setImpostazioni] = useState(false)
+  // Il tema scelto: si applica mettendolo sull'elemento radice, e il foglio di
+  // stile ridichiara i suoi colori. Arriva dal file delle impostazioni, cosi'
+  // resta anche al riavvio, e lo conoscono anche i documenti stampati.
+  const [tema, setTema] = useState<Tema>('verde')
+
+  const applicaTema = (t: Tema): void => {
+    setTema(t)
+    document.documentElement.dataset.tema = t
+  }
+
+  // Il tema si legge prima del login: altrimenti la schermata di accesso
+  // resterebbe con i colori di partenza e cambierebbe sotto gli occhi.
+  useEffect(() => {
+    window.api.impostazioni
+      .info()
+      .then((i) => applicaTema(i.tema))
+      .catch(() => undefined)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const scegliTema = (t: Tema): void => {
+    applicaTema(t)
+    window.api.impostazioni.setTema(t).catch((e) => toastErrore(errMsg(e)))
+  }
   // Ripremere la voce della sezione in cui si e' gia' significa "torna alla
   // prima pagina di questa sezione". Da qui non si puo' azzerare cosa c'e'
   // aperto dentro una pagina: le si manda un contatore, e a ogni scatto lei
@@ -112,13 +134,14 @@ export default function App(): React.JSX.Element {
             <Settings size={17} />
             Configurazione
           </button>
-          <button onClick={() => setImpostazioni(true)}>
-            <FolderCog size={17} />
-            Dati e backup
-          </button>
-          <button onClick={() => setCambiaPw(true)}>
-            <KeyRound size={17} />
-            Cambia password
+          {/* Dati e backup, password e colore stanno insieme qui: si toccano di
+              rado, e prima erano finestrine appese al menu. */}
+          <button
+            className={sezione === 'impostazioni' ? 'active' : ''}
+            onClick={() => vaiA('impostazioni')}
+          >
+            <SlidersHorizontal size={17} />
+            Impostazioni
           </button>
         </div>
       </aside>
@@ -131,9 +154,14 @@ export default function App(): React.JSX.Element {
         )}
         {sezione === 'screening' && <ScreeningRtpPage tornaAllElenco={tornaAllElenco} />}
         {sezione === 'configurazione' && <ConfigurazionePage tornaAllInizio={tornaAllElenco} />}
+        {sezione === 'impostazioni' && (
+          <ImpostazioniPage
+            tornaAllInizio={tornaAllElenco}
+            tema={tema}
+            onTema={scegliTema}
+          />
+        )}
       </main>
-      {cambiaPw && <CambiaPasswordModal onClose={() => setCambiaPw(false)} />}
-      {impostazioni && <ImpostazioniModal onClose={() => setImpostazioni(false)} />}
       <ToastHost />
     </div>
   )
@@ -168,145 +196,6 @@ function ConfigurazionePage({
       {tab === 'questionari' && <QuestionariPage />}
       {tab === 'testValutazione' && <TestValutazionePage />}
       {tab === 'screening' && <ProtocolliScreeningPage tornaAllElenco={tornaAllInizio} />}
-    </div>
-  )
-}
-
-function ImpostazioniModal({ onClose }: { onClose: () => void }): React.JSX.Element {
-  const [cartella, setCartella] = useState('')
-  const [cartellaExport, setCartellaExport] = useState('')
-
-  const ricarica = (): Promise<void> =>
-    window.api.impostazioni.info().then((i) => {
-      setCartella(i.cartella)
-      setCartellaExport(i.cartellaExport)
-    })
-
-  useEffect(() => {
-    void ricarica()
-  }, [])
-
-  const cambiaDati = async (): Promise<void> => {
-    try {
-      const nuova = await window.api.impostazioni.cambiaCartella()
-      if (nuova) {
-        setCartella(nuova)
-        toast('Dati spostati nella nuova cartella.')
-      }
-    } catch (e) {
-      toastErrore(errMsg(e))
-    }
-  }
-
-  const cambiaExport = async (): Promise<void> => {
-    try {
-      const nuova = await window.api.impostazioni.cambiaCartellaExport()
-      if (nuova) setCartellaExport(nuova)
-    } catch (e) {
-      toastErrore(errMsg(e))
-    }
-  }
-
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h3>Dati e backup</h3>
-
-        <div className="blocco-impostazione">
-          <div className="sotto-titolo">Cartella dei dati</div>
-          <p className="modal-testo">
-            Tutti i tuoi dati vivono qui: <code>riabilitazione.db</code> (il database cifrato) e{' '}
-            <code>auth.json</code> (le chiavi di accesso). Servono <b>entrambi</b>: senza
-            <code>auth.json</code> il database non è apribile.
-          </p>
-          <div className="cartella-path">{cartella}</div>
-          <div className="modal-actions">
-            <button onClick={() => void window.api.impostazioni.apriCartella()}>
-              Apri cartella
-            </button>
-            <button onClick={() => void cambiaDati()}>Cambia cartella…</button>
-          </div>
-        </div>
-
-        <div className="blocco-impostazione">
-          <div className="sotto-titolo">Cartella per gli export</div>
-          <p className="modal-testo">
-            Dove l&apos;app propone di salvare quando esporti una seduta o uno storico in
-            PDF/Word. Puoi comunque cambiarla di volta in volta nella finestra di salvataggio:
-            l&apos;ultima cartella usata viene ricordata.
-          </p>
-          <div className="cartella-path">{cartellaExport}</div>
-          <div className="modal-actions">
-            <button onClick={() => void cambiaExport()}>Cambia cartella…</button>
-          </div>
-        </div>
-
-        <PannelloBackup />
-
-        <div className="modal-actions">
-          <button className="primary" onClick={onClose}>
-            Chiudi
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function CambiaPasswordModal({ onClose }: { onClose: () => void }): React.JSX.Element {
-  const [vecchia, setVecchia] = useState('')
-  const [nuova, setNuova] = useState('')
-  const [conferma, setConferma] = useState('')
-  const [errore, setErrore] = useState('')
-
-  const salva = async (): Promise<void> => {
-    setErrore('')
-    if (nuova.length < 8) {
-      setErrore('La nuova password deve avere almeno 8 caratteri.')
-      return
-    }
-    if (nuova !== conferma) {
-      setErrore('Le nuove password non coincidono.')
-      return
-    }
-    try {
-      await window.api.auth.cambiaPassword(vecchia, nuova)
-      toast('Password aggiornata. La chiave di recupero resta valida.')
-      onClose()
-    } catch (e) {
-      setErrore(errMsg(e))
-    }
-  }
-
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal modal-sm" onClick={(e) => e.stopPropagation()}>
-        <h3>Cambia password</h3>
-        <label>
-          Password attuale
-          <input
-            type="password"
-            autoFocus
-            value={vecchia}
-            onChange={(e) => setVecchia(e.target.value)}
-          />
-        </label>
-        <label>
-          Nuova password (min 8 caratteri)
-          <input type="password" value={nuova} onChange={(e) => setNuova(e.target.value)} />
-        </label>
-        <label>
-          Conferma nuova password
-          <input type="password" value={conferma} onChange={(e) => setConferma(e.target.value)} />
-        </label>
-        {errore && <p className="auth-error">{errore}</p>}
-        <div className="modal-actions">
-          <button onClick={onClose}>Annulla</button>
-          <button className="primary" onClick={() => void salva()}>
-            Salva
-          </button>
-        </div>
-      </div>
     </div>
   )
 }

@@ -14,6 +14,7 @@ import { generaDocx, generaHtml } from '../src/main/export-doc'
 import { cambiaPasswordAuth, loginAuth, recoverAuth, setupAuth } from '../src/main/auth'
 import { closeDb, getDb, initDb, isPlaintextDb } from '../src/main/db'
 import { generaCartella, SEZIONI } from '../src/main/export-cartella'
+import { coloriTema, impostaTemaCorrente, temaValido } from '../src/shared/temi'
 import { datiScheda } from '../src/main/scheda-dati'
 import {
   duplicaProtocollo,
@@ -22,6 +23,8 @@ import {
 } from '../src/main/screening'
 import {
   aggiornaCompilazione,
+  elencoCompilazioni,
+  leggiQuestionario,
   calcola,
   salvaCompilazione,
   salvaQuestionario
@@ -36,7 +39,7 @@ db.pragma('foreign_keys = ON')
 
 runMigrations(db)
 runMigrations(db) // idempotente
-assert.equal(db.pragma('user_version', { simple: true }), 22)
+assert.equal(db.pragma('user_version', { simple: true }), 24)
 
 const count = (table: string): number =>
   (db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n
@@ -487,6 +490,91 @@ assert.equal(
     note: null,
     risposte: []
   }), /non trovata/)
+
+  // Una fascia definita DOPO deve valere anche per le compilazioni gia' fatte:
+  // l'esito si ricalcola quando si legge, altrimenti lo stesso questionario
+  // mostrerebbe il profilo di rischio in certe date e in altre no.
+  const qTardi = Number(
+    getDb()
+      .prepare('INSERT INTO questionari (categoria_id, nome, ordine) VALUES (?, ?, 1)')
+      .run(catId, 'Scala definita a meta').lastInsertRowid
+  )
+  const senzaFasce = {
+    questionario: {
+      id: qTardi,
+      categoria_id: catId,
+      nome: 'Scala definita a meta',
+      istruzioni: null,
+      ordine: 1,
+      archiviato: 0 as const
+    },
+    domande: [
+      {
+        id: -1,
+        testo: 'Unica domanda',
+        tipo: 'si_no' as const,
+        scala_min: null,
+        scala_max: null,
+        opzioni: []
+      }
+    ],
+    punteggi: [{ id: -101, nome: 'Totale', domanda_ids: [-1] }],
+    fasce: []
+  }
+  salvaQuestionario(senzaFasce)
+  const domandaTardi = (
+    getDb()
+      .prepare('SELECT id FROM questionario_domande WHERE questionario_id = ?')
+      .get(qTardi) as { id: number }
+  ).id
+  const compSenza = salvaCompilazione({
+    paziente_id: pazQ,
+    questionario_id: qTardi,
+    data: '2026-09-03',
+    note: null,
+    risposte: [{ domanda_id: domandaTardi, valore: 1 }]
+  })
+  const fasciaSalvata = (): string | null =>
+    (
+      getDb().prepare('SELECT fascia FROM paziente_questionari WHERE id = ?').get(compSenza) as {
+        fascia: string | null
+      }
+    ).fascia
+  assert.equal(fasciaSalvata(), null)
+
+  // ora si definisce la fascia, come fa chi sistema il questionario dopo averlo
+  // gia' somministrato
+  const letto = leggiQuestionario(qTardi)
+  salvaQuestionario({
+    ...letto,
+    fasce: [
+      {
+        id: null,
+        etichetta: 'Presente',
+        punteggio_id: letto.punteggi[0].id,
+        minimo: 1,
+        massimo: null,
+        punteggio2_id: null,
+        minimo2: null,
+        massimo2: null
+      }
+    ]
+  })
+  const elenco = elencoCompilazioni(pazQ) as { id: number; fascia: string | null }[]
+  assert.equal(elenco.find((x) => x.id === compSenza)?.fascia, 'Presente')
+  // il valore ricalcolato resta scritto: anche la cartella stampata lo legge da li'
+  assert.equal(fasciaSalvata(), 'Presente')
+}
+
+// --- Tema: i documenti stampati devono seguire il colore scelto ---
+{
+  // Il tema di partenza e' il verde; scegliendo il blu cambiano le intestazioni
+  // dei documenti, non solo l'interfaccia.
+  assert.equal(coloriTema().accento, '#55806a')
+  impostaTemaCorrente('blu')
+  assert.equal(coloriTema().accento, '#2563eb')
+  assert.equal(temaValido('inventato'), 'verde')
+  impostaTemaCorrente('verde')
 }
 
 // --- Screening: un protocollo pesca dalla libreria, non duplica i test ---
@@ -721,6 +809,20 @@ initDb(join(dirCartella, 'cartella.db'), dekHex)
     )
   }
 
+  // Una body chart del piede: stessi segni, viste diverse. Nella cartella deve
+  // uscire con le sue figure, non con quelle del corpo intero.
+  const chartPiede = ins(
+    "INSERT INTO body_chart (paziente_id, data, tipo, note) VALUES (?, '2026-08-22', 'piede', 'caviglia destra')",
+    pz
+  )
+  for (const vista of ['dorso', 'pianta', 'esterno', 'interno']) {
+    ins(
+      "INSERT INTO body_chart_segni (chart_id, vista, tipo, x, y, dimensione, intensita) VALUES (?, ?, 'dolore', 0.3, 0.5, 1, 4)",
+      chartPiede,
+      vista
+    )
+  }
+
   const distr = ins("INSERT INTO distretti (nome) VALUES ('Rachide lombare')")
   const mov = ins(
     "INSERT INTO distretto_movimenti (distretto_id, nome, gradi) VALUES (?, 'Flessione', 1)",
@@ -736,7 +838,12 @@ initDb(join(dirCartella, 'cartella.db'), dekHex)
      VALUES (?, '2026-08-25', 'atteggiamento antalgico', 'ok', 'ridotto', 'buono', 'media', 'buona')`,
     pz
   )
-  ins('INSERT INTO valutazione_distretti (valutazione_id, distretto_id) VALUES (?, ?)', val, distr)
+  ins(
+    `INSERT INTO valutazione_distretti (valutazione_id, distretto_id, nota_attivo, nota_passivo)
+     VALUES (?, ?, 'tira dal lato opposto', 'fine corsa elastico')`,
+    val,
+    distr
+  )
   ins(
     `INSERT INTO valutazione_movimenti (valutazione_id, movimento_id, attivo_restrizione,
        attivo_dolore, passivo_restrizione, passivo_dolore, attivo_gradi, passivo_gradi)
@@ -780,9 +887,14 @@ initDb(join(dirCartella, 'cartella.db'), dekHex)
     'Dolore lombare',      // anamnesi prossima
     'RX negativa',         // anamnesi remota
     'Rachide lombare',     // valutazione obiettiva
+    'tira dal lato opposto', // note del movimento attivo nella valutazione
+    'fine corsa elastico',   // e del passivo
     'Prova PROM',          // questionari
     'Camminare 30 minuti', // obiettivi terapeutici
-    'Lato sinistro'        // body chart, tutte e quattro le viste
+    'Lato sinistro',       // body chart, tutte e quattro le viste
+    'Dorso',               // body chart del piede
+    'Lato interno',
+    'piede e caviglia'
   ]) {
     assert.ok(doc.includes(atteso), `la cartella non riporta "${atteso}"`)
   }

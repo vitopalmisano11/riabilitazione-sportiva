@@ -9,6 +9,7 @@
 // davvero. Niente fascia di popolazione: non abbiamo un archivio di atleti a
 // cui confrontarsi e un riferimento inventato sarebbe peggio di nessuno.
 import { getDb } from './db'
+import { coloriTema } from '../shared/temi'
 import { asimmetria, combina, esito, lsi, riassumi } from '../shared/misure'
 import type { MisuraTest, RiassuntoMisura } from '../shared/types'
 
@@ -467,6 +468,7 @@ export function generaReportScreening(sessioneIds: number[]): DatiReport {
     ]
   ]
 
+  const { accento, accentoScuro, intestazione } = coloriTema()
   const html = `<!doctype html>
 <html lang="it">
 <head>
@@ -499,12 +501,12 @@ export function generaReportScreening(sessioneIds: number[]): DatiReport {
   dl.info dt { color: #6b7280; margin: 0; }
   dl.info dt::after { content: ':'; }
   dl.info dd { margin: 0; font-weight: 600; }
-  h3 { font-size: 13px; margin: 16px 0 6px; padding: 5px 8px; background: #55806a; color: #fff;
+  h3 { font-size: 13px; margin: 16px 0 6px; padding: 5px 8px; background: ${accento}; color: #fff;
        border-radius: 3px; }
   /* Il titolo del test non e' una casella colorata: e' una riga bianca con una
      sottolineatura. Dentro al report resta tutto bianco tranne le intestazioni
      delle colonne. */
-  h4 { font-size: 12px; margin: 10px 0 6px; padding: 0 0 4px; color: #3f6553;
+  h4 { font-size: 12px; margin: 10px 0 6px; padding: 0 0 4px; color: ${accentoScuro};
        border-bottom: 1px solid #e0d7c6; }
   /* Ogni test dentro il suo riquadro: con quattro o cinque test di fila,
      tabelle e grafici si confonderebbero fra loro. */
@@ -526,7 +528,7 @@ export function generaReportScreening(sessioneIds: number[]): DatiReport {
   table.prove { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
   table.prove th, table.prove td { border: 1px solid #ccd2da; padding: 3px 6px;
                                    text-align: center; white-space: nowrap; }
-  table.prove thead th { background: #f0e9dc; font-size: 10px; }
+  table.prove thead th { background: ${intestazione}; font-size: 10px; }
   table.prove tbody th { text-align: left; font-weight: 400; color: #555b66; white-space: nowrap; }
   /* La variazione va sotto al numero: di fianco allargava la colonna e i
      valori non erano piu' incolonnati. */
@@ -558,7 +560,7 @@ export function generaReportScreening(sessioneIds: number[]): DatiReport {
   .tratteggio { display: inline-block; width: 12px; border-top: 1.4px dashed #d64545; margin: 0 3px 0 8px;
                 vertical-align: middle; }
   .riga-questionario { margin: 2px 0 0; }
-  .fascia { margin-left: 6px; padding: 1px 7px; border-radius: 999px; background: #f0e9dc; color: #3f6553; }
+  .fascia { margin-left: 6px; padding: 1px 7px; border-radius: 999px; background: ${intestazione}; color: ${accentoScuro}; }
   .vuoto-test { color: #8b93a0; margin: 2px 0; }
   .attenzione { border: 1px solid #f0c6c6; background: #fdf3f3; border-radius: 4px;
                 padding: 8px 10px; margin: 0 0 12px; }
@@ -586,13 +588,13 @@ export function generaReportScreening(sessioneIds: number[]): DatiReport {
       font: inherit;
       font-size: 13px;
       padding: 9px 16px;
-      border: 1px solid #55806a;
+      border: 1px solid ${accento};
       border-radius: 8px;
-      background: #55806a;
+      background: ${accento};
       color: #fff;
       cursor: pointer;
     }
-    .comandi button:hover { background: #446a57; }
+    .comandi button:hover { background: ${accentoScuro}; }
   }
 </style>
 </head>

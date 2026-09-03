@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { FolderOpen, RotateCcw, Save } from 'lucide-react'
+import { FolderOpen, HardDriveDownload, RotateCcw, Save } from 'lucide-react'
 import type { InfoBackup } from '../../../shared/types'
 import { toast, toastErrore } from './Toast'
 import { errMsg } from '../lib'
@@ -58,7 +58,9 @@ export default function PannelloBackup(): React.JSX.Element {
       <div className="sotto-titolo">Copie di sicurezza</div>
       <p className="modal-testo">
         L&apos;app tiene da sola delle copie datate del tuo archivio: una all&apos;accesso e una
-        alla chiusura. Se metti la cartella dentro OneDrive, finiscono online da sole.
+        alla chiusura. Se metti la cartella dentro OneDrive, finiscono online da sole. Queste
+        copie stanno però sullo stesso computer: ogni tanto usa &ldquo;Copia su chiavetta&rdquo;
+        per portarne una fuori, su una chiavetta o un disco esterno.
       </p>
 
       <label className="checkbox-inline">
@@ -91,6 +93,19 @@ export default function PannelloBackup(): React.JSX.Element {
         </button>
         <button onClick={() => void run(() => window.api.backup.cambiaCartella())}>
           Cambia cartella…
+        </button>
+        {/* Le copie automatiche stanno sullo stesso disco dell'archivio: se il
+            disco si rompe se ne vanno insieme. Questa e' l'unica che puo'
+            finire altrove. */}
+        <button
+          onClick={() =>
+            void run(async () => {
+              const dove = await window.api.backup.copiaFuori()
+              if (dove) toast('Copia salvata sul supporto scelto.')
+            })
+          }
+        >
+          <HardDriveDownload size={16} /> Copia su chiavetta…
         </button>
         <button
           className="primary"

@@ -130,12 +130,10 @@ export default function ObiettiviTerapeutici({
                     const dnd = contenitore(o.id)
                     return (
                       <li key={o.id} {...dnd} className={dnd.className}>
-                        {/* La maniglia sta dentro alla casella del testo: si
-                            afferra l'obiettivo da dove c'e' scritto. */}
-                        <span className="campo-con-maniglia obiettivo-testo">
-                          <button {...maniglia(o.id)}>
-                            <GripVertical size={16} />
-                          </button>
+                        {/* La maniglia sta dentro alla casella del testo, a
+                            destra, e compare solo passandoci sopra: a riposo la
+                            riga resta pulita e si legge l'obiettivo. */}
+                        <span className="campo-con-maniglia maniglia-destra obiettivo-testo">
                           <input
                             value={o.testo}
                             onChange={(e) =>
@@ -147,6 +145,9 @@ export default function ObiettiviTerapeutici({
                             }
                             onBlur={() => void salva(o)}
                           />
+                          <button {...maniglia(o.id)} title="Trascina per riordinare">
+                            <GripVertical size={16} />
+                          </button>
                         </span>
                         <select
                           value={o.termine}

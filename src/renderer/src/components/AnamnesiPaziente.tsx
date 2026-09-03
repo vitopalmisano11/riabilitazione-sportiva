@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ClipboardList, Eye, History, Pencil, Target, Trash2 } from 'lucide-react'
-import type { BodyChartRiepilogo, PazienteDettaglio } from '../../../shared/types'
+import { ClipboardList, Eye, FileClock, Pencil, Target, Trash2 } from 'lucide-react'
+import type { BodyChartRiepilogo, PazienteDettaglio, TipoChart } from '../../../shared/types'
 import { toastErrore } from './Toast'
 import { errMsg, formatData, oggiIso } from '../lib'
 import BodyChartEditor from './BodyChartEditor'
@@ -38,10 +38,12 @@ export default function AnamnesiPaziente({
   // ma se si chiude senza salvare niente viene tolta: un clic per sbaglio non
   // deve lasciare schede vuote da ripulire.
   const appenaCreata = useRef<number | null>(null)
+  const [menuNuova, setMenuNuova] = useState(false)
 
-  const nuova = async (): Promise<void> => {
+  const nuova = async (tipo: TipoChart): Promise<void> => {
+    setMenuNuova(false)
     try {
-      const id = await window.api.bodyChart.create(paziente.id, oggiIso())
+      const id = await window.api.bodyChart.create(paziente.id, oggiIso(), tipo)
       appenaCreata.current = id
       await load()
       setAperta({ id, soloLettura: false })
@@ -75,11 +77,31 @@ export default function AnamnesiPaziente({
           <ClipboardList size={24} />
         </button>
         <button className="btn-sagoma" title="Anamnesi remota" onClick={() => setRemota(true)}>
-          <History size={24} />
+          {/* Una cartella con l'orologio: sono i fatti clinici di prima, non
+              una cronologia di modifiche come diceva la freccia all'indietro. */}
+          <FileClock size={24} />
         </button>
-        <button className="btn-sagoma" title="Body chart" onClick={() => void nuova()}>
-          <SagomaIcona size={24} />
-        </button>
+        {/* Le body chart sono piu' d'una: il corpo intero per il quadro
+            generale, il piede quando il problema e' li' e serve segnare in
+            piccolo. Si sceglie qui, perche' cambia le figure su cui si segna. */}
+        <span className="menu-wrapper">
+          <button
+            className="btn-sagoma"
+            title="Nuova body chart"
+            onClick={() => setMenuNuova(!menuNuova)}
+          >
+            <SagomaIcona size={24} />
+          </button>
+          {menuNuova && (
+            <>
+              <div className="menu-chiudi" onClick={() => setMenuNuova(false)} />
+              <div className="menu-tendina">
+                <button onClick={() => void nuova('corpo')}>Corpo intero</button>
+                <button onClick={() => void nuova('piede')}>Piede e caviglia</button>
+              </div>
+            </>
+          )}
+        </span>
         <button
           className="btn-sagoma"
           title="Obiettivi terapeutici"
@@ -98,7 +120,9 @@ export default function AnamnesiPaziente({
           {charts.map((c) => (
             <li key={c.id}>
               <div className="seduta-info">
-                <span className="seduta-data">Body chart · {formatData(c.data)}</span>
+                <span className="seduta-data">
+                  {c.tipo === 'piede' ? 'Body chart piede' : 'Body chart'} · {formatData(c.data)}
+                </span>
                 <span className="seduta-meta">
                   {c.num_segni === 1 ? '1 segno' : `${c.num_segni} segni`}
                 </span>

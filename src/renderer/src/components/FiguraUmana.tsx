@@ -1,4 +1,6 @@
-import type { TipoSegno, VistaCorpo } from '../../../shared/types'
+import type { TipoChart, TipoSegno, Vista, VistaCorpo, VistaPiede } from '../../../shared/types'
+import { PIEDE_ALTEZZA, PIEDE_LARGHEZZA } from '../../../shared/figure-piede'
+import SagomaPiede, { VISTE_PIEDE } from './FiguraPiede'
 import {
   ALTEZZA,
   BRACCIO,
@@ -34,12 +36,24 @@ import {
 
 export { ALTEZZA, LARGHEZZA }
 
-export const VISTE: { valore: VistaCorpo; etichetta: string }[] = [
+export const VISTE_CORPO: { valore: VistaCorpo; etichetta: string }[] = [
   { valore: 'fronte', etichetta: 'Davanti' },
   { valore: 'retro', etichetta: 'Dietro' },
   { valore: 'destra', etichetta: 'Lato destro' },
   { valore: 'sinistra', etichetta: 'Lato sinistro' }
 ]
+
+// Le viste di una body chart dipendono dal tipo: il corpo intero si guarda da
+// quattro lati, il piede da sopra, da sotto e dai due profili.
+export function viste(tipo: TipoChart): { valore: Vista; etichetta: string }[] {
+  return tipo === 'piede' ? VISTE_PIEDE : VISTE_CORPO
+}
+
+function misure(vista: Vista): { larghezza: number; altezza: number } {
+  return VISTE_PIEDE.some((v) => v.valore === vista)
+    ? { larghezza: PIEDE_LARGHEZZA, altezza: PIEDE_ALTEZZA }
+    : { larghezza: LARGHEZZA, altezza: ALTEZZA }
+}
 
 export const SEGNI: { valore: TipoSegno; etichetta: string }[] = [
   { valore: 'rigidita', etichetta: 'Rigidità percepita' },
@@ -176,14 +190,21 @@ function Simbolo({ tipo, r }: { tipo: TipoSegno; r: number }): React.JSX.Element
 // Pittogramma per il pulsante che apre la body chart: la testa a parte, e il
 // resto (braccia, busto, gambe) come un unico contorno chiuso — cosi' dentro
 // resta tutto bianco e nessuna linea attraversa il petto.
+// Icona della body chart: la testa a parte, e il resto (braccia, busto, gambe)
+// come un unico contorno chiuso, cosi' dentro resta tutto bianco e nessuna linea
+// attraversa il petto.
+//
+// Il disegno arriva quasi ai bordi del riquadro e ha il tratto della stessa
+// grossezza delle icone che gli stanno accanto: piu' stretto e sottile sembrava
+// piu' piccolo degli altri pulsanti, pur essendo alto uguale.
 export function SagomaIcona({ size = 26 }: { size?: number }): React.JSX.Element {
   return (
     <svg className="icona-sagoma" width={size} height={size} viewBox="0 0 100 100">
-      <circle cx="50" cy="17" r="12" />
+      <circle cx="50" cy="18" r="10.5" />
       <path
-        d="M25,37 L75,37 A6.5,6.5 0 0 1 75,50 L66,50 L66,86 A7.5,7.5 0 0 1 51,86
-           L51,71 A2,2 0 0 0 47,71 L47,86 A7.5,7.5 0 0 1 32,86 L32,50
-           L25,50 A6.5,6.5 0 0 1 25,37 Z"
+        d="M17,38 L83,38 A6.5,6.5 0 0 1 83,51 L67,51 L67,85 A7.5,7.5 0 0 1 52,85
+           L52,69 A2,2 0 0 0 48,69 L48,85 A7.5,7.5 0 0 1 33,85 L33,51 L17,51
+           A6.5,6.5 0 0 1 17,38 Z"
       />
     </svg>
   )
@@ -199,19 +220,22 @@ export interface SegnoDisegnato {
   selezionato?: boolean
 }
 
-export default function FiguraUmana({
+// La figura su cui si segna: corpo intero o piede, secondo la vista chiesta.
+export default function FiguraChart({
   vista,
   segni,
   attivo,
   onClicCorpo,
   onPrendiSegno
 }: {
-  vista: VistaCorpo
+  vista: Vista
   segni: SegnoDisegnato[]
   attivo?: boolean
   onClicCorpo?: (x: number, y: number) => void
   onPrendiSegno?: (chiave: string, e: React.PointerEvent<SVGGElement>) => void
 }): React.JSX.Element {
+  const riquadro = misure(vista)
+
   // Dal punto cliccato alle frazioni 0..1 con cui il segno viene memorizzato.
   const posizione = (e: React.PointerEvent<SVGSVGElement>): { x: number; y: number } => {
     const r = e.currentTarget.getBoundingClientRect()
@@ -221,7 +245,7 @@ export default function FiguraUmana({
   return (
     <svg
       className={['figura-umana', attivo ? 'attiva' : ''].filter(Boolean).join(' ')}
-      viewBox={`0 0 ${LARGHEZZA} ${ALTEZZA}`}
+      viewBox={`0 0 ${riquadro.larghezza} ${riquadro.altezza}`}
       onPointerDown={
         onClicCorpo
           ? (e) => {
@@ -233,12 +257,16 @@ export default function FiguraUmana({
           : undefined
       }
     >
-      <Sagoma vista={vista} />
+      {VISTE_PIEDE.some((v) => v.valore === vista) ? (
+        <SagomaPiede vista={vista as VistaPiede} />
+      ) : (
+        <Sagoma vista={vista as VistaCorpo} />
+      )}
       {segni.map((s) => (
         <g
           key={s.chiave}
           className={['segno', s.selezionato ? 'selezionato' : ''].filter(Boolean).join(' ')}
-          transform={`translate(${s.x * LARGHEZZA} ${s.y * ALTEZZA})`}
+          transform={`translate(${s.x * riquadro.larghezza} ${s.y * riquadro.altezza})`}
           onPointerDown={onPrendiSegno ? (e) => onPrendiSegno(s.chiave, e) : undefined}
         >
           <Simbolo tipo={s.tipo} r={14 * s.dimensione} />

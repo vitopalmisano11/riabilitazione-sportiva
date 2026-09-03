@@ -90,11 +90,17 @@ export function leggiValutazione(id: number): ValutazioneCompleta {
     | Valutazione
     | undefined
   if (!valutazione) throw new Error('Valutazione non trovata.')
-  const distretto_ids = (
-    db
-      .prepare('SELECT distretto_id FROM valutazione_distretti WHERE valutazione_id = ?')
-      .all(id) as { distretto_id: number }[]
-  ).map((r) => r.distretto_id)
+  const distretti = db
+    .prepare(
+      'SELECT distretto_id, nota_attivo, nota_passivo FROM valutazione_distretti WHERE valutazione_id = ?'
+    )
+    .all(id) as { distretto_id: number; nota_attivo: string | null; nota_passivo: string | null }[]
+  const distretto_ids = distretti.map((r) => r.distretto_id)
+  const note_movimenti = distretti.map((r) => ({
+    distretto_id: r.distretto_id,
+    attivo: r.nota_attivo,
+    passivo: r.nota_passivo
+  }))
   const movimenti = db
     .prepare(
       `SELECT movimento_id, attivo_restrizione, attivo_dolore, attivo_gradi,
@@ -105,7 +111,7 @@ export function leggiValutazione(id: number): ValutazioneCompleta {
   const test = db
     .prepare('SELECT test_id, valore, nota FROM valutazione_test WHERE valutazione_id = ?')
     .all(id) as ValutazioneCompleta['test']
-  return { valutazione, distretto_ids, movimenti, test }
+  return { valutazione, distretto_ids, movimenti, note_movimenti, test }
 }
 
 export function salvaValutazione(dati: ValutazioneCompleta): void {
@@ -123,9 +129,13 @@ export function salvaValutazione(dati: ValutazioneCompleta): void {
     // I rilievi si riscrivono per intero: nessun'altra tabella li cita.
     db.prepare('DELETE FROM valutazione_distretti WHERE valutazione_id = ?').run(id)
     const insD = db.prepare(
-      'INSERT INTO valutazione_distretti (valutazione_id, distretto_id) VALUES (?, ?)'
+      `INSERT INTO valutazione_distretti (valutazione_id, distretto_id, nota_attivo, nota_passivo)
+       VALUES (?, ?, ?, ?)`
     )
-    for (const d of dati.distretto_ids) insD.run(id, d)
+    for (const d of dati.distretto_ids) {
+      const n = dati.note_movimenti.find((x) => x.distretto_id === d)
+      insD.run(id, d, n?.attivo || null, n?.passivo || null)
+    }
 
     db.prepare('DELETE FROM valutazione_movimenti WHERE valutazione_id = ?').run(id)
     const insM = db.prepare(

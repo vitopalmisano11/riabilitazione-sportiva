@@ -4,6 +4,7 @@ import type {
   Andamento,
   Distretto,
   MovimentoDistretto,
+  NoteMovimenti,
   DistrettoCompleto,
   Grado,
   PazienteDettaglio,
@@ -257,6 +258,23 @@ function SchedaValutazione({
     })
   }
 
+  const noteDi = (distrettoId: number): NoteMovimenti =>
+    dati.note_movimenti.find((n) => n.distretto_id === distrettoId) ?? {
+      distretto_id: distrettoId,
+      attivo: null,
+      passivo: null
+    }
+
+  const cambiaNote = (distrettoId: number, patch: Partial<NoteMovimenti>): void => {
+    const nuovo = { ...noteDi(distrettoId), ...patch }
+    aggiorna({
+      note_movimenti: [
+        ...dati.note_movimenti.filter((n) => n.distretto_id !== distrettoId),
+        nuovo
+      ]
+    })
+  }
+
   const rispostaTest = (testId: number): RilievoTest =>
     dati.test.find((t) => t.test_id === testId) ?? { test_id: testId, valore: null, nota: null }
 
@@ -311,6 +329,8 @@ function SchedaValutazione({
                 soloLettura={soloLettura}
                 rilievo={rilievo}
                 onCambia={cambiaMovimento}
+                note={noteDi(lib.distretto.id as number)}
+                onNote={(patch) => cambiaNote(lib.distretto.id as number, patch)}
               />
             )}
 
@@ -458,12 +478,16 @@ function TabellaMovimenti({
   movimenti,
   soloLettura,
   rilievo,
-  onCambia
+  onCambia,
+  note,
+  onNote
 }: {
   movimenti: MovimentoDistretto[]
   soloLettura: boolean
   rilievo: (id: number) => RilievoMovimento
   onCambia: (id: number, patch: Partial<RilievoMovimento>) => void
+  note: NoteMovimenti
+  onNote: (patch: Partial<NoteMovimenti>) => void
 }): React.JSX.Element {
   const conGradi = movimenti.some((m) => m.gradi === 1)
 
@@ -471,7 +495,8 @@ function TabellaMovimenti({
     titolo: string,
     campoRestrizione: 'attivo_restrizione' | 'passivo_restrizione',
     campoDolore: 'attivo_dolore' | 'passivo_dolore',
-    campoGradi: 'attivo_gradi' | 'passivo_gradi'
+    campoGradi: 'attivo_gradi' | 'passivo_gradi',
+    lato: 'attivo' | 'passivo'
   ): React.JSX.Element => (
     <div className="blocco-movimento">
       <div className="sotto-titolo">{titolo}</div>
@@ -549,13 +574,32 @@ function TabellaMovimenti({
           })}
         </tbody>
       </table>
+
+      {/* Una nota per riquadro: quello che si annota ("in inclinazione a destra
+          tira a sinistra") riguarda l'insieme dei movimenti provati in quel
+          modo, non il singolo movimento. */}
+      <label className="nota-movimenti">
+        Note
+        <textarea
+          rows={2}
+          disabled={soloLettura}
+          value={note[lato] ?? ''}
+          onChange={(e) => onNote({ [lato]: e.target.value || null })}
+        />
+      </label>
     </div>
   )
 
   return (
     <div className="movimenti-attivo-passivo">
-      {blocco('Movimento attivo', 'attivo_restrizione', 'attivo_dolore', 'attivo_gradi')}
-      {blocco('Movimento passivo', 'passivo_restrizione', 'passivo_dolore', 'passivo_gradi')}
+      {blocco('Movimento attivo', 'attivo_restrizione', 'attivo_dolore', 'attivo_gradi', 'attivo')}
+      {blocco(
+        'Movimento passivo',
+        'passivo_restrizione',
+        'passivo_dolore',
+        'passivo_gradi',
+        'passivo'
+      )}
     </div>
   )
 }

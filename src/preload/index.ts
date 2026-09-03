@@ -1,5 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
+import type { Tema } from '../shared/temi'
 import type {
+  TipoChart,
   AnamnesiProssima,
   AnamnesiRemota,
   AttivitaPartecipazione,
@@ -221,7 +223,8 @@ const api: Api = {
   bodyChart: {
     list: (pazienteId: number) => invoke('bodyChart:list', pazienteId),
     get: (id: number) => invoke('bodyChart:get', id),
-    create: (pazienteId: number, data: string) => invoke('bodyChart:create', pazienteId, data),
+    create: (pazienteId: number, data: string, tipo: TipoChart) =>
+      invoke('bodyChart:create', pazienteId, data, tipo),
     salva: (dati: BodyChartCompleta) => invoke('bodyChart:salva', dati),
     remove: (id: number) => invoke('bodyChart:delete', id)
   },
@@ -262,9 +265,11 @@ const api: Api = {
     setDaTenere: (n: number) => invoke('backup:setDaTenere', n),
     eseguiOra: () => invoke('backup:eseguiOra'),
     apriCartella: () => invoke('backup:apriCartella'),
-    ripristina: (nome: string) => invoke('backup:ripristina', nome)
+    ripristina: (nome: string) => invoke('backup:ripristina', nome),
+    copiaFuori: () => invoke('backup:copiaFuori')
   },
   impostazioni: {
+    setTema: (t: Tema) => invoke('impostazioni:setTema', t),
     info: () => invoke('impostazioni:info'),
     apriCartella: () => invoke('impostazioni:apriCartella'),
     cambiaCartella: () => invoke('impostazioni:cambiaCartella'),

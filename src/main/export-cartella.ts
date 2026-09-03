@@ -10,6 +10,23 @@
 // (src/shared/figure.ts): nel documento appaiono come le hai segnate.
 import { getDb } from './db'
 import { COLORI_SINTOMI } from '../shared/sintomi'
+import { coloriTema } from '../shared/temi'
+import {
+  ARCO_PROFILO,
+  DITA_DORSO,
+  DITA_PIANTA,
+  DORSO,
+  MALLEOLI_DORSO,
+  MALLEOLO_PROFILO,
+  PIANTA,
+  PIEDE_ALTEZZA,
+  PIEDE_LARGHEZZA,
+  PROFILO,
+  RIFERIMENTI_DORSO,
+  RIFERIMENTI_PIANTA,
+  RIFERIMENTI_PROFILO,
+  type Ellisse
+} from '../shared/figure-piede'
 import {
   ALTEZZA,
   BRACCIO,
@@ -199,7 +216,18 @@ const NOME_VISTA: Record<string, string> = {
   fronte: 'Davanti',
   retro: 'Dietro',
   destra: 'Lato destro',
-  sinistra: 'Lato sinistro'
+  sinistra: 'Lato sinistro',
+  dorso: 'Dorso',
+  pianta: 'Pianta',
+  esterno: 'Lato esterno',
+  interno: 'Lato interno'
+}
+
+// Le viste dipendono dal tipo di body chart: il corpo intero si guarda da
+// quattro lati, il piede da sopra, da sotto e dai due profili.
+const VISTE_DI: Record<string, string[]> = {
+  corpo: ['fronte', 'retro', 'destra', 'sinistra'],
+  piede: ['dorso', 'pianta', 'esterno', 'interno']
 }
 
 function forme(f: Forma[]): string {
@@ -262,6 +290,70 @@ const STILE_FIGURA = `
   .intensita { font-size: 20px; font-weight: 700; fill: #b03030;
                font-family: 'Segoe UI', system-ui, sans-serif; }
 `
+
+function ellissi(e: Ellisse[]): string {
+  return e
+    .map(
+      (x) =>
+        `<ellipse cx="${x.cx}" cy="${x.cy}" rx="${x.rx}" ry="${x.ry}"${
+          x.rotazione ? ` transform="rotate(${x.rotazione} ${x.cx} ${x.cy})"` : ''
+        }/>`
+    )
+    .join('')
+}
+
+// Il piede, con le stesse figure dell'app: ogni vista mostra tutti e due i
+// piedi, disegnando il destro e specchiandolo.
+function figuraPiedeSvg(vista: string, segni: SegnoRiga[]): string {
+  const dallAlto = vista === 'dorso' || vista === 'pianta'
+  const dorso = vista === 'dorso'
+  const interno = vista === 'interno'
+
+  const parti = dallAlto
+    ? `<path d="${dorso ? DORSO : PIANTA}"/>${ellissi(dorso ? DITA_DORSO : DITA_PIANTA)}`
+    : `<path d="${PROFILO}"/>`
+  const linee = dallAlto
+    ? (dorso ? RIFERIMENTI_DORSO : RIFERIMENTI_PIANTA)
+    : interno
+      ? [...RIFERIMENTI_PROFILO, ARCO_PROFILO]
+      : RIFERIMENTI_PROFILO
+  const cerchi = dallAlto
+    ? dorso
+      ? MALLEOLI_DORSO
+      : []
+    : [MALLEOLO_PROFILO]
+  const dettagli = `<g class="dettagli">${linee.map((d) => `<path d="${d}"/>`).join('')}${ellissi(
+    cerchi
+  )}</g>`
+  const piede = `<g class="bordo">${parti}</g><g class="pieno">${parti}</g>${dettagli}`
+
+  const largoDisegno = dallAlto ? 150 : 210
+  const specchiato = `<g transform="translate(${largoDisegno} 0) scale(-1 1)">${piede}</g>`
+  const scala = dallAlto ? '' : ' scale(0.71) translate(0 60)'
+  const sinistra = dallAlto ? 10 : 6
+  const destra = dallAlto ? 170 : 165
+  // Guardando la pianta i lati si scambiano: il piede destro passa a destra.
+  const primo = dorso || !dallAlto ? (interno ? specchiato : piede) : specchiato
+  const secondo = dorso || !dallAlto ? (interno ? piede : specchiato) : piede
+
+  const marchi = segni
+    .filter((s) => s.vista === vista)
+    .map(
+      (s) =>
+        `<g transform="translate(${s.x * PIEDE_LARGHEZZA} ${s.y * PIEDE_ALTEZZA})">${simbolo(
+          s.tipo,
+          12 * s.dimensione
+        )}${intensita(s.intensita, 12 * s.dimensione)}</g>`
+    )
+    .join('')
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${PIEDE_LARGHEZZA} ${PIEDE_ALTEZZA}">
+    <style>${STILE_FIGURA}</style>
+    <g transform="translate(${sinistra} 0)${scala}">${primo}</g>
+    <g transform="translate(${destra} 0)${scala}">${secondo}</g>
+    ${marchi}
+  </svg>`
+}
 
 function figuraSvg(vista: string, segni: SegnoRiga[]): string {
   const profilo = vista === 'sinistra' || vista === 'destra'
@@ -505,7 +597,7 @@ function sezBodyChart(pazienteId: number): Blocco[] {
   const db = getDb()
   const charts = db
     .prepare('SELECT * FROM body_chart WHERE paziente_id = ? ORDER BY data DESC, id DESC')
-    .all(pazienteId) as { id: number; data: string; note: string | null }[]
+    .all(pazienteId) as { id: number; data: string; note: string | null; tipo: string }[]
   if (charts.length === 0) return []
 
   const segniStmt = db.prepare(
@@ -523,12 +615,15 @@ function sezBodyChart(pazienteId: number): Blocco[] {
       )
       .filter((v, i, a) => a.indexOf(v) === i)
     return [
-      { tipo: 'sottotitolo', testo: data(c.data) },
+      {
+        tipo: 'sottotitolo',
+        testo: `${data(c.data)}${c.tipo === 'piede' ? ' — piede e caviglia' : ''}`
+      },
       {
         tipo: 'figure',
-        viste: ['fronte', 'retro', 'destra', 'sinistra'].map((v) => ({
+        viste: (VISTE_DI[c.tipo] ?? VISTE_DI.corpo).map((v) => ({
           didascalia: NOME_VISTA[v] ?? v,
-          svg: figuraSvg(v, segni)
+          svg: c.tipo === 'piede' ? figuraPiedeSvg(v, segni) : figuraSvg(v, segni)
         }))
       },
       ...(legenda.length > 0
@@ -557,11 +652,16 @@ function sezValutazioni(pazienteId: number): Blocco[] {
   return righe.flatMap((v): Blocco[] => {
     const distretti = db
       .prepare(
-        `SELECT d.id, d.nome FROM valutazione_distretti vd
+        `SELECT d.id, d.nome, vd.nota_attivo, vd.nota_passivo FROM valutazione_distretti vd
          JOIN distretti d ON d.id = vd.distretto_id
          WHERE vd.valutazione_id = ? ORDER BY d.ordine, d.nome`
       )
-      .all(v.id) as { id: number; nome: string }[]
+      .all(v.id) as {
+      id: number
+      nome: string
+      nota_attivo: string | null
+      nota_passivo: string | null
+    }[]
 
     const perDistretto = distretti.flatMap((d): Blocco[] => {
       const movimenti = db
@@ -635,7 +735,15 @@ function sezValutazioni(pazienteId: number): Blocco[] {
                 )
               }
             ]
-      return [{ tipo: 'sottotitolo', testo: d.nome }, ...tabella, ...elencoTest]
+      return [
+        { tipo: 'sottotitolo', testo: d.nome },
+        ...tabella,
+        // Le note dei due lati, se ci sono: stanno sotto alla tabella come
+        // nella schermata, una per il movimento attivo e una per il passivo.
+        ...testo('Note sul movimento attivo', d.nota_attivo),
+        ...testo('Note sul movimento passivo', d.nota_passivo),
+        ...elencoTest
+      ]
     })
 
     return [
@@ -835,6 +943,8 @@ export function generaCartella(pazienteId: number, sezioni: SezioneCartella[]): 
     )
     .join('')
 
+  const { accento, intestazione } = coloriTema()
+
   return `<!doctype html>
 <html lang="it">
 <head>
@@ -859,15 +969,15 @@ export function generaCartella(pazienteId: number, sezioni: SezioneCartella[]): 
   }
   h1 { font-size: 21px; margin: 0 0 2px; }
   .info { color: #555b66; margin: 0 0 4px; font-size: 11px; }
-  h2 { font-size: 15px; border-bottom: 2px solid #55806a; padding-bottom: 4px; margin: 20px 0 8px; }
-  h3 { font-size: 13px; margin: 12px 0 4px; color: #55806a; }
+  h2 { font-size: 15px; border-bottom: 2px solid ${accento}; padding-bottom: 4px; margin: 20px 0 8px; }
+  h3 { font-size: 13px; margin: 12px 0 4px; color: ${accento}; }
   /* Ogni sezione dentro il suo riquadro: con anamnesi, valutazione e sedute una
      dopo l'altra, senza una cornice si confondono fra loro. Il titolo fa da
      testata del riquadro. */
   section { page-break-inside: auto; border: 1px solid #dfe4ea; border-radius: 5px;
             padding: 0 12px 10px; margin-bottom: 12px; }
-  section > h2 { margin: 0 -12px 10px; padding: 6px 12px; border-bottom: 2px solid #55806a;
-                 background: #f0e9dc; border-radius: 5px 5px 0 0; }
+  section > h2 { margin: 0 -12px 10px; padding: 6px 12px; border-bottom: 2px solid ${accento};
+                 background: ${intestazione}; border-radius: 5px 5px 0 0; }
   .testo { margin: 0 0 6px; }
   dl.dati { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 20px; margin: 0 0 8px; }
   dl.dati div { display: flex; gap: 6px; }
@@ -876,7 +986,7 @@ export function generaCartella(pazienteId: number, sezioni: SezioneCartella[]): 
   dl.dati dd { margin: 0; font-weight: 600; }
   table { width: 100%; border-collapse: collapse; margin: 0 0 8px; }
   th, td { border: 1px solid #ccd2da; padding: 5px 7px; text-align: left; vertical-align: top; }
-  th { background: #f0e9dc; font-size: 10px; text-transform: uppercase; letter-spacing: 0.03em; }
+  th { background: ${intestazione}; font-size: 10px; text-transform: uppercase; letter-spacing: 0.03em; }
   tr { page-break-inside: avoid; }
   /* Un sintomo per riquadro, col filo di colore della sua linea nei grafici. */
   .riquadro { border: 1px solid #e4e8ed; border-left: 3px solid #8b93a0; border-radius: 4px;
@@ -886,13 +996,15 @@ export function generaCartella(pazienteId: number, sezioni: SezioneCartella[]): 
   .riquadro dl.dati { margin-bottom: 4px; }
   /* I due grafici affiancati, la legenda sotto: e' la disposizione della
      raccolta anamnestica, cosi' chi ha compilato ritrova quello che ha visto. */
-  .grafici { page-break-inside: avoid; margin: 0 0 10px; }
-  .grafici .disegni { display: flex; gap: 14px; }
+  /* I due grafici sono piccoli: dicono l'andamento in un colpo d'occhio, non
+     servono a leggerci dei valori — quelli stanno nei riquadri sopra. */
+  .grafici { page-break-inside: avoid; margin: 0 0 10px; max-width: 460px; }
+  .grafici .disegni { display: flex; gap: 12px; }
   .grafici figure { margin: 0; flex: 1; min-width: 0; }
-  .grafici figcaption { font-size: 11px; font-weight: 600; color: #55806a; margin-bottom: 2px; }
+  .grafici figcaption { font-size: 11px; font-weight: 600; color: ${accento}; margin-bottom: 2px; }
   .grafici svg { width: 100%; height: auto; }
-  .grafici .asse { font-size: 11px; fill: #8b93a0; text-anchor: end; }
-  .grafici .asse-x { font-size: 11px; fill: #8b93a0; text-anchor: middle; }
+  .grafici .asse { font-size: 13px; fill: #8b93a0; text-anchor: end; }
+  .grafici .asse-x { font-size: 13px; fill: #8b93a0; text-anchor: middle; }
   .grafici .asse-x.inizio { text-anchor: start; }
   .grafici .asse-x.fine { text-anchor: end; }
   .legenda { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 4px;

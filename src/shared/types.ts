@@ -1,3 +1,5 @@
+import type { Tema } from './temi'
+
 export interface Patologia {
   id: number
   nome: string
@@ -445,8 +447,19 @@ export interface ScreeningCompleto {
 }
 
 // ---- Body chart ----
+//
+// Ce n'e' piu' d'una: il corpo intero per il quadro generale, e figure mirate a
+// una zona quando il problema e' li' e serve segnare in piccolo. Ogni tipo ha le
+// sue viste; i segni restano gli stessi.
+export type TipoChart = 'corpo' | 'piede'
+
 // Le quattro viste da cui si guarda il paziente.
 export type VistaCorpo = 'fronte' | 'retro' | 'sinistra' | 'destra'
+
+// Le viste del piede e della caviglia: ognuna mostra tutti e due i piedi.
+export type VistaPiede = 'dorso' | 'pianta' | 'esterno' | 'interno'
+
+export type Vista = VistaCorpo | VistaPiede
 
 // I quattro segni della legenda: rigidita' percepita, area dolorosa, scossa
 // elettrica, parestesie.
@@ -454,7 +467,7 @@ export type TipoSegno = 'rigidita' | 'dolore' | 'scossa' | 'parestesie'
 
 export interface SegnoBodyChart {
   id: number | null
-  vista: VistaCorpo
+  vista: Vista
   tipo: TipoSegno
   // frazioni 0..1 del riquadro della figura
   x: number
@@ -469,6 +482,7 @@ export interface BodyChartRiepilogo {
   data: string
   note: string | null
   num_segni: number
+  tipo: TipoChart
 }
 
 export interface BodyChart {
@@ -476,6 +490,7 @@ export interface BodyChart {
   paziente_id: number
   data: string
   note: string | null
+  tipo: TipoChart
 }
 
 export interface BodyChartCompleta {
@@ -680,10 +695,18 @@ export interface ValutazioneRiepilogo {
   num_distretti: number
 }
 
+// Le note sui movimenti di un distretto: una per l'attivo e una per il passivo.
+export interface NoteMovimenti {
+  distretto_id: number
+  attivo: string | null
+  passivo: string | null
+}
+
 export interface ValutazioneCompleta {
   valutazione: Valutazione
   distretto_ids: number[]
   movimenti: RilievoMovimento[]
+  note_movimenti: NoteMovimenti[]
   test: RilievoTest[]
 }
 
@@ -937,7 +960,7 @@ export interface Api {
   bodyChart: {
     list(pazienteId: number): Promise<BodyChartRiepilogo[]>
     get(id: number): Promise<BodyChartCompleta>
-    create(pazienteId: number, data: string): Promise<number>
+    create(pazienteId: number, data: string, tipo: TipoChart): Promise<number>
     // Salva tutto in blocco: i segni si riscrivono ogni volta, non sono citati
     // da nessun'altra tabella.
     salva(dati: BodyChartCompleta): Promise<void>
@@ -983,9 +1006,13 @@ export interface Api {
     apriCartella(): Promise<void>
     // Riporta indietro l'archivio: l'app si riavvia da sola.
     ripristina(nome: string): Promise<void>
+    // Copia dell'archivio in una cartella scelta (chiavetta, disco esterno).
+    // Torna il percorso della copia, o null se si annulla.
+    copiaFuori(): Promise<string | null>
   }
   impostazioni: {
-    info(): Promise<{ cartella: string; cartellaExport: string }>
+    setTema(t: Tema): Promise<void>
+    info(): Promise<{ cartella: string; cartellaExport: string; tema: Tema }>
     apriCartella(): Promise<void>
     // Ritornano il nuovo percorso, o null se l'utente annulla.
     cambiaCartella(): Promise<string | null>
