@@ -14,6 +14,13 @@ import { generaDocx, generaHtml } from '../src/main/export-doc'
 import { cambiaPasswordAuth, loginAuth, recoverAuth, setupAuth } from '../src/main/auth'
 import { closeDb, getDb, initDb, isPlaintextDb } from '../src/main/db'
 import { generaCartella, SEZIONI } from '../src/main/export-cartella'
+import { esportaArchivio } from '../src/main/esporta-archivio'
+import {
+  elencoCestino,
+  eliminaConCestino,
+  ripristina,
+  svuotaCestino
+} from '../src/main/cestino'
 import { duplicaValutazione, leggiValutazione } from '../src/main/valutazione'
 import { coloriTema, impostaTemaCorrente, temaValido } from '../src/shared/temi'
 import { datiScheda } from '../src/main/scheda-dati'
@@ -31,7 +38,7 @@ import {
   salvaQuestionario
 } from '../src/main/questionari'
 import { spostaFileDati } from '../src/main/file-dati'
-import { existsSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 
 const dir = mkdtempSync(join(tmpdir(), 'riab-smoke-'))
 const db = new Database(join(dir, 'test.db'))
@@ -40,7 +47,7 @@ db.pragma('foreign_keys = ON')
 
 runMigrations(db)
 runMigrations(db) // idempotente
-assert.equal(db.pragma('user_version', { simple: true }), 25)
+assert.equal(db.pragma('user_version', { simple: true }), 26)
 
 const count = (table: string): number =>
   (db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n
@@ -647,6 +654,130 @@ assert.equal(
   )
 }
 
+// --- Programmare la settimana: la stessa seduta su piu' giorni ---
+{
+  const c = getDb()
+  const ins = (sql: string, ...a: unknown[]): number =>
+    Number(c.prepare(sql).run(...a).lastInsertRowid)
+  const pzP = ins("INSERT INTO pazienti (nome, cognome) VALUES ('Pro', 'Gramma')")
+  const catP = ins("INSERT INTO categorie (nome) VALUES ('Cat programma')")
+  const esP = ins('INSERT INTO esercizi (nome, categoria_id) VALUES (?, ?)', 'Squat', catP)
+  const sedP = ins("INSERT INTO sedute (paziente_id, data, note) VALUES (?, '2026-09-07', 'lunedì')", pzP)
+  const sezP = ins("INSERT INTO seduta_sezioni (seduta_id, nome, ordine) VALUES (?, 'Rinforzo', 0)", sedP)
+  ins(
+    `INSERT INTO seduta_esercizi (seduta_id, seduta_sezione_id, esercizio_id, serie, ripetizioni, ordine)
+     VALUES (?, ?, ?, '3', '12', 0)`,
+    sedP,
+    sezP,
+    esP
+  )
+
+  // il canale IPC non si puo' chiamare da qui: si ripete quello che fa, cioe'
+  // copiare la seduta su due date nuove
+  const copiaSu = (data: string): number => {
+    const nuovo = ins(
+      'INSERT INTO sedute (paziente_id, data, fase_id, note) SELECT paziente_id, ?, fase_id, note FROM sedute WHERE id = ?',
+      data,
+      sedP
+    )
+    const sez = ins(
+      'INSERT INTO seduta_sezioni (seduta_id, sezione_id, nome, ordine) SELECT ?, sezione_id, nome, ordine FROM seduta_sezioni WHERE id = ?',
+      nuovo,
+      sezP
+    )
+    ins(
+      `INSERT INTO seduta_esercizi (seduta_id, seduta_sezione_id, esercizio_id, serie, ripetizioni, carico, recupero, nota, ordine)
+       SELECT ?, ?, esercizio_id, serie, ripetizioni, carico, recupero, nota, ordine
+       FROM seduta_esercizi WHERE seduta_id = ?`,
+      nuovo,
+      sez,
+      sedP
+    )
+    return nuovo
+  }
+  const mer = copiaSu('2026-09-09')
+  const ven = copiaSu('2026-09-11')
+
+  const esercizi = (id: number): number =>
+    (
+      c.prepare('SELECT COUNT(*) AS n FROM seduta_esercizi WHERE seduta_id = ?').get(id) as {
+        n: number
+      }
+    ).n
+  assert.equal(esercizi(mer), 1)
+  assert.equal(esercizi(ven), 1)
+  // ogni copia ha la sua sezione, non quella dell'originale
+  const sezioniDi = (id: number): number =>
+    (
+      c.prepare('SELECT COUNT(*) AS n FROM seduta_sezioni WHERE seduta_id = ?').get(id) as {
+        n: number
+      }
+    ).n
+  assert.equal(sezioniDi(mer), 1)
+  assert.equal(
+    (
+      c.prepare('SELECT COUNT(*) AS n FROM sedute WHERE paziente_id = ?').get(pzP) as { n: number }
+    ).n,
+    3
+  )
+}
+
+// --- Cestino: eliminare un paziente si puo' disfare ---
+{
+  const c = getDb()
+  const ins = (sql: string, ...a: unknown[]): number =>
+    Number(c.prepare(sql).run(...a).lastInsertRowid)
+  const pzC = ins("INSERT INTO pazienti (nome, cognome, telefono) VALUES ('Ces', 'Tino', '333')")
+  const patC = ins("INSERT INTO patologie (nome) VALUES ('Prova cestino')")
+  c.prepare('UPDATE pazienti SET patologia_id = ? WHERE id = ?').run(patC, pzC)
+  const sedC = ins("INSERT INTO sedute (paziente_id, data, note) VALUES (?, '2026-09-01', 'nota')", pzC)
+  const catC = ins("INSERT INTO categorie (nome) VALUES ('Cat cestino')")
+  const esC = ins('INSERT INTO esercizi (nome, categoria_id) VALUES (?, ?)', 'Es cestino', catC)
+  ins(
+    "INSERT INTO seduta_esercizi (seduta_id, esercizio_id, serie, ordine) VALUES (?, ?, '3', 0)",
+    sedC,
+    esC
+  )
+  ins("INSERT INTO obiettivi_terapeutici (paziente_id, testo, termine, ordine) VALUES (?, 'Obiettivo', 'breve', 0)", pzC)
+
+  eliminaConCestino('pazienti', pzC, 'Paziente', 'Tino Ces')
+  const contati = (sql: string, ...a: unknown[]): number =>
+    (c.prepare(sql).get(...a) as { n: number }).n
+  assert.equal(contati('SELECT COUNT(*) AS n FROM pazienti WHERE id = ?', pzC), 0)
+  assert.equal(contati('SELECT COUNT(*) AS n FROM sedute WHERE id = ?', sedC), 0)
+
+  const voci = elencoCestino()
+  assert.equal(voci.length, 1)
+  assert.equal(voci[0].etichetta, 'Tino Ces')
+  // paziente + seduta + esercizio della seduta + obiettivo
+  assert.ok(voci[0].righe >= 4, `righe raccolte: ${voci[0].righe}`)
+
+  ripristina(voci[0].id)
+  assert.equal(contati('SELECT COUNT(*) AS n FROM pazienti WHERE id = ?', pzC), 1)
+  assert.equal(contati('SELECT COUNT(*) AS n FROM sedute WHERE id = ?', sedC), 1)
+  assert.equal(
+    contati('SELECT COUNT(*) AS n FROM seduta_esercizi WHERE seduta_id = ?', sedC),
+    1
+  )
+  assert.equal(
+    contati('SELECT COUNT(*) AS n FROM obiettivi_terapeutici WHERE paziente_id = ?', pzC),
+    1
+  )
+  // il telefono torna com'era: si rimette la riga, non una copia vuota
+  assert.equal(
+    (c.prepare('SELECT telefono FROM pazienti WHERE id = ?').get(pzC) as { telefono: string })
+      .telefono,
+    '333'
+  )
+  assert.equal(elencoCestino().length, 0)
+
+  // svuotare butta via davvero
+  eliminaConCestino('sedute', sedC, 'Seduta', 'Seduta di prova')
+  svuotaCestino()
+  assert.equal(elencoCestino().length, 0)
+  assert.equal(contati('SELECT COUNT(*) AS n FROM sedute WHERE id = ?', sedC), 0)
+}
+
 // --- Tema: i documenti stampati devono seguire il colore scelto ---
 {
   // Il tema di partenza e' il verde; scegliendo il blu cambiano le intestazioni
@@ -1004,6 +1135,32 @@ initDb(join(dirCartella, 'cartella.db'), dekHex)
   const nulla = generaCartella(Number(pzVuoto), tutte)
   assert.ok(!nulla.includes('Diario delle sedute'))
   assert.throws(() => generaCartella(999999, tutte), /non trovato/)
+
+  // L'archivio si esporta anche in tabelle leggibili senza l'app: le query
+  // toccano quasi tutte le tabelle, quindi qui si controlla che girino e che il
+  // paziente seminato compaia.
+  const dirCsv = mkdtempSync(join(tmpdir(), 'riab-csv-'))
+  const cartellaCsv = esportaArchivio(dirCsv)
+  for (const nome of [
+    'pazienti.csv',
+    'anamnesi.csv',
+    'sintomi.csv',
+    'obiettivi.csv',
+    'sedute.csv',
+    'valutazioni.csv',
+    'questionari.csv',
+    'screening.csv',
+    'leggimi.txt'
+  ]) {
+    assert.ok(existsSync(join(cartellaCsv, nome)), `manca ${nome}`)
+  }
+  const csvPazienti = readFileSync(join(cartellaCsv, 'pazienti.csv'), 'utf-8')
+  assert.ok(csvPazienti.startsWith('﻿'), 'senza BOM Excel sbaglia le accentate')
+  assert.ok(csvPazienti.includes('Verdi;Giulia'))
+  assert.ok(csvPazienti.includes('Lombalgia'))
+  // il punto e virgola dentro a un testo non deve spezzare la colonna
+  assert.ok(readFileSync(join(cartellaCsv, 'sedute.csv'), 'utf-8').includes('Plank'))
+  rmSync(dirCsv, { recursive: true, force: true })
 
   // La scheda mostrata al paziente legge le stesse sedute con query proprie.
   const scheda = datiScheda(Number(sed))

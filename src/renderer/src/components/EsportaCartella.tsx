@@ -76,8 +76,7 @@ export default function EsportaCartella({
           Cartella di {paziente.cognome} {paziente.nome}
         </h3>
         <p className="modal-testo">
-          Scegli cosa mettere nel documento. Le sezioni ancora vuote non vengono stampate, anche
-          se sono spuntate.
+          Le sezioni ancora vuote non vengono stampate, anche se sono spuntate.
         </p>
 
         <div className="checkbox-list sezioni-cartella">

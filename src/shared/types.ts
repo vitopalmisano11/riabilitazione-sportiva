@@ -710,6 +710,16 @@ export interface ValutazioneCompleta {
   test: RilievoTest[]
 }
 
+// Una cosa eliminata che sta nel cestino: quante righe si porta dietro dice
+// quanto grande e' quello che si rimetterebbe (un paziente ne ha centinaia).
+export interface VoceCestino {
+  id: number
+  tipo: string
+  etichetta: string
+  quando: string
+  righe: number
+}
+
 export interface VoceBackup {
   nome: string
   quando: string
@@ -753,6 +763,25 @@ export interface Api {
     salva(dati: DistrettoCompleto): Promise<void>
     remove(id: number): Promise<void>
     reorder(ids: number[]): Promise<void>
+  }
+  // Blocco automatico dopo un po' che non tocchi niente, e rientro.
+  sicurezza: {
+    blocco(): Promise<{ attivo: boolean; minuti: number }>
+    setBlocco(b: { attivo: boolean; minuti: number }): Promise<void>
+    // true se la password e' quella giusta; non riapre il database.
+    verificaPassword(password: string): Promise<boolean>
+  }
+  // Il registro degli errori: solo nomi di operazioni e messaggi, niente dati.
+  registro: {
+    ultimi(): Promise<string>
+    apri(): Promise<void>
+  }
+  // Quello che e' stato eliminato di recente e si puo' ancora rimettere.
+  cestino: {
+    list(): Promise<VoceCestino[]>
+    ripristina(id: number): Promise<void>
+    // Senza id svuota tutto.
+    svuota(id?: number): Promise<void>
   }
   // Bozza della seduta che si sta costruendo: una per paziente, ritrovata alla
   // riapertura se l'app si e' chiusa a meta'.
@@ -850,6 +879,8 @@ export interface Api {
     get(id: number): Promise<SedutaDettaglio>
     create(data: SedutaInput): Promise<number>
     update(id: number, data: SedutaInput): Promise<void>
+    // Copia una seduta su piu' date: e' il programma della settimana.
+    programma(origineId: number, date: string[]): Promise<number[]>
     remove(id: number): Promise<void>
   }
   followUp: {
@@ -1018,6 +1049,8 @@ export interface Api {
     // Copia dell'archivio in una cartella scelta (chiavetta, disco esterno).
     // Torna il percorso della copia, o null se si annulla.
     copiaFuori(): Promise<string | null>
+    // Tabelle CSV leggibili senza l'app (non e' un backup ripristinabile).
+    esportaArchivio(): Promise<string | null>
   }
   impostazioni: {
     setTema(t: Tema): Promise<void>

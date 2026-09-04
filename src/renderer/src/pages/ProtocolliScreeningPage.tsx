@@ -130,11 +130,6 @@ export default function ProtocolliScreeningPage({
     <div className="page">
       <header className="page-header">
         <h2>Screening</h2>
-        <p>
-          Un protocollo raccoglie test e questionari che hai già in libreria, divisi in sezioni.
-          I test si scrivono in Configurazione, &ldquo;Test di valutazione&rdquo;: qui si scelgono
-          e si ordinano.
-        </p>
       </header>
 
       <div className="scheda">

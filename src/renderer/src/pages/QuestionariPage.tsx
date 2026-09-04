@@ -68,11 +68,6 @@ export default function QuestionariPage(): React.JSX.Element {
     <div className="page step-flow">
       <header className="page-header">
         <h2>Questionari</h2>
-        <p>
-          I questionari che somministri ai pazienti (PROM), raccolti per categoria. Ogni domanda è
-          un elenco di risposte che valgono un punteggio; puoi definire più punteggi e le fasce di
-          risultato.
-        </p>
       </header>
 
       {categoria && (

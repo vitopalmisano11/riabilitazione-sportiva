@@ -94,10 +94,6 @@ export default function FollowUpPage({
     <div className="page">
       <header className="page-header">
         <h2>Follow-up</h2>
-        <p>
-          Chi stai seguendo adesso e chi hai finito di seguire. Le date scadute sono in rosso:
-          l&apos;app non ti avvisa da sola, questo elenco lo guardi tu quando vuoi.
-        </p>
       </header>
 
       <div className="scheda">

@@ -3,6 +3,7 @@ import {
   AlertTriangle,
   ChevronRight,
   Filter,
+  CalendarPlus,
   Copy,
   Download,
   FileText,
@@ -22,13 +23,14 @@ import type {
   TestValore
 } from '../../../shared/types'
 import SedutaBuilder from '../components/SedutaBuilder'
+import ProgrammaSettimana from '../components/ProgrammaSettimana'
 import QuestionariPaziente from '../components/QuestionariPaziente'
 import AnagraficaPaziente, { ModaleDatiPaziente } from '../components/AnagraficaPaziente'
 import AnamnesiPaziente from '../components/AnamnesiPaziente'
 import ValutazionePaziente from '../components/ValutazionePaziente'
 import { toast, toastErrore } from '../components/Toast'
 import { chiedi } from '../components/Conferma'
-import { errMsg, formatData } from '../lib'
+import { errMsg, formatData, oggiIso } from '../lib'
 import { useScorciatoie } from '../scorciatoie'
 
 export default function PazientiPage({
@@ -66,12 +68,24 @@ export default function PazientiPage({
   const builderAperto = useRef(builder)
   builderAperto.current = builder
 
-  // Torna all'elenco solo dalla scheda del paziente. Mentre si costruisce una
-  // seduta non si esce da qui: il lavoro non salvato si perderebbe senza che
-  // nessuno lo abbia chiesto, e per uscire c'e' gia' "Annulla".
+  // Premendo "Pazienti e sedute" nel menu si torna all'elenco da qualunque
+  // punto, anche dalla costruzione di una seduta. Per una seduta nuova non si
+  // perde niente: la bozza e' gia' messa da parte e viene riproposta. Per una
+  // seduta gia' salvata che si stava modificando, invece, si chiede prima.
   useEffect(() => {
     if (tornaAllElenco === 0) return
-    if (builderAperto.current == null) setSelId(null)
+    const aperto = builderAperto.current
+    const esci = (): void => {
+      setBuilder(null)
+      setSelId(null)
+    }
+    if (aperto?.sedutaId != null) {
+      void chiedi('Stai modificando una seduta. Esci senza salvare?').then((ok) => {
+        if (ok) esci()
+      })
+    } else {
+      esci()
+    }
   }, [tornaAllElenco])
 
   // Arrivando da un'altra sezione si apre la scheda chiesta. Se era rimasta
@@ -155,11 +169,6 @@ export default function PazientiPage({
     <div className="page step-flow">
       <header className="page-header">
         <h2>Pazienti</h2>
-        <p>
-          Ogni paziente ha la sua patologia e una fase corrente che resta memorizzata: le nuove
-          sedute si apriranno già nella fase giusta, e sei tu a farla avanzare quando il paziente è
-          pronto.
-        </p>
       </header>
 
       {sel && (
@@ -205,12 +214,11 @@ export default function PazientiPage({
             >
               <Filter size={18} />
             </button>
-            <button
-              className="primary btn-icona"
-              title="Nuovo paziente"
-              onClick={() => setNuovo(true)}
-            >
-              <Plus size={18} />
+            {/* Con la scritta, e non solo il segno +: nelle righe qui sotto ogni
+                paziente ha il suo + per la seduta, e due segni uguali uno sotto
+                l'altro sembravano la stessa cosa mal allineata. */}
+            <button className="primary" onClick={() => setNuovo(true)}>
+              <Plus size={18} /> Nuovo paziente
             </button>
           </div>
 
@@ -373,10 +381,21 @@ function SchedaPaziente({
   // Dipende dal paziente intero e non dal solo id: quando si salva una seduta
   // l'elenco dei pazienti si ricarica, l'oggetto cambia, e cosi' "Riprendi
   // l'ultima" punta davvero all'ultima.
+  const [sedutePaziente, setSedutePaziente] = useState<SedutaRiepilogo[]>([])
+  // Quante sedute aspettano il paziente: si vede sulla linguetta, senza entrare.
+  const daFare = sedutePaziente.filter((s) => s.data > oggiIso()).length
+  const [programma, setProgramma] = useState(false)
+
   const ricaricaUltima = useCallback((): void => {
+    const oggi = oggiIso()
     void window.api.sedute
       .list(paziente.id)
-      .then((righe) => setUltimaSeduta(righe[0]?.id ?? null))
+      // le sedute programmate per i giorni a venire non sono "l'ultima": si
+      // riparte da quella davvero svolta
+      .then((righe) => {
+        setSedutePaziente(righe)
+        setUltimaSeduta(righe.find((s) => s.data <= oggi)?.id ?? null)
+      })
   }, [paziente])
 
   useEffect(ricaricaUltima, [ricaricaUltima])
@@ -459,6 +478,7 @@ function SchedaPaziente({
               onClick={() => setScheda(t.key)}
             >
               {t.label}
+              {t.key === 'diario' && daFare > 0 && <span className="pallino-conta">{daFare}</span>}
             </button>
           ))}
         </div>
@@ -470,11 +490,31 @@ function SchedaPaziente({
           >
             <Copy size={17} /> Riprendi l&apos;ultima
           </button>
+          <button
+            disabled={sedutePaziente.length === 0}
+            title="Copia un programma su piu' giorni"
+            onClick={() => setProgramma(true)}
+          >
+            <CalendarPlus size={17} /> Programma…
+          </button>
           <button className="primary" onClick={onNuovaSeduta}>
             <Plus size={17} /> Nuova seduta
           </button>
         </span>
       </div>
+
+      {programma && (
+        <ProgrammaSettimana
+          sedute={sedutePaziente}
+          onChiudi={(create) => {
+            setProgramma(false)
+            if (create > 0) {
+              ricaricaUltima()
+              void onChanged()
+            }
+          }}
+        />
+      )}
 
       {scheda === 'diario' && (
         <DiarioCard
@@ -753,6 +793,13 @@ function DiarioCard({
 
   const load = async (): Promise<void> => setSedute(await window.api.sedute.list(paziente.id))
 
+  // Una seduta e' "programmata" se la sua data deve ancora arrivare: nessuno
+  // stato da mettere a mano, la data basta. Le programmate si leggono dalla piu'
+  // vicina, le svolte dalla piu' recente.
+  const oggi = oggiIso()
+  const programmate = sedute.filter((s) => s.data > oggi).sort((a, b) => a.data.localeCompare(b.data))
+  const fatte = sedute.filter((s) => s.data <= oggi)
+
   useEffect(() => {
     void load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -798,6 +845,75 @@ function DiarioCard({
     }
   }
 
+  // La riga di una seduta si disegna una volta sola: la usano l'elenco delle
+  // svolte e quello delle programmate.
+  const riga = (s: SedutaRiepilogo): React.JSX.Element => (
+          <li key={s.id}>
+            <div className="seduta-info">
+              <span className="seduta-data">{formatData(s.data)}</span>
+              <span className="seduta-meta">
+                {s.fase_nome ?? 'senza fase'} · {s.num_esercizi}{' '}
+                {s.num_esercizi === 1 ? 'esercizio' : 'esercizi'}
+              </span>
+              {s.obiettivi_nomi && <span className="seduta-obiettivi">{s.obiettivi_nomi}</span>}
+            </div>
+            <span className="row-actions">
+              <button
+                title="Mostra la scheda al paziente (si apre in una finestra a parte)"
+                onClick={() => void window.api.scheda.apri(s.id).catch((e) => toastErrore(errMsg(e)))}
+              >
+                <Presentation size={18} />
+              </button>
+              <button
+                title="Scheda illustrata per il paziente (foto e spiegazioni)"
+                onClick={() => setAnteprima(s.id)}
+              >
+                <Images size={18} />
+              </button>
+              <button title="Modifica la seduta" onClick={() => onApri(s.id)}>
+                <Pencil size={18} />
+              </button>
+              <button title="Nuova seduta partendo da questa" onClick={() => onDuplica(s.id)}>
+                <Copy size={18} />
+              </button>
+              <span className="menu-wrapper">
+                <button
+                  title="Scarica la seduta"
+                  onClick={() => setMenuScarica(menuScarica === s.id ? null : s.id)}
+                >
+                  <Download size={18} />
+                </button>
+                {menuScarica === s.id && (
+                  <>
+                    <div className="menu-chiudi" onClick={() => setMenuScarica(null)} />
+                    <div className="menu-tendina">
+                      <button
+                        onClick={() => {
+                          setMenuScarica(null)
+                          void esportaSingola(s.id, 'pdf')
+                        }}
+                      >
+                        <FileText size={18} /> Scarica PDF
+                      </button>
+                      <button
+                        onClick={() => {
+                          setMenuScarica(null)
+                          void esportaSingola(s.id, 'docx')
+                        }}
+                      >
+                        <FileText size={18} /> Scarica Word
+                      </button>
+                    </div>
+                  </>
+                )}
+              </span>
+              <button className="danger" title="Elimina" onClick={() => void elimina(s)}>
+                <Trash2 size={18} />
+              </button>
+            </span>
+          </li>
+  )
+
   return (
     <section className="card">
       <div className="card-header-row">
@@ -816,79 +932,23 @@ function DiarioCard({
           )}
         </span>
       </div>
-      {sedute.length === 0 ? (
+      {/* Le sedute con la data di domani in poi sono quelle che hai preparato:
+          stanno sopra, in ordine di quando toccano, cosi' si vede a colpo
+          d'occhio cosa aspetta il paziente. */}
+      {programmate.length > 0 && (
+        <div className="blocco-programmate">
+          <div className="sotto-titolo">Programmate</div>
+          <ul className="sedute-list">{programmate.map(riga)}</ul>
+        </div>
+      )}
+      {fatte.length === 0 ? (
         <p className="hint">
-          Nessuna seduta ancora: creane una — si aprirà già sulla fase corrente del paziente.
+          {programmate.length > 0
+            ? 'Nessuna seduta svolta finora: quelle qui sopra sono programmate.'
+            : 'Nessuna seduta ancora: creane una — si aprirà già sulla fase corrente del paziente.'}
         </p>
       ) : (
-        <ul className="sedute-list">
-          {sedute.map((s) => (
-            <li key={s.id}>
-              <div className="seduta-info">
-                <span className="seduta-data">{formatData(s.data)}</span>
-                <span className="seduta-meta">
-                  {s.fase_nome ?? 'senza fase'} · {s.num_esercizi}{' '}
-                  {s.num_esercizi === 1 ? 'esercizio' : 'esercizi'}
-                </span>
-                {s.obiettivi_nomi && <span className="seduta-obiettivi">{s.obiettivi_nomi}</span>}
-              </div>
-              <span className="row-actions">
-                <button
-                  title="Mostra la scheda al paziente (si apre in una finestra a parte)"
-                  onClick={() => void window.api.scheda.apri(s.id).catch((e) => toastErrore(errMsg(e)))}
-                >
-                  <Presentation size={18} />
-                </button>
-                <button
-                  title="Scheda illustrata per il paziente (foto e spiegazioni)"
-                  onClick={() => setAnteprima(s.id)}
-                >
-                  <Images size={18} />
-                </button>
-                <button title="Modifica la seduta" onClick={() => onApri(s.id)}>
-                  <Pencil size={18} />
-                </button>
-                <button title="Nuova seduta partendo da questa" onClick={() => onDuplica(s.id)}>
-                  <Copy size={18} />
-                </button>
-                <span className="menu-wrapper">
-                  <button
-                    title="Scarica la seduta"
-                    onClick={() => setMenuScarica(menuScarica === s.id ? null : s.id)}
-                  >
-                    <Download size={18} />
-                  </button>
-                  {menuScarica === s.id && (
-                    <>
-                      <div className="menu-chiudi" onClick={() => setMenuScarica(null)} />
-                      <div className="menu-tendina">
-                        <button
-                          onClick={() => {
-                            setMenuScarica(null)
-                            void esportaSingola(s.id, 'pdf')
-                          }}
-                        >
-                          <FileText size={18} /> Scarica PDF
-                        </button>
-                        <button
-                          onClick={() => {
-                            setMenuScarica(null)
-                            void esportaSingola(s.id, 'docx')
-                          }}
-                        >
-                          <FileText size={18} /> Scarica Word
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </span>
-                <button className="danger" title="Elimina" onClick={() => void elimina(s)}>
-                  <Trash2 size={18} />
-                </button>
-              </span>
-            </li>
-          ))}
-        </ul>
+        <ul className="sedute-list">{fatte.map(riga)}</ul>
       )}
 
       {periodo && (

@@ -75,6 +75,20 @@ const api: Api = {
     remove: (id: number) => invoke('distretti:delete', id),
     reorder: (ids: number[]) => invoke('distretti:reorder', ids)
   },
+  sicurezza: {
+    blocco: () => invoke('sicurezza:blocco'),
+    setBlocco: (b: { attivo: boolean; minuti: number }) => invoke('sicurezza:setBlocco', b),
+    verificaPassword: (password: string) => invoke('sicurezza:verificaPassword', password)
+  },
+  registro: {
+    ultimi: () => invoke('registro:ultimi'),
+    apri: () => invoke('registro:apri')
+  },
+  cestino: {
+    list: () => invoke('cestino:list'),
+    ripristina: (id: number) => invoke('cestino:ripristina', id),
+    svuota: (id?: number) => invoke('cestino:svuota', id)
+  },
   bozze: {
     leggi: (pazienteId: number) => invoke('bozze:leggi', pazienteId),
     salva: (pazienteId: number, contenuto: string) =>
@@ -167,6 +181,8 @@ const api: Api = {
     get: (id: number) => invoke('sedute:get', id),
     create: (data: SedutaInput) => invoke('sedute:create', data),
     update: (id: number, data: SedutaInput) => invoke('sedute:update', id, data),
+    programma: (origineId: number, date: string[]) =>
+      invoke('sedute:programma', origineId, date),
     remove: (id: number) => invoke('sedute:delete', id)
   },
   followUp: {
@@ -302,7 +318,8 @@ const api: Api = {
     eseguiOra: () => invoke('backup:eseguiOra'),
     apriCartella: () => invoke('backup:apriCartella'),
     ripristina: (nome: string) => invoke('backup:ripristina', nome),
-    copiaFuori: () => invoke('backup:copiaFuori')
+    copiaFuori: () => invoke('backup:copiaFuori'),
+    esportaArchivio: () => invoke('backup:esportaArchivio')
   },
   impostazioni: {
     setTema: (t: Tema) => invoke('impostazioni:setTema', t),

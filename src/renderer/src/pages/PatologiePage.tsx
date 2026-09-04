@@ -60,10 +60,6 @@ export default function PatologiePage(): React.JSX.Element {
     <div className="page step-flow">
       <header className="page-header">
         <h2>Patologie e fasi</h2>
-        <p>
-          Scegli la patologia, poi la fase: per ogni fase definisci la struttura della seduta
-          (sezioni con categorie ordinate), gli obiettivi e gli eventuali test di avanzamento.
-        </p>
       </header>
 
       {patSel && (

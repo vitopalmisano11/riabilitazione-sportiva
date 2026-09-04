@@ -178,12 +178,6 @@ export default function EserciziPage(): React.JSX.Element {
     <div className="page">
       <header className="page-header">
         <h2>Libreria esercizi</h2>
-        <p>
-          Le categorie raggruppano gli esercizi (es. Mobilizzazione, Rinforzo, Corsa) e si
-          associano alle sezioni della seduta in &ldquo;Patologie e fasi&rdquo;. La libreria è
-          unica e condivisa: lo stesso esercizio è richiamabile da patologie diverse, e i valori
-          di default vengono copiati nella seduta dove restano modificabili.
-        </p>
       </header>
 
       <details className="blocco-apribile">

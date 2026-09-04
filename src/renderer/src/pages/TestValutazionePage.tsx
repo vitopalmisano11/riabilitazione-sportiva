@@ -49,10 +49,6 @@ export default function TestValutazionePage(): React.JSX.Element {
     <div className="page step-flow">
       <header className="page-header">
         <h2>Test di valutazione</h2>
-        <p>
-          I test da letteratura che usi per valutare i pazienti, raccolti per categoria: per
-          ognuno il protocollo, i parametri di esecuzione e le misure con i valori di riferimento.
-        </p>
       </header>
 
       {categoria && (

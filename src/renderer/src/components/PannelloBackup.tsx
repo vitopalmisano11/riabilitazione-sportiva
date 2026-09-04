@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
-import { FolderOpen, HardDriveDownload, RotateCcw, Save } from 'lucide-react'
+import Aiuto from './Aiuto'
+import {
+  ChevronDown,
+  FileSpreadsheet,
+  FolderOpen,
+  HardDriveDownload,
+  RotateCcw,
+  Save
+} from 'lucide-react'
 import type { InfoBackup } from '../../../shared/types'
 import { toast, toastErrore } from './Toast'
 import { chiedi } from './Conferma'
@@ -9,6 +17,7 @@ import { errMsg } from '../lib'
 // il file delle chiavi: servono entrambi, uno solo non riapre niente.
 export default function PannelloBackup(): React.JSX.Element {
   const [info, setInfo] = useState<InfoBackup | null>(null)
+  const [menuCopia, setMenuCopia] = useState(false)
 
   const carica = useCallback(
     (): Promise<void> => window.api.backup.info().then(setInfo),
@@ -56,13 +65,10 @@ export default function PannelloBackup(): React.JSX.Element {
 
   return (
     <div className="blocco-impostazione">
-      <div className="sotto-titolo">Copie di sicurezza</div>
-      <p className="modal-testo">
-        L&apos;app tiene da sola delle copie datate del tuo archivio: una all&apos;accesso e una
-        alla chiusura. Se metti la cartella dentro OneDrive, finiscono online da sole. Queste
-        copie stanno però sullo stesso computer: ogni tanto usa &ldquo;Copia su chiavetta&rdquo;
-        per portarne una fuori, su una chiavetta o un disco esterno.
-      </p>
+      <div className="sotto-titolo">
+        Copie di sicurezza
+        <Aiuto testo="L'app tiene da sola delle copie datate del tuo archivio: una all'accesso e una alla chiusura. Se metti la cartella dentro OneDrive, finiscono online da sole. Queste copie stanno però sullo stesso computer: ogni tanto usa “Copia su chiavetta” per portarne una fuori." />
+      </div>
 
       <label className="checkbox-inline">
         <input
@@ -85,7 +91,12 @@ export default function PannelloBackup(): React.JSX.Element {
             min={1}
             max={100}
             value={info.daTenere}
-            onChange={(e) => void run(() => window.api.backup.setDaTenere(Number(e.target.value)))}
+            onChange={(e) => {
+              // Il campo svuotato non e' "tienine zero": si aspetta che scriva
+              // un numero. Il valore si salva subito, e vale dalla prossima copia.
+              const n = Number(e.target.value)
+              if (Number.isFinite(n) && n >= 1) void run(() => window.api.backup.setDaTenere(n))
+            }}
           />
         </label>
         <span className="spacer" />
@@ -95,30 +106,55 @@ export default function PannelloBackup(): React.JSX.Element {
         <button onClick={() => void run(() => window.api.backup.cambiaCartella())}>
           Cambia cartella…
         </button>
-        {/* Le copie automatiche stanno sullo stesso disco dell'archivio: se il
-            disco si rompe se ne vanno insieme. Questa e' l'unica che puo'
-            finire altrove. */}
-        <button
-          onClick={() =>
-            void run(async () => {
-              const dove = await window.api.backup.copiaFuori()
-              if (dove) toast('Copia salvata sul supporto scelto.')
-            })
-          }
-        >
-          <HardDriveDownload size={16} /> Copia su chiavetta…
-        </button>
-        <button
-          className="primary"
-          onClick={() =>
-            void run(async () => {
-              await window.api.backup.eseguiOra()
-              toast('Copia di sicurezza creata.')
-            })
-          }
-        >
-          <Save size={16} /> Fai una copia ora
-        </button>
+        {/* Le tre copie sono la stessa azione fatta in tre posti: qui dentro,
+            su una chiavetta, o in tabelle leggibili. Un pulsante solo con il
+            menu, invece di tre in fila che sbordavano dal riquadro. */}
+        <span className="menu-wrapper">
+          <button className="primary" onClick={() => setMenuCopia(!menuCopia)}>
+            <Save size={16} /> Fai una copia
+            <ChevronDown size={15} />
+          </button>
+          {menuCopia && (
+            <>
+              <div className="menu-chiudi" onClick={() => setMenuCopia(false)} />
+              <div className="menu-tendina">
+                <button
+                  onClick={() => {
+                    setMenuCopia(false)
+                    void run(async () => {
+                      await window.api.backup.eseguiOra()
+                      toast('Copia di sicurezza creata.')
+                    })
+                  }}
+                >
+                  <Save size={16} /> Qui, nella cartella delle copie
+                </button>
+                <button
+                  onClick={() => {
+                    setMenuCopia(false)
+                    void run(async () => {
+                      const dove = await window.api.backup.copiaFuori()
+                      if (dove) toast('Copia salvata sul supporto scelto.')
+                    })
+                  }}
+                >
+                  <HardDriveDownload size={16} /> Su chiavetta o disco esterno…
+                </button>
+                <button
+                  onClick={() => {
+                    setMenuCopia(false)
+                    void run(async () => {
+                      const dove = await window.api.backup.esportaArchivio()
+                      if (dove) toast('Archivio esportato in tabelle leggibili.')
+                    })
+                  }}
+                >
+                  <FileSpreadsheet size={16} /> In tabelle Excel…
+                </button>
+              </div>
+            </>
+          )}
+        </span>
       </div>
 
       {info.copie.length === 0 ? (

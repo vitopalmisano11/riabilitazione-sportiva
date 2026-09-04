@@ -100,10 +100,6 @@ export default function ScreeningRtpPage({
     <div className="page">
       <header className="page-header">
         <h2>Screening e RTP</h2>
-        <p>
-          Esegui su un paziente uno dei protocolli che hai programmato in Configurazione, e
-          registra i valori misurati.
-        </p>
       </header>
 
       <div className="scheda">

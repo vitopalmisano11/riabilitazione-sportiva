@@ -20,6 +20,8 @@ interface Impostazioni {
   tema?: string
   scuro?: boolean
   finestra?: PosizioneFinestra
+  bloccoAttivo?: boolean
+  bloccoMinuti?: number
   backupAttivo?: boolean
   backupDaTenere?: number
 }
@@ -93,6 +95,30 @@ export function scuro(): boolean {
 
 export function impostaScuro(valore: boolean): void {
   salva({ scuro: valore })
+}
+
+// Blocco automatico: dopo un po' che non tocchi niente l'app torna alla
+// schermata della password. Serve quando il computer resta acceso in ambulatorio
+// e il paziente e' li' davanti.
+export interface Blocco {
+  attivo: boolean
+  minuti: number
+}
+
+export function blocco(): Blocco {
+  const i = leggi()
+  const m = i.bloccoMinuti
+  return {
+    attivo: i.bloccoAttivo === true,
+    minuti: typeof m === 'number' && m >= 1 ? Math.min(240, Math.round(m)) : 15
+  }
+}
+
+export function impostaBlocco(b: Blocco): void {
+  salva({
+    bloccoAttivo: b.attivo === true,
+    bloccoMinuti: Math.max(1, Math.min(240, Math.round(b.minuti)))
+  })
 }
 
 export function coloriDocumento(): ColoriDocumento {

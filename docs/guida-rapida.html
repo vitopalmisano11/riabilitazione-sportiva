@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <title>Riabilitazione Sportiva — guida rapida</title>
+    <style>
+      @page { size: A4; margin: 18mm; }
+      body {
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        color: #241f19;
+        line-height: 1.5;
+        max-width: 780px;
+        margin: 0 auto;
+        padding: 32px 24px 60px;
+        background: #f4efe5;
+      }
+      main { background: #fff; border-radius: 10px; padding: 32px 36px; box-shadow: 0 2px 14px rgba(60, 48, 32, 0.1); }
+      h1 { font-size: 26px; margin: 0 0 4px; }
+      .sotto { color: #77706a; margin: 0 0 28px; }
+      h2 {
+        font-size: 18px;
+        margin: 30px 0 10px;
+        padding-bottom: 6px;
+        border-bottom: 2px solid #55806a;
+      }
+      h3 { font-size: 15px; margin: 18px 0 4px; }
+      p, li { font-size: 15px; }
+      code {
+        background: #f0e9dc;
+        padding: 1px 5px;
+        border-radius: 4px;
+        font-family: Consolas, 'Courier New', monospace;
+        font-size: 14px;
+      }
+      .attenzione {
+        background: #fbf4e4;
+        border: 1px solid #e2d4b0;
+        border-radius: 8px;
+        padding: 12px 16px;
+        margin: 16px 0;
+      }
+      .passi { counter-reset: passo; list-style: none; padding-left: 0; }
+      .passi > li {
+        counter-increment: passo;
+        margin-bottom: 14px;
+        padding-left: 42px;
+        position: relative;
+      }
+      .passi > li::before {
+        content: counter(passo);
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: #55806a;
+        color: #fff;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+      th, td { border: 1px solid #e6dfd3; padding: 7px 10px; text-align: left; font-size: 14px; vertical-align: top; }
+      th { background: #f0e9dc; }
+      @media print { body { background: #fff; padding: 0; } main { box-shadow: none; padding: 0; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Riabilitazione Sportiva — guida rapida</h1>
+      <p class="sotto">Dove stanno i dati, come si salvano, e come si passa dall'app di prova a quella vera.</p>
+
+      <h2>1. Dove stanno i tuoi dati</h2>
+      <p>
+        Tutto quello che scrivi — pazienti, sedute, anamnesi, valutazioni, questionari, screening,
+        foto degli esercizi e referti — vive in <strong>due soli file</strong>, dentro una cartella
+        nei tuoi Documenti:
+      </p>
+      <table>
+        <tr>
+          <th>App</th>
+          <th>Cartella</th>
+        </tr>
+        <tr>
+          <td>quella <strong>vera</strong> (installata)</td>
+          <td><code>Documenti\Riabilitazione</code></td>
+        </tr>
+        <tr>
+          <td>quella di <strong>prova</strong></td>
+          <td><code>Documenti\Riabilitazione (dev)</code></td>
+        </tr>
+      </table>
+      <p>I due file sono:</p>
+      <ul>
+        <li><code>riabilitazione.db</code> — l'archivio vero e proprio, cifrato;</li>
+        <li><code>auth.json</code> — le chiavi che lo aprono.</li>
+      </ul>
+      <div class="attenzione">
+        <strong>Servono tutti e due.</strong> Con il solo <code>riabilitazione.db</code> non si apre
+        niente, nemmeno con la password: le chiavi stanno in <code>auth.json</code>. Quando copi,
+        copia la cartella intera.
+      </div>
+      <p>
+        Il programma in sé (l'app installata) sta altrove e <strong>non contiene dati</strong>: si
+        può disinstallare e reinstallare senza toccare la cartella dei Documenti. È per questo che
+        posso aggiornarti l'app quando vuoi senza rischi per l'archivio.
+      </p>
+
+      <h2>2. Le copie di sicurezza</h2>
+      <p>
+        L'app fa da sola <strong>una copia all'avvio e una alla chiusura</strong>, e ne tiene un
+        certo numero (lo imposti tu in <em>Impostazioni → Dati e backup</em>). Ogni copia è una
+        cartella datata che contiene entrambi i file.
+      </p>
+      <h3>OneDrive</h3>
+      <p>
+        Sì, funziona: se metti la cartella delle copie <strong>dentro OneDrive</strong>, finiscono
+        online da sole e le ritrovi anche da un altro computer. Attenzione a una cosa: metti dentro
+        OneDrive <em>la cartella delle copie</em>, non la cartella dei dati in uso. OneDrive
+        sincronizza mentre l'app scrive, e su un database aperto può fare pasticci.
+      </p>
+      <h3>La chiavetta</h3>
+      <p>
+        Le copie automatiche stanno sullo stesso disco dell'archivio: se il disco si rompe se ne
+        vanno insieme. Ogni tanto usa <em>Copia su chiavetta…</em>: scegli la chiavetta o il disco
+        esterno e l'app ci mette una copia completa, senza toccare quello che c'è già.
+      </p>
+      <h3>Le tabelle leggibili</h3>
+      <p>
+        <em>Esporta tutto in tabelle…</em> scrive una cartella di file CSV (pazienti con i contatti,
+        sedute, valutazioni, questionari, screening) che si aprono in Excel <strong>senza
+        l'app</strong>. Non è una copia da cui si ripristina: è la garanzia che i dati restano tuoi
+        e leggibili anche fra dieci anni, qualunque cosa succeda al programma.
+      </p>
+
+      <h2>3. La chiave di recupero</h2>
+      <div class="attenzione">
+        Se perdi <strong>password e chiave di recupero</strong>, l'archivio non si apre più. Non c'è
+        nessuno che possa recuperarlo: è la stessa protezione che tiene fuori chiunque altro.
+        Tieni la chiave dove tieni i documenti importanti, non solo sul computer.
+      </div>
+
+      <h2>4. Dall'app di prova a quella vera</h2>
+      <p>
+        L'app di prova e quella vera sono due programmi separati, con <strong>archivi separati</strong>:
+        quello che scrivi nella prova non finisce mai nei dati veri. Quando passi, parti da un
+        archivio vuoto — ed è giusto così: la configurazione (patologie, esercizi, questionari,
+        protocolli) la rifai una volta, con calma, oppure te la porto io.
+      </p>
+      <ol class="passi">
+        <li>
+          <strong>Finiamo le prove.</strong> Tutto quello che vuoi cambiare, cambialo adesso sulla
+          prova: qui si sbaglia senza conseguenze.
+        </li>
+        <li>
+          <strong>Pubblichiamo il programma su GitHub.</strong> Va fatto <em>prima</em> di installare
+          l'app vera: se il computer si rompe durante il passaggio, il programma è già al sicuro
+          online. I dati dei pazienti non c'entrano e non vengono caricati: online va solo il
+          codice.
+        </li>
+        <li>
+          <strong>Cambiamo nome e icona.</strong> Si fa <em>prima</em> di costruire l'app vera,
+          altrimenti la installi due volte con due nomi diversi e ti ritrovi due voci nel menu
+          Start. Il nome finisce nell'installatore, nella cartella del programma e nel titolo della
+          finestra.
+        </li>
+        <li>
+          <strong>Costruisco l'app vera e la installi.</strong> Doppio clic sull'installatore,
+          l'icona finisce sul Desktop.
+        </li>
+        <li>
+          <strong>Primo avvio:</strong> scegli la password e <strong>metti da parte la chiave di
+          recupero</strong> (punto 3). Poi imposta la cartella delle copie e fai subito una
+          <em>Copia su chiavetta</em>.
+        </li>
+      </ol>
+      <p>
+        <strong>Il nome cambia solo il programma, non i dati.</strong> Se lasci la cartella dei dati
+        dove sta di default, dopo il cambio nome ritrovi tutto. Se invece l'avessi spostata altrove,
+        dimmelo prima: c'è un piccolo passaggio in più da fare, perché quell'informazione è salvata
+        in una cartella che dipende dal nome dell'app.
+      </p>
+
+      <h2>5. Gli aggiornamenti, dopo</h2>
+      <p>
+        Quando ti preparo una versione nuova, la installi sopra la precedente: i dati restano dove
+        sono, non si tocca niente. Le modifiche alla struttura dell'archivio si applicano da sole al
+        primo avvio, e sono a senso unico — motivo in più per avere sempre una copia recente prima
+        di un aggiornamento.
+      </p>
+    </main>
+  </body>
+</html>

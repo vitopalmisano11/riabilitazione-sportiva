@@ -746,6 +746,21 @@ const MIGRATIONS: string[] = [
     aggiornata_il TEXT NOT NULL,
     contenuto TEXT NOT NULL
   );
+  `,
+
+  // 26 - cestino. Quello che si elimina non sparisce subito: se ne mette da
+  //      parte una fotografia (la riga e tutto quello che le sta appeso, in
+  //      JSON) e la si puo' rimettere dov'era. Si svuota da solo dopo un mese.
+  //      Non ha vincoli verso le altre tabelle: e' una copia, non un
+  //      collegamento, e deve sopravvivere alla riga che descrive.
+  `
+  CREATE TABLE cestino (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tipo TEXT NOT NULL,
+    etichetta TEXT NOT NULL,
+    quando TEXT NOT NULL,
+    contenuto TEXT NOT NULL
+  );
   `
 ]
 

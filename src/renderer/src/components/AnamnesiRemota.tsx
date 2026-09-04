@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import Aiuto from './Aiuto'
 import { FileText, ImageIcon, Plus, Trash2 } from 'lucide-react'
 import type { AnamnesiRemota as Dati, Bioimmagine, RispostaSiNo } from '../../../shared/types'
 import { toastErrore } from './Toast'
@@ -211,10 +212,7 @@ export default function AnamnesiRemota({
           <button onClick={() => void aggiungiReferto()}>
             <Plus size={16} /> Carica referto (foto o PDF)
           </button>
-          <p className="hint">
-            Le foto vengono rimpicciolite. I file finiscono nell&apos;archivio cifrato, quindi
-            rientrano nel backup della cartella dati.
-          </p>
+          <Aiuto testo="Le foto vengono rimpicciolite. I file finiscono nell'archivio cifrato, quindi rientrano nel backup della cartella dati." />
         </div>
 
         <div className="modal-actions">

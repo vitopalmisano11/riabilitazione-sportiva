@@ -757,6 +757,20 @@ button.danger:hover:not(:disabled) {
   font-size: 16px;
 }
 
+/* Il nome del paziente dentro al titolo: stessa dimensione del titolo, si
+   riconosce come pulsante dal colore e dalla sottolineatura al passaggio. */
+.nome-nel-titolo {
+  font-size: inherit;
+  font-weight: inherit;
+  padding: 0 2px;
+  vertical-align: baseline;
+}
+
+.nome-nel-titolo:hover:not(:disabled) {
+  background: none;
+  text-decoration: underline;
+}
+
 .briciola:hover:not(:disabled) {
   background: var(--accent-soft);
 }
@@ -1168,9 +1182,22 @@ button.danger:hover:not(:disabled) {
   font-size: 12px;
 }
 
-.nota-aiuto {
+.nota-aiuto,
+.icona-aiuto {
   display: inline-flex;
   cursor: help;
+}
+
+/* Il punto interrogativo accanto a un titolo: presente ma discreto, e in linea
+   con la scritta che accompagna. */
+.icona-aiuto {
+  color: var(--text-dim);
+  vertical-align: -3px;
+  margin-left: 6px;
+}
+
+.icona-aiuto:hover {
+  color: var(--accent);
 }
 
 /* Il cartellino galleggia sopra la pagina: dentro la tabella lo taglierebbe il
@@ -1194,6 +1221,17 @@ button.danger:hover:not(:disabled) {
 
 .bolla-nota.sopra {
   transform: translate(-100%, -100%);
+}
+
+/* La spiegazione di una schermata si apre verso destra, perche' il punto
+   interrogativo sta accanto a un titolo, a sinistra. */
+.bolla-aiuto {
+  transform: none;
+  max-width: 380px;
+}
+
+.bolla-aiuto.sopra {
+  transform: translateY(-100%);
 }
 
 .data-table td.empty {
@@ -1369,6 +1407,9 @@ span.row-actions button {
 .modal-actions {
   display: flex;
   justify-content: flex-end;
+  /* A capo invece che fuori dal riquadro: con cinque pulsanti in fila la riga
+     sbordava da tutte e due le parti. */
+  flex-wrap: wrap;
   gap: 8px;
   margin-top: 6px;
 }
@@ -1642,6 +1683,17 @@ span.row-actions button {
 }
 
 /* ---- Diario ---- */
+
+/* Il titolo di una sezione e' separato da quello che contiene da una riga del
+   colore del tema: senza, titolo ed elenco si toccavano e sembravano una cosa
+   sola. E' la stessa riga che divide le sezioni nei documenti stampati, quindi
+   l'app e la carta si somigliano. */
+.card > h3,
+.card > .card-header-row {
+  border-bottom: 2px solid var(--accent);
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+}
 
 .card-header-row {
   display: flex;
@@ -2327,6 +2379,119 @@ textarea {
 
 .scelta-tema button {
   gap: 9px;
+}
+
+/* Quante sedute aspettano il paziente, sulla linguetta del diario. */
+.pallino-conta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  margin-left: 8px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* Scelta dei giorni quando si programma la settimana. */
+.scelte-giorni {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.aggiungi-data {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.date-scelte {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.date-scelte li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 6px 5px 12px;
+  border: 1px solid var(--border-forte);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 14px;
+}
+
+.date-scelte li button {
+  border: none;
+  background: none;
+  padding: 2px;
+  color: var(--text-dim);
+}
+
+/* Le sedute programmate, sopra a quelle svolte: fondo appena diverso, perche'
+   sono cose da fare e non cose fatte. */
+.blocco-programmate {
+  background: var(--pannello);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 4px 10px 8px;
+  margin-bottom: var(--spazio);
+}
+
+.blocco-programmate .sotto-titolo {
+  margin-top: 8px;
+}
+
+/* Riquadri delle impostazioni affiancati quando c'e' spazio: due domande
+   diverse, una accanto all'altra invece che una sotto l'altra. */
+.griglia-impostazioni {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: var(--spazio);
+  align-items: start;
+}
+
+/* Dentro alla griglia i riquadri restano riquadri: la regola generale guarda
+   solo i figli diretti della scheda, e qui c'e' la griglia in mezzo. */
+.griglia-impostazioni > .card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: var(--spazio-interno) calc(var(--spazio-interno) + 4px);
+}
+
+/* Il cestino non e' attaccato alle copie di sicurezza: e' l'ultima rete, viene
+   dopo. */
+.stacco-cestino {
+  margin-top: var(--spazio);
+}
+
+.riga-luce {
+  margin-top: var(--spazio);
+  padding-top: var(--spazio);
+  border-top: 1px solid var(--border);
+}
+
+/* Il cestino dentro a "Dati e backup": una riga richiudibile, che a riposo non
+   pesa piu' di un titolo. */
+.blocco-cestino {
+  background: var(--surface);
+  margin-bottom: 0;
+}
+
+.blocco-cestino .sedute-list {
+  margin-top: 8px;
 }
 
 /* Impostazione che si accende o si spegne: il nome e la spiegazione a sinistra,

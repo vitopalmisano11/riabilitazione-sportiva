@@ -18,6 +18,7 @@ import PazientiPage from './pages/PazientiPage'
 import FollowUpPage from './pages/FollowUpPage'
 import ImpostazioniPage from './pages/ImpostazioniPage'
 import AuthGate from './components/AuthGate'
+import SchermoBloccato from './components/SchermoBloccato'
 import ToastHost, { toastErrore } from './components/Toast'
 import ConfermaHost from './components/Conferma'
 import { errMsg } from './lib'
@@ -69,6 +70,32 @@ export default function App(): React.JSX.Element {
     window.api.impostazioni.setTema(t).catch((e) => toastErrore(errMsg(e)))
   }
 
+  // Blocco automatico: dopo i minuti impostati senza toccare niente, l'app
+  // torna alla schermata della password. Il database resta aperto — si chiede
+  // solo di riconoscersi — cosi' rientrare e' immediato e non si perde niente.
+  const [bloccata, setBloccata] = useState(false)
+
+  useEffect(() => {
+    if (!sbloccata || bloccata) return
+    let scadenza: NodeJS.Timeout | null = null
+    let minuti = 0
+    const riparti = (): void => {
+      if (scadenza) clearTimeout(scadenza)
+      if (minuti > 0) scadenza = setTimeout(() => setBloccata(true), minuti * 60 * 1000)
+    }
+    const eventi = ['mousedown', 'keydown', 'wheel', 'mousemove'] as const
+    void window.api.sicurezza.blocco().then((b) => {
+      if (!b.attivo) return
+      minuti = b.minuti
+      riparti()
+      for (const e of eventi) window.addEventListener(e, riparti)
+    })
+    return () => {
+      if (scadenza) clearTimeout(scadenza)
+      for (const e of eventi) window.removeEventListener(e, riparti)
+    }
+  }, [sbloccata, bloccata])
+
   const scegliScuro = (valore: boolean): void => {
     setScuro(valore)
     if (valore) document.documentElement.dataset.scuro = 'si'
@@ -82,9 +109,14 @@ export default function App(): React.JSX.Element {
   // sempre e solo quella visibile.
   const [tornaAllElenco, setTornaAllElenco] = useState(0)
 
+  // Premere una voce del menu riporta sempre alla prima pagina di quella
+  // sezione, anche arrivando da un'altra: se stavi dentro a una scheda o a una
+  // seduta, esci. Prima il segnale partiva solo ripremendo la voce in cui gia'
+  // eri, e cambiando sezione ci si ritrovava dentro a quello che si era lasciato
+  // aperto la volta prima.
   const vaiA = (s: Sezione): void => {
-    if (sezione === s) setTornaAllElenco((n) => n + 1)
-    else setSezione(s)
+    setSezione(s)
+    setTornaAllElenco((n) => n + 1)
   }
   // Richiesta di aprire la scheda di un paziente da un'altra sezione. Il numero
   // progressivo serve a far scattare l'apertura anche se si richiede due volte
@@ -98,6 +130,10 @@ export default function App(): React.JSX.Element {
 
   if (!sbloccata) {
     return <AuthGate onUnlocked={() => setSbloccata(true)} />
+  }
+
+  if (bloccata) {
+    return <SchermoBloccato onSbloccato={() => setBloccata(false)} />
   }
 
   return (

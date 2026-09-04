@@ -314,9 +314,19 @@ export default function SedutaBuilder({
     <div className="page builder-col">
       <header className="page-header builder-header">
         <div>
+          {/* Il nome del paziente riporta alla sua scheda: da qui ci si torna di
+              continuo, e prima l'unica strada era "Annulla", che sembra buttare
+              via il lavoro. Se c'e' qualcosa di non salvato chiede, come
+              "Annulla". */}
           <h2>
-            {sedutaId == null ? 'Nuova seduta' : 'Modifica seduta'} — {paziente.nome}{' '}
-            {paziente.cognome}
+            {sedutaId == null ? 'Nuova seduta' : 'Modifica seduta'} —{' '}
+            <button
+              className="briciola nome-nel-titolo"
+              title="Torna alla scheda del paziente"
+              onClick={() => void annulla()}
+            >
+              {paziente.nome} {paziente.cognome}
+            </button>
           </h2>
           <p>
             {faseNome ? (

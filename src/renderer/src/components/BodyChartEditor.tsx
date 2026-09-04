@@ -174,12 +174,6 @@ export default function BodyChartEditor({
             ))}
           </div>
         )}
-        {!soloLettura && !selezionato && (
-          <p className="hint">
-            Scegli un segno qui sopra, poi clicca sul corpo per metterlo. Per ingrandirlo o dargli
-            un&apos;intensità, clicca il segno già messo: qui compaiono i suoi comandi.
-          </p>
-        )}
         {!soloLettura && selezionato && (
           <div className="segno-strumenti">
             <span className="regola-parola">

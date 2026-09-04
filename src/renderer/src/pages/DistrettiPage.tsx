@@ -56,11 +56,6 @@ export default function DistrettiPage(): React.JSX.Element {
     <div className="page step-flow">
       <header className="page-header">
         <h2>Distretti</h2>
-        <p>
-          Per ogni distretto (rachide cervicale, spalla, ginocchio…) scrivi una volta i movimenti
-          da valutare e i test che usi. Nella valutazione obiettiva compariranno già pronti, e alle
-          patologie colleghi i distretti abituali in &ldquo;Patologie e fasi&rdquo;.
-        </p>
       </header>
 
       {aperto && (
@@ -311,11 +306,6 @@ function Movimenti({
   return (
     <div className="lista-domande">
       <div className="sotto-titolo">Movimenti</div>
-      <p className="modal-testo">
-        I movimenti che valuti su questo distretto. Nella valutazione ognuno avrà restrizione e
-        dolore, sia in attivo sia in passivo, sulla stessa riga. Spunta &ldquo;gradi&rdquo; solo
-        sui movimenti di cui misuri l&apos;escursione: le colonne in più compaiono soltanto lì.
-      </p>
 
       {movimenti.map((m, i) => {
         const dnd = contenitore(i)
@@ -378,9 +368,6 @@ function TestDistrettuali({
   return (
     <div className="lista-domande">
       <div className="sotto-titolo">Test</div>
-      <p className="modal-testo">
-        Per ogni test scegli il gruppo in cui compare nella valutazione e come si risponde.
-      </p>
 
       {test.map((t, i) => {
         const dnd = contenitore(i)

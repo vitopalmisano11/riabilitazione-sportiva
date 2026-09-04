@@ -14,6 +14,8 @@ import {
   impostaCartellaBackup,
   impostaCartellaDati,
   impostaCartellaExport,
+  blocco,
+  impostaBlocco,
   impostaScuro,
   impostaTema,
   scuro,
@@ -22,6 +24,15 @@ import {
 import { spostaFileDati } from './file-dati'
 import { apriScheda } from './scheda'
 import { datiScheda } from './scheda-dati'
+import { esportaArchivio } from './esporta-archivio'
+import { percorsoRegistro, registraErrore, ultimiErrori } from './registro'
+import {
+  elencoCestino,
+  eliminaConCestino,
+  ripristina,
+  ripuliscilCestino,
+  svuotaCestino
+} from './cestino'
 import {
   copiaFuori,
   elencoBackup,
@@ -111,12 +122,23 @@ function friendly(err: unknown): Error {
   return err instanceof Error ? err : new Error(msg)
 }
 
+// Data leggibile per le etichette del cestino: nel database sta al contrario.
+function dataIt(iso: string | undefined): string {
+  if (!iso) return ''
+  const [a, m, g] = iso.split('-')
+  return g && m && a ? `${g}/${m}/${a}` : iso
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function handle(channel: string, fn: (...args: any[]) => unknown): void {
   ipcMain.handle(channel, async (_event, ...args) => {
     try {
       return await fn(...args)
     } catch (err) {
+      // Nel registro finisce il nome dell'operazione e l'errore, mai quello che
+      // e' stato scritto: serve a capire cosa si e' rotto, non a rileggere i
+      // dati dei pazienti.
+      registraErrore(channel, err)
       throw friendly(err)
     }
   })
@@ -140,6 +162,8 @@ export function registerIpc(): void {
     if (password.length < 8) throw new Error('La password deve avere almeno 8 caratteri.')
     const { dekHex, recoveryKey } = setupAuth(authPath(), password)
     initDb(dbPath(), dekHex)
+    // il cestino tiene un mese: le voci piu' vecchie se ne vanno all'accesso
+    ripuliscilCestino()
     return recoveryKey
   })
   handle('auth:login', (password: string) => {
@@ -183,6 +207,17 @@ export function registerIpc(): void {
     void shell.openPath(cartellaBackup())
   })
   handle('backup:ripristina', (nome: string) => ripristinaBackup(nome))
+  // Copia leggibile fuori dall'app: tabelle CSV, non un backup.
+  handle('backup:esportaArchivio', async () => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+      title: 'Dove salvare le tabelle leggibili',
+      properties: ['openDirectory', 'createDirectory']
+    })
+    if (canceled || filePaths.length === 0) return null
+    const dest = esportaArchivio(filePaths[0])
+    shell.showItemInFolder(dest)
+    return dest
+  })
   handle('backup:copiaFuori', async () => {
     const { canceled, filePaths } = await dialog.showOpenDialog({
       title: 'Scegli dove mettere la copia (chiavetta, disco esterno…)',
@@ -363,7 +398,10 @@ export function registerIpc(): void {
   handle('valutazioni:duplica', (id: number, data: string) => duplicaValutazione(id, data))
   handle('valutazioni:salva', (dati: ValutazioneCompleta) => salvaValutazione(dati))
   handle('valutazioni:delete', (id: number) => {
-    getDb().prepare('DELETE FROM valutazioni WHERE id = ?').run(id)
+    const v = getDb().prepare('SELECT data FROM valutazioni WHERE id = ?').get(id) as
+      | { data: string }
+      | undefined
+    eliminaConCestino('valutazioni', id, 'Valutazione', `Valutazione del ${dataIt(v?.data)}`)
   })
 
   // ---- Fasi ----
@@ -674,7 +712,10 @@ export function registerIpc(): void {
       .run(patologiaId, faseId, id)
   })
   handle('pazienti:delete', (id: number) => {
-    getDb().prepare('DELETE FROM pazienti WHERE id = ?').run(id)
+    const p = getDb().prepare('SELECT nome, cognome FROM pazienti WHERE id = ?').get(id) as
+      | { nome: string; cognome: string }
+      | undefined
+    eliminaConCestino('pazienti', id, 'Paziente', `${p?.cognome ?? ''} ${p?.nome ?? ''}`.trim())
   })
   // ---- Screening ----
   handle('screening:sport', () =>
@@ -747,7 +788,17 @@ export function registerIpc(): void {
   )
   handle('screeningSvolti:anteprimaReport', (ids: number[]) => apriAnteprimaReport(ids))
   handle('screeningSvolti:report', (ids: number[]) => esportaReport(ids))
-  handle('screeningSvolti:delete', (id: number) => eliminaScreening(id))
+  handle('screeningSvolti:delete', (id: number) => {
+    const sc = getDb()
+      .prepare('SELECT data, protocollo_nome FROM screening_sessioni WHERE id = ?')
+      .get(id) as { data: string; protocollo_nome: string } | undefined
+    eliminaConCestino(
+      'screening_sessioni',
+      id,
+      'Screening',
+      `${sc?.protocollo_nome ?? 'Screening'} del ${dataIt(sc?.data)}`
+    )
+  })
 
   // ---- Follow-up ----
   // Le due liste escono dalla stessa query dell'elenco pazienti, divise per
@@ -945,6 +996,66 @@ export function registerIpc(): void {
       return Number(sid)
     })()
   })
+  // Programmare la settimana: la stessa seduta copiata su piu' giorni. Chi
+  // prepara il lunedi', il mercoledi' e il venerdi' lo fa una volta sola, e poi
+  // il giorno stesso apre quella del giorno e cambia i due esercizi che vuole.
+  handle('sedute:programma', (origineId: number, date: string[]) => {
+    const db = getDb()
+    const sorgente = db.prepare('SELECT * FROM sedute WHERE id = ?').get(origineId) as
+      | { paziente_id: number; fase_id: number | null; note: string | null }
+      | undefined
+    if (!sorgente) throw new Error('Seduta da copiare non trovata.')
+    const sezioni = db
+      .prepare('SELECT id, sezione_id, nome FROM seduta_sezioni WHERE seduta_id = ? ORDER BY ordine, id')
+      .all(origineId) as { id: number; sezione_id: number | null; nome: string }[]
+    const esercizi = db
+      .prepare(
+        `SELECT esercizio_id, serie, ripetizioni, carico, recupero, nota, seduta_sezione_id
+         FROM seduta_esercizi WHERE seduta_id = ? ORDER BY ordine, id`
+      )
+      .all(origineId) as {
+      esercizio_id: number
+      serie: string | null
+      ripetizioni: string | null
+      carico: string | null
+      recupero: string | null
+      nota: string | null
+      seduta_sezione_id: number | null
+    }[]
+
+    return db.transaction(() => {
+      const create: number[] = []
+      for (const data of date) {
+        const sid = db
+          .prepare('INSERT INTO sedute (paziente_id, data, fase_id, note) VALUES (?, ?, ?, ?)')
+          .run(sorgente.paziente_id, data, sorgente.fase_id, sorgente.note).lastInsertRowid
+        insertFigliSeduta(sid, {
+          paziente_id: sorgente.paziente_id,
+          data,
+          fase_id: sorgente.fase_id,
+          note: sorgente.note,
+          sezioni: sezioni.map((z) => ({ sezione_id: z.sezione_id, nome: z.nome })),
+          esercizi: esercizi.map((e) => ({
+            esercizio_id: e.esercizio_id,
+            serie: e.serie,
+            ripetizioni: e.ripetizioni,
+            carico: e.carico,
+            recupero: e.recupero,
+            nota: e.nota,
+            sezioneIndex:
+              e.seduta_sezione_id == null
+                ? null
+                : (() => {
+                    const i = sezioni.findIndex((z) => z.id === e.seduta_sezione_id)
+                    return i < 0 ? null : i
+                  })()
+          }))
+        })
+        create.push(Number(sid))
+      }
+      return create
+    })()
+  })
   handle('sedute:update', (id: number, input: SedutaInput) => {
     const db = getDb()
     db.transaction(() => {
@@ -961,7 +1072,18 @@ export function registerIpc(): void {
     })()
   })
   handle('sedute:delete', (id: number) => {
-    getDb().prepare('DELETE FROM sedute WHERE id = ?').run(id)
+    const s = getDb()
+      .prepare(
+        `SELECT s.data, p.nome, p.cognome FROM sedute s
+         JOIN pazienti p ON p.id = s.paziente_id WHERE s.id = ?`
+      )
+      .get(id) as { data: string; nome: string; cognome: string } | undefined
+    eliminaConCestino(
+      'sedute',
+      id,
+      'Seduta',
+      `Seduta del ${dataIt(s?.data)} — ${s?.cognome ?? ''} ${s?.nome ?? ''}`.trim()
+    )
   })
 
   // ---- Categorie dei questionari ----
@@ -1038,7 +1160,18 @@ export function registerIpc(): void {
     aggiornaCompilazione(id, dati)
   )
   handle('compilazioni:delete', (id: number) => {
-    getDb().prepare('DELETE FROM paziente_questionari WHERE id = ?').run(id)
+    const c = getDb()
+      .prepare(
+        `SELECT pq.data, q.nome FROM paziente_questionari pq
+         JOIN questionari q ON q.id = pq.questionario_id WHERE pq.id = ?`
+      )
+      .get(id) as { data: string; nome: string } | undefined
+    eliminaConCestino(
+      'paziente_questionari',
+      id,
+      'Questionario',
+      `${c?.nome ?? 'Questionario'} del ${dataIt(c?.data)}`
+    )
   })
 
   // ---- Categorie dei test ----
@@ -1444,8 +1577,34 @@ export function registerIpc(): void {
     })()
   })
   handle('bodyChart:delete', (id: number) => {
-    getDb().prepare('DELETE FROM body_chart WHERE id = ?').run(id)
+    const b = getDb().prepare('SELECT data FROM body_chart WHERE id = ?').get(id) as
+      | { data: string }
+      | undefined
+    eliminaConCestino('body_chart', id, 'Body chart', `Body chart del ${dataIt(b?.data)}`)
   })
+
+  // ---- Blocco automatico e registro degli errori ----
+  handle('sicurezza:blocco', () => blocco())
+  handle('sicurezza:setBlocco', (b: { attivo: boolean; minuti: number }) => impostaBlocco(b))
+  // Verifica la password senza toccare il database: serve a rientrare dopo il
+  // blocco, quando l'archivio e' gia' aperto.
+  handle('sicurezza:verificaPassword', (password: string) => {
+    try {
+      loginAuth(authPath(), password)
+      return true
+    } catch {
+      return false
+    }
+  })
+  handle('registro:ultimi', () => ultimiErrori())
+  handle('registro:apri', () => {
+    void shell.showItemInFolder(percorsoRegistro())
+  })
+
+  // ---- Cestino ----
+  handle('cestino:list', () => elencoCestino())
+  handle('cestino:ripristina', (id: number) => ripristina(id))
+  handle('cestino:svuota', (id?: number) => svuotaCestino(id))
 
   // ---- Export ----
   handle('esporta:schedaIllustrata', (sedutaId: number) =>
