@@ -1,4 +1,4 @@
-import { app, dialog, ipcMain, nativeImage, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, nativeImage, shell } from 'electron'
 import { basename, join } from 'path'
 import { readFileSync } from 'fs'
 import { writeFile } from 'fs/promises'
@@ -244,7 +244,15 @@ export function registerIpc(): void {
     barraScura: barraScura(),
     ingrandimento: ingrandimento()
   }))
-  handle('impostazioni:setIngrandimento', (valore: number) => impostaIngrandimento(valore))
+  // Non passa dal solito aiutante perche' serve sapere da quale finestra
+  // arriva: e' quella che va ingrandita.
+  ipcMain.handle('impostazioni:setIngrandimento', (evento, valore: number) => {
+    impostaIngrandimento(valore)
+    const finestra = BrowserWindow.fromWebContents(evento.sender)
+    if (finestra && !finestra.isDestroyed()) {
+      finestra.webContents.setZoomFactor(ingrandimento())
+    }
+  })
   handle('impostazioni:setBarraScura', (valore: boolean) => impostaBarraScura(valore))
   handle('impostazioni:setScuro', (valore: boolean) => impostaScuro(valore))
   handle('impostazioni:setTema', (t: Tema) => impostaTema(t))
@@ -252,12 +260,7 @@ export function registerIpc(): void {
   // l'unica risposta immediata: chiesta dopo, si vedrebbe un lampo dei colori
   // di partenza a ogni avvio.
   ipcMain.on('impostazioni:temaSubito', (e) => {
-    e.returnValue = {
-      tema: tema(),
-      scuro: scuro(),
-      barraScura: barraScura(),
-      ingrandimento: ingrandimento()
-    }
+    e.returnValue = { tema: tema(), scuro: scuro(), barraScura: barraScura() }
   })
   handle('impostazioni:cambiaCartellaExport', async () => {
     const { canceled, filePaths } = await dialog.showOpenDialog({

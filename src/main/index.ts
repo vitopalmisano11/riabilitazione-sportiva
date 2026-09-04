@@ -3,6 +3,7 @@ import { join } from 'path'
 import { registerIpc } from './ipc'
 import {
   impostaPosizioneFinestra,
+  ingrandimento,
   migraDaUserData,
   posizioneFinestra
 } from './impostazioni'
@@ -29,6 +30,20 @@ function createWindow(): void {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false
     }
+  })
+
+  // Quanto grande si vede il programma. Si applica qui, alla finestra, e solo
+  // a pagina caricata: chiamarlo prima (dal ponte, con webFrame) faceva morire
+  // il renderer e la finestra non compariva piu'. Vale solo per questa
+  // finestra: quella della scheda del paziente ha la sua misura.
+
+  // Quanto grande si vede il programma. Si applica qui, alla finestra, e a
+  // pagina caricata. Non si fa dal ponte con webFrame: chiamato li', prima che
+  // la pagina esista, il renderer muore e la finestra non compare piu'.
+  // Riguarda solo questa finestra: quella della scheda del paziente ha la sua
+  // misura, che si cambia con Ctrl e la rotella.
+  win.webContents.on('did-finish-load', () => {
+    if (!win.isDestroyed()) win.webContents.setZoomFactor(ingrandimento())
   })
 
   win.on('ready-to-show', () => {
