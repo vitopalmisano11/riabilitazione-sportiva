@@ -2659,9 +2659,18 @@ textarea {
   align-items: start;
 }
 
+/* Due riquadri uno sotto l'altro dentro a una colonna della griglia. */
+.colonna-schede {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spazio);
+  min-width: 0;
+}
+
 /* Dentro alla griglia i riquadri restano riquadri: la regola generale guarda
    solo i figli diretti della scheda, e qui c'e' la griglia in mezzo. */
-.griglia-impostazioni > .card {
+.griglia-impostazioni > .card,
+.colonna-schede > .card {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);

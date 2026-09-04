@@ -55,7 +55,7 @@ db.pragma('foreign_keys = ON')
 
 runMigrations(db)
 runMigrations(db) // idempotente
-assert.equal(db.pragma('user_version', { simple: true }), 29)
+assert.equal(db.pragma('user_version', { simple: true }), 30)
 
 const count = (table: string): number =>
   (db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n
@@ -1232,6 +1232,10 @@ initDb(join(dirCartella, 'cartella.db'), dekHex)
     "INSERT INTO obiettivi_terapeutici (paziente_id, testo, termine, ordine) VALUES (?, 'Camminare 30 minuti', 'medio', 0)",
     pz
   )
+  c.prepare('UPDATE pazienti SET aspettative = ? WHERE id = ?').run(
+    'Vorrei tornare in piscina prima dell estate',
+    pz
+  )
 
   const tutte = SEZIONI.map((x) => x.chiave)
   const doc = generaCartella(Number(pz), tutte)
@@ -1245,6 +1249,8 @@ initDb(join(dirCartella, 'cartella.db'), dekHex)
     'tira dal lato opposto', // note del movimento attivo nella valutazione
     'fine corsa elastico',   // e del passivo
     'Prova PROM',          // questionari
+    'Aspettative del paziente', // quello che si aspetta, con parole sue
+    'tornare in piscina',
     'Camminare 30 minuti', // obiettivi terapeutici
     'Lato sinistro',       // body chart, tutte e quattro le viste
     'Dorso',               // body chart del piede

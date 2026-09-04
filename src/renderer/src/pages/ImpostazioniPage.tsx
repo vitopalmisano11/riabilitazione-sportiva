@@ -73,15 +73,20 @@ export default function ImpostazioniPage({
         {scheda === 'app' && (
           <div className="griglia-impostazioni">
             <SchedaPassword />
-            <SchedaAspetto
-              tema={tema}
-              onTema={onTema}
-              scuro={scuro}
-              onScuro={onScuro}
-              barraScura={barraScura}
-              onBarraScura={onBarraScura}
-            />
-            <SchedaBlocco />
+            {/* Colore e blocco automatico incolonnati: il blocco e' una riga
+                sola, e da solo in fondo alla griglia finiva sotto la password,
+                lontano da tutto. */}
+            <div className="colonna-schede">
+              <SchedaAspetto
+                tema={tema}
+                onTema={onTema}
+                scuro={scuro}
+                onScuro={onScuro}
+                barraScura={barraScura}
+                onBarraScura={onBarraScura}
+              />
+              <SchedaBlocco />
+            </div>
           </div>
         )}
       </div>

@@ -800,26 +800,37 @@ function sezQuestionari(pazienteId: number): Blocco[] {
 }
 
 function sezObiettivi(pazienteId: number): Blocco[] {
-  const righe = getDb()
+  const db = getDb()
+  const righe = db
     .prepare(
       'SELECT testo, termine FROM obiettivi_terapeutici WHERE paziente_id = ? ORDER BY ordine, id'
     )
     .all(pazienteId) as { testo: string; termine: string }[]
-  if (righe.length === 0) return []
+  // Le aspettative del paziente aprono la sezione: sono il perche' degli
+  // obiettivi che seguono.
+  const attese = (
+    db.prepare('SELECT aspettative FROM pazienti WHERE id = ?').get(pazienteId) as
+      | { aspettative: string | null }
+      | undefined
+  )?.aspettative
+  const apertura = testo('Aspettative del paziente', attese)
+  if (righe.length === 0) return apertura
 
   const gruppi: [string, string][] = [
     ['breve', 'Breve termine'],
     ['medio', 'Medio termine'],
     ['lungo', 'Lungo termine']
   ]
-  return gruppi.flatMap(([chiave, titolo]): Blocco[] => {
-    const suoi = righe.filter((r) => r.termine === chiave)
-    if (suoi.length === 0) return []
-    return [
-      { tipo: 'sottotitolo', testo: titolo },
-      { tipo: 'elenco', voci: suoi.map((r) => r.testo) }
-    ]
-  })
+  return apertura.concat(
+    gruppi.flatMap(([chiave, titolo]): Blocco[] => {
+      const suoi = righe.filter((r) => r.termine === chiave)
+      if (suoi.length === 0) return []
+      return [
+        { tipo: 'sottotitolo', testo: titolo },
+        { tipo: 'elenco', voci: suoi.map((r) => r.testo) }
+      ]
+    })
+  )
 }
 
 // Delle sedute nella cartella restano solo le date: a chi legge serve sapere

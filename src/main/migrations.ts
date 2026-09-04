@@ -797,6 +797,16 @@ const MIGRATIONS: string[] = [
   //      cosa che si chiede.
   `
   ALTER TABLE anamnesi_remota ADD COLUMN patologie TEXT;
+  `,
+
+  // 30 - le aspettative del paziente, in cima agli obiettivi terapeutici. Gli
+  //      obiettivi sono cose misurabili concordate a due; questo e' quello che
+  //      il paziente si aspetta con parole sue, che e' il punto di partenza del
+  //      colloquio e spesso spiega perche' un obiettivo e' quello e non un
+  //      altro. Sta sul paziente, non su una fase o una seduta: non cambia da
+  //      un giorno all'altro.
+  `
+  ALTER TABLE pazienti ADD COLUMN aspettative TEXT;
   `
 ]
 

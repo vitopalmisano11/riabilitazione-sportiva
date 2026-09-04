@@ -26,6 +26,7 @@ export default function ObiettiviTerapeutici({
 }): React.JSX.Element {
   const [lista, setLista] = useState<ObiettivoTerapeutico[]>([])
   const [nuovo, setNuovo] = useState('')
+  const [aspettative, setAspettative] = useState('')
   const [termineNuovo, setTermineNuovo] = useState<TermineObiettivo>('breve')
 
   const carica = useCallback(
@@ -35,7 +36,11 @@ export default function ObiettiviTerapeutici({
 
   useEffect(() => {
     void carica().catch((e) => toastErrore(errMsg(e)))
-  }, [carica])
+    void window.api.obiettiviTerapeutici
+      .aspettative(pazienteId)
+      .then((t) => setAspettative(t ?? ''))
+      .catch((e) => toastErrore(errMsg(e)))
+  }, [carica, pazienteId])
 
   const aggiungi = async (): Promise<void> => {
     const testo = nuovo.trim()
@@ -90,6 +95,27 @@ export default function ObiettiviTerapeutici({
     <div className="modal-overlay" onClick={onChiudi}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <h3>Obiettivi terapeutici</h3>
+
+        {/* Prima degli obiettivi c'e' quello che il paziente si aspetta, con
+            parole sue: e' da li' che il colloquio parte, e spesso spiega
+            perche' un obiettivo e' quello e non un altro. Si salva uscendo
+            dalla casella, come il testo degli obiettivi. */}
+        <label>
+          Aspettative e obiettivi del paziente
+          <textarea
+            rows={3}
+            placeholder="Con parole sue: cosa si aspetta, cosa vuole tornare a fare, cosa lo preoccupa"
+            value={aspettative}
+            onChange={(e) => setAspettative(e.target.value)}
+            onBlur={() =>
+              void window.api.obiettiviTerapeutici
+                .salvaAspettative(pazienteId, aspettative)
+                .catch((e) => toastErrore(errMsg(e)))
+            }
+          />
+        </label>
+
+        <div className="sotto-titolo">Obiettivi concordati</div>
 
         <div className="modal-actions">
           <input

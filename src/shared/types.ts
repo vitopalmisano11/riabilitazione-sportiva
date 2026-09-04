@@ -1054,6 +1054,9 @@ export interface Api {
   }
   obiettiviTerapeutici: {
     list(pazienteId: number): Promise<ObiettivoTerapeutico[]>
+    // Quello che il paziente si aspetta, con parole sue: una casella sola.
+    aspettative(pazienteId: number): Promise<string | null>
+    salvaAspettative(pazienteId: number, testo: string | null): Promise<void>
     create(pazienteId: number, testo: string, termine: TermineObiettivo): Promise<number>
     update(id: number, testo: string, termine: TermineObiettivo): Promise<void>
     remove(id: number): Promise<void>

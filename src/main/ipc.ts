@@ -1480,6 +1480,23 @@ export function registerIpc(): void {
   handle('scheda:dati', (sedutaId: number) => datiScheda(sedutaId))
 
   // ---- Obiettivi terapeutici ----
+  // Le aspettative stanno sul paziente ma si scrivono qui, dove si parla di
+  // obiettivi: leggerle e salvarle e' un giro a se', senza passare dalla
+  // finestra dell'anagrafica.
+  handle('obiettiviTerapeutici:aspettative', (pazienteId: number) => {
+    const r = getDb()
+      .prepare('SELECT aspettative FROM pazienti WHERE id = ?')
+      .get(pazienteId) as { aspettative: string | null } | undefined
+    return r?.aspettative ?? null
+  })
+  handle(
+    'obiettiviTerapeutici:salvaAspettative',
+    (pazienteId: number, testo: string | null) => {
+      getDb()
+        .prepare('UPDATE pazienti SET aspettative = ? WHERE id = ?')
+        .run(testo?.trim() || null, pazienteId)
+    }
+  )
   handle('obiettiviTerapeutici:list', (pazienteId: number) =>
     getDb()
       .prepare(

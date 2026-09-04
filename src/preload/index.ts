@@ -300,6 +300,10 @@ const api: Api = {
   },
   obiettiviTerapeutici: {
     list: (pazienteId: number) => invoke('obiettiviTerapeutici:list', pazienteId),
+    aspettative: (pazienteId: number) =>
+      invoke('obiettiviTerapeutici:aspettative', pazienteId),
+    salvaAspettative: (pazienteId: number, testo: string | null) =>
+      invoke('obiettiviTerapeutici:salvaAspettative', pazienteId, testo),
     create: (pazienteId: number, testo: string, termine: TermineObiettivo) =>
       invoke('obiettiviTerapeutici:create', pazienteId, testo, termine),
     update: (id: number, testo: string, termine: TermineObiettivo) =>
