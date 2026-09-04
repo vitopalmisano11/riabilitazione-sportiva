@@ -761,6 +761,23 @@ const MIGRATIONS: string[] = [
     quando TEXT NOT NULL,
     contenuto TEXT NOT NULL
   );
+  `,
+
+  // 27 - dosaggio a cluster. La serie si spezza in piccoli blocchi con una
+  //      pausa breve dentro: "4 x (3 x 2)" con 15" tra i cluster e 2' tra le
+  //      serie. Serve solo dove ha senso (la pliometria estensiva), percio' la
+  //      categoria decide se i campi si vedono: senza la spunta, gli esercizi
+  //      di quella categoria restano come sono sempre stati.
+  //
+  //      Le colonne che c'erano tengono il loro significato — serie resta
+  //      serie, ripetizioni diventa "ripetizioni per cluster" — e se ne
+  //      aggiungono due: quanti cluster per serie, e la pausa tra i cluster.
+  `
+  ALTER TABLE categorie ADD COLUMN dosaggio_cluster INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE esercizi ADD COLUMN cluster_default TEXT;
+  ALTER TABLE esercizi ADD COLUMN recupero_cluster_default TEXT;
+  ALTER TABLE seduta_esercizi ADD COLUMN cluster TEXT;
+  ALTER TABLE seduta_esercizi ADD COLUMN recupero_cluster TEXT;
   `
 ]
 

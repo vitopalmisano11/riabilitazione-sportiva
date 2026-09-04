@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
+  Layers,
   Archive,
   ArchiveRestore,
   HelpCircle,
@@ -14,14 +15,18 @@ import { chiedi } from '../components/Conferma'
 import CrudList from '../components/CrudList'
 import ImmagineEsercizio from '../components/ImmagineEsercizio'
 import { errMsg } from '../lib'
+import type { Dosaggio } from '../../../shared/dosaggio'
+import { aCluster, recuperoEsteso, recuperoTesto, ripetizioniTesto, volumeTesto } from '../../../shared/dosaggio'
 
 interface FormState {
   id: number | null
   nome: string
   categoria_id: number | ''
   serie_default: string
+  cluster_default: string
   ripetizioni_default: string
   carico_default: string
+  recupero_cluster_default: string
   recupero_default: string
   nota_tecnica: string
   link: string
@@ -36,8 +41,10 @@ const FORM_VUOTO: FormState = {
   nome: '',
   categoria_id: '',
   serie_default: '',
+  cluster_default: '',
   ripetizioni_default: '',
   carico_default: '',
+  recupero_cluster_default: '',
   recupero_default: '',
   nota_tecnica: '',
   link: '',
@@ -103,8 +110,15 @@ export default function EserciziPage(): React.JSX.Element {
       nome: form.nome,
       categoria_id: form.categoria_id,
       serie_default: form.serie_default.trim() || null,
+      // Fuori da una categoria a cluster i due campi non si vedono nemmeno:
+      // si salvano vuoti, cosi' spostando l'esercizio non si porta dietro
+      // numeri che nessuno ha piu' modo di correggere.
+      cluster_default: clusterNelForm ? form.cluster_default.trim() || null : null,
       ripetizioni_default: form.ripetizioni_default.trim() || null,
       carico_default: form.carico_default.trim() || null,
+      recupero_cluster_default: clusterNelForm
+        ? form.recupero_cluster_default.trim() || null
+        : null,
       recupero_default: form.recupero_default.trim() || null,
       nota_tecnica: form.nota_tecnica.trim() || null,
       link: normalizzaLink(form.link)
@@ -122,6 +136,40 @@ export default function EserciziPage(): React.JSX.Element {
     }
   }
 
+  // Il dosaggio di un esercizio della libreria, nella forma che sanno leggere
+  // le funzioni condivise.
+  const dosaggioDi = (e: EsercizioConCategoria): Dosaggio => ({
+    serie: e.serie_default,
+    cluster: e.cluster_default,
+    ripetizioni: e.ripetizioni_default,
+    recupero_cluster: e.recupero_cluster_default,
+    recupero: e.recupero_default
+  })
+
+  // I campi del cluster compaiono nel form solo se li prevede la categoria
+  // scelta in quel momento: cambiando categoria, compaiono o spariscono.
+  const clusterNelForm =
+    form != null && categorie.find((c) => c.id === form.categoria_id)?.dosaggio_cluster === 1
+
+  // Come verra' scritto il dosaggio sulla scheda: finche' i campi sono vuoti si
+  // mostra un esempio, cosi' si capisce cosa ci va senza doverlo spiegare.
+  const anteprimaCluster =
+    form == null
+      ? ''
+      : [
+          volumeTesto({
+            serie: form.serie_default,
+            cluster: form.cluster_default,
+            ripetizioni: form.ripetizioni_default
+          }),
+          recuperoEsteso({
+            recupero_cluster: form.recupero_cluster_default,
+            recupero: form.recupero_default
+          })
+        ]
+          .filter(Boolean)
+          .join(' · ') || `4 × (3 × 2) · rec. 15" tra i cluster, 2' tra le serie`
+
   // Apre il form di modifica caricando l'immagine, che l'elenco non trasporta.
   const apriModifica = async (e: EsercizioConCategoria): Promise<void> => {
     try {
@@ -131,8 +179,10 @@ export default function EserciziPage(): React.JSX.Element {
         nome: e.nome,
         categoria_id: e.categoria_id,
         serie_default: e.serie_default ?? '',
+        cluster_default: e.cluster_default ?? '',
         ripetizioni_default: e.ripetizioni_default ?? '',
         carico_default: e.carico_default ?? '',
+        recupero_cluster_default: e.recupero_cluster_default ?? '',
         recupero_default: e.recupero_default ?? '',
         nota_tecnica: e.nota_tecnica ?? '',
         link: e.link ?? '',
@@ -204,6 +254,37 @@ export default function EserciziPage(): React.JSX.Element {
           }}
           addPlaceholder="Nuova categoria…"
           emptyHint="Nessuna categoria: creane una qui sotto."
+          dopoNome={(item) =>
+            categorie.find((c) => c.id === item.id)?.dosaggio_cluster === 1 ? (
+              <span className="badge">cluster</span>
+            ) : null
+          }
+          azioniExtra={(item) => {
+            const attiva = categorie.find((c) => c.id === item.id)?.dosaggio_cluster === 1
+            return (
+              <button
+                className={attiva ? 'attivo' : ''}
+                title={
+                  attiva
+                    ? 'Gli esercizi di questa categoria si dosano a cluster. Clicca per tornare al dosaggio normale.'
+                    : 'Dosa a cluster gli esercizi di questa categoria (serie spezzata in blocchi, come nella pliometria estensiva)'
+                }
+                onClick={() =>
+                  void (async () => {
+                    try {
+                      await window.api.categorie.setCluster(item.id, !attiva)
+                      await loadCategorie()
+                      await load()
+                    } catch (e) {
+                      toastErrore(errMsg(e))
+                    }
+                  })()
+                }
+              >
+                <Layers size={16} />
+              </button>
+            )
+          }}
         />
         </div>
       </details>
@@ -304,9 +385,13 @@ export default function EserciziPage(): React.JSX.Element {
                 {e.categoria_nome}
               </td>
               <td className="col-param">{e.serie_default ?? '—'}</td>
-              <td className="col-param">{e.ripetizioni_default ?? '—'}</td>
+              <td className="col-param" title={aCluster(dosaggioDi(e)) ? 'Cluster × ripetizioni' : undefined}>
+                {ripetizioniTesto(dosaggioDi(e)) ?? '—'}
+              </td>
               <td className="col-param">{e.carico_default ?? '—'}</td>
-              <td className="col-param">{e.recupero_default ?? '—'}</td>
+              <td className="col-param" title={aCluster(dosaggioDi(e)) ? 'Tra i cluster / tra le serie' : undefined}>
+                {recuperoTesto(dosaggioDi(e)) ?? '—'}
+              </td>
               <td className="col-nota">
                 {e.nota_tecnica && (
                   <span
@@ -391,7 +476,7 @@ export default function EserciziPage(): React.JSX.Element {
             <p className="modal-testo">
               Valori di default, proposti quando aggiungi l&apos;esercizio a una seduta:
             </p>
-            <div className="form-row form-row-4">
+            <div className={`form-row ${clusterNelForm ? 'form-row-3' : 'form-row-4'}`}>
               <label>
                 Serie
                 <input
@@ -400,11 +485,21 @@ export default function EserciziPage(): React.JSX.Element {
                   onChange={(e) => setForm({ ...form, serie_default: e.target.value })}
                 />
               </label>
+              {clusterNelForm && (
+                <label>
+                  Cluster per serie
+                  <input
+                    value={form.cluster_default}
+                    placeholder="es. 3"
+                    onChange={(e) => setForm({ ...form, cluster_default: e.target.value })}
+                  />
+                </label>
+              )}
               <label>
-                Ripetizioni
+                {clusterNelForm ? 'Ripetizioni per cluster' : 'Ripetizioni'}
                 <input
                   value={form.ripetizioni_default}
-                  placeholder="es. 10"
+                  placeholder={clusterNelForm ? 'es. 2' : 'es. 10'}
                   onChange={(e) => setForm({ ...form, ripetizioni_default: e.target.value })}
                 />
               </label>
@@ -416,8 +511,20 @@ export default function EserciziPage(): React.JSX.Element {
                   onChange={(e) => setForm({ ...form, carico_default: e.target.value })}
                 />
               </label>
+              {clusterNelForm && (
+                <label>
+                  Recupero tra i cluster
+                  <input
+                    value={form.recupero_cluster_default}
+                    placeholder={'es. 15"'}
+                    onChange={(e) =>
+                      setForm({ ...form, recupero_cluster_default: e.target.value })
+                    }
+                  />
+                </label>
+              )}
               <label>
-                Recupero
+                {clusterNelForm ? 'Recupero tra le serie' : 'Recupero'}
                 <input
                   value={form.recupero_default}
                   placeholder="es. 1 min"
@@ -425,6 +532,12 @@ export default function EserciziPage(): React.JSX.Element {
                 />
               </label>
             </div>
+            {clusterNelForm && (
+              <p className="hint">
+                Questa categoria si dosa a cluster: sulla scheda del paziente uscira&apos;{' '}
+                <b>{anteprimaCluster}</b>.
+              </p>
+            )}
             <label>
               Link video (opzionale)
               <input

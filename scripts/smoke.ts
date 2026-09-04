@@ -39,6 +39,7 @@ import {
 } from '../src/main/questionari'
 import { spostaFileDati } from '../src/main/file-dati'
 import { copyFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { recuperoEsteso, recuperoTesto, ripetizioniTesto, volumeTesto } from '../src/shared/dosaggio'
 
 const dir = mkdtempSync(join(tmpdir(), 'riab-smoke-'))
 const db = new Database(join(dir, 'test.db'))
@@ -47,7 +48,7 @@ db.pragma('foreign_keys = ON')
 
 runMigrations(db)
 runMigrations(db) // idempotente
-assert.equal(db.pragma('user_version', { simple: true }), 26)
+assert.equal(db.pragma('user_version', { simple: true }), 27)
 
 const count = (table: string): number =>
   (db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n
@@ -237,10 +238,25 @@ const seduteExport = [
             nome: 'Mobilizzazione & scivolamenti rotulei',
             categoria_nome: 'Mobilizzazione',
             serie: '3',
+            cluster: null,
             ripetizioni: '10',
             carico: null,
+            recupero_cluster: null,
             recupero: '1 min',
             nota: 'lento'
+          },
+          {
+            // Dosaggio a cluster: la serie si spezza in blocchi con una pausa
+            // breve dentro, e sulla carta si deve leggere per esteso.
+            nome: 'Balzi a piedi pari',
+            categoria_nome: 'Pliometria estensiva',
+            serie: '4',
+            cluster: '3',
+            ripetizioni: '2',
+            carico: null,
+            recupero_cluster: '15"',
+            recupero: "2'",
+            nota: null
           }
         ]
       }
@@ -255,6 +271,9 @@ assert.ok(html.includes('Mobilizzazione &amp; scivolamenti rotulei')) // escapin
 assert.ok(html.includes('Riscaldamento'))
 assert.ok(html.includes('rec. 1 min'))
 assert.ok(html.includes('3 × 10'))
+// il cluster: "4 × (3 × 2)" e i due recuperi spiegati, non "15\" / 2'"
+assert.ok(html.includes('4 × (3 × 2)'), 'volume a cluster')
+assert.ok(html.includes(`rec. 15" tra i cluster, 2' tra le serie`), 'recuperi a cluster')
 // La scheda normale non porta mai foto, spiegazioni o link, anche se
 // l'esercizio li ha: e' quella corta per chi sa gia' cosa fare.
 assert.ok(!html.includes('<div class="scheda-es">'))
@@ -1236,6 +1255,61 @@ initDb(join(dirCartella, 'cartella.db'), dekHex)
   // il punto e virgola dentro a un testo non deve spezzare la colonna
   assert.ok(readFileSync(join(cartellaCsv, 'sedute.csv'), 'utf-8').includes('Plank'))
   rmSync(dirCsv, { recursive: true, force: true })
+
+  // --- Dosaggio a cluster: dalla categoria fino alla scheda ---
+  // La serie si spezza in blocchi con una pausa breve dentro. La categoria dice
+  // solo se i campi si vedono; quello che si stampa dipende dai numeri salvati.
+  {
+    const catCl = ins(
+      "INSERT INTO categorie (nome, dosaggio_cluster) VALUES ('Pliometria estensiva', 1)"
+    )
+    assert.equal(
+      (
+        c.prepare('SELECT dosaggio_cluster AS d FROM categorie WHERE id = ?').get(catCl) as {
+          d: number
+        }
+      ).d,
+      1
+    )
+    const esCl = ins(
+      `INSERT INTO esercizi (nome, categoria_id, serie_default, cluster_default,
+                             ripetizioni_default, recupero_cluster_default, recupero_default)
+       VALUES ('Balzi a piedi pari', ?, '4', '3', '2', '15"', '2''')`,
+      catCl
+    )
+    const sedCl = ins(
+      "INSERT INTO sedute (paziente_id, data) VALUES (?, '2026-08-28')",
+      pz
+    )
+    ins(
+      `INSERT INTO seduta_esercizi (seduta_id, esercizio_id, serie, cluster, ripetizioni,
+                                    recupero_cluster, recupero, ordine)
+       SELECT ?, id, serie_default, cluster_default, ripetizioni_default,
+              recupero_cluster_default, recupero_default, 0
+       FROM esercizi WHERE id = ?`,
+      sedCl,
+      esCl
+    )
+
+    const schedaCl = datiScheda(Number(sedCl))
+    const rigaCl = schedaCl.sezioni[0].esercizi[0]
+    assert.equal(rigaCl.cluster, '3')
+    assert.equal(rigaCl.recupero_cluster, '15"')
+    assert.equal(volumeTesto(rigaCl), '4 × (3 × 2)')
+    assert.equal(recuperoEsteso(rigaCl), `rec. 15" tra i cluster, 2' tra le serie`)
+    assert.equal(ripetizioniTesto(rigaCl), '3 × 2')
+    assert.equal(recuperoTesto(rigaCl), `15" / 2'`)
+    // senza cluster il dosaggio resta quello di sempre
+    assert.equal(volumeTesto({ serie: '3', cluster: null, ripetizioni: '10' }), '3 × 10')
+    assert.equal(recuperoEsteso({ recupero_cluster: null, recupero: '1 min' }), 'rec. 1 min')
+
+    // e finisce anche nelle tabelle che si aprono senza l'app
+    const dirCl = mkdtempSync(join(tmpdir(), 'riab-csv-cl-'))
+    const csvCl = readFileSync(join(esportaArchivio(dirCl), 'sedute.csv'), 'utf-8')
+    assert.ok(csvCl.includes('cluster_per_serie'), 'colonna dei cluster')
+    assert.ok(csvCl.includes('Balzi a piedi pari'))
+    rmSync(dirCl, { recursive: true, force: true })
+  }
 
   // La scheda mostrata al paziente legge le stesse sedute con query proprie.
   const scheda = datiScheda(Number(sed))

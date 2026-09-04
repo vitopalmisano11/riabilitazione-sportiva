@@ -24,6 +24,8 @@ export interface Categoria {
   id: number
   nome: string
   ordine: number
+  // Gli esercizi di questa categoria si dosano a cluster (pliometria estensiva).
+  dosaggio_cluster: 0 | 1
 }
 
 export interface Esercizio {
@@ -31,8 +33,11 @@ export interface Esercizio {
   nome: string
   categoria_id: number
   serie_default: string | null
+  // A cluster: quanti cluster per serie, e le ripetizioni sono per cluster.
+  cluster_default: string | null
   ripetizioni_default: string | null
   carico_default: string | null
+  recupero_cluster_default: string | null
   recupero_default: string | null
   nota_tecnica: string | null
   link: string | null
@@ -49,8 +54,10 @@ export interface EsercizioInput {
   nome: string
   categoria_id: number
   serie_default: string | null
+  cluster_default: string | null
   ripetizioni_default: string | null
   carico_default: string | null
+  recupero_cluster_default: string | null
   recupero_default: string | null
   nota_tecnica: string | null
   link: string | null
@@ -139,8 +146,10 @@ export type PazienteCreateInput = PazienteInput & {
 export interface SedutaEsercizioInput {
   esercizio_id: number
   serie: string | null
+  cluster: string | null
   ripetizioni: string | null
   carico: string | null
+  recupero_cluster: string | null
   recupero: string | null
   nota: string | null
   // indice nella lista sezioni della seduta; null = fuori sezione (dati vecchi)
@@ -852,6 +861,8 @@ export interface Api {
     list(): Promise<Categoria[]>
     create(nome: string): Promise<number>
     update(id: number, nome: string): Promise<void>
+    // Accende o spegne il dosaggio a cluster per gli esercizi di questa categoria.
+    setCluster(id: number, attivo: boolean): Promise<void>
     remove(id: number): Promise<void>
     reorder(ids: number[]): Promise<void>
   }

@@ -159,8 +159,8 @@ export function esportaArchivio(cartella: string): string {
   scriviCsv(
     join(dest, 'sedute.csv'),
     q(`SELECT p.cognome, p.nome, s.data, f.nome AS fase, sez.nome AS sezione,
-              e.nome AS esercizio, c.nome AS categoria, se.serie, se.ripetizioni,
-              se.carico, se.recupero, se.nota, s.note AS note_seduta
+              e.nome AS esercizio, c.nome AS categoria, se.serie, se.cluster, se.ripetizioni,
+              se.carico, se.recupero_cluster, se.recupero, se.nota, s.note AS note_seduta
        FROM seduta_esercizi se
        JOIN sedute s ON s.id = se.seduta_id
        JOIN pazienti p ON p.id = s.paziente_id
@@ -178,8 +178,10 @@ export function esportaArchivio(cartella: string): string {
       'esercizio',
       'categoria',
       'serie',
+      'cluster_per_serie',
       'ripetizioni',
       'carico',
+      'recupero_tra_i_cluster',
       'recupero',
       'nota',
       'note_seduta'

@@ -630,6 +630,8 @@ button.danger:hover:not(:disabled) {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+
+
 /* menu a tendina per il download */
 .menu-wrapper {
   position: relative;
@@ -1012,6 +1014,28 @@ button.danger:hover:not(:disabled) {
   flex: 1;
   min-width: 0;
   overflow-wrap: break-word;
+}
+
+/* Dove la riga ha un'impostazione accanto al nome, il nome non deve spingerla
+   in fondo: si prende lo spazio che gli serve e basta, cosi' l'interruttore sta
+   sempre nello stesso punto, acceso o spento che sia. */
+.crud-list li:has(> .item-extra) .item-nome {
+  flex: 0 1 auto;
+}
+
+/* Un'impostazione della riga (non un'azione): si vede sempre, anche senza
+   passarci sopra con il mouse, altrimenti nessuno la trova. */
+.item-extra {
+  display: flex;
+  margin-right: auto;
+}
+
+.item-extra button {
+  padding: 4px 6px;
+}
+
+.crud-list .item-nome + .badge {
+  flex: none;
 }
 
 .item-actions {
@@ -1397,6 +1421,17 @@ span.row-actions button {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: 10px;
+}
+
+/* Queste due vanno dopo .form-row, altrimenti la riga qui sopra le annulla e il
+   numero di colonne torna a deciderlo da solo il browser. Il dosaggio a cluster
+   ha sei campi: su tre colonne vengono due righe piene. */
+.form-row.form-row-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.form-row.form-row-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .form-row input,
@@ -1824,6 +1859,14 @@ span.row-actions button {
 
 /* L'esito del controllo di una copia: si legge sotto alla riga della copia,
    perche' e' una risposta a quella riga, non un avviso che passa e sparisce. */
+/* Un pulsante-interruttore dentro a una riga di elenco: acceso prende il
+   colore dell'app, cosi' si vede a colpo d'occhio quali righe sono attive. */
+.item-actions button.attivo {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
 .esito-copia {
   display: inline-flex;
   /* L'icona sta all'altezza della prima riga: se la frase va a capo, centrata
@@ -3995,6 +4038,13 @@ textarea {
 
 .righe-seduta .riga-params .riga-nota {
   width: 190px;
+}
+
+/* Le caselle del cluster contengono numeri piccoli ("3", "15\"") e stanno in
+   una riga che ne ha gia' quattro: strette quanto basta a non far uscire la
+   riga dalla finestra. */
+.righe-seduta .riga-params .campo-cluster {
+  width: 58px;
 }
 
 .righe-seduta .btn-togli {

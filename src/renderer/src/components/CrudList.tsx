@@ -21,6 +21,11 @@ interface Props {
   onReorder?: (ids: number[]) => Promise<unknown>
   addPlaceholder?: string
   emptyHint?: string
+  // Un'aggiunta accanto al nome (un'etichetta) e un pulsante in piu' fra le
+  // azioni della riga: servono a chi ha bisogno di una voce in piu' senza
+  // cambiare la lista per tutti gli altri.
+  dopoNome?: (item: CrudItem) => React.ReactNode
+  azioniExtra?: (item: CrudItem) => React.ReactNode
 }
 
 export default function CrudList({
@@ -33,7 +38,9 @@ export default function CrudList({
   onDelete,
   onReorder,
   addPlaceholder,
-  emptyHint
+  emptyHint,
+  dopoNome,
+  azioniExtra
 }: Props): React.JSX.Element {
   const [nuovo, setNuovo] = useState('')
   const [editId, setEditId] = useState<number | null>(null)
@@ -106,6 +113,12 @@ export default function CrudList({
             ) : (
               <>
                 <span className="item-nome">{item.nome}</span>
+                {dopoNome?.(item)}
+                {azioniExtra && (
+                  <span className="item-extra" onClick={(e) => e.stopPropagation()}>
+                    {azioniExtra(item)}
+                  </span>
+                )}
                 <span className="item-actions" onClick={(e) => e.stopPropagation()}>
                   {onReorder && (
                     <button {...maniglia(idx)}>

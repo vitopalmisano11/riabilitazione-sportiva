@@ -565,6 +565,13 @@ export function registerIpc(): void {
   handle('categorie:update', (id: number, nome: string) => {
     getDb().prepare('UPDATE categorie SET nome = ? WHERE id = ?').run(nome.trim(), id)
   })
+  // Il dosaggio a cluster ha senso in poche categorie (la pliometria estensiva):
+  // la spunta sta qui, cosi' le altre restano com'erano, senza campi in piu'.
+  handle('categorie:setCluster', (id: number, attivo: boolean) => {
+    getDb()
+      .prepare('UPDATE categorie SET dosaggio_cluster = ? WHERE id = ?')
+      .run(attivo ? 1 : 0, id)
+  })
   handle('categorie:delete', (id: number) => {
     eliminaConCestino('categorie', id, 'Categoria di esercizi', nomeDi('categorie', id))
   })
@@ -574,9 +581,10 @@ export function registerIpc(): void {
   handle('esercizi:list', (includiArchiviati: boolean) =>
     getDb()
       .prepare(
-        `SELECT e.id, e.nome, e.categoria_id, e.serie_default, e.ripetizioni_default,
-                e.carico_default, e.recupero_default, e.nota_tecnica, e.link, e.archiviato,
-                c.nome AS categoria_nome,
+        `SELECT e.id, e.nome, e.categoria_id, e.serie_default, e.cluster_default,
+                e.ripetizioni_default, e.carico_default, e.recupero_cluster_default,
+                e.recupero_default, e.nota_tecnica, e.link, e.archiviato,
+                c.nome AS categoria_nome, c.dosaggio_cluster,
                 (e.immagine IS NOT NULL) AS ha_immagine
          FROM esercizi e JOIN categorie c ON c.id = e.categoria_id
          ${includiArchiviati ? '' : 'WHERE e.archiviato = 0'}
@@ -588,8 +596,12 @@ export function registerIpc(): void {
     Number(
       getDb()
         .prepare(
-          `INSERT INTO esercizi (nome, categoria_id, serie_default, ripetizioni_default, carico_default, recupero_default, nota_tecnica, link)
-           VALUES (@nome, @categoria_id, @serie_default, @ripetizioni_default, @carico_default, @recupero_default, @nota_tecnica, @link)`
+          `INSERT INTO esercizi (nome, categoria_id, serie_default, cluster_default,
+                                 ripetizioni_default, carico_default, recupero_cluster_default,
+                                 recupero_default, nota_tecnica, link)
+           VALUES (@nome, @categoria_id, @serie_default, @cluster_default,
+                   @ripetizioni_default, @carico_default, @recupero_cluster_default,
+                   @recupero_default, @nota_tecnica, @link)`
         )
         .run({ ...data, nome: data.nome.trim() }).lastInsertRowid
     )
@@ -598,8 +610,10 @@ export function registerIpc(): void {
     getDb()
       .prepare(
         `UPDATE esercizi SET nome = @nome, categoria_id = @categoria_id,
-         serie_default = @serie_default, ripetizioni_default = @ripetizioni_default,
-         carico_default = @carico_default, recupero_default = @recupero_default,
+         serie_default = @serie_default, cluster_default = @cluster_default,
+         ripetizioni_default = @ripetizioni_default, carico_default = @carico_default,
+         recupero_cluster_default = @recupero_cluster_default,
+         recupero_default = @recupero_default,
          nota_tecnica = @nota_tecnica, link = @link
          WHERE id = @id`
       )
@@ -924,16 +938,20 @@ export function registerIpc(): void {
       (s, i) => Number(insSez.run(sedutaId, s.sezione_id, s.nome.trim(), i).lastInsertRowid)
     )
     const insEs = db.prepare(
-      `INSERT INTO seduta_esercizi (seduta_id, esercizio_id, serie, ripetizioni, carico, recupero, nota, ordine, seduta_sezione_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO seduta_esercizi (seduta_id, esercizio_id, serie, cluster, ripetizioni,
+                                    carico, recupero_cluster, recupero, nota, ordine,
+                                    seduta_sezione_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     input.esercizi.forEach((e, i) =>
       insEs.run(
         sedutaId,
         e.esercizio_id,
         e.serie,
+        e.cluster,
         e.ripetizioni,
         e.carico,
+        e.recupero_cluster,
         e.recupero,
         e.nota,
         i,
@@ -972,7 +990,8 @@ export function registerIpc(): void {
       .prepare(
         `SELECT se.esercizio_id, e.nome, c.nome AS categoria_nome, e.link,
                 (e.immagine IS NOT NULL) AS ha_immagine,
-                se.serie, se.ripetizioni, se.carico, se.recupero, se.nota, se.seduta_sezione_id
+                se.serie, se.cluster, se.ripetizioni, se.carico, se.recupero_cluster,
+                se.recupero, se.nota, se.seduta_sezione_id
          FROM seduta_esercizi se
          JOIN esercizi e ON e.id = se.esercizio_id
          JOIN categorie c ON c.id = e.categoria_id
@@ -1021,14 +1040,17 @@ export function registerIpc(): void {
       .all(origineId) as { id: number; sezione_id: number | null; nome: string }[]
     const esercizi = db
       .prepare(
-        `SELECT esercizio_id, serie, ripetizioni, carico, recupero, nota, seduta_sezione_id
+        `SELECT esercizio_id, serie, cluster, ripetizioni, carico, recupero_cluster,
+                recupero, nota, seduta_sezione_id
          FROM seduta_esercizi WHERE seduta_id = ? ORDER BY ordine, id`
       )
       .all(origineId) as {
       esercizio_id: number
       serie: string | null
+      cluster: string | null
       ripetizioni: string | null
       carico: string | null
+      recupero_cluster: string | null
       recupero: string | null
       nota: string | null
       seduta_sezione_id: number | null
@@ -1049,8 +1071,10 @@ export function registerIpc(): void {
           esercizi: esercizi.map((e) => ({
             esercizio_id: e.esercizio_id,
             serie: e.serie,
+            cluster: e.cluster,
             ripetizioni: e.ripetizioni,
             carico: e.carico,
+            recupero_cluster: e.recupero_cluster,
             recupero: e.recupero,
             nota: e.nota,
             sezioneIndex:

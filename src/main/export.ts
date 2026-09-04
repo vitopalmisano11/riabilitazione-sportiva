@@ -63,7 +63,8 @@ function leggiSeduta(
   }
   const esercizi = db
     .prepare(
-      `SELECT e.nome, c.nome AS categoria_nome, se.serie, se.ripetizioni, se.carico, se.recupero,
+      `SELECT e.nome, c.nome AS categoria_nome, se.serie, se.cluster, se.ripetizioni,
+              se.carico, se.recupero_cluster, se.recupero,
               se.nota, se.seduta_sezione_id${
                 illustrata ? ', e.nota_tecnica, e.link, e.immagine' : ''
               }

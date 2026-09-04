@@ -1,6 +1,7 @@
 // Generazione documenti (HTML per il PDF, docx per Word) da dati già letti.
 // Nessuna dipendenza da Electron: testabile con Node (vedi scripts/smoke.ts).
 import { coloriTema } from '../shared/temi'
+import { recuperoEsteso, recuperoTesto, ripetizioniTesto, volumeTesto } from '../shared/dosaggio'
 import {
   Document,
   HeadingLevel,
@@ -32,8 +33,10 @@ export interface DatiSedutaExport {
       nome: string
       categoria_nome: string
       serie: string | null
+      cluster: string | null
       ripetizioni: string | null
       carico: string | null
+      recupero_cluster: string | null
       recupero: string | null
       nota: string | null
       // Solo per la scheda illustrata: la spiegazione dell'esercizio, il video
@@ -77,11 +80,7 @@ export function generaHtml(
   // sottotitolo del gruppo, cosi' si legge su cosa si sta lavorando senza
   // ripeterla accanto a ogni esercizio.
   const dettagli = (e: DatiSedutaExport['sezioni'][number]['esercizi'][number]): string =>
-    [
-      e.serie && e.ripetizioni ? `${e.serie} × ${e.ripetizioni}` : e.serie || e.ripetizioni,
-      e.carico,
-      e.recupero ? `rec. ${e.recupero}` : null
-    ]
+    [volumeTesto(e), e.carico, recuperoEsteso(e)]
       .filter(Boolean)
       .map((x) => esc(String(x)))
       .join(' · ')
@@ -285,9 +284,10 @@ export async function generaDocx(
             children: [
               e.nome,
               e.serie ?? '',
-              e.ripetizioni ?? '',
+              // A cluster: "3 × 2" sono i cluster per le ripetizioni di ognuno.
+              ripetizioniTesto(e) ?? '',
               e.carico ?? '',
-              e.recupero ?? '',
+              recuperoTesto(e) ?? '',
               e.nota ?? ''
             ].map((t) => new TableCell({ children: [new Paragraph(t)] }))
           })

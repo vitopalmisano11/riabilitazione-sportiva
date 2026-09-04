@@ -14,6 +14,7 @@ import ImmagineEsercizio from './ImmagineEsercizio'
 import { errMsg, oggiIso } from '../lib'
 import { useScorciatoie } from '../scorciatoie'
 import { sposta, useRiordino } from '../riordino'
+import { volumeTesto } from '../../../shared/dosaggio'
 
 interface Props {
   paziente: PazienteDettaglio
@@ -139,6 +140,14 @@ export default function SedutaBuilder({
 
   const nomeCategoria = (cid: number): string => categorie.find((c) => c.id === cid)?.nome ?? '?'
 
+  // I campi del cluster si vedono solo dove servono: nelle categorie che lo
+  // prevedono (la pliometria estensiva), oppure su una riga che un dosaggio a
+  // cluster ce l'ha gia' — cosi' una seduta vecchia resta modificabile anche se
+  // nel frattempo la categoria e' cambiata.
+  const mostraCluster = (r: { categoria_nome: string; cluster: string | null }): boolean =>
+    (r.cluster ?? '') !== '' ||
+    categorie.some((c) => c.nome === r.categoria_nome && c.dosaggio_cluster === 1)
+
   // Esercizi proposti per una sezione: quelli delle sue categorie (nell'ordine configurato)
   const proposte = (s: SezioneBuilder): EsercizioConCategoria[] => {
     if (s.sezione_id == null) return []
@@ -158,8 +167,10 @@ export default function SedutaBuilder({
           nome: e.nome,
           categoria_nome: e.categoria_nome,
           serie: e.serie_default,
+          cluster: e.cluster_default,
           ripetizioni: e.ripetizioni_default,
           carico: e.carico_default,
+          recupero_cluster: e.recupero_cluster_default,
           recupero: e.recupero_default,
           nota: null,
           link: e.link,
@@ -179,7 +190,7 @@ export default function SedutaBuilder({
   const updateRiga = (
     idxSez: number,
     idxRiga: number,
-    campo: 'serie' | 'ripetizioni' | 'carico' | 'recupero' | 'nota',
+    campo: 'serie' | 'cluster' | 'ripetizioni' | 'carico' | 'recupero_cluster' | 'recupero' | 'nota',
     valore: string
   ): void => {
     setSezioni(
@@ -285,8 +296,10 @@ export default function SedutaBuilder({
         s.righe.map((r) => ({
           esercizio_id: r.esercizio_id,
           serie: r.serie?.trim() || null,
+          cluster: r.cluster?.trim() || null,
           ripetizioni: r.ripetizioni?.trim() || null,
           carico: r.carico?.trim() || null,
+          recupero_cluster: r.recupero_cluster?.trim() || null,
           recupero: r.recupero?.trim() || null,
           nota: r.nota?.trim() || null,
           sezioneIndex: i
@@ -494,8 +507,17 @@ export default function SedutaBuilder({
                         value={r.serie ?? ''}
                         onChange={(e) => updateRiga(idxSez, idxRiga, 'serie', e.target.value)}
                       />
+                      {mostraCluster(r) && (
+                        <input
+                          className="campo-cluster"
+                          title="Cluster per serie"
+                          placeholder="cluster"
+                          value={r.cluster ?? ''}
+                          onChange={(e) => updateRiga(idxSez, idxRiga, 'cluster', e.target.value)}
+                        />
+                      )}
                       <input
-                        title="Ripetizioni"
+                        title={mostraCluster(r) ? 'Ripetizioni per cluster' : 'Ripetizioni'}
                         placeholder="rip."
                         value={r.ripetizioni ?? ''}
                         onChange={(e) => updateRiga(idxSez, idxRiga, 'ripetizioni', e.target.value)}
@@ -506,8 +528,19 @@ export default function SedutaBuilder({
                         value={r.carico ?? ''}
                         onChange={(e) => updateRiga(idxSez, idxRiga, 'carico', e.target.value)}
                       />
+                      {mostraCluster(r) && (
+                        <input
+                          className="campo-cluster"
+                          title="Recupero tra i cluster"
+                          placeholder="rec. cl."
+                          value={r.recupero_cluster ?? ''}
+                          onChange={(e) =>
+                            updateRiga(idxSez, idxRiga, 'recupero_cluster', e.target.value)
+                          }
+                        />
+                      )}
                       <input
-                        title="Recupero"
+                        title={mostraCluster(r) ? 'Recupero tra le serie' : 'Recupero'}
                         placeholder="rec."
                         value={r.recupero ?? ''}
                         onChange={(e) => updateRiga(idxSez, idxRiga, 'recupero', e.target.value)}
@@ -592,7 +625,7 @@ export default function SedutaBuilder({
                         )}
                       </span>
                       <span className="default-hint">
-                        {[nomeCategoria(e.categoria_id), [e.serie_default, e.ripetizioni_default].filter(Boolean).join(' × ')]
+                        {[nomeCategoria(e.categoria_id), volumeTesto({ serie: e.serie_default, cluster: e.cluster_default, ripetizioni: e.ripetizioni_default }) ?? '']
                           .filter(Boolean)
                           .join(' · ')}
                       </span>

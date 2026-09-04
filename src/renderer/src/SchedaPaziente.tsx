@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { RotateCw } from 'lucide-react'
 import type { SchedaPaziente as Dati } from '../../shared/types'
 import { errMsg, formatData } from './lib'
+import { recuperoEsteso, volumeTesto } from '../../shared/dosaggio'
 
 // Quello che vede il paziente mentre si allena: solo il suo programma, nella
 // stessa forma del documento che si esporta — una tabella per sezione — ma con
@@ -25,15 +26,10 @@ export default function SchedaPaziente({ sedutaId }: { sedutaId: number }): Reac
   if (errore) return <p className="auth-error">{errore}</p>
   if (!dati) return <p className="hint">Caricamento…</p>
 
-  // Dettagli di un esercizio su una riga sola: "3 × 10 · 20 kg · rec. 1'".
+  // Dettagli di un esercizio su una riga sola: "3 × 10 · 20 kg · rec. 1'", e
+  // "4 × (3 × 2) · rec. 15" tra i cluster, 2' tra le serie" dove si va a cluster.
   const dettagli = (e: Dati['sezioni'][number]['esercizi'][number]): string =>
-    [
-      e.serie && e.ripetizioni ? `${e.serie} × ${e.ripetizioni}` : e.serie || e.ripetizioni,
-      e.carico,
-      e.recupero ? `rec. ${e.recupero}` : null
-    ]
-      .filter(Boolean)
-      .join(' · ')
+    [volumeTesto(e), e.carico, recuperoEsteso(e)].filter(Boolean).join(' · ')
 
   return (
     <div className="scheda-paziente">

@@ -9,8 +9,10 @@ export interface EsercizioScheda {
   nome: string
   categoria_nome: string
   serie: string | null
+  cluster: string | null
   ripetizioni: string | null
   carico: string | null
+  recupero_cluster: string | null
   recupero: string | null
   nota: string | null
 }
@@ -47,7 +49,8 @@ export function datiScheda(sedutaId: number): SchedaPaziente {
   const esercizi = db
     .prepare(
       `SELECT e.nome, c.nome AS categoria_nome,
-              se.serie, se.ripetizioni, se.carico, se.recupero, se.nota, se.seduta_sezione_id
+              se.serie, se.cluster, se.ripetizioni, se.carico, se.recupero_cluster,
+              se.recupero, se.nota, se.seduta_sezione_id
        FROM seduta_esercizi se
        JOIN esercizi e ON e.id = se.esercizio_id
        JOIN categorie c ON c.id = e.categoria_id
