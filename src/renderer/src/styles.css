@@ -3395,12 +3395,14 @@ textarea {
    blocco di esercizi. */
 .scheda-paziente h2 {
   display: inline-block;
-  font-size: 14px;
+  /* Piccola: dice dove comincia un blocco, non e' la cosa principale del
+     foglio. Quella sono i nomi degli esercizi. */
+  font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  margin: 24px 0 10px;
-  padding: 5px 14px;
+  margin: 22px 0 8px;
+  padding: 4px 11px;
   border-radius: 999px;
   background: var(--accent);
   /* Il colore del foglio, non il bianco fisso: in modalita' scura l'accento
