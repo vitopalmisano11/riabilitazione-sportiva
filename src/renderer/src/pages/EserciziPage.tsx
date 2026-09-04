@@ -276,20 +276,18 @@ export default function EserciziPage(): React.JSX.Element {
           }}
           addPlaceholder="Nuova categoria…"
           emptyHint="Nessuna categoria: creane una qui sotto."
-          dopoNome={(item) =>
-            categorie.find((c) => c.id === item.id)?.dosaggio_cluster === 1 ? (
-              <span className="badge">cluster</span>
-            ) : null
-          }
+          aiuto="Accanto a ogni categoria c'è il pulsante “cluster”: acceso, gli esercizi di quella categoria si dosano a cluster (serie spezzata in blocchi con una pausa breve dentro, come nella pliometria estensiva) e nel loro form compaiono i campi in più. Tutte le altre categorie restano come sono."
           azioniExtra={(item) => {
+            // Un pulsante con scritto quello che fa: come sola icona non si
+            // capiva a cosa servisse, e chi non lo sapeva gia' non lo trovava.
             const attiva = categorie.find((c) => c.id === item.id)?.dosaggio_cluster === 1
             return (
               <button
-                className={attiva ? 'attivo' : ''}
+                className={attiva ? 'pulsante-cluster attivo' : 'pulsante-cluster'}
                 title={
                   attiva
                     ? 'Gli esercizi di questa categoria si dosano a cluster. Clicca per tornare al dosaggio normale.'
-                    : 'Dosa a cluster gli esercizi di questa categoria (serie spezzata in blocchi, come nella pliometria estensiva)'
+                    : 'Dosa a cluster gli esercizi di questa categoria: serie spezzata in blocchi con una pausa breve dentro, come nella pliometria estensiva.'
                 }
                 onClick={() =>
                   void (async () => {
@@ -303,7 +301,7 @@ export default function EserciziPage(): React.JSX.Element {
                   })()
                 }
               >
-                <Layers size={16} />
+                <Layers size={15} /> cluster
               </button>
             )
           }}

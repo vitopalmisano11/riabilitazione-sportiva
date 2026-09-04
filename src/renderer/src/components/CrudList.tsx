@@ -4,6 +4,7 @@ import { errMsg } from '../lib'
 import { sposta, useRiordino } from '../riordino'
 import { toastErrore } from './Toast'
 import { chiedi } from './Conferma'
+import Aiuto from './Aiuto'
 
 export interface CrudItem {
   id: number
@@ -24,7 +25,8 @@ interface Props {
   // Un'aggiunta accanto al nome (un'etichetta) e un pulsante in piu' fra le
   // azioni della riga: servono a chi ha bisogno di una voce in piu' senza
   // cambiare la lista per tutti gli altri.
-  dopoNome?: (item: CrudItem) => React.ReactNode
+  // Il "?" accanto al titolo della lista, quando c'e' qualcosa da spiegare.
+  aiuto?: string
   azioniExtra?: (item: CrudItem) => React.ReactNode
 }
 
@@ -39,7 +41,7 @@ export default function CrudList({
   onReorder,
   addPlaceholder,
   emptyHint,
-  dopoNome,
+  aiuto,
   azioniExtra
 }: Props): React.JSX.Element {
   const [nuovo, setNuovo] = useState('')
@@ -80,7 +82,10 @@ export default function CrudList({
 
   return (
     <section className="crud-list">
-      <h3>{title}</h3>
+      <h3>
+        {title}
+        {aiuto && <Aiuto testo={aiuto} />}
+      </h3>
       <ul>
         {items.map((item, idx) => {
           const dnd = onReorder ? contenitore(idx) : null
@@ -113,7 +118,6 @@ export default function CrudList({
             ) : (
               <>
                 <span className="item-nome">{item.nome}</span>
-                {dopoNome?.(item)}
                 {azioniExtra && (
                   <span className="item-extra" onClick={(e) => e.stopPropagation()}>
                     {azioniExtra(item)}
