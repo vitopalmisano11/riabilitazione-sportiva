@@ -64,6 +64,7 @@ import {
 } from './screening-sessioni'
 import { leggiTest, salvaTest } from './test-valutazione'
 import {
+  duplicaValutazione,
   leggiDistretto,
   leggiValutazione,
   salvaDistretto,
@@ -340,6 +341,26 @@ export function registerIpc(): void {
       return id
     })()
   })
+  // ---- Bozza della seduta in costruzione ----
+  handle('bozze:leggi', (pazienteId: number) =>
+    getDb()
+      .prepare('SELECT aggiornata_il, contenuto FROM bozze_seduta WHERE paziente_id = ?')
+      .get(pazienteId) ?? null
+  )
+  handle('bozze:salva', (pazienteId: number, contenuto: string) => {
+    getDb()
+      .prepare(
+        `INSERT INTO bozze_seduta (paziente_id, aggiornata_il, contenuto) VALUES (?, ?, ?)
+         ON CONFLICT(paziente_id) DO UPDATE SET aggiornata_il = excluded.aggiornata_il,
+           contenuto = excluded.contenuto`
+      )
+      .run(pazienteId, new Date().toISOString(), contenuto)
+  })
+  handle('bozze:elimina', (pazienteId: number) => {
+    getDb().prepare('DELETE FROM bozze_seduta WHERE paziente_id = ?').run(pazienteId)
+  })
+
+  handle('valutazioni:duplica', (id: number, data: string) => duplicaValutazione(id, data))
   handle('valutazioni:salva', (dati: ValutazioneCompleta) => salvaValutazione(dati))
   handle('valutazioni:delete', (id: number) => {
     getDb().prepare('DELETE FROM valutazioni WHERE id = ?').run(id)

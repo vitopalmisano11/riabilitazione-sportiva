@@ -9,6 +9,7 @@ import type {
 } from '../../../shared/types'
 import { GripVertical, ImageIcon, Pencil, Plus, Video, X } from 'lucide-react'
 import { toastErrore } from './Toast'
+import { chiedi } from './Conferma'
 import ImmagineEsercizio from './ImmagineEsercizio'
 import { errMsg, oggiIso } from '../lib'
 import { useScorciatoie } from '../scorciatoie'
@@ -25,6 +26,14 @@ interface SezioneBuilder {
   sezione_id: number | null
   nome: string
   righe: SedutaEsercizioDettaglio[]
+}
+
+// Quello che si sta componendo, messo da parte cosi' com'e'.
+interface BozzaSeduta {
+  data: string
+  faseId: number | null
+  note: string
+  sezioni: SezioneBuilder[]
 }
 
 export default function SedutaBuilder({
@@ -46,6 +55,11 @@ export default function SedutaBuilder({
   const [categorie, setCategorie] = useState<Categoria[]>([])
   const [ricerche, setRicerche] = useState<Record<number, string>>({})
   const [nuovaSezione, setNuovaSezione] = useState('')
+  // Quale sezione ha la ricerca aperta. Una per volta: prima ogni sezione
+  // teneva sempre in vista la sua casella di ricerca e fino a otto esercizi
+  // proposti, e con tre o quattro sezioni lo schermo era pieno di strumenti
+  // invece che della seduta.
+  const [sezioneApertaPerAggiungere, setApriAggiungi] = useState<number | null>(null)
   const [immagineAperta, setImmagineAperta] = useState<{ id: number; nome: string } | null>(null)
 
   useEffect(() => {
@@ -86,6 +100,27 @@ export default function SedutaBuilder({
           if (sedutaId == null && duplicaDa == null) {
             // nuova seduta: struttura di default dal template della fase
             setSezioni(template.map((t) => ({ sezione_id: t.id, nome: t.nome, righe: [] })))
+          }
+        }
+
+        // Bozza rimasta da una volta in cui l'app si e' chiusa a meta': si
+        // chiede prima di rimetterla, perche' potrebbe essere di giorni fa.
+        if (sedutaId == null) {
+          const bozza = await window.api.bozze.leggi(paziente.id)
+          if (bozza) {
+            const quando = new Date(bozza.aggiornata_il)
+            const etichetta = `${quando.toLocaleDateString('it-IT')} alle ${quando
+              .toLocaleTimeString('it-IT')
+              .slice(0, 5)}`
+            if (await chiedi(`C'è una seduta lasciata a metà il ${etichetta}. Vuoi riprenderla?`)) {
+              const salvata = JSON.parse(bozza.contenuto) as BozzaSeduta
+              setData(salvata.data)
+              setNote(salvata.note)
+              setSezioni(salvata.sezioni)
+              if (salvata.faseId != null) fase = salvata.faseId
+            } else {
+              await window.api.bozze.elimina(paziente.id)
+            }
           }
         }
         setPronto(true)
@@ -178,11 +213,11 @@ export default function SedutaBuilder({
     )
   })
 
-  const rimuoviSezione = (idx: number): void => {
+  const rimuoviSezione = async (idx: number): Promise<void> => {
     const s = sezioni[idx]
     if (
       s.righe.length > 0 &&
-      !confirm(`Rimuovere la sezione "${s.nome}" e i suoi ${s.righe.length} esercizi da questa seduta?`)
+      !(await chiedi(`Rimuovere la sezione "${s.nome}" e i suoi ${s.righe.length} esercizi da questa seduta?`))
     ) {
       return
     }
@@ -199,10 +234,35 @@ export default function SedutaBuilder({
     setNuovaSezione('')
   }
 
+  // La bozza si mette da parte da sola mentre componi, un secondo dopo l'ultima
+  // modifica: se l'app si chiude, alla riapertura la ritrovi. Vale solo per le
+  // sedute nuove — quelle gia' salvate sono gia' al sicuro nel loro posto.
+  useEffect(() => {
+    if (!pronto || sedutaId != null) return
+    if (totaleEsercizi === 0 && note.trim() === '') return
+    const bozza: BozzaSeduta = { data, faseId, note, sezioni }
+    const attesa = setTimeout(() => {
+      void window.api.bozze.salva(paziente.id, JSON.stringify(bozza)).catch(() => undefined)
+    }, 1000)
+    return () => clearTimeout(attesa)
+  }, [pronto, sedutaId, paziente.id, data, faseId, note, sezioni, totaleEsercizi])
+
   // Esc annulla, Ctrl+S salva: la seduta si compila con la tastiera, senza
   // tornare col mouse in fondo alla finestra.
+  // Annullando si decide cosa farne: buttarla via subito, o tenerla per
+  // riprenderla. Chiedere qui e' meglio che ritrovarsela proposta domani senza
+  // averlo voluto.
+  const annulla = async (): Promise<void> => {
+    if (sedutaId == null && (totaleEsercizi > 0 || note.trim() !== '')) {
+      if (!(await chiedi('Tengo quello che hai messo, per riprenderlo dopo?'))) {
+        await window.api.bozze.elimina(paziente.id).catch(() => undefined)
+      }
+    }
+    onClose(false)
+  }
+
   useScorciatoie([
-    { tasto: 'Escape', azione: () => onClose(false) },
+    { tasto: 'Escape', azione: () => void annulla() },
     { tasto: 's', ctrl: true, azione: () => void salva() }
   ])
 
@@ -274,7 +334,7 @@ export default function SedutaBuilder({
             Data
             <input type="date" value={data} onChange={(e) => setData(e.target.value)} />
           </label>
-          <button onClick={() => onClose(false)}>Annulla</button>
+          <button onClick={() => void annulla()}>Annulla</button>
           <button className="primary" onClick={() => void salva()}>
             Salva seduta
           </button>
@@ -366,7 +426,7 @@ export default function SedutaBuilder({
                 <button title="Rinomina" onClick={() => setEditSez({ idx: idxSez, nome: s.nome })}>
                   <Pencil size={16} />
                 </button>
-                <button title="Rimuovi sezione" className="danger" onClick={() => rimuoviSezione(idxSez)}>
+                <button title="Rimuovi sezione" className="danger" onClick={() => void rimuoviSezione(idxSez)}>
                   <X size={16} />
                 </button>
               </span>
@@ -463,8 +523,23 @@ export default function SedutaBuilder({
               </ul>
             )}
 
+            {sezioneApertaPerAggiungere !== idxSez ? (
+              <button
+                className="aggiungi-esercizio"
+                onClick={() => setApriAggiungi(idxSez)}
+              >
+                <Plus size={16} /> Aggiungi esercizio
+              </button>
+            ) : (
             <div className="aggiungi-area">
+              <div className="testata-aggiungi">
+                <span className="hint">Scegli un esercizio da aggiungere a “{s.nome}”</span>
+                <button title="Chiudi" onClick={() => setApriAggiungi(null)}>
+                  <X size={16} />
+                </button>
+              </div>
               <input
+                autoFocus
                 type="search"
                 className="filtro-esercizi"
                 placeholder={
@@ -517,16 +592,9 @@ export default function SedutaBuilder({
                     </li>
                   ))}
                 </ul>
-              ) : (
-                s.sezione_id != null &&
-                ricerca.length < 2 && (
-                  <p className="hint">
-                    Nessun esercizio proposto: associa categorie alla sezione in configurazione, o
-                    cerca nella libreria.
-                  </p>
-                )
-              )}
+              ) : null}
             </div>
+            )}
           </section>
         )
       })}
@@ -556,7 +624,7 @@ export default function SedutaBuilder({
           />
         </label>
         <div className="modal-actions">
-          <button onClick={() => onClose(false)}>Annulla</button>
+          <button onClick={() => void annulla()}>Annulla</button>
           <button className="primary" onClick={() => void salva()}>
             Salva seduta ({totaleEsercizi} esercizi)
           </button>

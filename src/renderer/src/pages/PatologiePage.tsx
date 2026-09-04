@@ -12,6 +12,7 @@ import type {
 import CrudList from '../components/CrudList'
 import { sposta, useRiordino } from '../riordino'
 import { toastErrore } from '../components/Toast'
+import { chiedi } from '../components/Conferma'
 import { errMsg } from '../lib'
 
 type Tab = 'struttura' | 'obiettivi' | 'test'
@@ -224,8 +225,8 @@ function Step1Patologie({
                   <button
                     title="Elimina"
                     className="danger"
-                    onClick={() => {
-                      if (confirm(`Eliminare "${p.nome}" con tutte le sue fasi?`)) {
+                    onClick={async () => {
+                      if (await chiedi(`Eliminare "${p.nome}" con tutte le sue fasi?`)) {
                         void run(async () => {
                           await window.api.patologie.remove(p.id)
                           await onChanged()
@@ -386,9 +387,9 @@ function Step2Fasi({
                   <button
                     title="Elimina"
                     className="danger"
-                    onClick={() => {
+                    onClick={async () => {
                       if (
-                        confirm(
+                        await chiedi(
                           `Eliminare la fase "${f.nome}"?\nVerranno eliminati i suoi obiettivi, sezioni e test.`
                         )
                       ) {

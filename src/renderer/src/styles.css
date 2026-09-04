@@ -1300,6 +1300,42 @@ span.row-actions button {
   margin: 0;
 }
 
+/* La finestra che fa una domanda: il titolo con l'icona quando l'azione
+   distrugge qualcosa, e il testo sotto. */
+.modal-domanda .testata-domanda {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.modal-domanda .testata-domanda h3 {
+  margin: 0;
+}
+
+.modal-domanda .icona-pericolo {
+  color: var(--danger);
+  flex: 0 0 auto;
+}
+
+.modal-domanda .modal-testo {
+  white-space: pre-wrap;
+}
+
+/* Nella domanda il pulsante che cancella e' pieno di rosso, non solo bordato:
+   e' l'azione da cui non si torna indietro e deve saltare all'occhio. */
+.modal-domanda .modal-actions button.danger {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+  font-weight: 600;
+}
+
+.modal-domanda .modal-actions button.danger:hover:not(:disabled) {
+  background: #b93a3a;
+  border-color: #b93a3a;
+  color: #fff;
+}
+
 .modal-sm {
   width: 470px;
 }
@@ -1405,6 +1441,33 @@ span.row-actions button {
   border-radius: var(--radius-sm);
   padding: 8px 10px;
 }
+
+/* Il pulsante che apre la scelta degli esercizi: largo quanto la sezione e con
+   il bordo tratteggiato, cosi' si vede che apre qualcosa e non e' una riga
+   della seduta. */
+.aggiungi-esercizio {
+  width: 100%;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 10px;
+  border-style: dashed;
+  color: var(--text-dim);
+}
+
+.aggiungi-esercizio:hover:not(:disabled) {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Testata della scelta: dice a quale sezione stai aggiungendo, e come chiudere. */
+.testata-aggiungi {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
 
 .sezione-card .righe-seduta {
   margin-bottom: 10px;
@@ -2347,9 +2410,19 @@ textarea {
   gap: 8px;
 }
 
+/* Riga dell'elenco pazienti: il nome a sinistra, e a destra il pulsante che
+   apre subito la seduta di oggi senza passare dalla scheda. */
 .elenco-verticale .scelta-tile {
   min-height: 0;
-  padding: 14px 16px;
+  padding: 10px 12px 10px 16px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.elenco-verticale .scelta-tile-nome {
+  text-align: left;
 }
 
 /* 3) le categorie si aprono solo quando servono */
@@ -3671,6 +3744,22 @@ textarea {
 
 .righe-seduta > .intestazione-categoria:first-child {
   margin-top: 0;
+}
+
+/* Maniglia e cestino compaiono passando sopra alla riga: sono azioni rare, e
+   sempre in vista riempivano l'elenco di icone. Restano al loro posto anche da
+   invisibili, cosi' la riga non si sposta quando compaiono. */
+.righe-seduta li .maniglia-riga button,
+.righe-seduta li .btn-togli {
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.righe-seduta li:hover .maniglia-riga button,
+.righe-seduta li:hover .btn-togli,
+.righe-seduta li:focus-within .maniglia-riga button,
+.righe-seduta li:focus-within .btn-togli {
+  opacity: 1;
 }
 
 /* Un esercizio della seduta sta su una riga sola: maniglia, nome, i quattro

@@ -75,11 +75,18 @@ const api: Api = {
     remove: (id: number) => invoke('distretti:delete', id),
     reorder: (ids: number[]) => invoke('distretti:reorder', ids)
   },
+  bozze: {
+    leggi: (pazienteId: number) => invoke('bozze:leggi', pazienteId),
+    salva: (pazienteId: number, contenuto: string) =>
+      invoke('bozze:salva', pazienteId, contenuto),
+    elimina: (pazienteId: number) => invoke('bozze:elimina', pazienteId)
+  },
   valutazioni: {
     list: (pazienteId: number) => invoke('valutazioni:list', pazienteId),
     get: (id: number) => invoke('valutazioni:get', id),
     create: (pazienteId: number, data: string, distrettoIds: number[]) =>
       invoke('valutazioni:create', pazienteId, data, distrettoIds),
+    duplica: (id: number, data: string) => invoke('valutazioni:duplica', id, data),
     salva: (dati: ValutazioneCompleta) => invoke('valutazioni:salva', dati),
     remove: (id: number) => invoke('valutazioni:delete', id)
   },

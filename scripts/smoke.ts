@@ -14,6 +14,7 @@ import { generaDocx, generaHtml } from '../src/main/export-doc'
 import { cambiaPasswordAuth, loginAuth, recoverAuth, setupAuth } from '../src/main/auth'
 import { closeDb, getDb, initDb, isPlaintextDb } from '../src/main/db'
 import { generaCartella, SEZIONI } from '../src/main/export-cartella'
+import { duplicaValutazione, leggiValutazione } from '../src/main/valutazione'
 import { coloriTema, impostaTemaCorrente, temaValido } from '../src/shared/temi'
 import { datiScheda } from '../src/main/scheda-dati'
 import {
@@ -39,7 +40,7 @@ db.pragma('foreign_keys = ON')
 
 runMigrations(db)
 runMigrations(db) // idempotente
-assert.equal(db.pragma('user_version', { simple: true }), 24)
+assert.equal(db.pragma('user_version', { simple: true }), 25)
 
 const count = (table: string): number =>
   (db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n
@@ -564,6 +565,86 @@ assert.equal(
   assert.equal(elenco.find((x) => x.id === compSenza)?.fascia, 'Presente')
   // il valore ricalcolato resta scritto: anche la cartella stampata lo legge da li'
   assert.equal(fasciaSalvata(), 'Presente')
+}
+
+// --- Duplicare una valutazione: i rilievi si copiano, i racconti no ---
+{
+  const c = getDb()
+  const ins = (sql: string, ...a: unknown[]): number =>
+    Number(c.prepare(sql).run(...a).lastInsertRowid)
+  const pzV = ins("INSERT INTO pazienti (nome, cognome) VALUES ('Val', 'Duplica')")
+  const dist = ins("INSERT INTO distretti (nome) VALUES ('Spalla')")
+  const movi = ins(
+    "INSERT INTO distretto_movimenti (distretto_id, nome, gradi, ordine) VALUES (?, 'Abduzione', 1, 0)",
+    dist
+  )
+  const testId = ins(
+    "INSERT INTO distretto_test (distretto_id, nome, gruppo, risposta, ordine) VALUES (?, 'Jobe', 'ortopedici', 'posneg', 0)",
+    dist
+  )
+  const primaId = ins(
+    "INSERT INTO valutazioni (paziente_id, data, ispezione, note) VALUES (?, '2026-09-01', 'spalla in antepulsione', 'da rivedere')",
+    pzV
+  )
+  ins(
+    `INSERT INTO valutazione_distretti (valutazione_id, distretto_id, nota_attivo, nota_passivo)
+     VALUES (?, ?, 'dolore a fine corsa', null)`,
+    primaId,
+    dist
+  )
+  ins(
+    `INSERT INTO valutazione_movimenti (valutazione_id, movimento_id, attivo_restrizione,
+       attivo_dolore, attivo_gradi) VALUES (?, ?, 2, 1, 120)`,
+    primaId,
+    movi
+  )
+  ins(
+    "INSERT INTO valutazione_test (valutazione_id, test_id, valore) VALUES (?, ?, 'positivo')",
+    primaId,
+    testId
+  )
+
+  const copiaId = duplicaValutazione(primaId, '2026-10-01')
+  const copia = leggiValutazione(copiaId)
+  assert.equal(copia.valutazione.data, '2026-10-01')
+  assert.deepEqual(copia.distretto_ids, [dist])
+  assert.equal(copia.movimenti[0].attivo_gradi, 120)
+  assert.equal(copia.movimenti[0].attivo_restrizione, 2)
+  assert.equal(copia.test[0].valore, 'positivo')
+  assert.equal(copia.note_movimenti[0].attivo, 'dolore a fine corsa')
+  // i testi discorsivi raccontano quel giorno la': non si ricopiano
+  assert.equal(copia.valutazione.ispezione, null)
+  assert.equal(copia.valutazione.note, null)
+  // e l'originale resta com'era
+  assert.equal(leggiValutazione(primaId).valutazione.ispezione, 'spalla in antepulsione')
+}
+
+// --- Bozza della seduta: una per paziente, e si sostituisce ---
+{
+  const c = getDb()
+  const pzB = Number(
+    c.prepare("INSERT INTO pazienti (nome, cognome) VALUES ('Boz', 'Za')").run().lastInsertRowid
+  )
+  const salva = (contenuto: string): void => {
+    c.prepare(
+      `INSERT INTO bozze_seduta (paziente_id, aggiornata_il, contenuto) VALUES (?, ?, ?)
+       ON CONFLICT(paziente_id) DO UPDATE SET aggiornata_il = excluded.aggiornata_il,
+         contenuto = excluded.contenuto`
+    ).run(pzB, new Date().toISOString(), contenuto)
+  }
+  salva('{"note":"prima"}')
+  salva('{"note":"seconda"}')
+  const righe = c.prepare('SELECT contenuto FROM bozze_seduta WHERE paziente_id = ?').all(pzB) as {
+    contenuto: string
+  }[]
+  assert.equal(righe.length, 1)
+  assert.equal(righe[0].contenuto, '{"note":"seconda"}')
+  // cancellando il paziente se ne va anche la bozza
+  c.prepare('DELETE FROM pazienti WHERE id = ?').run(pzB)
+  assert.equal(
+    (c.prepare('SELECT COUNT(*) AS n FROM bozze_seduta').get() as { n: number }).n,
+    0
+  )
 }
 
 // --- Tema: i documenti stampati devono seguire il colore scelto ---

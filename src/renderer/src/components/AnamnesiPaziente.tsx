@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { ClipboardList, Eye, FileClock, Pencil, Target, Trash2 } from 'lucide-react'
 import type { BodyChartRiepilogo, PazienteDettaglio, TipoChart } from '../../../shared/types'
 import { toastErrore } from './Toast'
+import { chiedi } from './Conferma'
 import { errMsg, formatData, oggiIso } from '../lib'
 import BodyChartEditor from './BodyChartEditor'
 import { SagomaIcona } from './FiguraUmana'
@@ -53,7 +54,7 @@ export default function AnamnesiPaziente({
   }
 
   const elimina = async (c: BodyChartRiepilogo): Promise<void> => {
-    if (!confirm(`Eliminare la body chart del ${formatData(c.data)}?`)) return
+    if (!(await chiedi(`Eliminare la body chart del ${formatData(c.data)}?`))) return
     try {
       await window.api.bodyChart.remove(c.id)
       await load()

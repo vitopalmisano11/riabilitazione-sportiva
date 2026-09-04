@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { FolderOpen, HardDriveDownload, RotateCcw, Save } from 'lucide-react'
 import type { InfoBackup } from '../../../shared/types'
 import { toast, toastErrore } from './Toast'
+import { chiedi } from './Conferma'
 import { errMsg } from '../lib'
 
 // Copie di sicurezza dell'archivio. Ogni copia contiene il database cifrato e
@@ -39,14 +40,14 @@ export default function PannelloBackup(): React.JSX.Element {
   const peso = (byte: number): string =>
     byte > 1024 * 1024 ? `${(byte / 1024 / 1024).toFixed(1)} MB` : `${Math.round(byte / 1024)} kB`
 
-  const ripristina = (nome: string): void => {
+  const ripristina = async (nome: string): Promise<void> => {
     if (
-      !confirm(
+      !(await chiedi(
         `Riportare l'archivio a com'era il ${quando(nome)}?\n\n` +
           'Tutto quello che hai aggiunto dopo quella data sparirà dall’app.\n' +
           'Prima di procedere viene fatta una copia dello stato attuale, così è comunque recuperabile.\n\n' +
           "L'app si riavvierà e dovrai rientrare con la password."
-      )
+      ))
     ) {
       return
     }
@@ -136,7 +137,7 @@ export default function PannelloBackup(): React.JSX.Element {
                 </span>
               </div>
               <span className="row-actions">
-                <button title="Riporta l'archivio a questa copia" onClick={() => ripristina(c.nome)}>
+                <button title="Riporta l'archivio a questa copia" onClick={() => void ripristina(c.nome)}>
                   <RotateCcw size={18} /> Ripristina
                 </button>
               </span>

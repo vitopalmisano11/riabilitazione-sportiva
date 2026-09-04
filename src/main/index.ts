@@ -1,7 +1,11 @@
 import { app, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { registerIpc } from './ipc'
-import { migraDaUserData } from './impostazioni'
+import {
+  impostaPosizioneFinestra,
+  migraDaUserData,
+  posizioneFinestra
+} from './impostazioni'
 import { backupDiChiusura } from './backup'
 import icona from '../../resources/icon.png?asset'
 
@@ -12,9 +16,12 @@ if (!app.isPackaged) {
 }
 
 function createWindow(): void {
+  const salvata = posizioneFinestra()
   const win = new BrowserWindow({
-    width: 1280,
-    height: 800,
+    width: salvata?.larghezza ?? 1280,
+    height: salvata?.altezza ?? 800,
+    x: salvata?.x,
+    y: salvata?.y,
     show: false,
     autoHideMenuBar: true,
     icon: icona,
@@ -25,9 +32,35 @@ function createWindow(): void {
   })
 
   win.on('ready-to-show', () => {
-    win.maximize()
+    // La prima volta si apre massimizzata; dopo, com'era quando l'hai chiusa.
+    if (salvata == null || salvata.massimizzata) win.maximize()
     win.show()
   })
+
+  // Si registra dove sta un attimo dopo l'ultimo spostamento: scrivere il file a
+  // ogni pixel trascinato sarebbe centinaia di scritture per una finestra
+  // spostata a mano.
+  let attesa: NodeJS.Timeout | null = null
+  const ricorda = (): void => {
+    if (attesa) clearTimeout(attesa)
+    attesa = setTimeout(() => {
+      if (win.isDestroyed()) return
+      // Da massimizzata si registra la misura "normale": e' quella a cui
+      // tornerebbe la finestra, e serve per la volta dopo.
+      const b = win.getNormalBounds()
+      impostaPosizioneFinestra({
+        x: b.x,
+        y: b.y,
+        larghezza: b.width,
+        altezza: b.height,
+        massimizzata: win.isMaximized()
+      })
+    }, 500)
+  }
+  win.on('resize', ricorda)
+  win.on('move', ricorda)
+  win.on('maximize', ricorda)
+  win.on('unmaximize', ricorda)
 
   if (process.env['ELECTRON_RENDERER_URL']) {
     win.loadURL(process.env['ELECTRON_RENDERER_URL'])

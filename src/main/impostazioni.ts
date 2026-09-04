@@ -19,6 +19,7 @@ interface Impostazioni {
   cartellaBackup?: string
   tema?: string
   scuro?: boolean
+  finestra?: PosizioneFinestra
   backupAttivo?: boolean
   backupDaTenere?: number
 }
@@ -64,6 +65,24 @@ export function tema(): Tema {
 export function impostaTema(t: Tema): void {
   salva({ tema: temaValido(t) })
   impostaTemaCorrente(t)
+}
+
+// Dov'era la finestra l'ultima volta. Se la lasci su un secondo schermo o non
+// massimizzata, la ritrovi com'era invece che al centro dello schermo primario.
+export interface PosizioneFinestra {
+  x?: number
+  y?: number
+  larghezza: number
+  altezza: number
+  massimizzata: boolean
+}
+
+export function posizioneFinestra(): PosizioneFinestra | null {
+  return leggi().finestra ?? null
+}
+
+export function impostaPosizioneFinestra(p: PosizioneFinestra): void {
+  salva({ finestra: p })
 }
 
 // Modalita' scura: si accende sopra alla tavolozza scelta e riguarda solo

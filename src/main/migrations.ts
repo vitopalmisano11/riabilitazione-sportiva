@@ -733,6 +733,19 @@ const MIGRATIONS: string[] = [
   `
   ALTER TABLE valutazione_distretti ADD COLUMN nota_attivo TEXT;
   ALTER TABLE valutazione_distretti ADD COLUMN nota_passivo TEXT;
+  `,
+
+  // 25 - bozza della seduta in costruzione. Una sola per paziente: il
+  //      costruttore e' aperto su un paziente per volta. Sta nel database, e
+  //      non in un file a parte, perche' contiene quello che si sta scrivendo
+  //      per una persona: deve essere cifrato e finire nelle copie come il
+  //      resto. Si cancella appena la seduta viene salvata.
+  `
+  CREATE TABLE bozze_seduta (
+    paziente_id INTEGER PRIMARY KEY REFERENCES pazienti(id) ON DELETE CASCADE,
+    aggiornata_il TEXT NOT NULL,
+    contenuto TEXT NOT NULL
+  );
   `
 ]
 

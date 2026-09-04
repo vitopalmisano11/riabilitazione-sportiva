@@ -7,6 +7,7 @@ import type {
   PazienteInput
 } from '../../../shared/types'
 import { toast, toastErrore } from './Toast'
+import { chiedi } from './Conferma'
 import { errMsg, eta, formatData } from '../lib'
 import EsportaCartella from './EsportaCartella'
 
@@ -26,9 +27,9 @@ export default function AnagraficaPaziente({
 
   const elimina = async (): Promise<void> => {
     if (
-      !confirm(
+      !(await chiedi(
         `Eliminare ${paziente.nome} ${paziente.cognome}?\nVerranno eliminate anche tutte le sue sedute (diario).`
-      )
+      ))
     ) {
       return
     }

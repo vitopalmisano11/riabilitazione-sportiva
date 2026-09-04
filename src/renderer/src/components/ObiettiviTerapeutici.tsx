@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { GripVertical, Plus, Trash2 } from 'lucide-react'
 import type { ObiettivoTerapeutico, TermineObiettivo } from '../../../shared/types'
 import { toastErrore } from './Toast'
+import { chiedi } from './Conferma'
 import { errMsg } from '../lib'
 import { sposta, useRiordino } from '../riordino'
 
@@ -62,7 +63,7 @@ export default function ObiettiviTerapeutici({
   }
 
   const elimina = async (o: ObiettivoTerapeutico): Promise<void> => {
-    if (!confirm(`Eliminare l’obiettivo “${o.testo}”?`)) return
+    if (!(await chiedi(`Eliminare l’obiettivo “${o.testo}”?`))) return
     try {
       await window.api.obiettiviTerapeutici.remove(o.id)
       await carica()

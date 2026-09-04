@@ -11,6 +11,7 @@ import type {
   VoceScreening
 } from '../../../shared/types'
 import { toast, toastErrore } from '../components/Toast'
+import { chiedi } from '../components/Conferma'
 import { errMsg } from '../lib'
 
 // Protocolli di screening, uno per sport: qui si programmano, non si eseguono.
@@ -99,7 +100,7 @@ export default function ProtocolliScreeningPage({
   }
 
   const elimina = async (p: ProtocolloScreening): Promise<void> => {
-    if (!confirm(`Eliminare il protocollo "${p.nome}"?\nI test nella libreria restano.`)) return
+    if (!(await chiedi(`Eliminare il protocollo "${p.nome}"?\nI test nella libreria restano.`))) return
     try {
       await window.api.screening.remove(p.id)
       await carica()
@@ -332,8 +333,8 @@ function Editor({
     }
   }
 
-  const indietro = (): void => {
-    if (modificato && !confirm('Ci sono modifiche non salvate. Uscire lo stesso?')) return
+  const indietro = async (): Promise<void> => {
+    if (modificato && !(await chiedi('Ci sono modifiche non salvate. Uscire lo stesso?'))) return
     onIndietro()
   }
 
@@ -362,7 +363,7 @@ function Editor({
           )}
         </h2>
         <span className="row-actions">
-          <button onClick={indietro}>
+          <button onClick={() => void indietro()}>
             <ChevronLeft size={18} /> Tutti i protocolli
           </button>
           <button className="primary" disabled={!modificato} onClick={() => void salva()}>

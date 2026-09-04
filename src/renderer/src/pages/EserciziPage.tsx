@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import type { Categoria, EsercizioConCategoria, EsercizioInput } from '../../../shared/types'
 import { toastErrore } from '../components/Toast'
+import { chiedi } from '../components/Conferma'
 import CrudList from '../components/CrudList'
 import ImmagineEsercizio from '../components/ImmagineEsercizio'
 import { errMsg } from '../lib'
@@ -163,7 +164,7 @@ export default function EserciziPage(): React.JSX.Element {
   }
 
   const elimina = async (e: EsercizioConCategoria): Promise<void> => {
-    if (!confirm(`Eliminare definitivamente "${e.nome}"?\nSe è stato usato in sedute passate, usa "Archivia".`))
+    if (!(await chiedi(`Eliminare definitivamente "${e.nome}"?\nSe è stato usato in sedute passate, usa "Archivia".`)))
       return
     try {
       await window.api.esercizi.remove(e.id)

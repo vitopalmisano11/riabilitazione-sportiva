@@ -9,6 +9,7 @@ import type {
   TestDistretto
 } from '../../../shared/types'
 import { toast, toastErrore } from '../components/Toast'
+import { chiedi } from '../components/Conferma'
 import { errMsg } from '../lib'
 import { sposta, useRiordino } from '../riordino'
 
@@ -187,9 +188,9 @@ function ElencoDistretti({
                     <button
                       title="Elimina"
                       className="danger"
-                      onClick={() => {
+                      onClick={async () => {
                         if (
-                          confirm(
+                          await chiedi(
                             `Eliminare "${d.nome}"?\nVerranno eliminati i suoi movimenti e test, e i rilievi già registrati nelle valutazioni.`
                           )
                         ) {

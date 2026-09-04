@@ -11,6 +11,7 @@ import type {
   TestValutazioneCompleto
 } from '../../../shared/types'
 import { toast, toastErrore } from '../components/Toast'
+import { chiedi } from '../components/Conferma'
 import ElencoCategorie from '../components/ElencoCategorie'
 import { errMsg } from '../lib'
 import { sposta, useRiordino } from '../riordino'
@@ -223,8 +224,8 @@ function ElencoTest({
                     <button
                       title="Elimina"
                       className="danger"
-                      onClick={() => {
-                        if (confirm(`Eliminare il test "${t.nome}"?`)) {
+                      onClick={async () => {
+                        if (await chiedi(`Eliminare il test "${t.nome}"?`)) {
                           void run(async () => {
                             await window.api.testValutazione.remove(t.id)
                             await onChanged()

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Trash2 } from 'lucide-react'
 import type { BodyChartCompleta, SegnoBodyChart, TipoSegno } from '../../../shared/types'
 import { toast, toastErrore } from './Toast'
+import { chiedi } from './Conferma'
 import { errMsg } from '../lib'
 import { useScorciatoie } from '../scorciatoie'
 import FiguraChart, { SEGNI, viste, type SegnoDisegnato } from './FiguraUmana'
@@ -35,14 +36,14 @@ export default function BodyChartEditor({
   // Esc chiude, Ctrl+S salva: sono le due cose che si fanno di continuo qui
   // dentro.
   useScorciatoie([
-    { tasto: 'Escape', azione: () => chiudi() },
+    { tasto: 'Escape', azione: () => void chiudi() },
     { tasto: 's', ctrl: true, azione: () => void salva(), attiva: !soloLettura && modificato }
   ])
 
   // Un clic fuori dalla finestra la chiude: senza questa domanda i segni appena
   // messi sparirebbero senza dire niente.
-  const chiudi = (): void => {
-    if (modificato && !confirm('Hai modifiche non salvate. Vuoi uscire lo stesso?')) return
+  const chiudi = async (): Promise<void> => {
+    if (modificato && !(await chiedi('Hai modifiche non salvate. Vuoi uscire lo stesso?'))) return
     onChiudi(false)
   }
   // trascinamento in corso: quale segno e su quale figura
@@ -132,7 +133,7 @@ export default function BodyChartEditor({
       .map((s) => ({ ...s, selezionato: !soloLettura && s.chiave === selezione }))
 
   return (
-    <div className="modal-overlay" onClick={chiudi}>
+    <div className="modal-overlay" onClick={() => void chiudi()}>
       <div
         className="modal modal-lg"
         onClick={(e) => e.stopPropagation()}
@@ -254,7 +255,7 @@ export default function BodyChartEditor({
         </label>
 
         <div className="modal-actions">
-          <button onClick={chiudi}>{soloLettura ? 'Chiudi' : 'Annulla'}</button>
+          <button onClick={() => void chiudi()}>{soloLettura ? 'Chiudi' : 'Annulla'}</button>
           {!soloLettura && (
             <button className="primary" disabled={!modificato} onClick={() => void salva()}>
               Salva

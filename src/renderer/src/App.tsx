@@ -19,6 +19,7 @@ import FollowUpPage from './pages/FollowUpPage'
 import ImpostazioniPage from './pages/ImpostazioniPage'
 import AuthGate from './components/AuthGate'
 import ToastHost, { toastErrore } from './components/Toast'
+import ConfermaHost from './components/Conferma'
 import { errMsg } from './lib'
 import type { Tema } from '../../shared/temi'
 
@@ -170,6 +171,7 @@ export default function App(): React.JSX.Element {
           />
         )}
       </main>
+      <ConfermaHost />
       <ToastHost />
     </div>
   )

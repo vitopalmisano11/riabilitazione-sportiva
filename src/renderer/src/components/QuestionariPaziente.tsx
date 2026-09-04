@@ -7,6 +7,7 @@ import type {
   Questionario
 } from '../../../shared/types'
 import { toastErrore } from './Toast'
+import { chiedi } from './Conferma'
 import { errMsg, formatData } from '../lib'
 import CompilaQuestionario from './CompilaQuestionario'
 
@@ -46,7 +47,7 @@ export default function QuestionariPaziente({
   }, [load])
 
   const elimina = async (c: CompilazioneRiepilogo): Promise<void> => {
-    if (!confirm(`Eliminare la compilazione del ${formatData(c.data)}?`)) return
+    if (!(await chiedi(`Eliminare la compilazione del ${formatData(c.data)}?`))) return
     try {
       await window.api.compilazioni.remove(c.id)
       await load()

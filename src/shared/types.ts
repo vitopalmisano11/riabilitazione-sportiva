@@ -754,10 +754,19 @@ export interface Api {
     remove(id: number): Promise<void>
     reorder(ids: number[]): Promise<void>
   }
+  // Bozza della seduta che si sta costruendo: una per paziente, ritrovata alla
+  // riapertura se l'app si e' chiusa a meta'.
+  bozze: {
+    leggi(pazienteId: number): Promise<{ aggiornata_il: string; contenuto: string } | null>
+    salva(pazienteId: number, contenuto: string): Promise<void>
+    elimina(pazienteId: number): Promise<void>
+  }
   valutazioni: {
     list(pazienteId: number): Promise<ValutazioneRiepilogo[]>
     get(id: number): Promise<ValutazioneCompleta>
     create(pazienteId: number, data: string, distrettoIds: number[]): Promise<number>
+    // Nuova valutazione che riparte dai rilievi di una precedente.
+    duplica(id: number, data: string): Promise<number>
     salva(dati: ValutazioneCompleta): Promise<void>
     remove(id: number): Promise<void>
   }

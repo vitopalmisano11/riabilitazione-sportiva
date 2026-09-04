@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { CheckCircle2, RotateCcw } from 'lucide-react'
 import type { PazienteDettaglio } from '../../../shared/types'
 import { toastErrore } from '../components/Toast'
+import { chiedi } from '../components/Conferma'
 import { errMsg, formatData, oggiIso } from '../lib'
 
 // Chi stai seguendo adesso e chi hai finito di seguire.
@@ -59,28 +60,28 @@ export default function FollowUpPage({
     }
   }
 
-  const concludi = (p: PazienteDettaglio): void => {
+  const concludi = async (p: PazienteDettaglio): Promise<void> => {
     if (
-      !confirm(
+      !(await chiedi(
         `Il trattamento di ${p.nome} ${p.cognome} è finito?\n\n` +
           'Passerà nell’elenco del follow-up, con il primo contatto proposto fra un mese. ' +
           'Le sue sedute e la sua cartella restano dove sono.'
-      )
+      ))
     ) {
       return
     }
     void esegui(() => window.api.followUp.setStato(p.id, 'concluso', fraUnMese()))
   }
 
-  const riprendi = (p: PazienteDettaglio): void => {
+  const riprendi = async (p: PazienteDettaglio): Promise<void> => {
     if (
-      !confirm(
+      !(await chiedi(
         `${p.nome} ${p.cognome} ha ripreso il trattamento?
 
 ` +
           'Torna nell’elenco di chi stai seguendo. La data del prossimo contatto viene tolta, ' +
           'la recensione e la data dell’ultimo contatto restano.'
-      )
+      ))
     ) {
       return
     }
@@ -129,7 +130,7 @@ export default function FollowUpPage({
                       ? `ultima seduta ${formatData(p.ultima_seduta)}`
                       : 'nessuna seduta ancora'}
                   </span>
-                  <button title="Il ciclo è finito" onClick={() => concludi(p)}>
+                  <button title="Il ciclo è finito" onClick={() => void concludi(p)}>
                     <CheckCircle2 size={18} /> Concludi
                   </button>
                 </li>
@@ -222,7 +223,7 @@ export default function FollowUpPage({
                       <td>
                         <button
                           title="Riportalo fra i pazienti in trattamento"
-                          onClick={() => riprendi(p)}
+                          onClick={() => void riprendi(p)}
                         >
                           <RotateCcw size={16} /> Riprendi
                         </button>

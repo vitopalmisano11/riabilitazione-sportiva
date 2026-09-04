@@ -27,6 +27,7 @@ import AnagraficaPaziente, { ModaleDatiPaziente } from '../components/Anagrafica
 import AnamnesiPaziente from '../components/AnamnesiPaziente'
 import ValutazionePaziente from '../components/ValutazionePaziente'
 import { toast, toastErrore } from '../components/Toast'
+import { chiedi } from '../components/Conferma'
 import { errMsg, formatData } from '../lib'
 import { useScorciatoie } from '../scorciatoie'
 
@@ -98,6 +99,24 @@ export default function PazientiPage({
   const inVista = tutti ? trovati : trovati.slice(0, IN_VISTA)
   const altri = tutti ? [] : trovati.slice(IN_VISTA)
   const sel = pazienti.find((p) => p.id === selId) ?? null
+
+  // Il nome del paziente aperto finisce nel titolo della finestra: con piu'
+  // finestre aperte, sulla barra di Windows si distinguono.
+  useEffect(() => {
+    document.title = sel
+      ? `Riabilitazione — ${sel.cognome} ${sel.nome}`
+      : 'Riabilitazione Sportiva'
+    return () => {
+      document.title = 'Riabilitazione Sportiva'
+    }
+  }, [sel])
+
+  // Il paziente arriva, si apre l'elenco e si comincia: senza passare dalla sua
+  // scheda. E' il gesto piu' ripetuto della giornata.
+  const nuovaSedutaPer = (pazienteId: number): void => {
+    setSelId(pazienteId)
+    setBuilder({ sedutaId: null })
+  }
 
   // Ctrl+N crea (un paziente nell'elenco, una seduta dentro alla scheda) e
   // Ctrl+F porta il cursore nella ricerca: sono i due gesti che si ripetono
@@ -249,6 +268,16 @@ export default function PazientiPage({
                 <span className="scelta-tile-nome">
                   {p.cognome} {p.nome}
                 </span>
+                <button
+                  className="primary btn-icona"
+                  title="Nuova seduta per questo paziente"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    nuovaSedutaPer(p.id)
+                  }}
+                >
+                  <Plus size={17} />
+                </button>
               </div>
             ))}
           </div>
@@ -263,6 +292,16 @@ export default function PazientiPage({
                       <span className="scelta-tile-nome">
                         {p.cognome} {p.nome}
                       </span>
+                      <button
+                        className="primary btn-icona"
+                        title="Nuova seduta per questo paziente"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          nuovaSedutaPer(p.id)
+                        }}
+                      >
+                        <Plus size={17} />
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -354,7 +393,7 @@ function SchedaPaziente({
     if (
       paziente.patologia_id != null &&
       patologiaId !== paziente.patologia_id &&
-      !confirm('Cambiare patologia? La fase corrente verrà azzerata.')
+      !(await chiedi('Cambiare patologia? La fase corrente verrà azzerata.'))
     ) {
       return
     }
@@ -384,15 +423,15 @@ function SchedaPaziente({
       paziente.fase_corrente_id == null
         ? `Impostare "${prossima.nome}" come fase corrente di ${paziente.nome} ${paziente.cognome}?`
         : `Avanzare ${paziente.nome} ${paziente.cognome} a "${prossima.nome}"?\nLe nuove sedute useranno la struttura della nuova fase.`
-    if (!confirm(domanda)) return
+    if (!(await chiedi(domanda))) return
     await setFase(prossima.id)
   }
 
   const elimina = async (): Promise<void> => {
     if (
-      !confirm(
+      !(await chiedi(
         `Eliminare ${paziente.nome} ${paziente.cognome}?\nVerranno eliminate anche tutte le sue sedute (diario).`
-      )
+      ))
     ) {
       return
     }
@@ -720,7 +759,7 @@ function DiarioCard({
   }, [paziente.id])
 
   const elimina = async (s: SedutaRiepilogo): Promise<void> => {
-    if (!confirm(`Eliminare la seduta del ${formatData(s.data)}?`)) return
+    if (!(await chiedi(`Eliminare la seduta del ${formatData(s.data)}?`))) return
     try {
       await window.api.sedute.remove(s.id)
       await load()

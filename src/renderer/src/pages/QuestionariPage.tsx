@@ -10,6 +10,7 @@ import type {
   TipoDomanda
 } from '../../../shared/types'
 import { toast, toastErrore } from '../components/Toast'
+import { chiedi } from '../components/Conferma'
 import ElencoCategorie from '../components/ElencoCategorie'
 import { errMsg } from '../lib'
 import { sposta, useRiordino } from '../riordino'
@@ -243,9 +244,9 @@ function ElencoQuestionari({
                 <button
                   title="Elimina"
                   className="danger"
-                  onClick={() => {
+                  onClick={async () => {
                     if (
-                      confirm(
+                      await chiedi(
                         `Eliminare "${x.nome}"?\nVerranno eliminate anche le compilazioni fatte dai pazienti.`
                       )
                     ) {

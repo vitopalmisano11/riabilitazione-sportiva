@@ -3,6 +3,7 @@ import { GripVertical, Pencil, X } from 'lucide-react'
 import { errMsg } from '../lib'
 import { sposta, useRiordino } from '../riordino'
 import { toastErrore } from './Toast'
+import { chiedi } from './Conferma'
 
 export interface CrudItem {
   id: number
@@ -123,8 +124,8 @@ export default function CrudList({
                   <button
                     title="Elimina"
                     className="danger"
-                    onClick={() => {
-                      if (confirm(`Eliminare "${item.nome}"?`)) void run(() => onDelete(item.id))
+                    onClick={async () => {
+                      if (await chiedi(`Eliminare "${item.nome}"?`)) void run(() => onDelete(item.id))
                     }}
                   >
                     <X size={16} />

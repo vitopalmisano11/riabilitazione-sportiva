@@ -9,6 +9,7 @@ import type {
   SintomoAnamnesi
 } from '../../../shared/types'
 import { toastErrore } from './Toast'
+import { chiedi } from './Conferma'
 import { errMsg } from '../lib'
 import { sposta, useRiordino } from '../riordino'
 import GraficoAndamento, { COLORI, type Selezione } from './GraficoAndamento'
@@ -337,14 +338,14 @@ function Grafici({
   }
 
   // Svuota un grafico: toglie i punti di quel tipo da tutti i sintomi.
-  const svuota = (tipo: 'giorno' | 'esordio'): void => {
+  const svuota = async (tipo: 'giorno' | 'esordio'): Promise<void> => {
     const quanti = dati.sintomi.reduce(
       (n, s) => n + s.punti.filter((p) => p.grafico === tipo).length,
       0
     )
     if (quanti === 0) return
     const nome = tipo === 'giorno' ? 'delle 24 ore' : "dall'esordio"
-    if (!confirm(`Togliere tutti i ${quanti} punti del grafico ${nome}?`)) return
+    if (!(await chiedi(`Togliere tutti i ${quanti} punti del grafico ${nome}?`))) return
     onAggiorna({
       sintomi: dati.sintomi.map((s) => ({
         ...s,
@@ -500,7 +501,7 @@ function Grafici({
         <div className="riquadro-grafico">
           <div className="testata-grafico">
             <span className="sotto-titolo">Nelle 24 ore</span>
-            <button title="Togli tutti i punti" onClick={() => svuota('giorno')}>
+            <button title="Togli tutti i punti" onClick={() => void svuota('giorno')}>
               <RotateCcw size={16} /> Svuota
             </button>
           </div>
@@ -527,7 +528,7 @@ function Grafici({
         <div className="riquadro-grafico">
           <div className="testata-grafico">
             <span className="sotto-titolo">Dall&apos;esordio</span>
-            <button title="Togli tutti i punti" onClick={() => svuota('esordio')}>
+            <button title="Togli tutti i punti" onClick={() => void svuota('esordio')}>
               <RotateCcw size={16} /> Svuota
             </button>
           </div>

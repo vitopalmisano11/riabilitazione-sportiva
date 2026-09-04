@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { FileText, ImageIcon, Plus, Trash2 } from 'lucide-react'
 import type { AnamnesiRemota as Dati, Bioimmagine, RispostaSiNo } from '../../../shared/types'
 import { toastErrore } from './Toast'
+import { chiedi } from './Conferma'
 import { errMsg, formatData } from '../lib'
 
 const ATTESA_SALVATAGGIO = 1500
@@ -118,7 +119,7 @@ export default function AnamnesiRemota({
   }
 
   const eliminaReferto = async (r: Bioimmagine): Promise<void> => {
-    if (!confirm(`Eliminare "${r.nome}"?`)) return
+    if (!(await chiedi(`Eliminare "${r.nome}"?`))) return
     try {
       await window.api.bioimmagini.remove(r.id)
       await caricaReferti()

@@ -19,6 +19,7 @@ import type {
   VoceEseguita
 } from '../../../shared/types'
 import { toast, toastErrore } from '../components/Toast'
+import { chiedi } from '../components/Conferma'
 import CompilaQuestionario from '../components/CompilaQuestionario'
 import { errMsg, formatData, oggiIso } from '../lib'
 
@@ -180,9 +181,9 @@ function ScreeningDelPaziente({
 
   const elimina = async (s: ScreeningRiepilogo): Promise<void> => {
     if (
-      !confirm(
+      !(await chiedi(
         `Eliminare lo screening del ${formatData(s.data)}?\nI valori misurati andranno persi.`
-      )
+      ))
     ) {
       return
     }
@@ -475,8 +476,8 @@ function Esecuzione({
     }
   }
 
-  const indietro = (): void => {
-    if (modificato && !confirm('Ci sono valori non salvati. Uscire lo stesso?')) return
+  const indietro = async (): Promise<void> => {
+    if (modificato && !(await chiedi('Ci sono valori non salvati. Uscire lo stesso?'))) return
     onIndietro()
   }
 
@@ -484,7 +485,7 @@ function Esecuzione({
   // i valori di prima.
   const apriReport = async (): Promise<void> => {
     if (modificato) {
-      if (!confirm('Ci sono valori non salvati: il report non li conterrebbe.\n\nSalvo prima?')) {
+      if (!(await chiedi('Ci sono valori non salvati: il report non li conterrebbe.\n\nSalvo prima?'))) {
         return
       }
       await salva()
@@ -514,7 +515,7 @@ function Esecuzione({
           </span>
         </h2>
         <span className="row-actions">
-          <button onClick={indietro}>
+          <button onClick={() => void indietro()}>
             <ChevronLeft size={18} /> Tutti gli screening
           </button>
           <button

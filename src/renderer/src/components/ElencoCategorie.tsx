@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { GripVertical, Pencil, Plus, X } from 'lucide-react'
 import { toastErrore } from './Toast'
+import { chiedi } from './Conferma'
 import { errMsg } from '../lib'
 import { sposta, useRiordino } from '../riordino'
 
@@ -129,8 +130,8 @@ export default function ElencoCategorie({
                     <button
                       title="Elimina"
                       className="danger"
-                      onClick={() => {
-                        if (confirm(`Eliminare la categoria "${c.nome}"?\n${avvisoElimina}`)) {
+                      onClick={async () => {
+                        if (await chiedi(`Eliminare la categoria "${c.nome}"?\n${avvisoElimina}`)) {
                           void run(async () => {
                             await api.remove(c.id)
                             await onChanged()

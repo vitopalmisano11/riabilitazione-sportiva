@@ -114,6 +114,40 @@ export function leggiValutazione(id: number): ValutazioneCompleta {
   return { valutazione, distretto_ids, movimenti, note_movimenti, test }
 }
 
+// Nuova valutazione che riparte da una precedente.
+//
+// A fine fase si rivedono gli stessi movimenti dello stesso distretto: partire
+// dai valori dell'altra volta significa cambiare solo quelli che sono cambiati,
+// e avere sotto gli occhi da dove si veniva. I testi discorsivi (ispezione,
+// note, carico e capacita') non si copiano: sono il racconto di quel giorno, e
+// ricopiarli vorrebbe dire ritrovarseli firmati come nuovi.
+export function duplicaValutazione(id: number, data: string): number {
+  const db = getDb()
+  const sorgente = leggiValutazione(id)
+  return db.transaction(() => {
+    const nuovo = Number(
+      db
+        .prepare('INSERT INTO valutazioni (paziente_id, data) VALUES (?, ?)')
+        .run(sorgente.valutazione.paziente_id, data).lastInsertRowid
+    )
+    salvaValutazione({
+      ...sorgente,
+      valutazione: {
+        ...sorgente.valutazione,
+        id: nuovo,
+        data,
+        ispezione: null,
+        note: null,
+        carico_locale: null,
+        carico_generale: null,
+        capacita_locale: null,
+        capacita_generale: null
+      }
+    })
+    return nuovo
+  })()
+}
+
 export function salvaValutazione(dati: ValutazioneCompleta): void {
   const db = getDb()
   const id = dati.valutazione.id

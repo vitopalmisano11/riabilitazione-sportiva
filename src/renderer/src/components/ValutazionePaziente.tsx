@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Eye, Pencil, Plus, Trash2 } from 'lucide-react'
+import { Copy, Eye, Pencil, Plus, Trash2 } from 'lucide-react'
 import type {
   Andamento,
   Distretto,
@@ -14,6 +14,7 @@ import type {
   ValutazioneRiepilogo
 } from '../../../shared/types'
 import { toast, toastErrore } from './Toast'
+import { chiedi } from './Conferma'
 import { errMsg, formatData, oggiIso } from '../lib'
 import { useScorciatoie } from '../scorciatoie'
 import { GRUPPI } from '../pages/DistrettiPage'
@@ -85,8 +86,21 @@ export default function ValutazionePaziente({
     }
   }
 
+  // Rivalutare vuol dire rifare gli stessi movimenti: si riparte dai valori
+  // dell'altra volta e si cambiano solo quelli cambiati. I testi discorsivi
+  // restano vuoti, perche' raccontano quel giorno la'.
+  const duplica = async (v: ValutazioneRiepilogo): Promise<void> => {
+    try {
+      const id = await window.api.valutazioni.duplica(v.id, oggiIso())
+      await load()
+      setAperta({ id, soloLettura: false })
+    } catch (e) {
+      toastErrore(errMsg(e))
+    }
+  }
+
   const elimina = async (v: ValutazioneRiepilogo): Promise<void> => {
-    if (!confirm(`Eliminare la valutazione del ${formatData(v.data)}?`)) return
+    if (!(await chiedi(`Eliminare la valutazione del ${formatData(v.data)}?`))) return
     try {
       await window.api.valutazioni.remove(v.id)
       await load()
@@ -135,6 +149,12 @@ export default function ValutazionePaziente({
                 </button>
                 <button title="Modifica" onClick={() => setAperta({ id: v.id, soloLettura: false })}>
                   <Pencil size={18} />
+                </button>
+                <button
+                  title="Nuova valutazione partendo da questa"
+                  onClick={() => void duplica(v)}
+                >
+                  <Copy size={18} />
                 </button>
                 <button className="danger" title="Elimina" onClick={() => void elimina(v)}>
                   <Trash2 size={18} />
@@ -210,14 +230,14 @@ function SchedaValutazione({
   const [modificato, setModificato] = useState(false)
 
   useScorciatoie([
-    { tasto: 'Escape', azione: () => chiudi() },
+    { tasto: 'Escape', azione: () => void chiudi() },
     { tasto: 's', ctrl: true, azione: () => void salva(), attiva: !soloLettura && modificato }
   ])
 
   // Come nella body chart: un clic fuori dalla finestra non deve buttare via
   // una valutazione appena compilata.
-  const chiudi = (): void => {
-    if (modificato && !confirm('Hai modifiche non salvate. Vuoi uscire lo stesso?')) return
+  const chiudi = async (): Promise<void> => {
+    if (modificato && !(await chiedi('Hai modifiche non salvate. Vuoi uscire lo stesso?'))) return
     onChiudi(false)
   }
 
@@ -307,7 +327,7 @@ function SchedaValutazione({
   }
 
   return (
-    <div className="modal-overlay" onClick={chiudi}>
+    <div className="modal-overlay" onClick={() => void chiudi()}>
       <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
         <div className="card-header-row">
           <h3>{soloLettura ? 'Valutazione obiettiva' : 'Valutazione obiettiva — modifica'}</h3>
@@ -459,7 +479,7 @@ function SchedaValutazione({
         </label>
 
         <div className="modal-actions">
-          <button onClick={chiudi}>{soloLettura ? 'Chiudi' : 'Annulla'}</button>
+          <button onClick={() => void chiudi()}>{soloLettura ? 'Chiudi' : 'Annulla'}</button>
           {!soloLettura && (
             <button className="primary" disabled={!modificato} onClick={() => void salva()}>
               Salva
