@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
-  Layers,
   Archive,
   ArchiveRestore,
+  ArrowDownAZ,
+  ArrowDownWideNarrow,
+  Layers,
   HelpCircle,
   ImageIcon,
   Pencil,
@@ -327,25 +329,34 @@ export default function EserciziPage(): React.JSX.Element {
             </option>
           ))}
         </select>
-        <select
-          value={ordine}
-          title="Come ordinare l'elenco"
-          onChange={(e) => setOrdine(e.target.value === 'usati' ? 'usati' : 'alfabetico')}
+        {/* Due interruttori, non due scritte: l'ordine e gli archiviati sono
+            stati dell'elenco, e da pulsanti occupano un quarto dello spazio. */}
+        <button
+          className="btn-solo-icona"
+          title={
+            ordine === 'alfabetico'
+              ? 'Ordine alfabetico — clicca per mettere prima i più usati'
+              : 'Prima i più usati — clicca per tornare all’ordine alfabetico'
+          }
+          onClick={() => setOrdine(ordine === 'alfabetico' ? 'usati' : 'alfabetico')}
         >
-          <option value="alfabetico">Ordine alfabetico</option>
-          <option value="usati">Prima i più usati</option>
-        </select>
-        <label className="checkbox-inline">
-          <input
-            type="checkbox"
-            checked={mostraArchiviati}
-            onChange={(e) => {
-              setMostraArchiviati(e.target.checked)
-              void load(e.target.checked)
-            }}
-          />
-          Mostra archiviati
-        </label>
+          {ordine === 'alfabetico' ? (
+            <ArrowDownAZ size={18} />
+          ) : (
+            <ArrowDownWideNarrow size={18} />
+          )}
+        </button>
+        <button
+          className={mostraArchiviati ? 'attivo' : ''}
+          title="Mostra anche gli esercizi archiviati"
+          onClick={() => {
+            const acceso = !mostraArchiviati
+            setMostraArchiviati(acceso)
+            void load(acceso)
+          }}
+        >
+          <Archive size={16} /> Archiviati
+        </button>
         <span className="spacer" />
         <button
           className="primary"
@@ -578,8 +589,7 @@ export default function EserciziPage(): React.JSX.Element {
             </div>
             {clusterNelForm && (
               <p className="hint">
-                Questa categoria si dosa a cluster: sulla scheda del paziente uscira&apos;{' '}
-                <b>{anteprimaCluster}</b>.
+                Sulla scheda: <b>{anteprimaCluster}</b>
               </p>
             )}
             <label>

@@ -398,9 +398,6 @@ export default function SedutaBuilder({
         // Cercando si trova per nome, ma anche per categoria: spesso non si
         // ha in mente un esercizio precurso ("mi serve qualcosa di
         // propriocettiva"), si ha in mente il tipo di lavoro.
-        const perCategoria =
-          ricerca.length >= 2 &&
-          categorie.some((c) => c.nome.toLowerCase().includes(ricerca))
         const daProporre =
           ricerca.length >= 2
             ? libreria
@@ -612,11 +609,6 @@ export default function SedutaBuilder({
                 value={ricerche[idxSez] ?? ''}
                 onChange={(e) => setRicerche({ ...ricerche, [idxSez]: e.target.value })}
               />
-              {perCategoria && daProporre.length > 0 && (
-                <p className="hint hint-categoria">
-                  Esercizi della categoria che stai cercando: scegli quello che ti serve.
-                </p>
-              )}
               {daProporre.length > 0 ? (
                 <ul className="esercizi-proposti">
                   {daProporre.map((e) => (

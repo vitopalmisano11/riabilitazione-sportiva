@@ -347,12 +347,9 @@ function SchedaBlocco(): React.JSX.Element {
   return (
     <section className="card single-col">
       <label className="riga-interruttore">
-        <span>
-          <span className="nome-interruttore">Blocco automatico</span>
-          <span className="modal-testo">
-            Dopo un po&apos; che non tocchi niente, l&apos;app torna alla schermata della
-            password. Il lavoro aperto resta dov&apos;è: per riprendere basta riscriverla.
-          </span>
+        <span className="nome-interruttore">
+          Blocco automatico
+          <Aiuto testo="Dopo un po' che non tocchi niente, l'app torna alla schermata della password. Il lavoro aperto resta dov'è: per riprendere basta riscriverla." />
         </span>
         <input
           type="checkbox"
@@ -416,13 +413,10 @@ function SchedaAspetto({
       {/* Prima la barra scura era una caratteristica del blu: gli altri due
           colori non potevano averla, e il blu non poteva farne a meno. Adesso
           e' una scelta a se', valida con qualunque colore. */}
-      <label className="riga-interruttore">
-        <span>
-          <span className="nome-interruttore">Colonna laterale scura</span>
-          <span className="modal-testo">
-            La striscia con i pulsanti delle sezioni, a sinistra: scura stacca di più dal
-            contenuto, chiara è più leggera. Il colore che hai scelto resta quello.
-          </span>
+      <label className="riga-interruttore riga-sotto-colori">
+        <span className="nome-interruttore">
+          Colonna laterale scura
+          <Aiuto testo="La striscia con i pulsanti delle sezioni, a sinistra: scura stacca di più dal contenuto, chiara è più leggera. Il colore che hai scelto resta quello." />
         </span>
         <input
           type="checkbox"
@@ -435,12 +429,9 @@ function SchedaAspetto({
           quella scelta, e sta nello stesso riquadro perche' e' la stessa
           domanda — che aspetto ha l'app. */}
       <label className="riga-interruttore riga-luce">
-        <span>
-          <span className="nome-interruttore">Modalità scura</span>
-          <span className="modal-testo">
-            Fondi scuri e scritte chiare, con il colore che hai scelto. I documenti che stampi
-            restano chiari: vanno sulla carta.
-          </span>
+        <span className="nome-interruttore">
+          Modalità scura
+          <Aiuto testo="Fondi scuri e scritte chiare, con il colore che hai scelto. I documenti che stampi restano chiari: vanno sulla carta." />
         </span>
         <input type="checkbox" checked={scuro} onChange={(e) => onScuro(e.target.checked)} />
       </label>

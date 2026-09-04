@@ -1652,8 +1652,18 @@ span.row-actions button {
   min-width: 0;
 }
 
-.hint-categoria {
-  margin: 0 0 6px;
+/* Un pulsante con la sola icona: quadrato, senza lo spazio che terrebbe una
+   scritta accanto. */
+.btn-solo-icona {
+  padding: 7px 9px;
+}
+
+/* Un pulsante della barra che e' acceso o spento (mostra gli archiviati,
+   l'ordine): acceso prende il colore dell'app. */
+.toolbar button.attivo {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: var(--accent);
 }
 
 /* Testata della scelta: dice a quale sezione stai aggiungendo, e come chiudere. */
@@ -2693,6 +2703,14 @@ textarea {
   justify-content: space-between;
   gap: 24px;
   cursor: pointer;
+}
+
+/* Il primo interruttore sotto alle piastrelle dei colori: senza una riga di
+   stacco sembrava una didascalia delle piastrelle. */
+.riga-sotto-colori {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
 }
 
 .riga-interruttore .nome-interruttore {
