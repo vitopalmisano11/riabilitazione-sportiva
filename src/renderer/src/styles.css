@@ -28,10 +28,13 @@
   --barra-bordo: #cfc2a9;
   --barra-bordo-pulsante: #c3b498;
   --barra-etichetta: #8d99a8;
-  /* fondo delle intestazioni: righe dei titoli, sottotitoli, barra delle schede */
-  --intestazione: var(--intestazione);
+  /* fondo delle intestazioni: righe dei titoli, sottotitoli, barra delle schede.
+     Erano scritti citando se stessi (--intestazione: var(--intestazione)), che
+     per il browser vuol dire "niente": nel tema verde le fasce dei titoli
+     restavano trasparenti e la scritta prendeva il colore che passava. */
+  --intestazione: #efe8d9;
   --intestazione-hover: #e6dcc9;
-  --intestazione-testo: var(--intestazione-testo);
+  --intestazione-testo: #6d6459;
   --intestazione-testo-forte: #2f2a22;
   --login: linear-gradient(160deg, #ece3d3 0%, #ddd2bd 55%, #e8dfcd 100%);
   /* fondo dei riquadri di dati e interno delle caselle in cui si scrive:
@@ -3404,10 +3407,11 @@ textarea {
   margin: 22px 0 8px;
   padding: 4px 11px;
   border-radius: 999px;
-  background: var(--accent);
-  /* Il colore del foglio, non il bianco fisso: in modalita' scura l'accento
-     schiarisce e una scritta bianca sopra non si leggerebbe piu'. */
-  color: var(--surface);
+  /* Fondo del colore secondario del tema (beige nel verde, sabbia nel
+     terracotta, azzurrino nel blu) e scritta del colore principale: pieno era
+     troppo forte per un foglio che deve restare sobrio. */
+  background: var(--intestazione);
+  color: var(--accent);
 }
 
 /* Il programma del paziente: una tabella con quattro colonne sempre nello
