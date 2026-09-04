@@ -503,16 +503,14 @@ export default function EserciziPage(): React.JSX.Element {
                 }}
               />
             </label>
-            <label className="riga-interruttore riga-staccata">
-              <span className="nome-interruttore">
-                Dosaggio a cluster
-                <Aiuto testo="Gli esercizi di questa categoria si dosano spezzando la serie in blocchi con una pausa breve dentro: 4 serie da 3 cluster da 2 ripetizioni, 15 secondi tra i cluster e 2 minuti tra le serie. Nel loro form compaiono i campi in più; le altre categorie restano come sono." />
-              </span>
+            <label className="checkbox-inline riga-staccata">
               <input
                 type="checkbox"
                 checked={formCat.cluster}
                 onChange={(e) => setFormCat({ ...formCat, cluster: e.target.checked })}
               />
+              Dosaggio a cluster
+              <Aiuto testo="Gli esercizi di questa categoria si dosano spezzando la serie in blocchi con una pausa breve dentro: 4 serie da 3 cluster da 2 ripetizioni, 15 secondi tra i cluster e 2 minuti tra le serie. Nel loro form compaiono i campi in più; le altre categorie restano come sono." />
             </label>
             <div className="modal-actions">
               <button onClick={() => setFormCat(null)}>Annulla</button>

@@ -745,6 +745,15 @@ button.danger:hover:not(:disabled) {
   margin: var(--spazio) 0 8px;
 }
 
+/* Dentro a un riquadro o a una finestra la fascia sborda di quanto e' il suo
+   bordo interno: cosi' la scritta parte esattamente dove partono i campi che ha
+   sotto, invece che dieci pixel piu' a destra. Solo dove la fascia e' figlia
+   diretta di un contenitore con il suo bordo: altrove (per esempio come titolo
+   di un grafico) resta dov'e'. */
+:is(.card, .modal, .blocco-impostazione) > .sotto-titolo {
+  margin-inline: -10px;
+}
+
 /* Fuori dai riquadri bianchi la fascia non serve: li' il sottotitolo sta gia'
    su un fondo suo. */
 .riga-filtro .sotto-titolo,
@@ -1264,6 +1273,12 @@ button.danger:hover:not(:disabled) {
 .bolla-nota {
   position: fixed;
   z-index: 60;
+  /* Il "?" spesso sta dentro a un titolo, che e' tutto maiuscolo e spaziato:
+     senza azzerarli, la spiegazione usciva IN MAIUSCOLO. */
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 400;
+  text-align: left;
   transform: translateX(-100%);
   max-width: 340px;
   padding: 9px 11px;
@@ -3340,12 +3355,17 @@ textarea {
    esegue l'esercizio. Percio' caratteri grandi e molta aria. */
 /* Bianca come l'anteprima della seduta: e' lo stesso documento, mostrato a
    schermo invece che stampato. Il fondo beige della pagina qui non c'entra. */
+/* Il programma del paziente e' un foglio: staccato dai bordi della finestra,
+   come il PDF della cartella quando lo si guarda. Prima era una colonna bianca
+   attaccata sopra e sotto, e non si capiva dove finiva. */
 .scheda-paziente {
   max-width: 760px;
-  margin: 0 auto;
-  padding: 28px 24px 48px;
+  margin: 22px auto;
+  padding: 26px 30px 34px;
   background: var(--surface);
-  min-height: 100vh;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-md);
 }
 
 .scheda-paziente header {
