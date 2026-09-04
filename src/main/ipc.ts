@@ -2,7 +2,7 @@ import { app, BrowserWindow, dialog, ipcMain, nativeImage, shell } from 'electro
 import { basename, join } from 'path'
 import { readFileSync } from 'fs'
 import { writeFile } from 'fs/promises'
-import { closeDb, getDb, initDb, riapriDb } from './db'
+import { closeDb, controllaArchivio, getDb, initDb, riapriDb } from './db'
 import {
   cartellaBackup,
   cartellaDati,
@@ -87,6 +87,7 @@ import {
   salvaValutazione
 } from './valutazione'
 import type { Tema } from '../shared/temi'
+import { seduteDellaSettimana } from './settimana'
 import type {
   TipoChart,
   AnamnesiProssima,
@@ -981,6 +982,9 @@ export function registerIpc(): void {
     )
   }
 
+  // Le sedute di tutti, in un intervallo di date: la schermata della settimana.
+  handle('sedute:settimana', (dal: string, al: string) => seduteDellaSettimana(dal, al))
+  handle('archivio:controlla', () => controllaArchivio())
   handle('sedute:list', (pazienteId: number) =>
     getDb()
       .prepare(

@@ -12,7 +12,15 @@ import Database from 'better-sqlite3-multiple-ciphers'
 import { runMigrations } from '../src/main/migrations'
 import { generaDocx, generaHtml } from '../src/main/export-doc'
 import { cambiaPasswordAuth, loginAuth, recoverAuth, setupAuth } from '../src/main/auth'
-import { apriAltroDb, closeDb, getDb, initDb, isPlaintextDb } from '../src/main/db'
+import {
+  apriAltroDb,
+  closeDb,
+  controllaArchivio,
+  getDb,
+  initDb,
+  isPlaintextDb
+} from '../src/main/db'
+import { seduteDellaSettimana } from '../src/main/settimana'
 import { generaCartella, SEZIONI } from '../src/main/export-cartella'
 import { esportaArchivio } from '../src/main/esporta-archivio'
 import {
@@ -680,6 +688,34 @@ assert.equal(
     (c.prepare('SELECT COUNT(*) AS n FROM bozze_seduta').get() as { n: number }).n,
     0
   )
+}
+
+// --- La settimana: le sedute di tutti fra due date ---
+{
+  const c = getDb()
+  const ins = (sql: string, ...a: unknown[]): number =>
+    Number(c.prepare(sql).run(...a).lastInsertRowid)
+  const pz1 = ins("INSERT INTO pazienti (nome, cognome) VALUES ('Anna', 'Bianchi')")
+  const pz2 = ins("INSERT INTO pazienti (nome, cognome) VALUES ('Marco', 'Rossi')")
+  ins("INSERT INTO sedute (paziente_id, data) VALUES (?, '2026-10-05')", pz1)
+  ins("INSERT INTO sedute (paziente_id, data) VALUES (?, '2026-10-07')", pz2)
+  // fuori dalla settimana chiesta: non deve comparire
+  ins("INSERT INTO sedute (paziente_id, data) VALUES (?, '2026-10-13')", pz1)
+
+  const sett = seduteDellaSettimana('2026-10-05', '2026-10-11')
+  assert.equal(sett.length, 2)
+  // in ordine di data, e con il nome gia' pronto da mostrare
+  assert.equal(sett[0].data, '2026-10-05')
+  assert.equal(sett[0].paziente, 'Bianchi Anna')
+  assert.equal(sett[1].paziente, 'Rossi Marco')
+  assert.equal(typeof sett[0].num_esercizi, 'number')
+}
+
+// --- Controllo dell'archivio: un database sano lo dice ---
+{
+  const esito = controllaArchivio()
+  assert.ok(esito.ok, esito.messaggio)
+  assert.ok(esito.pazienti > 0)
 }
 
 // --- Programmare la settimana: la stessa seduta su piu' giorni ---

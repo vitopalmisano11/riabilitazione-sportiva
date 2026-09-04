@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import Aiuto from '../components/Aiuto'
 import type { Tema } from '../../../shared/temi'
-import type { VoceCestino } from '../../../shared/types'
+import type { EsitoArchivio, VoceCestino } from '../../../shared/types'
 import { TEMI } from '../../../shared/temi'
 import PannelloBackup from '../components/PannelloBackup'
-import { FolderOpen, Minus, Plus, RotateCcw, Trash2, Undo2 } from 'lucide-react'
+import { FolderOpen, Minus, Plus, RotateCcw, ShieldCheck, Trash2, Undo2 } from 'lucide-react'
 import { toast, toastErrore } from '../components/Toast'
 import { chiedi } from '../components/Conferma'
 import { errMsg } from '../lib'
@@ -345,6 +345,19 @@ function SchedaBlocco({
 }): React.JSX.Element {
   const [attivo, setAttivo] = useState(false)
   const [minuti, setMinuti] = useState(15)
+  const [esitoArchivio, setEsitoArchivio] = useState<EsitoArchivio | null>(null)
+  const [inCorso, setInCorso] = useState(false)
+
+  const controlla = async (): Promise<void> => {
+    setInCorso(true)
+    try {
+      setEsitoArchivio(await window.api.archivio.controlla())
+    } catch (e) {
+      setEsitoArchivio({ ok: false, messaggio: errMsg(e), pazienti: 0, sedute: 0 })
+    } finally {
+      setInCorso(false)
+    }
+  }
 
   useEffect(() => {
     void window.api.sicurezza.blocco().then((b) => {
@@ -388,6 +401,27 @@ function SchedaBlocco({
           </button>
           <button title="Torna alla misura normale" onClick={() => onIngrandimento(1)}>
             <RotateCcw size={15} />
+          </button>
+        </span>
+      </div>
+
+      {/* Il controllo dell'archivio sta qui, con l'ingrandimento: sono tutte e
+          due cose che si fanno di rado e riguardano il programma, non i dati. */}
+      <div className="riga-interruttore riga-staccata">
+        <span className="nome-interruttore">
+          Controllo dell&apos;archivio
+          <Aiuto testo="Controlla che il file dell'archivio non si sia rovinato e che i collegamenti fra le schede siano interi. È il controllo da fare dopo uno spegnimento brutto del computer, o quando qualcosa non torna." />
+        </span>
+        <span className="regola-ingrandimento">
+          {esitoArchivio && (
+            <span className={esitoArchivio.ok ? 'esito-copia esito-buono' : 'esito-copia esito-guasto'}>
+              {esitoArchivio.ok
+                ? `Tutto in ordine — ${esitoArchivio.pazienti} pazienti, ${esitoArchivio.sedute} sedute.`
+                : esitoArchivio.messaggio}
+            </span>
+          )}
+          <button disabled={inCorso} onClick={() => void controlla()}>
+            <ShieldCheck size={16} /> {inCorso ? 'Controllo…' : 'Controlla'}
           </button>
         </span>
       </div>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
+  CalendarDays,
   CalendarClock,
   ClipboardCheck,
   HeartPulse,
@@ -16,6 +17,7 @@ import ScreeningRtpPage from './pages/ScreeningRtpPage'
 import DistrettiPage from './pages/DistrettiPage'
 import PazientiPage from './pages/PazientiPage'
 import FollowUpPage from './pages/FollowUpPage'
+import SettimanaPage from './pages/SettimanaPage'
 import ImpostazioniPage from './pages/ImpostazioniPage'
 import AuthGate from './components/AuthGate'
 import SchermoBloccato from './components/SchermoBloccato'
@@ -24,7 +26,13 @@ import ConfermaHost from './components/Conferma'
 import { errMsg } from './lib'
 import type { Tema } from '../../shared/temi'
 
-type Sezione = 'pazienti' | 'followup' | 'screening' | 'configurazione' | 'impostazioni'
+type Sezione =
+  | 'settimana'
+  | 'pazienti'
+  | 'followup'
+  | 'screening'
+  | 'configurazione'
+  | 'impostazioni'
 
 type TabConfig =
   | 'patologie'
@@ -166,6 +174,15 @@ export default function App(): React.JSX.Element {
         </h1>
         <div className="nav-group-label">Diario pazienti</div>
         <nav>
+          {/* Per prima: e' la schermata del lunedi' mattina, quella che
+              risponde a "oggi chi viene". */}
+          <button
+            className={sezione === 'settimana' ? 'active' : ''}
+            onClick={() => vaiA('settimana')}
+          >
+            <CalendarDays size={18} />
+            La settimana
+          </button>
           <button
             className={sezione === 'pazienti' ? 'active' : ''}
             onClick={() => vaiA('pazienti')}
@@ -208,6 +225,9 @@ export default function App(): React.JSX.Element {
         </div>
       </aside>
       <main className="content">
+        {sezione === 'settimana' && (
+          <SettimanaPage onApriPaziente={vaiAlPaziente} tornaAllElenco={tornaAllElenco} />
+        )}
         {sezione === 'pazienti' && (
           <PazientiPage tornaAllElenco={tornaAllElenco} apriPaziente={apriPaziente} />
         )}

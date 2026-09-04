@@ -1723,7 +1723,8 @@ span.row-actions button {
    comincia l'altra. Quello che ci sta dentro — l'elenco degli esercizi e la
    zona da cui si aggiungono — e' grigio chiaro. */
 .sezione-card,
-.obiettivi-info {
+.obiettivi-info,
+.settimana-card {
   min-width: 0;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -2825,6 +2826,46 @@ textarea {
    dopo. */
 .stacco-cestino {
   margin-top: var(--spazio);
+}
+
+/* La settimana: sette blocchi uno sotto l'altro dentro allo stesso riquadro.
+   I giorni vuoti restano al loro posto, con un trattino: una settimana si legge
+   come una settimana, non come un elenco di giorni pieni. */
+.giorno-settimana + .giorno-settimana {
+  margin-top: 4px;
+}
+
+.giorno-settimana .sotto-titolo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Il giorno di oggi si riconosce senza cercarlo. */
+.giorno-settimana.oggi .sotto-titolo {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.giorno-settimana .riga-vuota {
+  margin: 0 0 2px 10px;
+}
+
+/* Il nome del paziente e' un pulsante, e un pulsante dentro a una colonna si
+   allargherebbe centrando la scritta: qui deve stare a sinistra, sopra ai suoi
+   dettagli, come il titolo della riga. */
+.giorno-settimana .nome-nel-titolo {
+  align-self: flex-start;
+  text-align: left;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.titolo-settimana {
+  font-weight: 600;
+  min-width: 210px;
+  text-align: center;
 }
 
 /* Meno, la percentuale, piu', e il ritorno alla misura normale. */

@@ -176,6 +176,25 @@ export interface SedutaInput {
   esercizi: SedutaEsercizioInput[]
 }
 
+// Una seduta come compare nella schermata della settimana: di chi e', di che
+// giorno, e quanto e' lunga.
+export interface SedutaSettimana {
+  id: number
+  data: string
+  paziente_id: number
+  paziente: string
+  fase_nome: string | null
+  num_esercizi: number
+}
+
+// Come sta l'archivio: il controllo che si fa dopo uno spegnimento brutto.
+export interface EsitoArchivio {
+  ok: boolean
+  messaggio: string
+  pazienti: number
+  sedute: number
+}
+
 export interface SedutaRiepilogo {
   id: number
   paziente_id: number
@@ -909,6 +928,8 @@ export interface Api {
   }
   sedute: {
     list(pazienteId: number): Promise<SedutaRiepilogo[]>
+    // Le sedute di tutti i pazienti fra due date, per la settimana.
+    settimana(dal: string, al: string): Promise<SedutaSettimana[]>
     get(id: number): Promise<SedutaDettaglio>
     create(data: SedutaInput): Promise<number>
     update(id: number, data: SedutaInput): Promise<void>
@@ -1071,6 +1092,10 @@ export interface Api {
     // Scrive il file in una cartella temporanea e lo apre col programma di sistema.
     apri(id: number): Promise<void>
     remove(id: number): Promise<void>
+  }
+  archivio: {
+    // Controlla che il file dell'archivio sia sano e i collegamenti interi.
+    controlla(): Promise<EsitoArchivio>
   }
   backup: {
     info(): Promise<InfoBackup>

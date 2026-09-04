@@ -78,6 +78,48 @@ export function apriAltroDb(path: string): Database.Database {
   return conn
 }
 
+// Un controllo di salute dell'archivio: che le pagine del file non siano
+// rovinate e che nessuna riga punti a qualcosa che non c'e' piu'. E' il
+// controllo che si fa dopo uno spegnimento brutto del computer, quando si ha il
+// dubbio di aver rotto qualcosa senza accorgersene.
+export interface EsitoArchivio {
+  ok: boolean
+  messaggio: string
+  pazienti: number
+  sedute: number
+}
+
+export function controllaArchivio(): EsitoArchivio {
+  const conn = getDb()
+  const conta = (tabella: string): number =>
+    (conn.prepare(`SELECT COUNT(*) AS n FROM ${tabella}`).get() as { n: number }).n
+  const pazienti = conta('pazienti')
+  const sedute = conta('sedute')
+
+  const male = conn.pragma('integrity_check', { simple: true })
+  if (male !== 'ok') {
+    return {
+      ok: false,
+      messaggio: `Il file dell'archivio risulta danneggiato (${String(male)}). Ripristina la copia di sicurezza più recente.`,
+      pazienti,
+      sedute
+    }
+  }
+
+  // Righe orfane: un collegamento che punta a qualcosa di sparito.
+  const rotti = conn.pragma('foreign_key_check') as unknown[]
+  if (rotti.length > 0) {
+    return {
+      ok: false,
+      messaggio: `Ci sono ${rotti.length} collegamenti rotti fra le tabelle. L'archivio si apre lo stesso, ma qualcosa potrebbe non comparire: fammelo sapere.`,
+      pazienti,
+      sedute
+    }
+  }
+
+  return { ok: true, messaggio: 'Tutto in ordine.', pazienti, sedute }
+}
+
 export function getDb(): Database.Database {
   if (!db) throw new Error('Database non inizializzato')
   return db

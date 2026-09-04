@@ -181,6 +181,7 @@ const api: Api = {
   },
   sedute: {
     list: (pazienteId: number) => invoke('sedute:list', pazienteId),
+    settimana: (dal: string, al: string) => invoke('sedute:settimana', dal, al),
     get: (id: number) => invoke('sedute:get', id),
     create: (data: SedutaInput) => invoke('sedute:create', data),
     update: (id: number, data: SedutaInput) => invoke('sedute:update', id, data),
@@ -316,6 +317,9 @@ const api: Api = {
     aggiungi: (pazienteId: number) => invoke('bioimmagini:aggiungi', pazienteId),
     apri: (id: number) => invoke('bioimmagini:apri', id),
     remove: (id: number) => invoke('bioimmagini:delete', id)
+  },
+  archivio: {
+    controlla: () => invoke('archivio:controlla')
   },
   backup: {
     info: () => invoke('backup:info'),
