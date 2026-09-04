@@ -8,13 +8,15 @@
 // Il tema scelto e' ricordato in impostazioni.json, cosi' l'app e i documenti
 // restano d'accordo fra un avvio e l'altro.
 
-export type Tema = 'verde' | 'blu' | 'terracotta' | 'prugna'
+export type Tema = 'verde' | 'blu' | 'terracotta' | 'prugna' | 'ardesia' | 'bordeaux'
 
 export const TEMI: { valore: Tema; etichetta: string; colore: string }[] = [
   { valore: 'verde', etichetta: 'Verde salvia', colore: '#55806a' },
   { valore: 'terracotta', etichetta: 'Terracotta', colore: '#a15843' },
   { valore: 'blu', etichetta: 'Blu', colore: '#2563eb' },
-  { valore: 'prugna', etichetta: 'Prugna', colore: '#7a5299' }
+  { valore: 'prugna', etichetta: 'Prugna', colore: '#7a5299' },
+  { valore: 'ardesia', etichetta: 'Ardesia', colore: '#4a6a7b' },
+  { valore: 'bordeaux', etichetta: 'Bordeaux', colore: '#8c3b52' }
 ]
 
 // Colori usati nei documenti: il tratto delle intestazioni e il fondo delle
@@ -30,7 +32,9 @@ export const COLORI_DOCUMENTO: Record<Tema, ColoriDocumento> = {
   verde: { accento: '#55806a', accentoScuro: '#446a57', intestazione: '#f0e9dc' },
   blu: { accento: '#2563eb', accentoScuro: '#1d4fc7', intestazione: '#eef2f8' },
   terracotta: { accento: '#a15843', accentoScuro: '#85452f', intestazione: '#f3e7dc' },
-  prugna: { accento: '#7a5299', accentoScuro: '#634081', intestazione: '#f0eaf6' }
+  prugna: { accento: '#7a5299', accentoScuro: '#634081', intestazione: '#f0eaf6' },
+  ardesia: { accento: '#4a6a7b', accentoScuro: '#3a5665', intestazione: '#eaeff2' },
+  bordeaux: { accento: '#8c3b52', accentoScuro: '#722f43', intestazione: '#f2e6ea' }
 }
 
 export function temaValido(v: unknown): Tema {
