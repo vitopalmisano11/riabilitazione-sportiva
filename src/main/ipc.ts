@@ -1427,6 +1427,7 @@ export function registerIpc(): void {
 
   // ---- Anamnesi remota ----
   const REMOTA_VUOTA: AnamnesiRemota = {
+    patologie: null,
     traumi: null,
     interventi: null,
     riabilitazioni: null,
@@ -1452,12 +1453,13 @@ export function registerIpc(): void {
     getDb()
       .prepare(
         `INSERT INTO anamnesi_remota
-           (paziente_id, traumi, interventi, riabilitazioni, bioimmagini_note,
+           (paziente_id, patologie, traumi, interventi, riabilitazioni, bioimmagini_note,
             peso, febbre, sudorazione, nausea, fumo, neoplasie, gravidanza, pacemaker, schegge)
-         VALUES (@paziente_id, @traumi, @interventi, @riabilitazioni, @bioimmagini_note,
+         VALUES (@paziente_id, @patologie, @traumi, @interventi, @riabilitazioni, @bioimmagini_note,
             @peso, @febbre, @sudorazione, @nausea, @fumo, @neoplasie, @gravidanza,
             @pacemaker, @schegge)
          ON CONFLICT(paziente_id) DO UPDATE SET
+           patologie = excluded.patologie,
            traumi = excluded.traumi, interventi = excluded.interventi,
            riabilitazioni = excluded.riabilitazioni,
            bioimmagini_note = excluded.bioimmagini_note,

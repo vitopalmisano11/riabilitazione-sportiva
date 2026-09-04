@@ -568,6 +568,9 @@ export interface AttivitaPartecipazione {
 export type RispostaSiNo = 0 | 1 | null
 
 export interface AnamnesiRemota {
+  // Le altre patologie del paziente: quelle che non c'entrano con il motivo
+  // della visita ma cambiano come lo si tratta.
+  patologie: string | null
   traumi: string | null
   interventi: string | null
   riabilitazioni: string | null

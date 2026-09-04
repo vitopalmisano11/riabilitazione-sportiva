@@ -788,6 +788,15 @@ const MIGRATIONS: string[] = [
   //      dall'esercizio, cosi' correggendola si sistemano anche le vecchie.
   `
   ALTER TABLE esercizi ADD COLUMN unita_carico TEXT;
+  `,
+
+  // 29 - le altre patologie del paziente, nell'anamnesi remota. Diabete,
+  //      ipertensione, tiroide, artrite: non c'entrano con il motivo per cui e'
+  //      venuto, ma cambiano come lo si tratta, e finora finivano schiacciate
+  //      dentro "incidenti e traumi". Sta come primo campo perche' e' la prima
+  //      cosa che si chiede.
+  `
+  ALTER TABLE anamnesi_remota ADD COLUMN patologie TEXT;
   `
 ]
 

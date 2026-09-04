@@ -576,6 +576,7 @@ function sezRemota(pazienteId: number): Blocco[] {
   ])
 
   return [
+    ...testo('Altre patologie', r?.patologie),
     ...testo('Incidenti e traumi precedenti', r?.traumi),
     ...testo('Interventi chirurgici', r?.interventi),
     ...testo('Precedenti riabilitativi', r?.riabilitazioni),

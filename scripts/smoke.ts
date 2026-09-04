@@ -55,7 +55,7 @@ db.pragma('foreign_keys = ON')
 
 runMigrations(db)
 runMigrations(db) // idempotente
-assert.equal(db.pragma('user_version', { simple: true }), 28)
+assert.equal(db.pragma('user_version', { simple: true }), 29)
 
 const count = (table: string): number =>
   (db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n
@@ -1135,9 +1135,11 @@ initDb(join(dirCartella, 'cartella.db'), dekHex)
     pz
   )
   ins(
-    `INSERT INTO anamnesi_remota (paziente_id, traumi, interventi, riabilitazioni, bioimmagini_note,
+    `INSERT INTO anamnesi_remota (paziente_id, patologie, traumi, interventi, riabilitazioni,
+       bioimmagini_note,
        peso, febbre, sudorazione, nausea, fumo, neoplasie, gravidanza, pacemaker, schegge)
-     VALUES (?, 'nessuno', 'nessuno', 'nessuna', 'RX negativa', 0, 0, 0, 0, 1, 0, 0, 0, 0)`,
+     VALUES (?, 'Ipertensione', 'nessuno', 'nessuno', 'nessuna', 'RX negativa',
+       0, 0, 0, 0, 1, 0, 0, 0, 0)`,
     pz
   )
   ins(
@@ -1236,6 +1238,8 @@ initDb(join(dirCartella, 'cartella.db'), dekHex)
   for (const atteso of [
     'Verdi',
     'Dolore lombare',      // anamnesi prossima
+    'Altre patologie',     // anamnesi remota: il campo nuovo
+    'Ipertensione',
     'RX negativa',         // anamnesi remota
     'Rachide lombare',     // valutazione obiettiva
     'tira dal lato opposto', // note del movimento attivo nella valutazione

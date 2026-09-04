@@ -23,6 +23,7 @@ const SI_NO: { chiave: keyof Dati; etichetta: string }[] = [
 ]
 
 const VUOTO: Dati = {
+  patologie: null,
   traumi: null,
   interventi: null,
   riabilitazioni: null,
@@ -139,6 +140,17 @@ export default function AnamnesiRemota({
           </span>
         </div>
 
+        {/* Prima di tutto il resto: quello che il paziente si porta dietro da
+            prima, e che cambia come lo si tratta. */}
+        <label>
+          Altre patologie
+          <textarea
+            rows={2}
+            placeholder="Diabete, ipertensione, tiroide, artrite reumatoide…"
+            value={dati.patologie ?? ''}
+            onChange={testo('patologie')}
+          />
+        </label>
         <label>
           Incidenti e traumi precedenti
           <textarea rows={2} value={dati.traumi ?? ''} onChange={testo('traumi')} />
