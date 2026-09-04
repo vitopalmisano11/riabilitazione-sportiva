@@ -2,22 +2,28 @@ import { useCallback, useEffect, useState } from 'react'
 import Aiuto from './Aiuto'
 import {
   ChevronDown,
+  CircleAlert,
+  CircleCheck,
   FileSpreadsheet,
   FolderOpen,
   HardDriveDownload,
   RotateCcw,
-  Save
+  Save,
+  ShieldCheck
 } from 'lucide-react'
-import type { InfoBackup } from '../../../shared/types'
+import type { EsitoControllo, InfoBackup } from '../../../shared/types'
 import { toast, toastErrore } from './Toast'
 import { chiedi } from './Conferma'
-import { errMsg } from '../lib'
+import { errMsg, formatData } from '../lib'
 
 // Copie di sicurezza dell'archivio. Ogni copia contiene il database cifrato e
 // il file delle chiavi: servono entrambi, uno solo non riapre niente.
 export default function PannelloBackup(): React.JSX.Element {
   const [info, setInfo] = useState<InfoBackup | null>(null)
   const [menuCopia, setMenuCopia] = useState(false)
+  // L'esito del controllo di ogni copia, da quando lo si chiede: 'attesa'
+  // mentre la copia viene aperta.
+  const [esiti, setEsiti] = useState<Record<string, EsitoControllo | 'attesa'>>({})
 
   const carica = useCallback(
     (): Promise<void> => window.api.backup.info().then(setInfo),
@@ -49,6 +55,32 @@ export default function PannelloBackup(): React.JSX.Element {
   const peso = (byte: number): string =>
     byte > 1024 * 1024 ? `${(byte / 1024 / 1024).toFixed(1)} MB` : `${Math.round(byte / 1024)} kB`
 
+  // Controllare una copia vuol dire aprirla davvero. Le copie servono il giorno
+  // che qualcosa e' andato storto, ed e' il giorno sbagliato per scoprire che
+  // non si aprono: qui si scopre prima, senza toccare l'archivio in uso.
+  const controlla = async (nome: string): Promise<void> => {
+    setEsiti((prec) => ({ ...prec, [nome]: 'attesa' }))
+    try {
+      const esito = await window.api.backup.controlla(nome)
+      setEsiti((prec) => ({ ...prec, [nome]: esito }))
+    } catch (e) {
+      setEsiti((prec) => ({
+        ...prec,
+        [nome]: { ok: false, messaggio: errMsg(e) }
+      }))
+    }
+  }
+
+  // Quello che uno vuole leggere: si apre, e c'e' dentro il mio lavoro.
+  const dentro = (e: EsitoControllo): string => {
+    const parti = [
+      `${e.pazienti} ${e.pazienti === 1 ? 'paziente' : 'pazienti'}`,
+      `${e.sedute} ${e.sedute === 1 ? 'seduta' : 'sedute'}`
+    ]
+    if (e.ultimaSeduta) parti.push(`l'ultima del ${formatData(e.ultimaSeduta)}`)
+    return parti.join(', ')
+  }
+
   const ripristina = async (nome: string): Promise<void> => {
     if (
       !(await chiedi(
@@ -67,7 +99,7 @@ export default function PannelloBackup(): React.JSX.Element {
     <div className="blocco-impostazione">
       <div className="sotto-titolo">
         Copie di sicurezza
-        <Aiuto testo="L'app tiene da sola delle copie datate del tuo archivio: una all'accesso e una alla chiusura. Se metti la cartella dentro OneDrive, finiscono online da sole. Queste copie stanno però sullo stesso computer: ogni tanto usa “Copia su chiavetta” per portarne una fuori." />
+        <Aiuto testo="L'app tiene da sola delle copie datate del tuo archivio: una all'accesso e una alla chiusura. Se metti la cartella dentro OneDrive, finiscono online da sole. Queste copie stanno però sullo stesso computer: ogni tanto usa “Copia su chiavetta” per portarne una fuori. Con “Controlla” apri una copia in disparte e verifichi che sia davvero leggibile: l'archivio in uso non viene toccato." />
       </div>
 
       <label className="checkbox-inline">
@@ -164,15 +196,43 @@ export default function PannelloBackup(): React.JSX.Element {
       ) : (
         <ul className="sedute-list">
           {info.copie.map((c) => (
-            <li key={c.nome}>
+            <li key={c.nome} className="riga-copia">
               <div className="seduta-info">
                 <span className="seduta-data">{quando(c.nome)}</span>
                 <span className="seduta-meta">
                   {peso(c.dimensione)}
                   {c.nome.startsWith('prima-del-ripristino') && ' · prima di un ripristino'}
                 </span>
+                {esiti[c.nome] === 'attesa' && <span className="esito-copia">Controllo in corso…</span>}
+                {typeof esiti[c.nome] === 'object' && (
+                  <span
+                    className={
+                      (esiti[c.nome] as EsitoControllo).ok
+                        ? 'esito-copia esito-buono'
+                        : 'esito-copia esito-guasto'
+                    }
+                  >
+                    {(esiti[c.nome] as EsitoControllo).ok ? (
+                      <>
+                        <CircleCheck size={15} /> Si apre, e contiene{' '}
+                        {dentro(esiti[c.nome] as EsitoControllo)}.
+                      </>
+                    ) : (
+                      <>
+                        <CircleAlert size={15} /> {(esiti[c.nome] as EsitoControllo).messaggio}
+                      </>
+                    )}
+                  </span>
+                )}
               </div>
               <span className="row-actions">
+                <button
+                  title="Apre questa copia in disparte e controlla che sia leggibile"
+                  disabled={esiti[c.nome] === 'attesa'}
+                  onClick={() => void controlla(c.nome)}
+                >
+                  <ShieldCheck size={18} /> Controlla
+                </button>
                 <button title="Riporta l'archivio a questa copia" onClick={() => void ripristina(c.nome)}>
                   <RotateCcw size={18} /> Ripristina
                 </button>

@@ -186,7 +186,7 @@ function ElencoDistretti({
                       onClick={async () => {
                         if (
                           await chiedi(
-                            `Eliminare "${d.nome}"?\nVerranno eliminati i suoi movimenti e test, e i rilievi già registrati nelle valutazioni.`
+                            `Eliminare "${d.nome}"?\nVerranno eliminati i suoi movimenti e test, e i rilievi già registrati nelle valutazioni.\nFinisce nel cestino: puoi rimetterlo a posto da Impostazioni entro un mese.`
                           )
                         ) {
                           void run(async () => {

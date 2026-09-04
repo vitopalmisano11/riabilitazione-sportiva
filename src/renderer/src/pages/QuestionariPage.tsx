@@ -242,7 +242,7 @@ function ElencoQuestionari({
                   onClick={async () => {
                     if (
                       await chiedi(
-                        `Eliminare "${x.nome}"?\nVerranno eliminate anche le compilazioni fatte dai pazienti.`
+                        `Eliminare "${x.nome}"?\nSe qualche paziente lo ha già compilato non si può: in quel caso usa "Archivia".\nFinisce nel cestino: puoi rimetterlo a posto da Impostazioni entro un mese.`
                       )
                     ) {
                       void run(async () => {

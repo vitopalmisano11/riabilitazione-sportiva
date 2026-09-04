@@ -733,6 +733,15 @@ export interface InfoBackup {
   copie: VoceBackup[]
 }
 
+// Cosa si e' trovato dentro una copia di sicurezza aprendola davvero.
+export interface EsitoControllo {
+  ok: boolean
+  messaggio: string
+  pazienti?: number
+  sedute?: number
+  ultimaSeduta?: string | null
+}
+
 // Le parti della cartella del paziente che si possono stampare.
 export type SezioneCartella =
   | 'anagrafica'
@@ -1044,6 +1053,8 @@ export interface Api {
     // Esegue subito una copia e ritorna la cartella creata.
     eseguiOra(): Promise<string>
     apriCartella(): Promise<void>
+    // Apre la copia in disparte e dice se e' leggibile e cosa contiene.
+    controlla(nome: string): Promise<EsitoControllo>
     // Riporta indietro l'archivio: l'app si riavvia da sola.
     ripristina(nome: string): Promise<void>
     // Copia dell'archivio in una cartella scelta (chiavetta, disco esterno).

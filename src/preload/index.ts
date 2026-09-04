@@ -317,6 +317,7 @@ const api: Api = {
     setDaTenere: (n: number) => invoke('backup:setDaTenere', n),
     eseguiOra: () => invoke('backup:eseguiOra'),
     apriCartella: () => invoke('backup:apriCartella'),
+    controlla: (nome: string) => invoke('backup:controlla', nome),
     ripristina: (nome: string) => invoke('backup:ripristina', nome),
     copiaFuori: () => invoke('backup:copiaFuori'),
     esportaArchivio: () => invoke('backup:esportaArchivio')

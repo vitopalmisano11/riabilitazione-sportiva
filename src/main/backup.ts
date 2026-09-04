@@ -16,7 +16,7 @@ import {
   statSync
 } from 'fs'
 import { join } from 'path'
-import { getDb } from './db'
+import { apriAltroDb, getDb } from './db'
 import { cartellaBackup, backupAttivo, backupDaTenere, cartellaDati } from './impostazioni'
 
 const DB = 'riabilitazione.db'
@@ -136,6 +136,65 @@ export function backupDiChiusura(): void {
     eseguiBackup()
   } catch {
     // in chiusura non ha senso disturbare con un errore
+  }
+}
+
+// Controllo di una copia: si apre davvero, e si guarda cosa contiene.
+//
+// Avere delle copie non serve a niente se non si sa se si aprono. Qui la copia
+// viene aperta in disparte, in sola lettura, con le chiavi di adesso: l'archivio
+// in uso non viene toccato. Quello che torna e' quello che uno vorrebbe sapere
+// prima di averne bisogno: si apre? quanti pazienti ci sono dentro? di quando e'
+// l'ultima seduta?
+export interface EsitoControllo {
+  ok: boolean
+  messaggio: string
+  pazienti?: number
+  sedute?: number
+  ultimaSeduta?: string | null
+}
+
+export function controllaBackup(nome: string): EsitoControllo {
+  if (!NOME_BACKUP.test(nome)) return { ok: false, messaggio: 'Copia di sicurezza non valida.' }
+  const dir = join(cartellaBackup(), nome)
+  if (!existsSync(join(dir, DB))) {
+    return { ok: false, messaggio: 'In questa copia manca il database.' }
+  }
+  if (!existsSync(join(dir, AUTH))) {
+    return {
+      ok: false,
+      messaggio: 'In questa copia manca auth.json: senza le chiavi il database non si apre.'
+    }
+  }
+  let conn: ReturnType<typeof apriAltroDb> | null = null
+  try {
+    conn = apriAltroDb(join(dir, DB))
+    const male = conn.pragma('integrity_check', { simple: true })
+    if (male !== 'ok') {
+      return { ok: false, messaggio: `Il database di questa copia è danneggiato (${male}).` }
+    }
+    const pazienti = (conn.prepare('SELECT COUNT(*) AS n FROM pazienti').get() as { n: number }).n
+    const sedute = (conn.prepare('SELECT COUNT(*) AS n FROM sedute').get() as { n: number }).n
+    const ultima = (
+      conn.prepare('SELECT MAX(data) AS d FROM sedute').get() as { d: string | null }
+    ).d
+    return {
+      ok: true,
+      messaggio: 'La copia si apre e i dati ci sono.',
+      pazienti,
+      sedute,
+      ultimaSeduta: ultima
+    }
+  } catch (e) {
+    return {
+      ok: false,
+      messaggio:
+        e instanceof Error && e.message.includes('not a database')
+          ? 'Questa copia non si apre con le chiavi di adesso: il file è danneggiato o viene da un altro archivio.'
+          : `Non si riesce ad aprire questa copia: ${e instanceof Error ? e.message : String(e)}`
+    }
+  } finally {
+    conn?.close()
   }
 }
 

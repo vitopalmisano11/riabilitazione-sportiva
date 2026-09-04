@@ -100,7 +100,7 @@ export default function ProtocolliScreeningPage({
   }
 
   const elimina = async (p: ProtocolloScreening): Promise<void> => {
-    if (!(await chiedi(`Eliminare il protocollo "${p.nome}"?\nI test nella libreria restano.`))) return
+    if (!(await chiedi(`Eliminare il protocollo "${p.nome}"?\nI test nella libreria restano.\nFinisce nel cestino: puoi rimetterlo a posto da Impostazioni entro un mese.`))) return
     try {
       await window.api.screening.remove(p.id)
       await carica()

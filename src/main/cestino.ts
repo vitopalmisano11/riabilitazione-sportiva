@@ -34,6 +34,11 @@ interface Fotografia {
 type Db = ReturnType<typeof getDb>
 
 // Per ogni tabella, chi la cita: [tabella figlia, colonna che punta qui].
+//
+// Si guardano solo i legami con ON DELETE CASCADE, cioe' le righe che il
+// database cancella davvero insieme al padre. Le altre (ON DELETE SET NULL, o
+// nessuna azione) restano dove sono: fotografarle vorrebbe dire, al ripristino,
+// provare a reinserire righe mai cancellate.
 function figli(db: Db): Map<string, [string, string][]> {
   const mappa = new Map<string, [string, string][]>()
   const tabelle = (
@@ -45,8 +50,10 @@ function figli(db: Db): Map<string, [string, string][]> {
     const riferimenti = db.pragma(`foreign_key_list('${t}')`) as {
       table: string
       from: string
+      on_delete: string
     }[]
     for (const r of riferimenti) {
+      if (r.on_delete !== 'CASCADE') continue
       const elenco = mappa.get(r.table) ?? []
       elenco.push([t, r.from])
       mappa.set(r.table, elenco)

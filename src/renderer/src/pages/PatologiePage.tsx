@@ -222,7 +222,7 @@ function Step1Patologie({
                     title="Elimina"
                     className="danger"
                     onClick={async () => {
-                      if (await chiedi(`Eliminare "${p.nome}" con tutte le sue fasi?`)) {
+                      if (await chiedi(`Eliminare "${p.nome}" con tutte le sue fasi?\nFinisce nel cestino: puoi rimetterlo a posto da Impostazioni entro un mese.`)) {
                         void run(async () => {
                           await window.api.patologie.remove(p.id)
                           await onChanged()
@@ -386,7 +386,7 @@ function Step2Fasi({
                     onClick={async () => {
                       if (
                         await chiedi(
-                          `Eliminare la fase "${f.nome}"?\nVerranno eliminati i suoi obiettivi, sezioni e test.`
+                          `Eliminare la fase "${f.nome}"?\nVerranno eliminati i suoi obiettivi, sezioni e test.\nFinisce nel cestino: puoi rimetterlo a posto da Impostazioni entro un mese.`
                         )
                       ) {
                         void run(async () => {

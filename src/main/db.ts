@@ -60,6 +60,24 @@ export function riapriDb(path: string): void {
   initDb(path, dekCorrente)
 }
 
+// Apre un altro database con la chiave gia' sbloccata, in sola lettura: serve a
+// controllare una copia di sicurezza senza toccare l'archivio in uso.
+export function apriAltroDb(path: string): Database.Database {
+  if (!dekCorrente) throw new Error('Database non sbloccato.')
+  const conn = new Database(path, { readonly: true })
+  try {
+    conn.pragma(`cipher='sqlcipher'`)
+    conn.pragma(`key='${dekCorrente}'`)
+    conn.prepare('SELECT count(*) FROM sqlite_master').get() // verifica la chiave
+  } catch (e) {
+    // Se la chiave non apre il file, la connessione va chiusa lo stesso:
+    // altrimenti resta appesa a un file che nessuno potra' piu' spostare.
+    conn.close()
+    throw e
+  }
+  return conn
+}
+
 export function getDb(): Database.Database {
   if (!db) throw new Error('Database non inizializzato')
   return db

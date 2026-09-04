@@ -38,6 +38,7 @@ import {
   elencoBackup,
   eseguiBackup,
   backupSeServe,
+  controllaBackup,
   ripristinaBackup
 } from './backup'
 import {
@@ -206,6 +207,7 @@ export function registerIpc(): void {
   handle('backup:apriCartella', () => {
     void shell.openPath(cartellaBackup())
   })
+  handle('backup:controlla', (nome: string) => controllaBackup(nome))
   handle('backup:ripristina', (nome: string) => ripristinaBackup(nome))
   // Copia leggibile fuori dall'app: tabelle CSV, non un backup.
   handle('backup:esportaArchivio', async () => {
@@ -301,8 +303,17 @@ export function registerIpc(): void {
   handle('patologie:update', (id: number, nome: string) => {
     getDb().prepare('UPDATE patologie SET nome = ? WHERE id = ?').run(nome.trim(), id)
   })
+  // Nel cestino una voce si riconosce dal nome: "Squat monopodalico", non
+  // "esercizio 42". Tutte le tabelle della libreria hanno la colonna nome.
+  const nomeDi = (tabella: string, id: number): string =>
+    (
+      getDb().prepare(`SELECT nome FROM ${tabella} WHERE id = ?`).get(id) as
+        | { nome: string }
+        | undefined
+    )?.nome ?? 'senza nome'
+
   handle('patologie:delete', (id: number) => {
-    getDb().prepare('DELETE FROM patologie WHERE id = ?').run(id)
+    eliminaConCestino('patologie', id, 'Patologia', nomeDi('patologie', id))
   })
 
   // ---- Distretti (libreria della valutazione obiettiva) ----
@@ -322,7 +333,7 @@ export function registerIpc(): void {
   })
   handle('distretti:salva', (dati: DistrettoCompleto) => salvaDistretto(dati))
   handle('distretti:delete', (id: number) => {
-    getDb().prepare('DELETE FROM distretti WHERE id = ?').run(id)
+    eliminaConCestino('distretti', id, 'Distretto', nomeDi('distretti', id))
   })
   handle('distretti:reorder', (ids: number[]) => {
     const db = getDb()
@@ -422,7 +433,7 @@ export function registerIpc(): void {
     getDb().prepare('UPDATE fasi SET nome = ? WHERE id = ?').run(nome.trim(), id)
   })
   handle('fasi:delete', (id: number) => {
-    getDb().prepare('DELETE FROM fasi WHERE id = ?').run(id)
+    eliminaConCestino('fasi', id, 'Fase', nomeDi('fasi', id))
   })
   handle('fasi:reorder', (ids: number[]) => {
     const db = getDb()
@@ -448,7 +459,7 @@ export function registerIpc(): void {
     getDb().prepare('UPDATE obiettivi SET nome = ? WHERE id = ?').run(nome.trim(), id)
   })
   handle('obiettivi:delete', (id: number) => {
-    getDb().prepare('DELETE FROM obiettivi WHERE id = ?').run(id)
+    eliminaConCestino('obiettivi', id, 'Obiettivo', nomeDi('obiettivi', id))
   })
   handle('obiettivi:reorder', (ids: number[]) => {
     const db = getDb()
@@ -484,7 +495,7 @@ export function registerIpc(): void {
     getDb().prepare('UPDATE sezioni SET nome = ? WHERE id = ?').run(nome.trim(), id)
   })
   handle('sezioni:delete', (id: number) => {
-    getDb().prepare('DELETE FROM sezioni WHERE id = ?').run(id)
+    eliminaConCestino('sezioni', id, 'Sezione', nomeDi('sezioni', id))
   })
   handle('sezioni:reorder', (ids: number[]) => {
     const db = getDb()
@@ -524,7 +535,7 @@ export function registerIpc(): void {
     getDb().prepare('UPDATE test_avanzamento SET nome = ? WHERE id = ?').run(nome.trim(), id)
   })
   handle('testAvanzamento:delete', (id: number) => {
-    getDb().prepare('DELETE FROM test_avanzamento WHERE id = ?').run(id)
+    eliminaConCestino('test_avanzamento', id, 'Test di avanzamento', nomeDi('test_avanzamento', id))
   })
   handle('testAvanzamento:reorder', (ids: number[]) => {
     const db = getDb()
@@ -555,7 +566,7 @@ export function registerIpc(): void {
     getDb().prepare('UPDATE categorie SET nome = ? WHERE id = ?').run(nome.trim(), id)
   })
   handle('categorie:delete', (id: number) => {
-    getDb().prepare('DELETE FROM categorie WHERE id = ?').run(id)
+    eliminaConCestino('categorie', id, 'Categoria di esercizi', nomeDi('categorie', id))
   })
 
   // ---- Esercizi ----
@@ -609,7 +620,7 @@ export function registerIpc(): void {
         `Questo esercizio è usato in ${usi.n === 1 ? 'una seduta' : `${usi.n} sedute`} già registrate e non si può eliminare: usa "Archivia" per toglierlo dall'elenco senza perdere quelle sedute.`
       )
     }
-    getDb().prepare('DELETE FROM esercizi WHERE id = ?').run(id)
+    eliminaConCestino('esercizi', id, 'Esercizio', nomeDi('esercizi', id))
   })
 
   // ---- Immagine dell'esercizio ----
@@ -760,7 +771,7 @@ export function registerIpc(): void {
   handle('screening:salva', (dati: ProtocolloScreeningCompleto) => salvaProtocollo(dati))
   handle('screening:duplica', (id: number, nome: string) => duplicaProtocollo(id, nome))
   handle('screening:delete', (id: number) => {
-    getDb().prepare('DELETE FROM screening_protocolli WHERE id = ?').run(id)
+    eliminaConCestino('screening_protocolli', id, 'Protocollo di screening', nomeDi('screening_protocolli', id))
   })
   handle('screening:reorder', (ids: number[]) => {
     const db = getDb()
@@ -1105,7 +1116,7 @@ export function registerIpc(): void {
     getDb().prepare('UPDATE questionario_categorie SET nome = ? WHERE id = ?').run(nome.trim(), id)
   })
   handle('questionariCategorie:delete', (id: number) => {
-    getDb().prepare('DELETE FROM questionario_categorie WHERE id = ?').run(id)
+    eliminaConCestino('questionario_categorie', id, 'Categoria di questionari', nomeDi('questionario_categorie', id))
   })
   handle('questionariCategorie:reorder', (ids: number[]) => {
     const db = getDb()
@@ -1140,7 +1151,19 @@ export function registerIpc(): void {
     getDb().prepare('UPDATE questionari SET archiviato = ? WHERE id = ?').run(archiviato ? 1 : 0, id)
   })
   handle('questionari:delete', (id: number) => {
-    getDb().prepare('DELETE FROM questionari WHERE id = ?').run(id)
+    // Un questionario gia' compilato da qualcuno non si cancella: le sue
+    // compilazioni sono dati del paziente, e senza il questionario non si
+    // saprebbe piu' cosa vogliono dire. Il vincolo del database lo impedisce
+    // comunque, ma da solo direbbe "FOREIGN KEY constraint failed".
+    const usi = getDb()
+      .prepare('SELECT COUNT(*) AS n FROM paziente_questionari WHERE questionario_id = ?')
+      .get(id) as { n: number }
+    if (usi.n > 0) {
+      throw new Error(
+        `Questo questionario è stato compilato ${usi.n === 1 ? 'una volta' : `${usi.n} volte`} e non si può eliminare: usa "Archivia" per toglierlo dall'elenco senza perdere quelle compilazioni.`
+      )
+    }
+    eliminaConCestino('questionari', id, 'Questionario', nomeDi('questionari', id))
   })
   handle('questionari:reorder', (ids: number[]) => {
     const db = getDb()
@@ -1192,7 +1215,7 @@ export function registerIpc(): void {
     getDb().prepare('UPDATE test_categorie SET nome = ? WHERE id = ?').run(nome.trim(), id)
   })
   handle('testCategorie:delete', (id: number) => {
-    getDb().prepare('DELETE FROM test_categorie WHERE id = ?').run(id)
+    eliminaConCestino('test_categorie', id, 'Categoria di test', nomeDi('test_categorie', id))
   })
   handle('testCategorie:reorder', (ids: number[]) => {
     const db = getDb()
@@ -1225,7 +1248,7 @@ export function registerIpc(): void {
   })
   handle('testValutazione:salva', (dati: TestValutazioneCompleto) => salvaTest(dati))
   handle('testValutazione:delete', (id: number) => {
-    getDb().prepare('DELETE FROM test_valutazione WHERE id = ?').run(id)
+    eliminaConCestino('test_valutazione', id, 'Test', nomeDi('test_valutazione', id))
   })
   handle('testValutazione:reorder', (ids: number[]) => {
     const db = getDb()
@@ -1524,7 +1547,7 @@ export function registerIpc(): void {
   })
 
   handle('bioimmagini:delete', (id: number) => {
-    getDb().prepare('DELETE FROM bioimmagini WHERE id = ?').run(id)
+    eliminaConCestino('bioimmagini', id, 'Documento', nomeDi('bioimmagini', id))
   })
 
   // ---- Body chart ----

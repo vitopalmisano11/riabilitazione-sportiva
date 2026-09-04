@@ -12,7 +12,7 @@ import Database from 'better-sqlite3-multiple-ciphers'
 import { runMigrations } from '../src/main/migrations'
 import { generaDocx, generaHtml } from '../src/main/export-doc'
 import { cambiaPasswordAuth, loginAuth, recoverAuth, setupAuth } from '../src/main/auth'
-import { closeDb, getDb, initDb, isPlaintextDb } from '../src/main/db'
+import { apriAltroDb, closeDb, getDb, initDb, isPlaintextDb } from '../src/main/db'
 import { generaCartella, SEZIONI } from '../src/main/export-cartella'
 import { esportaArchivio } from '../src/main/esporta-archivio'
 import {
@@ -38,7 +38,7 @@ import {
   salvaQuestionario
 } from '../src/main/questionari'
 import { spostaFileDati } from '../src/main/file-dati'
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
 
 const dir = mkdtempSync(join(tmpdir(), 'riab-smoke-'))
 const db = new Database(join(dir, 'test.db'))
@@ -778,6 +778,63 @@ assert.equal(
   assert.equal(contati('SELECT COUNT(*) AS n FROM sedute WHERE id = ?', sedC), 0)
 }
 
+// --- Cestino: anche la libreria si recupera ---
+// Una sezione e' citata dalle sedute gia' fatte con un legame ON DELETE SET
+// NULL: quelle righe non vengono cancellate, quindi non devono nemmeno finire
+// nella fotografia, altrimenti il ripristino proverebbe a reinserirle.
+{
+  const c = getDb()
+  const ins = (sql: string, ...a: unknown[]): number =>
+    Number(c.prepare(sql).run(...a).lastInsertRowid)
+  const contati = (sql: string, ...a: unknown[]): number =>
+    (c.prepare(sql).get(...a) as { n: number }).n
+
+  const patL = ins("INSERT INTO patologie (nome) VALUES ('Patologia libreria')")
+  const faseL = ins('INSERT INTO fasi (patologia_id, nome) VALUES (?, ?)', patL, 'Fase libreria')
+  const sezL = ins('INSERT INTO sezioni (fase_id, nome) VALUES (?, ?)', faseL, 'Riscaldamento')
+  const catL = ins("INSERT INTO categorie (nome) VALUES ('Cat libreria')")
+  ins('INSERT INTO sezione_categorie (sezione_id, categoria_id) VALUES (?, ?)', sezL, catL)
+  const pzL = ins("INSERT INTO pazienti (nome, cognome) VALUES ('Lib', 'Reria')")
+  const sedL = ins("INSERT INTO sedute (paziente_id, data) VALUES (?, '2026-09-02')", pzL)
+  const ssL = ins(
+    'INSERT INTO seduta_sezioni (seduta_id, sezione_id, nome) VALUES (?, ?, ?)',
+    sedL,
+    sezL,
+    'Riscaldamento'
+  )
+
+  eliminaConCestino('sezioni', sezL, 'Sezione', 'Riscaldamento')
+  assert.equal(contati('SELECT COUNT(*) AS n FROM sezioni WHERE id = ?', sezL), 0)
+  // la seduta gia' fatta resta leggibile: perde solo il rimando alla sezione
+  assert.equal(contati('SELECT COUNT(*) AS n FROM seduta_sezioni WHERE id = ?', ssL), 1)
+
+  const vociL = elencoCestino()
+  assert.equal(vociL.length, 1)
+  assert.equal(vociL[0].tipo, 'Sezione')
+  ripristina(vociL[0].id)
+  assert.equal(contati('SELECT COUNT(*) AS n FROM sezioni WHERE id = ?', sezL), 1)
+  // torna anche quello che le stava appeso davvero
+  assert.equal(contati('SELECT COUNT(*) AS n FROM sezione_categorie WHERE sezione_id = ?', sezL), 1)
+  assert.equal(elencoCestino().length, 0)
+
+  // e un esercizio della libreria si recupera con tutto il suo contenuto
+  const esL = ins(
+    "INSERT INTO esercizi (nome, categoria_id, nota_tecnica) VALUES (?, ?, 'Ginocchio in linea')",
+    'Affondo',
+    catL
+  )
+  eliminaConCestino('esercizi', esL, 'Esercizio', 'Affondo')
+  assert.equal(contati('SELECT COUNT(*) AS n FROM esercizi WHERE id = ?', esL), 0)
+  ripristina(elencoCestino()[0].id)
+  assert.equal(
+    (c.prepare('SELECT nota_tecnica FROM esercizi WHERE id = ?').get(esL) as {
+      nota_tecnica: string
+    }).nota_tecnica,
+    'Ginocchio in linea'
+  )
+  svuotaCestino()
+}
+
 // --- Tema: i documenti stampati devono seguire il colore scelto ---
 {
   // Il tema di partenza e' il verde; scegliendo il blu cambiano le intestazioni
@@ -902,6 +959,24 @@ assert.throws(() => {
     senzaChiave.close()
   }
 })
+
+// --- Controllo di una copia: si apre davvero, in disparte ---
+// E' il cuore del pulsante "Controlla" delle copie di sicurezza: una copia si
+// apre in sola lettura con le chiavi di adesso, senza toccare l'archivio in uso.
+const copiaPath = join(dirAuth, 'copia.db')
+copyFileSync(dbPath, copiaPath)
+{
+  const copia = apriAltroDb(copiaPath)
+  assert.equal(copia.pragma('integrity_check', { simple: true }), 'ok')
+  assert.ok(
+    (copia.prepare('SELECT COUNT(*) AS n FROM pazienti').get() as { n: number }).n > 0
+  )
+  copia.close()
+}
+// un file che non e' un database (o e' rovinato) non passa il controllo
+const rottaPath = join(dirAuth, 'rotta.db')
+writeFileSync(rottaPath, 'questo non e un database')
+assert.throws(() => apriAltroDb(rottaPath))
 
 // Recovery key: accetta formattazione "sporca" e imposta una nuova password
 const dekRecuperata = recoverAuth(authPath, recoveryKey.toLowerCase().replace(/-/g, ' '), 'nuova-password')

@@ -221,7 +221,7 @@ function ElencoTest({
                       title="Elimina"
                       className="danger"
                       onClick={async () => {
-                        if (await chiedi(`Eliminare il test "${t.nome}"?`)) {
+                        if (await chiedi(`Eliminare il test "${t.nome}"?\nVerranno eliminati anche i rilievi già registrati negli screening.\nFinisce nel cestino: puoi rimetterlo a posto da Impostazioni entro un mese.`)) {
                           void run(async () => {
                             await window.api.testValutazione.remove(t.id)
                             await onChanged()

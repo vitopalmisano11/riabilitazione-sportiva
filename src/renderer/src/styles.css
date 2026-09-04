@@ -1822,6 +1822,32 @@ span.row-actions button {
   font-style: italic;
 }
 
+/* L'esito del controllo di una copia: si legge sotto alla riga della copia,
+   perche' e' una risposta a quella riga, non un avviso che passa e sparisce. */
+.esito-copia {
+  display: inline-flex;
+  /* L'icona sta all'altezza della prima riga: se la frase va a capo, centrata
+     finirebbe in mezzo al testo. */
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 3px;
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+.esito-buono {
+  color: var(--success);
+}
+
+.esito-guasto {
+  color: var(--danger);
+}
+
+.riga-copia .esito-copia svg {
+  flex: none;
+  margin-top: 2px;
+}
+
 /* ---- Autenticazione ---- */
 
 .auth-screen {

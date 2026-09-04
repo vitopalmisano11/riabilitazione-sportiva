@@ -164,7 +164,7 @@ export default function EserciziPage(): React.JSX.Element {
   }
 
   const elimina = async (e: EsercizioConCategoria): Promise<void> => {
-    if (!(await chiedi(`Eliminare definitivamente "${e.nome}"?\nSe è stato usato in sedute passate, usa "Archivia".`)))
+    if (!(await chiedi(`Eliminare "${e.nome}"?\nSe è stato usato in sedute passate non si può: in quel caso usa "Archivia".\nFinisce nel cestino: puoi rimetterlo a posto da Impostazioni entro un mese.`)))
       return
     try {
       await window.api.esercizi.remove(e.id)
