@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webFrame } from 'electron'
 import type { Tema } from '../shared/temi'
 import type {
   TipoChart,
@@ -40,6 +40,13 @@ try {
     tema: string
     scuro: boolean
     barraScura: boolean
+    ingrandimento: number
+  }
+  // La finestra della scheda del paziente ha la sua misura, che si cambia li'
+  // con Ctrl e la rotella: l'ingrandimento scelto per l'app non la riguarda.
+  const posizione = (globalThis as { location?: { hash?: string } }).location
+  if (!posizione?.hash?.startsWith('#scheda=')) {
+    webFrame.setZoomFactor(salvato.ingrandimento || 1)
   }
   const pagina = (globalThis as { document?: PaginaMinima }).document
   const applica = (): void => {
@@ -333,6 +340,11 @@ const api: Api = {
     setTema: (t: Tema) => invoke('impostazioni:setTema', t),
     setScuro: (valore: boolean) => invoke('impostazioni:setScuro', valore),
     setBarraScura: (valore: boolean) => invoke('impostazioni:setBarraScura', valore),
+    setIngrandimento: (valore: number) => {
+      // Prima si vede, poi si scrive: l'occhio non deve aspettare il disco.
+      webFrame.setZoomFactor(valore)
+      return invoke('impostazioni:setIngrandimento', valore)
+    },
     info: () => invoke('impostazioni:info'),
     apriCartella: () => invoke('impostazioni:apriCartella'),
     cambiaCartella: () => invoke('impostazioni:cambiaCartella'),

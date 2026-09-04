@@ -748,14 +748,9 @@ button.danger:hover:not(:disabled) {
   margin: var(--spazio) 0 8px;
 }
 
-/* Dentro a un riquadro o a una finestra la fascia sborda di quanto e' il suo
-   bordo interno: cosi' la scritta parte esattamente dove partono i campi che ha
-   sotto, invece che dieci pixel piu' a destra. Solo dove la fascia e' figlia
-   diretta di un contenitore con il suo bordo: altrove (per esempio come titolo
-   di un grafico) resta dov'e'. */
-:is(.card, .modal, .blocco-impostazione) > .sotto-titolo {
-  margin-inline: -10px;
-}
+/* Lo stacco a sinistra era nato quando nel tema verde la fascia era
+   trasparente e si vedeva solo la scritta, che sembrava disallineata. Adesso
+   la fascia si vede, e a doversi incolonnare con le caselle e' lei. */
 
 /* Fuori dai riquadri bianchi la fascia non serve: li' il sottotitolo sta gia'
    su un fondo suo. */
@@ -2684,6 +2679,21 @@ textarea {
   margin-top: var(--spazio);
 }
 
+/* Meno, la percentuale, piu', e il ritorno alla misura normale. */
+.regola-ingrandimento {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+
+.valore-ingrandimento {
+  min-width: 52px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
 .riga-luce {
   margin-top: var(--spazio);
   padding-top: var(--spazio);
@@ -2707,8 +2717,8 @@ textarea {
    stare in fondo alla riga del nome, non sotto. Selettori con la stessa forza
    della regola che mette in colonna i campi di una finestra, e scritti dopo:
    con :where() perdevano il confronto e restavano incolonnati. */
-.card label.riga-interruttore,
-.modal label.riga-interruttore {
+.card .riga-interruttore,
+.modal .riga-interruttore {
   display: flex;
   flex-direction: row;
   align-items: center;

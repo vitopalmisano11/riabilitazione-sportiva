@@ -52,6 +52,7 @@ export default function App(): React.JSX.Element {
   const [tema, setTema] = useState<Tema>('verde')
   const [scuro, setScuro] = useState(false)
   const [barraScura, setBarraScura] = useState(false)
+  const [ingrandimento, setIngrandimento] = useState(1)
 
   // Il ponte applica gia' i colori prima che la pagina compaia: qui si legge lo
   // stesso valore solo per sapere cosa mostrare come scelto in Impostazioni.
@@ -62,6 +63,7 @@ export default function App(): React.JSX.Element {
         setTema(i.tema)
         setScuro(i.scuro)
         setBarraScura(i.barraScura)
+        setIngrandimento(i.ingrandimento)
       })
       .catch(() => undefined)
   }, [])
@@ -74,6 +76,13 @@ export default function App(): React.JSX.Element {
 
   // La barra laterale chiara o scura: era una caratteristica del colore (il blu
   // ce l'aveva scura), adesso e' una scelta a se' che vale con tutti i colori.
+  // L'ingrandimento lo applica il ponte alla finestra: qui si tiene solo il
+  // numero da mostrare nelle impostazioni.
+  const scegliIngrandimento = (valore: number): void => {
+    setIngrandimento(valore)
+    window.api.impostazioni.setIngrandimento(valore).catch((e) => toastErrore(errMsg(e)))
+  }
+
   const scegliBarraScura = (valore: boolean): void => {
     setBarraScura(valore)
     document.documentElement.dataset.barra = valore ? 'scura' : 'chiara'
@@ -216,6 +225,8 @@ export default function App(): React.JSX.Element {
             onScuro={scegliScuro}
             barraScura={barraScura}
             onBarraScura={scegliBarraScura}
+            ingrandimento={ingrandimento}
+            onIngrandimento={scegliIngrandimento}
           />
         )}
       </main>

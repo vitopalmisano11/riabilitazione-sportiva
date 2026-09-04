@@ -1094,12 +1094,16 @@ export interface Api {
     setTema(t: Tema): Promise<void>
     setScuro(valore: boolean): Promise<void>
     setBarraScura(valore: boolean): Promise<void>
+    setIngrandimento(valore: number): Promise<void>
     info(): Promise<{
       cartella: string
       cartellaExport: string
       tema: Tema
       scuro: boolean
       barraScura: boolean
+      // 1 e' la misura normale dei caratteri; 1.2 vuol dire "un quinto piu'
+      // grandi", e con loro cresce tutto il resto della pagina.
+      ingrandimento: number
     }>
     apriCartella(): Promise<void>
     // Ritornano il nuovo percorso, o null se l'utente annulla.

@@ -18,6 +18,8 @@ import {
   impostaBlocco,
   barraScura,
   impostaBarraScura,
+  impostaIngrandimento,
+  ingrandimento,
   impostaScuro,
   impostaTema,
   scuro,
@@ -239,8 +241,10 @@ export function registerIpc(): void {
     cartellaExport: cartellaExport(),
     tema: tema(),
     scuro: scuro(),
-    barraScura: barraScura()
+    barraScura: barraScura(),
+    ingrandimento: ingrandimento()
   }))
+  handle('impostazioni:setIngrandimento', (valore: number) => impostaIngrandimento(valore))
   handle('impostazioni:setBarraScura', (valore: boolean) => impostaBarraScura(valore))
   handle('impostazioni:setScuro', (valore: boolean) => impostaScuro(valore))
   handle('impostazioni:setTema', (t: Tema) => impostaTema(t))
@@ -248,7 +252,12 @@ export function registerIpc(): void {
   // l'unica risposta immediata: chiesta dopo, si vedrebbe un lampo dei colori
   // di partenza a ogni avvio.
   ipcMain.on('impostazioni:temaSubito', (e) => {
-    e.returnValue = { tema: tema(), scuro: scuro(), barraScura: barraScura() }
+    e.returnValue = {
+      tema: tema(),
+      scuro: scuro(),
+      barraScura: barraScura(),
+      ingrandimento: ingrandimento()
+    }
   })
   handle('impostazioni:cambiaCartellaExport', async () => {
     const { canceled, filePaths } = await dialog.showOpenDialog({

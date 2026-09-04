@@ -4,7 +4,7 @@ import type { Tema } from '../../../shared/temi'
 import type { VoceCestino } from '../../../shared/types'
 import { TEMI } from '../../../shared/temi'
 import PannelloBackup from '../components/PannelloBackup'
-import { FolderOpen, Trash2, Undo2 } from 'lucide-react'
+import { FolderOpen, Minus, Plus, RotateCcw, Trash2, Undo2 } from 'lucide-react'
 import { toast, toastErrore } from '../components/Toast'
 import { chiedi } from '../components/Conferma'
 import { errMsg } from '../lib'
@@ -33,7 +33,9 @@ export default function ImpostazioniPage({
   scuro,
   onScuro,
   barraScura,
-  onBarraScura
+  onBarraScura,
+  ingrandimento,
+  onIngrandimento
 }: {
   tornaAllInizio: number
   tema: Tema
@@ -42,6 +44,8 @@ export default function ImpostazioniPage({
   onScuro: (valore: boolean) => void
   barraScura: boolean
   onBarraScura: (valore: boolean) => void
+  ingrandimento: number
+  onIngrandimento: (valore: number) => void
 }): React.JSX.Element {
   const [scheda, setScheda] = useState<Scheda>('dati')
 
@@ -84,6 +88,8 @@ export default function ImpostazioniPage({
                 onScuro={onScuro}
                 barraScura={barraScura}
                 onBarraScura={onBarraScura}
+                ingrandimento={ingrandimento}
+                onIngrandimento={onIngrandimento}
               />
               <SchedaBlocco />
             </div>
@@ -387,7 +393,9 @@ function SchedaAspetto({
   scuro,
   onScuro,
   barraScura,
-  onBarraScura
+  onBarraScura,
+  ingrandimento,
+  onIngrandimento
 }: {
   tema: Tema
   onTema: (t: Tema) => void
@@ -395,6 +403,8 @@ function SchedaAspetto({
   onScuro: (valore: boolean) => void
   barraScura: boolean
   onBarraScura: (valore: boolean) => void
+  ingrandimento: number
+  onIngrandimento: (valore: number) => void
 }): React.JSX.Element {
   return (
     <section className="card single-col">
@@ -413,6 +423,37 @@ function SchedaAspetto({
             {t.etichetta}
           </button>
         ))}
+      </div>
+
+      {/* Il programma e' scritto in pixel fissi: invece di cambiare i numeri uno
+          per uno si ingrandisce tutta la pagina, come fa il browser con Ctrl +.
+          Cosi' cresce ogni cosa in proporzione — scritte, caselle, spazi — e
+          niente si scompone. */}
+      <div className="riga-interruttore riga-staccata">
+        <span className="nome-interruttore">
+          Dimensione dei caratteri
+          <Aiuto testo="Ingrandisce o rimpicciolisce tutto il programma, non solo le scritte: caselle, pulsanti e spazi crescono insieme. Se ti sembra scritto piccolo, alza qui invece di avvicinarti allo schermo." />
+        </span>
+        <span className="regola-ingrandimento">
+          <button
+            title="Più piccolo"
+            disabled={ingrandimento <= 0.8}
+            onClick={() => onIngrandimento(Math.round((ingrandimento - 0.1) * 10) / 10)}
+          >
+            <Minus size={16} />
+          </button>
+          <span className="valore-ingrandimento">{Math.round(ingrandimento * 100)}%</span>
+          <button
+            title="Più grande"
+            disabled={ingrandimento >= 1.6}
+            onClick={() => onIngrandimento(Math.round((ingrandimento + 0.1) * 10) / 10)}
+          >
+            <Plus size={16} />
+          </button>
+          <button title="Torna alla misura normale" onClick={() => onIngrandimento(1)}>
+            <RotateCcw size={15} />
+          </button>
+        </span>
       </div>
 
       {/* Prima la barra scura era una caratteristica del blu: gli altri due

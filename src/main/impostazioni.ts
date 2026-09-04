@@ -25,6 +25,7 @@ interface Impostazioni {
   backupAttivo?: boolean
   backupDaTenere?: number
   barraScura?: boolean
+  ingrandimento?: number
 }
 
 const percorsoFile = (): string => join(app.getPath('userData'), 'impostazioni.json')
@@ -99,6 +100,18 @@ export function barraScura(): boolean {
 
 export function impostaBarraScura(valore: boolean): void {
   salva({ barraScura: valore })
+}
+
+// Quanto e' ingrandita la pagina: 1 e' la misura normale. Si tiene fra 0.8 e
+// 1.6, cioe' fra "un po' piu' piccolo" e "il doppio abbondante": oltre, la
+// finestra diventa inservibile.
+export function ingrandimento(): number {
+  const v = leggi().ingrandimento
+  return typeof v === 'number' && v >= 0.8 && v <= 1.6 ? v : 1
+}
+
+export function impostaIngrandimento(valore: number): void {
+  salva({ ingrandimento: Math.min(1.6, Math.max(0.8, Math.round(valore * 100) / 100)) })
 }
 
 export function scuro(): boolean {
