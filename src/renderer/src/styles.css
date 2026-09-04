@@ -2854,12 +2854,24 @@ textarea {
 
 /* Il nome del paziente e' un pulsante, e un pulsante dentro a una colonna si
    allargherebbe centrando la scritta: qui deve stare a sinistra, sopra ai suoi
-   dettagli, come il titolo della riga. */
+   dettagli, come il titolo della riga. Senza bordo interno a sinistra, se no
+   parte spostato rispetto alla riga dei dettagli che ha sotto. */
 .giorno-settimana .nome-nel-titolo {
   align-self: flex-start;
   text-align: left;
   font-size: 16px;
   font-weight: 600;
+  padding-left: 0;
+  padding-right: 0;
+  margin-bottom: 1px;
+}
+
+/* Lo sfondo del passaggio del mouse, senza bordo interno, sarebbe attaccato
+   alle lettere: si allarga con l'ombra invece che con lo spazio. */
+.giorno-settimana .nome-nel-titolo:hover:not(:disabled) {
+  background: none;
+  box-shadow: 0 0 0 5px var(--accent-soft);
+  background-color: var(--accent-soft);
 }
 
 .titolo-settimana {
@@ -2868,16 +2880,23 @@ textarea {
   text-align: center;
 }
 
-/* Meno, la percentuale, piu', e il ritorno alla misura normale. */
+/* Meno, la percentuale, piu', e il ritorno alla misura normale. Pulsanti
+   piccoli: con la misura di quelli normali la riga diventava alta il doppio
+   delle altre e l'ultimo pulsante usciva dal riquadro. */
 .regola-ingrandimento {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   flex: none;
 }
 
+.regola-ingrandimento button {
+  padding: 4px 8px;
+  min-height: 0;
+}
+
 .valore-ingrandimento {
-  min-width: 52px;
+  min-width: 46px;
   text-align: center;
   font-variant-numeric: tabular-nums;
   color: var(--text);

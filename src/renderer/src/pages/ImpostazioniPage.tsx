@@ -407,23 +407,29 @@ function SchedaBlocco({
 
       {/* Il controllo dell'archivio sta qui, con l'ingrandimento: sono tutte e
           due cose che si fanno di rado e riguardano il programma, non i dati. */}
-      <div className="riga-interruttore riga-staccata">
-        <span className="nome-interruttore">
-          Controllo dell&apos;archivio
-          <Aiuto testo="Controlla che il file dell'archivio non si sia rovinato e che i collegamenti fra le schede siano interi. È il controllo da fare dopo uno spegnimento brutto del computer, o quando qualcosa non torna." />
-        </span>
-        <span className="regola-ingrandimento">
-          {esitoArchivio && (
-            <span className={esitoArchivio.ok ? 'esito-copia esito-buono' : 'esito-copia esito-guasto'}>
-              {esitoArchivio.ok
-                ? `Tutto in ordine — ${esitoArchivio.pazienti} pazienti, ${esitoArchivio.sedute} sedute.`
-                : esitoArchivio.messaggio}
-            </span>
-          )}
-          <button disabled={inCorso} onClick={() => void controlla()}>
-            <ShieldCheck size={16} /> {inCorso ? 'Controllo…' : 'Controlla'}
-          </button>
-        </span>
+      <div className="riga-staccata">
+        <div className="riga-interruttore">
+          <span className="nome-interruttore">
+            Controllo dell&apos;archivio
+            <Aiuto testo="Controlla che il file dell'archivio non si sia rovinato e che i collegamenti fra le schede siano interi. È il controllo da fare dopo uno spegnimento brutto del computer, o quando qualcosa non torna." />
+          </span>
+          <span className="regola-ingrandimento">
+            <button disabled={inCorso} onClick={() => void controlla()}>
+              <ShieldCheck size={16} /> {inCorso ? 'Controllo…' : 'Controlla'}
+            </button>
+          </span>
+        </div>
+        {/* La risposta sta sotto alla riga: accanto al pulsante faceva sbordare
+            tutto appena il riquadro si stringeva. */}
+        {esitoArchivio && (
+          <span
+            className={esitoArchivio.ok ? 'esito-copia esito-buono' : 'esito-copia esito-guasto'}
+          >
+            {esitoArchivio.ok
+              ? `Tutto in ordine — ${esitoArchivio.pazienti} pazienti, ${esitoArchivio.sedute} sedute.`
+              : esitoArchivio.messaggio}
+          </span>
+        )}
       </div>
 
       <label className="riga-interruttore riga-staccata">
