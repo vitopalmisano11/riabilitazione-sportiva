@@ -16,7 +16,14 @@ import CrudList from '../components/CrudList'
 import ImmagineEsercizio from '../components/ImmagineEsercizio'
 import { errMsg } from '../lib'
 import type { Dosaggio } from '../../../shared/dosaggio'
-import { aCluster, recuperoEsteso, recuperoTesto, ripetizioniTesto, volumeTesto } from '../../../shared/dosaggio'
+import {
+  aCluster,
+  caricoTesto,
+  recuperoEsteso,
+  recuperoTesto,
+  ripetizioniTesto,
+  volumeTesto
+} from '../../../shared/dosaggio'
 
 interface FormState {
   id: number | null
@@ -135,6 +142,17 @@ export default function EserciziPage(): React.JSX.Element {
       toastErrore(errMsg(e))
     }
   }
+
+  // L'unita' del carico si sceglie nelle impostazioni: qui serve per scriverla
+  // accanto alla casella, cosi' si sa cosa si sta digitando.
+  const [unita, setUnita] = useState('')
+
+  useEffect(() => {
+    void window.api.impostazioni
+      .info()
+      .then((i) => setUnita(i.unitaCarico))
+      .catch(() => undefined)
+  }, [])
 
   // Il dosaggio di un esercizio della libreria, nella forma che sanno leggere
   // le funzioni condivise.
@@ -388,7 +406,7 @@ export default function EserciziPage(): React.JSX.Element {
               <td className="col-param" title={aCluster(dosaggioDi(e)) ? 'Cluster × ripetizioni' : undefined}>
                 {ripetizioniTesto(dosaggioDi(e)) ?? '—'}
               </td>
-              <td className="col-param">{e.carico_default ?? '—'}</td>
+              <td className="col-param">{caricoTesto(e.carico_default, unita) ?? '—'}</td>
               <td className="col-param" title={aCluster(dosaggioDi(e)) ? 'Tra i cluster / tra le serie' : undefined}>
                 {recuperoTesto(dosaggioDi(e)) ?? '—'}
               </td>
@@ -504,10 +522,10 @@ export default function EserciziPage(): React.JSX.Element {
                 />
               </label>
               <label>
-                Carico
+                {unita.trim() === '' ? 'Carico' : `Carico (${unita.trim()})`}
                 <input
                   value={form.carico_default}
-                  placeholder="es. 10 kg"
+                  placeholder={unita.trim() === '' ? 'es. 10 kg' : 'es. 10'}
                   onChange={(e) => setForm({ ...form, carico_default: e.target.value })}
                 />
               </label>

@@ -9,6 +9,7 @@ import {
   temaValido,
   type Tema
 } from '../shared/temi'
+import { impostaUnitaCaricoCorrente } from '../shared/dosaggio'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { spostaFileDati } from './file-dati'
@@ -24,6 +25,7 @@ interface Impostazioni {
   bloccoMinuti?: number
   backupAttivo?: boolean
   backupDaTenere?: number
+  unitaCarico?: string
 }
 
 const percorsoFile = (): string => join(app.getPath('userData'), 'impostazioni.json')
@@ -44,9 +46,24 @@ function salva(patch: Impostazioni): void {
 const nomeCartellaDati = (): string =>
   app.isPackaged ? 'Riabilitazione' : 'Riabilitazione (dev)'
 
+// Unita' di misura del carico: si scrive una volta e si applica dappertutto,
+// cosi' nella casella si mette solo il numero. Vuota vuol dire "nessuna": chi
+// preferisce scrivere l'unita' a mano puo' continuare a farlo.
+export function unitaCarico(): string {
+  const u = leggi().unitaCarico
+  return u === undefined ? 'kg' : u.trim()
+}
+
+export function impostaUnitaCarico(valore: string): void {
+  const u = valore.trim().slice(0, 12)
+  salva({ unitaCarico: u })
+  impostaUnitaCaricoCorrente(u)
+}
+
 // All'avvio il tema salvato diventa quello corrente: da qui lo leggono i
 // generatori dei documenti, che non possono aprire questo file da soli.
 impostaTemaCorrente(temaValido(leggi().tema))
+impostaUnitaCaricoCorrente(unitaCarico())
 
 export function cartellaDati(): string {
   const dir = leggi().cartellaDati || join(app.getPath('documents'), nomeCartellaDati())

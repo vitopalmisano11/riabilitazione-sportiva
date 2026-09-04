@@ -17,6 +17,8 @@ import {
   blocco,
   impostaBlocco,
   impostaScuro,
+  impostaUnitaCarico,
+  unitaCarico,
   impostaTema,
   scuro,
   tema
@@ -236,8 +238,10 @@ export function registerIpc(): void {
     cartella: cartellaDati(),
     cartellaExport: cartellaExport(),
     tema: tema(),
-    scuro: scuro()
+    scuro: scuro(),
+    unitaCarico: unitaCarico()
   }))
+  handle('impostazioni:setUnitaCarico', (valore: string) => impostaUnitaCarico(valore))
   handle('impostazioni:setScuro', (valore: boolean) => impostaScuro(valore))
   handle('impostazioni:setTema', (t: Tema) => impostaTema(t))
   // Il tema serve al preload prima ancora che la pagina si disegni, percio' e'

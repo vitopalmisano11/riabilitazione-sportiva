@@ -1521,18 +1521,58 @@ span.row-actions button {
 /* Il pulsante che apre la scelta degli esercizi: largo quanto la sezione e con
    il bordo tratteggiato, cosi' si vede che apre qualcosa e non e' una riga
    della seduta. */
-.aggiungi-esercizio {
-  width: 100%;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 10px;
-  border-style: dashed;
+/* Il pulsante che aggiunge un esercizio sta nella testata della sezione,
+   accanto a rinomina: e' un'azione di quella sezione, non un pezzo di elenco
+   in fondo alla pagina. */
+.btn-aggiungi-sezione {
+  gap: 5px;
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.btn-aggiungi-sezione:hover:not(:disabled) {
+  background: var(--accent-soft);
+}
+
+/* La maniglia della sezione: a sinistra del titolo, scolorita, perche' non e'
+   un'azione ma un appiglio. */
+.maniglia-sezione {
+  flex: none;
+  display: flex;
+}
+
+.maniglia-sezione button {
+  padding: 4px;
+  border: none;
+  background: none;
   color: var(--text-dim);
 }
 
-.aggiungi-esercizio:hover:not(:disabled) {
+.maniglia-sezione button:hover {
+  color: var(--accent);
+  background: none;
+}
+
+/* Nell'elenco da cui si pesca, il "+" apre la riga: il nome, che puo' essere
+   lungo, si prende tutto lo spazio che resta. */
+.btn-aggiungi-riga {
+  flex: none;
+  padding: 4px 7px;
   color: var(--accent);
   border-color: var(--accent);
+}
+
+.btn-aggiungi-riga:hover:not(:disabled) {
+  background: var(--accent-soft);
+}
+
+.esercizi-proposti .item-nome {
+  flex: 1;
+  min-width: 0;
+}
+
+.hint-categoria {
+  margin: 0 0 6px;
 }
 
 /* Testata della scelta: dice a quale sezione stai aggiungendo, e come chiudere. */
@@ -3250,42 +3290,73 @@ textarea {
   color: var(--accent);
 }
 
-/* Il programma del paziente e' un elenco puntato per categoria: si legge in
-   piedi e sta in una schermata anche con dieci esercizi. */
-.gruppo-esercizi {
-  margin-bottom: 12px;
+/* Il programma del paziente: una tabella con quattro colonne sempre nello
+   stesso posto. Si legge in piedi, da lontano, quindi i caratteri sono grandi
+   e le righe alte; i numeri stanno al centro delle loro colonne, che restano
+   strette, e tutto lo spazio che avanza va al nome dell'esercizio. */
+.tabella-scheda {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 6px;
 }
 
-.categoria-gruppo {
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--accent);
-  margin-bottom: 2px;
-}
-
-.elenco-esercizi {
-  margin: 0;
-  padding-left: 20px;
-}
-
-.elenco-esercizi li {
-  margin-bottom: 5px;
-  font-size: 15px;
-}
-
-.elenco-esercizi .nome {
+.tabella-scheda th {
+  /* "SERIE × RIP." su due righe faceva sembrare storta la tabella quando la
+     colonna era stretta. */
+  white-space: nowrap;
+  font-size: 12px;
   font-weight: 600;
-}
-
-.elenco-esercizi .dettagli {
-  color: var(--text);
-}
-
-.elenco-esercizi .nota-es {
-  display: block;
-  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   color: var(--text-dim);
+  text-align: center;
+  padding: 0 10px 6px;
+  border-bottom: 2px solid var(--border-forte);
+}
+
+.tabella-scheda th:first-child {
+  text-align: left;
+}
+
+.tabella-scheda td {
+  padding: 11px 10px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.tabella-scheda tr:last-child td {
+  border-bottom: none;
+}
+
+.tabella-scheda .col-esercizio {
+  width: auto;
+}
+
+.tabella-scheda .nome {
+  display: block;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+/* La nota sta sotto al nome e in corsivo: e' un'indicazione, non un dato da
+   incolonnare, e nessuno la cerca in una colonna. */
+.tabella-scheda .nota-es {
+  display: block;
+  margin-top: 3px;
+  font-size: 14px;
+  font-style: italic;
+  color: var(--text-dim);
+}
+
+/* Le tre colonne dei numeri: strette quanto basta al loro contenuto, cosi' il
+   nome dell'esercizio si prende il resto. */
+.tabella-scheda .col-dose {
+  width: 1%;
+  white-space: nowrap;
+  text-align: center;
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
 }
 
 .nota-seduta {

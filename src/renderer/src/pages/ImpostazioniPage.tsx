@@ -71,6 +71,7 @@ export default function ImpostazioniPage({
             <SchedaPassword />
             <SchedaAspetto tema={tema} onTema={onTema} scuro={scuro} onScuro={onScuro} />
             <SchedaBlocco />
+            <SchedaCarico />
           </div>
         )}
       </div>
@@ -364,6 +365,52 @@ function SchedaBlocco(): React.JSX.Element {
           />
         </label>
       )}
+    </section>
+  )
+}
+
+// L'unita' di misura del carico. Si scrive una volta e vale dappertutto, cosi'
+// nella casella del carico si mette solo il numero.
+function SchedaCarico(): React.JSX.Element {
+  const [unita, setUnita] = useState('')
+  const [caricata, setCaricata] = useState(false)
+
+  useEffect(() => {
+    void window.api.impostazioni
+      .info()
+      .then((i) => {
+        setUnita(i.unitaCarico)
+        setCaricata(true)
+      })
+      .catch((e) => toastErrore(errMsg(e)))
+  }, [])
+
+  const salva = (valore: string): void => {
+    setUnita(valore)
+    window.api.impostazioni.setUnitaCarico(valore).catch((e) => toastErrore(errMsg(e)))
+  }
+
+  return (
+    <section className="card single-col">
+      <div className="sotto-titolo">
+        Unità di misura del carico
+        <Aiuto testo="Nella casella “Carico” degli esercizi scrivi solo il numero: qui decidi cosa ci va scritto dopo, sulla scheda del paziente e sui documenti che stampi. Se in un esercizio scrivi qualcosa di diverso (per esempio “elastico rosso”), resta come l'hai scritto tu." />
+      </div>
+      <label className="campo-copie">
+        Cosa scrivere dopo il numero
+        <input
+          value={caricata ? unita : ''}
+          placeholder="kg"
+          maxLength={12}
+          onChange={(e) => salva(e.target.value)}
+        />
+      </label>
+      <p className="modal-testo">
+        Scrivendo <b>{unita.trim() === '' ? 'niente' : unita.trim()}</b>, un carico di 10 sulla
+        scheda del paziente si legge{' '}
+        <b>{unita.trim() === '' ? '10' : `10 ${unita.trim()}`}</b>. Lascia vuoto se preferisci
+        scrivere l&apos;unità a mano in ogni esercizio.
+      </p>
     </section>
   )
 }

@@ -13,6 +13,28 @@
 // si mostra al paziente e i documenti che si stampano (che girano nel processo
 // principale e non possono importare niente di React).
 
+// L'unita' di misura del carico si sceglie una volta sola nelle impostazioni.
+// Qui vive la copia che leggono i generatori dei documenti, che girano nel
+// processo principale e il file delle impostazioni non possono aprirlo.
+let unita = 'kg'
+
+export function impostaUnitaCaricoCorrente(valore: string): void {
+  unita = (valore ?? '').trim()
+}
+
+export function unitaCaricoCorrente(): string {
+  return unita
+}
+
+// Il carico come va scritto: se hai messo solo un numero ci si aggiunge
+// l'unita', se hai scritto tu qualcosa ("elastico rosso", "12 kg") resta com'e'.
+export function caricoTesto(valore: string | null | undefined, u = unita): string | null {
+  const t = (valore ?? '').trim()
+  if (t === '') return null
+  if (u === '') return t
+  return /^[0-9]+([.,][0-9]+)?$/.test(t) ? `${t} ${u}` : t
+}
+
 export interface Dosaggio {
   serie: string | null
   cluster: string | null

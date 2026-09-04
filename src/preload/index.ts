@@ -326,6 +326,7 @@ const api: Api = {
   impostazioni: {
     setTema: (t: Tema) => invoke('impostazioni:setTema', t),
     setScuro: (valore: boolean) => invoke('impostazioni:setScuro', valore),
+    setUnitaCarico: (valore: string) => invoke('impostazioni:setUnitaCarico', valore),
     info: () => invoke('impostazioni:info'),
     apriCartella: () => invoke('impostazioni:apriCartella'),
     cambiaCartella: () => invoke('impostazioni:cambiaCartella'),

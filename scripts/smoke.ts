@@ -39,7 +39,13 @@ import {
 } from '../src/main/questionari'
 import { spostaFileDati } from '../src/main/file-dati'
 import { copyFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
-import { recuperoEsteso, recuperoTesto, ripetizioniTesto, volumeTesto } from '../src/shared/dosaggio'
+import {
+  caricoTesto,
+  recuperoEsteso,
+  recuperoTesto,
+  ripetizioniTesto,
+  volumeTesto
+} from '../src/shared/dosaggio'
 
 const dir = mkdtempSync(join(tmpdir(), 'riab-smoke-'))
 const db = new Database(join(dir, 'test.db'))
@@ -1299,6 +1305,17 @@ initDb(join(dirCartella, 'cartella.db'), dekHex)
     assert.equal(recuperoEsteso(rigaCl), `rec. 15" tra i cluster, 2' tra le serie`)
     assert.equal(ripetizioniTesto(rigaCl), '3 × 2')
     assert.equal(recuperoTesto(rigaCl), `15" / 2'`)
+    // Il carico: si scrive il numero e l'unita' la mette l'app; quello che
+    // scrivi a parole resta com'e'.
+    assert.equal(caricoTesto('10', 'kg'), '10 kg')
+    assert.equal(caricoTesto('7,5', 'sec'), '7,5 sec')
+    assert.equal(caricoTesto('elastico rosso', 'kg'), 'elastico rosso')
+    assert.equal(caricoTesto('12 kg', 'kg'), '12 kg')
+    assert.equal(caricoTesto('', 'kg'), null)
+    assert.equal(caricoTesto('10', ''), '10')
+    // e la scheda del paziente porta con se' l'unita' scelta
+    assert.equal(typeof schedaCl.unita_carico, 'string')
+
     // senza cluster il dosaggio resta quello di sempre
     assert.equal(volumeTesto({ serie: '3', cluster: null, ripetizioni: '10' }), '3 × 10')
     assert.equal(recuperoEsteso({ recupero_cluster: null, recupero: '1 min' }), 'rec. 1 min')

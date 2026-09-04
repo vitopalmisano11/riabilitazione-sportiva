@@ -599,14 +599,19 @@ export interface EsercizioScheda {
   nome: string
   categoria_nome: string
   serie: string | null
+  cluster: string | null
   ripetizioni: string | null
   carico: string | null
+  recupero_cluster: string | null
   recupero: string | null
   nota: string | null
 }
 
 export interface SchedaPaziente {
   paziente: string
+  // L'unita' del carico viaggia con la scheda: quella finestra non legge le
+  // impostazioni per conto suo.
+  unita_carico: string
   data: string
   fase_nome: string | null
   note: string | null
@@ -1077,11 +1082,14 @@ export interface Api {
   impostazioni: {
     setTema(t: Tema): Promise<void>
     setScuro(valore: boolean): Promise<void>
+    setUnitaCarico(valore: string): Promise<void>
     info(): Promise<{
       cartella: string
       cartellaExport: string
       tema: Tema
       scuro: boolean
+      // Quello che si scrive dopo il numero del carico ("kg", "sec"): vuota = niente.
+      unitaCarico: string
     }>
     apriCartella(): Promise<void>
     // Ritornano il nuovo percorso, o null se l'utente annulla.

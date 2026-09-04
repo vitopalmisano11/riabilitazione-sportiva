@@ -394,9 +394,22 @@ export default function SedutaBuilder({
       {sezioni.map((s, idxSez) => {
         const ricerca = (ricerche[idxSez] ?? '').trim().toLowerCase()
         const inSezione = new Set(s.righe.map((r) => r.esercizio_id))
+        // Cercando si trova per nome, ma anche per categoria: spesso non si
+        // ha in mente un esercizio precurso ("mi serve qualcosa di
+        // propriocettiva"), si ha in mente il tipo di lavoro.
+        const perCategoria =
+          ricerca.length >= 2 &&
+          categorie.some((c) => c.nome.toLowerCase().includes(ricerca))
         const daProporre =
           ricerca.length >= 2
-            ? libreria.filter((e) => e.nome.toLowerCase().includes(ricerca) && !inSezione.has(e.id)).slice(0, 8)
+            ? libreria
+                .filter(
+                  (e) =>
+                    !inSezione.has(e.id) &&
+                    (e.nome.toLowerCase().includes(ricerca) ||
+                      nomeCategoria(e.categoria_id).toLowerCase().includes(ricerca))
+                )
+                .slice(0, 12)
             : proposte(s).filter((e) => !inSezione.has(e.id))
         const dndSez = contSez(idxSez)
         return (
@@ -406,6 +419,14 @@ export default function SedutaBuilder({
             className={['card sezione-card', dndSez.className].filter(Boolean).join(' ')}
           >
             <div className="sezione-testata">
+              {/* La maniglia sta a sinistra del titolo, come nelle righe degli
+                  esercizi: in mezzo agli altri due pulsanti sembrava un'azione
+                  come loro, e si cliccava per sbaglio. */}
+              <span className="maniglia-sezione">
+                <button {...manSez(idxSez)}>
+                  <GripVertical size={16} />
+                </button>
+              </span>
               {editSez?.idx === idxSez ? (
                 <span className="edit-row">
                   <input
@@ -443,8 +464,12 @@ export default function SedutaBuilder({
                 <h3>{s.nome}</h3>
               )}
               <span className="item-actions-static">
-                <button {...manSez(idxSez)}>
-                  <GripVertical size={16} />
+                <button
+                  className="btn-aggiungi-sezione"
+                  title="Aggiungi un esercizio a questa sezione"
+                  onClick={() => setApriAggiungi(idxSez)}
+                >
+                  <Plus size={16} /> Esercizio
                 </button>
                 <button title="Rinomina" onClick={() => setEditSez({ idx: idxSez, nome: s.nome })}>
                   <Pencil size={16} />
@@ -566,14 +591,7 @@ export default function SedutaBuilder({
               </ul>
             )}
 
-            {sezioneApertaPerAggiungere !== idxSez ? (
-              <button
-                className="aggiungi-esercizio"
-                onClick={() => setApriAggiungi(idxSez)}
-              >
-                <Plus size={16} /> Aggiungi esercizio
-              </button>
-            ) : (
+            {sezioneApertaPerAggiungere === idxSez && (
             <div className="aggiungi-area">
               <div className="testata-aggiungi">
                 <span className="hint">Scegli un esercizio da aggiungere a “{s.nome}”</span>
@@ -593,10 +611,24 @@ export default function SedutaBuilder({
                 value={ricerche[idxSez] ?? ''}
                 onChange={(e) => setRicerche({ ...ricerche, [idxSez]: e.target.value })}
               />
+              {perCategoria && daProporre.length > 0 && (
+                <p className="hint hint-categoria">
+                  Esercizi della categoria che stai cercando: scegli quello che ti serve.
+                </p>
+              )}
               {daProporre.length > 0 ? (
                 <ul className="esercizi-proposti">
                   {daProporre.map((e) => (
                     <li key={e.id}>
+                      {/* Prima stava in fondo alla riga, e con i nomi lunghi
+                          finiva lontanissimo da quello che si stava leggendo. */}
+                      <button
+                        className="btn-aggiungi-riga"
+                        title={`Aggiungi ${e.nome}`}
+                        onClick={() => aggiungi(idxSez, e)}
+                      >
+                        <Plus size={16} />
+                      </button>
                       <span className="item-nome">
                         {e.nome}
                         {e.link && (
@@ -629,9 +661,6 @@ export default function SedutaBuilder({
                           .filter(Boolean)
                           .join(' · ')}
                       </span>
-                      <button onClick={() => aggiungi(idxSez, e)}>
-                        <Plus size={16} /> Aggiungi
-                      </button>
                     </li>
                   ))}
                 </ul>

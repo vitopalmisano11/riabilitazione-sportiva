@@ -2,12 +2,15 @@ import { useCallback, useEffect, useState } from 'react'
 import { RotateCw } from 'lucide-react'
 import type { SchedaPaziente as Dati } from '../../shared/types'
 import { errMsg, formatData } from './lib'
-import { recuperoEsteso, volumeTesto } from '../../shared/dosaggio'
+import { caricoTesto, recuperoTesto, volumeTesto } from '../../shared/dosaggio'
 
-// Quello che vede il paziente mentre si allena: solo il suo programma, nella
-// stessa forma del documento che si esporta — una tabella per sezione — ma con
-// caratteri piu' grandi, perche' si legge in piedi e da lontano. Ne stanno
-// aperte piu' d'una insieme, una per paziente.
+// Quello che vede il paziente mentre si allena: solo il suo programma. Ne
+// stanno aperte piu' d'una insieme, una per paziente.
+//
+// E' una tabella, non un elenco: si legge in piedi, spesso da un metro di
+// distanza, e quello che serve sapere sono quattro cose sempre nello stesso
+// posto — cosa fare, quanto, con che carico, quanto riposare. Incolonnate si
+// trovano con un colpo d'occhio; di seguito sulla stessa riga, no.
 export default function SchedaPaziente({ sedutaId }: { sedutaId: number }): React.JSX.Element {
   const [dati, setDati] = useState<Dati | null>(null)
   const [errore, setErrore] = useState('')
@@ -26,10 +29,7 @@ export default function SchedaPaziente({ sedutaId }: { sedutaId: number }): Reac
   if (errore) return <p className="auth-error">{errore}</p>
   if (!dati) return <p className="hint">Caricamento…</p>
 
-  // Dettagli di un esercizio su una riga sola: "3 × 10 · 20 kg · rec. 1'", e
-  // "4 × (3 × 2) · rec. 15" tra i cluster, 2' tra le serie" dove si va a cluster.
-  const dettagli = (e: Dati['sezioni'][number]['esercizi'][number]): string =>
-    [volumeTesto(e), e.carico, recuperoEsteso(e)].filter(Boolean).join(' · ')
+  const unita = dati.unita_carico
 
   return (
     <div className="scheda-paziente">
@@ -52,18 +52,34 @@ export default function SchedaPaziente({ sedutaId }: { sedutaId: number }): Reac
         dati.sezioni.map((sez, i) => (
           <section key={i}>
             <h2>{sez.nome}</h2>
-            {/* Elenco puntato: una tabella per sezione allungava la scheda e la
-                riempiva di caselle vuote. La categoria non si scrive, perche'
-                spesso ripete il nome della sezione. */}
-            <ul className="elenco-esercizi">
-              {sez.esercizi.map((e, j) => (
-                <li key={j}>
-                  <span className="nome">{e.nome}</span>
-                  {dettagli(e) && <span className="dettagli"> — {dettagli(e)}</span>}
-                  {e.nota && <span className="nota-es">{e.nota}</span>}
-                </li>
-              ))}
-            </ul>
+            <table className="tabella-scheda">
+              {/* Le intestazioni si ripetono a ogni sezione: sono corte e
+                  chiare, e cosi' una sezione si legge anche se l'altra e'
+                  scorsa fuori dallo schermo. */}
+              <thead>
+                <tr>
+                  <th>Esercizio</th>
+                  <th>Serie × rip.</th>
+                  <th>Carico</th>
+                  <th>Recupero</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sez.esercizi.map((e, j) => (
+                  <tr key={j}>
+                    <td className="col-esercizio">
+                      <span className="nome">{e.nome}</span>
+                      {/* La nota sta sotto al nome, non in una riga sua: e'
+                          quella l'unica colonna che puo' allungarsi. */}
+                      {e.nota && <span className="nota-es">{e.nota}</span>}
+                    </td>
+                    <td className="col-dose">{volumeTesto(e) ?? '—'}</td>
+                    <td className="col-dose">{caricoTesto(e.carico, unita) ?? '—'}</td>
+                    <td className="col-dose">{recuperoTesto(e) ?? '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </section>
         ))
       )}
