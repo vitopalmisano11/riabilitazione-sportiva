@@ -413,7 +413,7 @@ function SchedaAspetto({
       {/* Prima la barra scura era una caratteristica del blu: gli altri due
           colori non potevano averla, e il blu non poteva farne a meno. Adesso
           e' una scelta a se', valida con qualunque colore. */}
-      <label className="riga-interruttore riga-sotto-colori">
+      <label className="riga-interruttore riga-staccata">
         <span className="nome-interruttore">
           Colonna laterale scura
           <Aiuto testo="La striscia con i pulsanti delle sezioni, a sinistra: scura stacca di più dal contenuto, chiara è più leggera. Il colore che hai scelto resta quello." />

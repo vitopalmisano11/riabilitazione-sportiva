@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { GripVertical, Pencil, X } from 'lucide-react'
+import { GripVertical, Pencil, Plus, X } from 'lucide-react'
 import { errMsg } from '../lib'
 import { sposta, useRiordino } from '../riordino'
 import { toastErrore } from './Toast'
@@ -16,8 +16,10 @@ interface Props {
   items: CrudItem[]
   selectedId?: number | null
   onSelect?: (id: number) => void
-  onAdd: (nome: string) => Promise<unknown>
-  onRename: (id: number, nome: string) => Promise<unknown>
+  // Servono a chi aggiunge e rinomina sul posto; chi apre una finestra sua
+  // passa onNuovo e onModifica al loro posto.
+  onAdd?: (nome: string) => Promise<unknown>
+  onRename?: (id: number, nome: string) => Promise<unknown>
   onDelete: (id: number) => Promise<unknown>
   onReorder?: (ids: number[]) => Promise<unknown>
   addPlaceholder?: string
@@ -27,7 +29,13 @@ interface Props {
   // cambiare la lista per tutti gli altri.
   // Il "?" accanto al titolo della lista, quando c'e' qualcosa da spiegare.
   aiuto?: string
-  azioniExtra?: (item: CrudItem) => React.ReactNode
+  // Chi ha piu' di un campo da compilare si apre una finestra sua: passando
+  // queste due, la matita e il pulsante in fondo la chiamano invece di
+  // rinominare sul posto.
+  onNuovo?: () => void
+  onModifica?: (item: CrudItem) => void
+  // Qualcosa da mostrare accanto al nome (un'etichetta di stato).
+  dopoNome?: (item: CrudItem) => React.ReactNode
 }
 
 export default function CrudList({
@@ -42,7 +50,9 @@ export default function CrudList({
   addPlaceholder,
   emptyHint,
   aiuto,
-  azioniExtra
+  onNuovo,
+  onModifica,
+  dopoNome
 }: Props): React.JSX.Element {
   const [nuovo, setNuovo] = useState('')
   const [editId, setEditId] = useState<number | null>(null)
@@ -58,7 +68,7 @@ export default function CrudList({
 
   const add = (): void => {
     const n = nuovo.trim()
-    if (!n) return
+    if (!n || !onAdd) return
     void run(async () => {
       await onAdd(n)
       setNuovo('')
@@ -67,7 +77,7 @@ export default function CrudList({
 
   const saveRename = (): void => {
     const n = editNome.trim()
-    if (!n || editId == null) return
+    if (!n || editId == null || !onRename) return
     void run(async () => {
       await onRename(editId, n)
       setEditId(null)
@@ -118,11 +128,7 @@ export default function CrudList({
             ) : (
               <>
                 <span className="item-nome">{item.nome}</span>
-                {azioniExtra && (
-                  <span className="item-extra" onClick={(e) => e.stopPropagation()}>
-                    {azioniExtra(item)}
-                  </span>
-                )}
+                {dopoNome?.(item)}
                 <span className="item-actions" onClick={(e) => e.stopPropagation()}>
                   {onReorder && (
                     <button {...maniglia(idx)}>
@@ -130,8 +136,12 @@ export default function CrudList({
                     </button>
                   )}
                   <button
-                    title="Rinomina"
+                    title={onModifica ? 'Modifica' : 'Rinomina'}
                     onClick={() => {
+                      if (onModifica) {
+                        onModifica(item)
+                        return
+                      }
                       setEditId(item.id)
                       setEditNome(item.nome)
                     }}
@@ -156,15 +166,23 @@ export default function CrudList({
         {items.length === 0 && <li className="empty">{emptyHint ?? 'Nessun elemento'}</li>}
       </ul>
       <div className="add-row">
-        <input
-          placeholder={addPlaceholder ?? 'Nuovo…'}
-          value={nuovo}
-          onChange={(e) => setNuovo(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') add()
-          }}
-        />
-        <button onClick={add}>Aggiungi</button>
+        {onNuovo ? (
+          <button onClick={onNuovo}>
+            <Plus size={16} /> {addPlaceholder ?? 'Aggiungi'}
+          </button>
+        ) : (
+          <>
+            <input
+              placeholder={addPlaceholder ?? 'Nuovo…'}
+              value={nuovo}
+              onChange={(e) => setNuovo(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') add()
+              }}
+            />
+            <button onClick={add}>Aggiungi</button>
+          </>
+        )}
       </div>
     </section>
   )

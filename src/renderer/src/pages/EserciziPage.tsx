@@ -4,7 +4,6 @@ import {
   ArchiveRestore,
   ArrowDownAZ,
   ArrowDownWideNarrow,
-  Layers,
   HelpCircle,
   ImageIcon,
   Pencil,
@@ -15,6 +14,7 @@ import type { Categoria, EsercizioConCategoria, EsercizioInput } from '../../../
 import { toastErrore } from '../components/Toast'
 import { chiedi } from '../components/Conferma'
 import CrudList from '../components/CrudList'
+import Aiuto from '../components/Aiuto'
 import ImmagineEsercizio from '../components/ImmagineEsercizio'
 import { errMsg } from '../lib'
 import type { Dosaggio } from '../../../shared/dosaggio'
@@ -75,6 +75,13 @@ export default function EserciziPage(): React.JSX.Element {
   const [categorie, setCategorie] = useState<Categoria[]>([])
   const [mostraArchiviati, setMostraArchiviati] = useState(false)
   const [ordine, setOrdine] = useState<'alfabetico' | 'usati'>('alfabetico')
+  // La categoria aperta in modifica (o una nuova, con id null): nome e
+  // dosaggio si decidono insieme, in una finestra sola.
+  const [formCat, setFormCat] = useState<{
+    id: number | null
+    nome: string
+    cluster: boolean
+  } | null>(null)
   const [ricerca, setRicerca] = useState('')
   const [filtroCategoria, setFiltroCategoria] = useState<number | ''>('')
   const [form, setForm] = useState<FormState | null>(null)
@@ -151,6 +158,28 @@ export default function EserciziPage(): React.JSX.Element {
           : (await window.api.esercizi.update(form.id, data), form.id)
       if (form.immagineCambiata) await window.api.esercizi.setImmagine(id, form.immagine)
       setForm(null)
+      await load()
+    } catch (e) {
+      toastErrore(errMsg(e))
+    }
+  }
+
+  // Nome e dosaggio si salvano insieme: sono due domande sulla stessa cosa.
+  const salvaCategoria = async (): Promise<void> => {
+    if (!formCat) return
+    const nome = formCat.nome.trim()
+    if (nome === '') {
+      toastErrore('Il nome è obbligatorio.')
+      return
+    }
+    try {
+      const id =
+        formCat.id == null
+          ? await window.api.categorie.create(nome)
+          : (await window.api.categorie.update(formCat.id, nome), formCat.id)
+      await window.api.categorie.setCluster(id, formCat.cluster)
+      setFormCat(null)
+      await loadCategorie()
       await load()
     } catch (e) {
       toastErrore(errMsg(e))
@@ -258,13 +287,14 @@ export default function EserciziPage(): React.JSX.Element {
         <CrudList
           title="Categorie"
           items={categorie}
-          onAdd={async (n) => {
-            await window.api.categorie.create(n)
-            await loadCategorie()
-          }}
-          onRename={async (id, n) => {
-            await window.api.categorie.update(id, n)
-            await loadCategorie()
+          onNuovo={() => setFormCat({ id: null, nome: '', cluster: false })}
+          onModifica={(item) => {
+            const c = categorie.find((x) => x.id === item.id)
+            setFormCat({
+              id: item.id,
+              nome: item.nome,
+              cluster: c?.dosaggio_cluster === 1
+            })
           }}
           onDelete={async (id) => {
             await window.api.categorie.remove(id)
@@ -274,37 +304,14 @@ export default function EserciziPage(): React.JSX.Element {
             await window.api.categorie.reorder(ids)
             await loadCategorie()
           }}
-          addPlaceholder="Nuova categoria…"
+          addPlaceholder="Nuova categoria"
           emptyHint="Nessuna categoria: creane una qui sotto."
-          aiuto="Accanto a ogni categoria c'è il pulsante “cluster”: acceso, gli esercizi di quella categoria si dosano a cluster (serie spezzata in blocchi con una pausa breve dentro, come nella pliometria estensiva) e nel loro form compaiono i campi in più. Tutte le altre categorie restano come sono."
-          azioniExtra={(item) => {
-            // Un pulsante con scritto quello che fa: come sola icona non si
-            // capiva a cosa servisse, e chi non lo sapeva gia' non lo trovava.
-            const attiva = categorie.find((c) => c.id === item.id)?.dosaggio_cluster === 1
-            return (
-              <button
-                className={attiva ? 'pulsante-cluster attivo' : 'pulsante-cluster'}
-                title={
-                  attiva
-                    ? 'Gli esercizi di questa categoria si dosano a cluster. Clicca per tornare al dosaggio normale.'
-                    : 'Dosa a cluster gli esercizi di questa categoria: serie spezzata in blocchi con una pausa breve dentro, come nella pliometria estensiva.'
-                }
-                onClick={() =>
-                  void (async () => {
-                    try {
-                      await window.api.categorie.setCluster(item.id, !attiva)
-                      await loadCategorie()
-                      await load()
-                    } catch (e) {
-                      toastErrore(errMsg(e))
-                    }
-                  })()
-                }
-              >
-                <Layers size={15} /> cluster
-              </button>
-            )
-          }}
+          aiuto="Ogni categoria può essere segnata come «a cluster»: gli esercizi che le appartengono si dosano spezzando la serie in blocchi con una pausa breve dentro, come nella pliometria estensiva. L'opzione si mette aprendo la categoria."
+          dopoNome={(item) =>
+            categorie.find((c) => c.id === item.id)?.dosaggio_cluster === 1 ? (
+              <span className="badge">cluster</span>
+            ) : null
+          }
         />
         </div>
       </details>
@@ -480,6 +487,42 @@ export default function EserciziPage(): React.JSX.Element {
           )}
         </tbody>
       </table>
+
+      {formCat && (
+        <div className="modal-overlay" onClick={() => setFormCat(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h3>{formCat.id == null ? 'Nuova categoria' : 'Modifica categoria'}</h3>
+            <label>
+              Nome
+              <input
+                autoFocus
+                value={formCat.nome}
+                onChange={(e) => setFormCat({ ...formCat, nome: e.target.value })}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') void salvaCategoria()
+                }}
+              />
+            </label>
+            <label className="riga-interruttore riga-staccata">
+              <span className="nome-interruttore">
+                Dosaggio a cluster
+                <Aiuto testo="Gli esercizi di questa categoria si dosano spezzando la serie in blocchi con una pausa breve dentro: 4 serie da 3 cluster da 2 ripetizioni, 15 secondi tra i cluster e 2 minuti tra le serie. Nel loro form compaiono i campi in più; le altre categorie restano come sono." />
+              </span>
+              <input
+                type="checkbox"
+                checked={formCat.cluster}
+                onChange={(e) => setFormCat({ ...formCat, cluster: e.target.checked })}
+              />
+            </label>
+            <div className="modal-actions">
+              <button onClick={() => setFormCat(null)}>Annulla</button>
+              <button className="primary" onClick={() => void salvaCategoria()}>
+                Salva
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {form && (
         <div className="modal-overlay" onClick={() => setForm(null)}>

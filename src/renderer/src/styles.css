@@ -1073,34 +1073,6 @@ button.danger:hover:not(:disabled) {
   overflow-wrap: break-word;
 }
 
-/* L'interruttore del dosaggio a cluster: piccolo, ma con scritto il suo nome.
-   Spento e' un contorno scolorito, acceso prende il colore dell'app. */
-.pulsante-cluster {
-  gap: 5px;
-  padding: 3px 9px;
-  font-size: 13px;
-  color: var(--text-dim);
-}
-
-.pulsante-cluster.attivo {
-  color: var(--accent);
-  background: var(--accent-soft);
-  border-color: var(--accent);
-}
-
-/* Un'impostazione della riga (non un'azione): si vede sempre, anche senza
-   passarci sopra con il mouse, altrimenti nessuno la trova. */
-.item-extra {
-  display: flex;
-  /* A destra, appena prima delle azioni: cosi' i pulsanti di tutte le righe
-     stanno incolonnati invece di ballare secondo la lunghezza del nome. */
-  margin-left: auto;
-}
-
-.item-extra button {
-  padding: 4px 6px;
-}
-
 .item-actions {
   display: flex;
   gap: 2px;
@@ -2704,7 +2676,12 @@ textarea {
 
 /* Impostazione che si accende o si spegne: il nome e la spiegazione a sinistra,
    la casella a destra, staccata dal testo invece che appiccicata davanti. */
-.card :where(label).riga-interruttore {
+/* Vale anche dentro alle finestre, non solo nei riquadri: la casella deve
+   stare in fondo alla riga del nome, non sotto. Selettori con la stessa forza
+   della regola che mette in colonna i campi di una finestra, e scritti dopo:
+   con :where() perdevano il confronto e restavano incolonnati. */
+.card label.riga-interruttore,
+.modal label.riga-interruttore {
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -2713,9 +2690,10 @@ textarea {
   cursor: pointer;
 }
 
-/* Il primo interruttore sotto alle piastrelle dei colori: senza una riga di
-   stacco sembrava una didascalia delle piastrelle. */
-.riga-sotto-colori {
+/* Un interruttore che segue qualcos'altro (le piastrelle dei colori, il nome
+   di una categoria): senza una riga di stacco sembrava la didascalia di quello
+   che gli sta sopra. */
+.riga-staccata {
   margin-top: 14px;
   padding-top: 14px;
   border-top: 1px solid var(--border);
