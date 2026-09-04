@@ -51,6 +51,7 @@ export default function App(): React.JSX.Element {
   // resta anche al riavvio, e lo conoscono anche i documenti stampati.
   const [tema, setTema] = useState<Tema>('verde')
   const [scuro, setScuro] = useState(false)
+  const [barraScura, setBarraScura] = useState(false)
 
   // Il ponte applica gia' i colori prima che la pagina compaia: qui si legge lo
   // stesso valore solo per sapere cosa mostrare come scelto in Impostazioni.
@@ -60,6 +61,7 @@ export default function App(): React.JSX.Element {
       .then((i) => {
         setTema(i.tema)
         setScuro(i.scuro)
+        setBarraScura(i.barraScura)
       })
       .catch(() => undefined)
   }, [])
@@ -68,6 +70,14 @@ export default function App(): React.JSX.Element {
     setTema(t)
     document.documentElement.dataset.tema = t
     window.api.impostazioni.setTema(t).catch((e) => toastErrore(errMsg(e)))
+  }
+
+  // La barra laterale chiara o scura: era una caratteristica del colore (il blu
+  // ce l'aveva scura), adesso e' una scelta a se' che vale con tutti i colori.
+  const scegliBarraScura = (valore: boolean): void => {
+    setBarraScura(valore)
+    document.documentElement.dataset.barra = valore ? 'scura' : 'chiara'
+    window.api.impostazioni.setBarraScura(valore).catch((e) => toastErrore(errMsg(e)))
   }
 
   // Blocco automatico: dopo i minuti impostati senza toccare niente, l'app
@@ -204,6 +214,8 @@ export default function App(): React.JSX.Element {
             onTema={scegliTema}
             scuro={scuro}
             onScuro={scegliScuro}
+            barraScura={barraScura}
+            onBarraScura={scegliBarraScura}
           />
         )}
       </main>

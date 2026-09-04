@@ -39,6 +39,7 @@ import {
 } from '../src/main/questionari'
 import { spostaFileDati } from '../src/main/file-dati'
 import { copyFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { daQuando } from '../src/renderer/src/lib'
 import {
   caricoTesto,
   recuperoEsteso,
@@ -54,7 +55,7 @@ db.pragma('foreign_keys = ON')
 
 runMigrations(db)
 runMigrations(db) // idempotente
-assert.equal(db.pragma('user_version', { simple: true }), 27)
+assert.equal(db.pragma('user_version', { simple: true }), 28)
 
 const count = (table: string): number =>
   (db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n
@@ -243,6 +244,7 @@ const seduteExport = [
           {
             nome: 'Mobilizzazione & scivolamenti rotulei',
             categoria_nome: 'Mobilizzazione',
+            unita_carico: 'kg',
             serie: '3',
             cluster: null,
             ripetizioni: '10',
@@ -256,6 +258,7 @@ const seduteExport = [
             // breve dentro, e sulla carta si deve leggere per esteso.
             nome: 'Balzi a piedi pari',
             categoria_nome: 'Pliometria estensiva',
+            unita_carico: null,
             serie: '4',
             cluster: '3',
             ripetizioni: '2',
@@ -860,6 +863,42 @@ assert.equal(
   svuotaCestino()
 }
 
+// --- Quanto tempo e' passato dall'intervento ---
+// Si conta in mesi e settimane, buttando via i giorni che avanzano: e' il modo
+// in cui si ragiona in riabilitazione.
+{
+  const giorniFa = (n: number): string => {
+    const d = new Date()
+    d.setDate(d.getDate() - n)
+    const p = (x: number): string => String(x).padStart(2, '0')
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
+  }
+  assert.equal(daQuando(null), null)
+  assert.equal(daQuando(giorniFa(3)), 'meno di una settimana')
+  assert.equal(daQuando(giorniFa(7)), '1 settimana')
+  assert.equal(daQuando(giorniFa(20)), '2 settimane')
+  // un mese e qualcosa: il mese e' quello vero del calendario, non 30 giorni
+  const unMeseE3Settimane = new Date()
+  unMeseE3Settimane.setMonth(unMeseE3Settimane.getMonth() - 1)
+  unMeseE3Settimane.setDate(unMeseE3Settimane.getDate() - 21)
+  const p2 = (x: number): string => String(x).padStart(2, '0')
+  assert.equal(
+    daQuando(
+      `${unMeseE3Settimane.getFullYear()}-${p2(unMeseE3Settimane.getMonth() + 1)}-${p2(
+        unMeseE3Settimane.getDate()
+      )}`
+    ),
+    '1 mese e 3 settimane'
+  )
+  // una data nel futuro non dice niente
+  const domani = new Date()
+  domani.setDate(domani.getDate() + 1)
+  assert.equal(
+    daQuando(`${domani.getFullYear()}-${p2(domani.getMonth() + 1)}-${p2(domani.getDate())}`),
+    null
+  )
+}
+
 // --- Tema: i documenti stampati devono seguire il colore scelto ---
 {
   // Il tema di partenza e' il verde; scegliendo il blu cambiano le intestazioni
@@ -1279,8 +1318,9 @@ initDb(join(dirCartella, 'cartella.db'), dekHex)
     )
     const esCl = ins(
       `INSERT INTO esercizi (nome, categoria_id, serie_default, cluster_default,
-                             ripetizioni_default, recupero_cluster_default, recupero_default)
-       VALUES ('Balzi a piedi pari', ?, '4', '3', '2', '15"', '2''')`,
+                             ripetizioni_default, unita_carico,
+                             recupero_cluster_default, recupero_default)
+       VALUES ('Balzi a piedi pari', ?, '4', '3', '2', 'sec', '15"', '2''')`,
       catCl
     )
     const sedCl = ins(
@@ -1307,6 +1347,7 @@ initDb(join(dirCartella, 'cartella.db'), dekHex)
     assert.equal(recuperoTesto(rigaCl), `15" / 2'`)
     // Il carico: si scrive il numero e l'unita' la mette l'app; quello che
     // scrivi a parole resta com'e'.
+    assert.equal(caricoTesto('10', null), '10')
     assert.equal(caricoTesto('10', 'kg'), '10 kg')
     assert.equal(caricoTesto('7,5', 'sec'), '7,5 sec')
     assert.equal(caricoTesto('elastico rosso', 'kg'), 'elastico rosso')
@@ -1314,7 +1355,7 @@ initDb(join(dirCartella, 'cartella.db'), dekHex)
     assert.equal(caricoTesto('', 'kg'), null)
     assert.equal(caricoTesto('10', ''), '10')
     // e la scheda del paziente porta con se' l'unita' scelta
-    assert.equal(typeof schedaCl.unita_carico, 'string')
+    assert.equal(rigaCl.unita_carico, 'sec')
 
     // senza cluster il dosaggio resta quello di sempre
     assert.equal(volumeTesto({ serie: '3', cluster: null, ripetizioni: '10' }), '3 × 10')

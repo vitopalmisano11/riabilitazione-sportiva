@@ -37,11 +37,16 @@ export interface Esercizio {
   cluster_default: string | null
   ripetizioni_default: string | null
   carico_default: string | null
+  // Cosa si scrive dopo il numero del carico: "kg", "sec", niente.
+  unita_carico: string | null
   recupero_cluster_default: string | null
   recupero_default: string | null
   nota_tecnica: string | null
   link: string | null
   archiviato: 0 | 1
+  // Quante volte l'esercizio compare in una seduta: serve solo a ordinare
+  // l'elenco per i piu' usati.
+  usi: number
 }
 
 // ha_immagine e' un flag, non l'immagine: l'elenco non trasporta i dati binari.
@@ -57,6 +62,7 @@ export interface EsercizioInput {
   cluster_default: string | null
   ripetizioni_default: string | null
   carico_default: string | null
+  unita_carico: string | null
   recupero_cluster_default: string | null
   recupero_default: string | null
   nota_tecnica: string | null
@@ -183,6 +189,7 @@ export interface SedutaRiepilogo {
 export type SedutaEsercizioDettaglio = Omit<SedutaEsercizioInput, 'sezioneIndex'> & {
   nome: string
   categoria_nome: string
+  unita_carico: string | null
   link: string | null
   ha_immagine: 0 | 1
 }
@@ -602,6 +609,7 @@ export interface EsercizioScheda {
   cluster: string | null
   ripetizioni: string | null
   carico: string | null
+  unita_carico: string | null
   recupero_cluster: string | null
   recupero: string | null
   nota: string | null
@@ -609,9 +617,6 @@ export interface EsercizioScheda {
 
 export interface SchedaPaziente {
   paziente: string
-  // L'unita' del carico viaggia con la scheda: quella finestra non legge le
-  // impostazioni per conto suo.
-  unita_carico: string
   data: string
   fase_nome: string | null
   note: string | null
@@ -1082,14 +1087,13 @@ export interface Api {
   impostazioni: {
     setTema(t: Tema): Promise<void>
     setScuro(valore: boolean): Promise<void>
-    setUnitaCarico(valore: string): Promise<void>
+    setBarraScura(valore: boolean): Promise<void>
     info(): Promise<{
       cartella: string
       cartellaExport: string
       tema: Tema
       scuro: boolean
-      // Quello che si scrive dopo il numero del carico ("kg", "sec"): vuota = niente.
-      unitaCarico: string
+      barraScura: boolean
     }>
     apriCartella(): Promise<void>
     // Ritornano il nuovo percorso, o null se l'utente annulla.

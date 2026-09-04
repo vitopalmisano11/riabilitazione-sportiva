@@ -121,6 +121,63 @@
   --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
 }
 
+/* ---- Barra laterale chiara o scura ----
+   Prima lo decideva il colore scelto: il blu nasceva con la barra scura, il
+   verde e il terracotta chiara. Adesso e' una scelta a se', valida con
+   qualunque colore; chi non tocca niente si ritrova com'era. La barra scura
+   tiene la tinta del suo tema, altrimenti sembrerebbero tutte lo stesso tema.
+   Con la barra cambia anche il fondo della schermata di accesso, che e' l'altra
+   grande superficie colorata dell'app. */
+
+:root[data-barra='scura'] {
+  --barra: linear-gradient(180deg, #15201b 0%, #1a2a23 100%);
+  --barra-testo: #e7efea;
+  --barra-voce: #c3d3ca;
+  --barra-hover: #26382f;
+  --barra-hover-testo: #ffffff;
+  --barra-bordo: #0f1814;
+  --barra-bordo-pulsante: #37493f;
+  --barra-etichetta: #8ba095;
+  --login: linear-gradient(160deg, #14201a 0%, #1d3128 55%, #14201a 100%);
+}
+
+:root[data-tema='terracotta'][data-barra='scura'] {
+  --barra: linear-gradient(180deg, #241a15 0%, #30231b 100%);
+  --barra-testo: #f2e6dd;
+  --barra-voce: #d8c4b5;
+  --barra-hover: #3f2e24;
+  --barra-hover-testo: #ffffff;
+  --barra-bordo: #1a120e;
+  --barra-bordo-pulsante: #4d3a2e;
+  --barra-etichetta: #a08d7e;
+  --login: linear-gradient(160deg, #221913 0%, #35251b 55%, #221913 100%);
+}
+
+:root[data-tema='blu'][data-barra='scura'] {
+  --barra: linear-gradient(180deg, #18202b 0%, #1c2634 100%);
+  --barra-testo: #e6eaf0;
+  --barra-voce: #cbd4de;
+  --barra-hover: #2a3644;
+  --barra-hover-testo: #ffffff;
+  --barra-bordo: #131a24;
+  --barra-bordo-pulsante: #3a4756;
+  --barra-etichetta: #8d99a8;
+  --login: linear-gradient(160deg, #101724 0%, #17233a 55%, #101724 100%);
+}
+
+/* La versione chiara serve solo al blu: gli altri due ce l'hanno gia' cosi'. */
+:root[data-tema='blu'][data-barra='chiara'] {
+  --barra: linear-gradient(180deg, #e4ebf5 0%, #d7e0ee 100%);
+  --barra-testo: #35455c;
+  --barra-voce: #35455c;
+  --barra-hover: #c8d5e8;
+  --barra-hover-testo: #17222f;
+  --barra-bordo: #c6d1e2;
+  --barra-bordo-pulsante: #b7c4d9;
+  --barra-etichetta: #8492a8;
+  --login: linear-gradient(160deg, #e8eef7 0%, #d3ddec 55%, #e8eef7 100%);
+}
+
 /* Modalità scura: si accende sopra al tema scelto e cambia solo i fondi, i
    bordi e le scritte. L'accento resta quello della tavolozza — verde, blu o
    terracotta — schiarito quel tanto che serve a staccare dal fondo scuro.
@@ -1432,6 +1489,30 @@ span.row-actions button {
 
 .form-row.form-row-4 {
   grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+/* Una nota sotto a una casella, quando il valore scritto dice qualcosa in piu'
+   (per esempio quanto tempo e' passato dalla data appena messa). */
+.hint-campo {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+/* Numero e unita' di misura affiancati dentro allo stesso campo: si leggono
+   come una cosa sola, che e' quello che sono. */
+.campo-con-unita {
+  display: flex;
+  gap: 6px;
+}
+
+.campo-con-unita input {
+  min-width: 0;
+}
+
+.campo-con-unita .casella-unita {
+  flex: none;
+  width: 62px;
+  text-align: center;
 }
 
 .form-row input,

@@ -33,6 +33,7 @@ interface FormState {
   cluster_default: string
   ripetizioni_default: string
   carico_default: string
+  unita_carico: string
   recupero_cluster_default: string
   recupero_default: string
   nota_tecnica: string
@@ -51,6 +52,7 @@ const FORM_VUOTO: FormState = {
   cluster_default: '',
   ripetizioni_default: '',
   carico_default: '',
+  unita_carico: '',
   recupero_cluster_default: '',
   recupero_default: '',
   nota_tecnica: '',
@@ -70,6 +72,7 @@ export default function EserciziPage(): React.JSX.Element {
   const [esercizi, setEsercizi] = useState<EsercizioConCategoria[]>([])
   const [categorie, setCategorie] = useState<Categoria[]>([])
   const [mostraArchiviati, setMostraArchiviati] = useState(false)
+  const [ordine, setOrdine] = useState<'alfabetico' | 'usati'>('alfabetico')
   const [ricerca, setRicerca] = useState('')
   const [filtroCategoria, setFiltroCategoria] = useState<number | ''>('')
   const [form, setForm] = useState<FormState | null>(null)
@@ -94,14 +97,22 @@ export default function EserciziPage(): React.JSX.Element {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // L'elenco si puo' leggere in due modi: in ordine alfabetico, per trovare un
+  // esercizio che si sa gia' come si chiama, oppure dai piu' usati, che sono
+  // quelli che si rimettono in quasi tutte le schede. A parita' di utilizzi
+  // resta l'alfabetico, cosi' l'ordine non balla a ogni ricarica.
   const visibili = useMemo(() => {
     const q = ricerca.trim().toLowerCase()
-    return esercizi.filter(
+    const filtrati = esercizi.filter(
       (e) =>
         (q === '' || e.nome.toLowerCase().includes(q)) &&
         (filtroCategoria === '' || e.categoria_id === filtroCategoria)
     )
-  }, [esercizi, ricerca, filtroCategoria])
+    if (ordine === 'usati') {
+      return [...filtrati].sort((a, b) => b.usi - a.usi || a.nome.localeCompare(b.nome))
+    }
+    return filtrati
+  }, [esercizi, ricerca, filtroCategoria, ordine])
 
   const salva = async (): Promise<void> => {
     if (!form) return
@@ -123,6 +134,7 @@ export default function EserciziPage(): React.JSX.Element {
       cluster_default: clusterNelForm ? form.cluster_default.trim() || null : null,
       ripetizioni_default: form.ripetizioni_default.trim() || null,
       carico_default: form.carico_default.trim() || null,
+      unita_carico: form.unita_carico.trim() || null,
       recupero_cluster_default: clusterNelForm
         ? form.recupero_cluster_default.trim() || null
         : null,
@@ -142,17 +154,6 @@ export default function EserciziPage(): React.JSX.Element {
       toastErrore(errMsg(e))
     }
   }
-
-  // L'unita' del carico si sceglie nelle impostazioni: qui serve per scriverla
-  // accanto alla casella, cosi' si sa cosa si sta digitando.
-  const [unita, setUnita] = useState('')
-
-  useEffect(() => {
-    void window.api.impostazioni
-      .info()
-      .then((i) => setUnita(i.unitaCarico))
-      .catch(() => undefined)
-  }, [])
 
   // Il dosaggio di un esercizio della libreria, nella forma che sanno leggere
   // le funzioni condivise.
@@ -200,6 +201,7 @@ export default function EserciziPage(): React.JSX.Element {
         cluster_default: e.cluster_default ?? '',
         ripetizioni_default: e.ripetizioni_default ?? '',
         carico_default: e.carico_default ?? '',
+        unita_carico: e.unita_carico ?? '',
         recupero_cluster_default: e.recupero_cluster_default ?? '',
         recupero_default: e.recupero_default ?? '',
         nota_tecnica: e.nota_tecnica ?? '',
@@ -325,6 +327,14 @@ export default function EserciziPage(): React.JSX.Element {
             </option>
           ))}
         </select>
+        <select
+          value={ordine}
+          title="Come ordinare l'elenco"
+          onChange={(e) => setOrdine(e.target.value === 'usati' ? 'usati' : 'alfabetico')}
+        >
+          <option value="alfabetico">Ordine alfabetico</option>
+          <option value="usati">Prima i più usati</option>
+        </select>
         <label className="checkbox-inline">
           <input
             type="checkbox"
@@ -406,7 +416,9 @@ export default function EserciziPage(): React.JSX.Element {
               <td className="col-param" title={aCluster(dosaggioDi(e)) ? 'Cluster × ripetizioni' : undefined}>
                 {ripetizioniTesto(dosaggioDi(e)) ?? '—'}
               </td>
-              <td className="col-param">{caricoTesto(e.carico_default, unita) ?? '—'}</td>
+              <td className="col-param">
+                {caricoTesto(e.carico_default, e.unita_carico) ?? '—'}
+              </td>
               <td className="col-param" title={aCluster(dosaggioDi(e)) ? 'Tra i cluster / tra le serie' : undefined}>
                 {recuperoTesto(dosaggioDi(e)) ?? '—'}
               </td>
@@ -521,13 +533,27 @@ export default function EserciziPage(): React.JSX.Element {
                   onChange={(e) => setForm({ ...form, ripetizioni_default: e.target.value })}
                 />
               </label>
+              {/* Carico e unita' stanno nella stessa casella: sono una cosa
+                  sola ("10 kg"), e come campi separati avrebbero sballato la
+                  griglia del form. L'unita' e' dell'esercizio, perche' la panca
+                  si carica in chili e il plank si tiene in secondi. */}
               <label>
-                {unita.trim() === '' ? 'Carico' : `Carico (${unita.trim()})`}
-                <input
-                  value={form.carico_default}
-                  placeholder={unita.trim() === '' ? 'es. 10 kg' : 'es. 10'}
-                  onChange={(e) => setForm({ ...form, carico_default: e.target.value })}
-                />
+                Carico
+                <span className="campo-con-unita">
+                  <input
+                    value={form.carico_default}
+                    placeholder="es. 10"
+                    onChange={(e) => setForm({ ...form, carico_default: e.target.value })}
+                  />
+                  <input
+                    className="casella-unita"
+                    value={form.unita_carico}
+                    placeholder="kg"
+                    maxLength={12}
+                    title="Unità di misura: kg, sec, cm… Lascia vuoto se non serve."
+                    onChange={(e) => setForm({ ...form, unita_carico: e.target.value })}
+                  />
+                </span>
               </label>
               {clusterNelForm && (
                 <label>

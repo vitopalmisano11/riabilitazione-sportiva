@@ -39,11 +39,13 @@ try {
   const salvato = ipcRenderer.sendSync('impostazioni:temaSubito') as {
     tema: string
     scuro: boolean
+    barraScura: boolean
   }
   const pagina = (globalThis as { document?: PaginaMinima }).document
   const applica = (): void => {
     if (!pagina) return
     pagina.documentElement.dataset.tema = salvato.tema
+    pagina.documentElement.dataset.barra = salvato.barraScura ? 'scura' : 'chiara'
     if (salvato.scuro) pagina.documentElement.dataset.scuro = 'si'
   }
   if (pagina?.readyState === 'loading') pagina.addEventListener('DOMContentLoaded', applica)
@@ -326,7 +328,7 @@ const api: Api = {
   impostazioni: {
     setTema: (t: Tema) => invoke('impostazioni:setTema', t),
     setScuro: (valore: boolean) => invoke('impostazioni:setScuro', valore),
-    setUnitaCarico: (valore: string) => invoke('impostazioni:setUnitaCarico', valore),
+    setBarraScura: (valore: boolean) => invoke('impostazioni:setBarraScura', valore),
     info: () => invoke('impostazioni:info'),
     apriCartella: () => invoke('impostazioni:apriCartella'),
     cambiaCartella: () => invoke('impostazioni:cambiaCartella'),

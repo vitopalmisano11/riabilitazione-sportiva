@@ -29,8 +29,6 @@ export default function SchedaPaziente({ sedutaId }: { sedutaId: number }): Reac
   if (errore) return <p className="auth-error">{errore}</p>
   if (!dati) return <p className="hint">Caricamento…</p>
 
-  const unita = dati.unita_carico
-
   return (
     <div className="scheda-paziente">
       <header>
@@ -74,7 +72,7 @@ export default function SchedaPaziente({ sedutaId }: { sedutaId: number }): Reac
                       {e.nota && <span className="nota-es">{e.nota}</span>}
                     </td>
                     <td className="col-dose">{volumeTesto(e) ?? '—'}</td>
-                    <td className="col-dose">{caricoTesto(e.carico, unita) ?? '—'}</td>
+                    <td className="col-dose">{caricoTesto(e.carico, e.unita_carico) ?? '—'}</td>
                     <td className="col-dose">{recuperoTesto(e) ?? '—'}</td>
                   </tr>
                 ))}

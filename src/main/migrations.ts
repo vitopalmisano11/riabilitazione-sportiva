@@ -778,6 +778,16 @@ const MIGRATIONS: string[] = [
   ALTER TABLE esercizi ADD COLUMN recupero_cluster_default TEXT;
   ALTER TABLE seduta_esercizi ADD COLUMN cluster TEXT;
   ALTER TABLE seduta_esercizi ADD COLUMN recupero_cluster TEXT;
+  `,
+
+  // 28 - unita' di misura del carico, una per esercizio. La panca si carica in
+  //      kg, il plank si tiene in secondi, l'elastico ha un colore: l'unita'
+  //      giusta la sa l'esercizio, non l'app. Nella casella del carico si
+  //      scrive solo il numero e l'unita' si aggiunge da sola quando la scheda
+  //      si legge o si stampa. Le sedute non se la portano dietro: la leggono
+  //      dall'esercizio, cosi' correggendola si sistemano anche le vecchie.
+  `
+  ALTER TABLE esercizi ADD COLUMN unita_carico TEXT;
   `
 ]
 

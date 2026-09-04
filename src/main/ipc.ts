@@ -16,9 +16,9 @@ import {
   impostaCartellaExport,
   blocco,
   impostaBlocco,
+  barraScura,
+  impostaBarraScura,
   impostaScuro,
-  impostaUnitaCarico,
-  unitaCarico,
   impostaTema,
   scuro,
   tema
@@ -239,16 +239,16 @@ export function registerIpc(): void {
     cartellaExport: cartellaExport(),
     tema: tema(),
     scuro: scuro(),
-    unitaCarico: unitaCarico()
+    barraScura: barraScura()
   }))
-  handle('impostazioni:setUnitaCarico', (valore: string) => impostaUnitaCarico(valore))
+  handle('impostazioni:setBarraScura', (valore: boolean) => impostaBarraScura(valore))
   handle('impostazioni:setScuro', (valore: boolean) => impostaScuro(valore))
   handle('impostazioni:setTema', (t: Tema) => impostaTema(t))
   // Il tema serve al preload prima ancora che la pagina si disegni, percio' e'
   // l'unica risposta immediata: chiesta dopo, si vedrebbe un lampo dei colori
   // di partenza a ogni avvio.
   ipcMain.on('impostazioni:temaSubito', (e) => {
-    e.returnValue = { tema: tema(), scuro: scuro() }
+    e.returnValue = { tema: tema(), scuro: scuro(), barraScura: barraScura() }
   })
   handle('impostazioni:cambiaCartellaExport', async () => {
     const { canceled, filePaths } = await dialog.showOpenDialog({
@@ -586,9 +586,11 @@ export function registerIpc(): void {
     getDb()
       .prepare(
         `SELECT e.id, e.nome, e.categoria_id, e.serie_default, e.cluster_default,
-                e.ripetizioni_default, e.carico_default, e.recupero_cluster_default,
+                e.ripetizioni_default, e.carico_default, e.unita_carico,
+                e.recupero_cluster_default,
                 e.recupero_default, e.nota_tecnica, e.link, e.archiviato,
                 c.nome AS categoria_nome, c.dosaggio_cluster,
+                (SELECT COUNT(*) FROM seduta_esercizi se WHERE se.esercizio_id = e.id) AS usi,
                 (e.immagine IS NOT NULL) AS ha_immagine
          FROM esercizi e JOIN categorie c ON c.id = e.categoria_id
          ${includiArchiviati ? '' : 'WHERE e.archiviato = 0'}
@@ -601,10 +603,12 @@ export function registerIpc(): void {
       getDb()
         .prepare(
           `INSERT INTO esercizi (nome, categoria_id, serie_default, cluster_default,
-                                 ripetizioni_default, carico_default, recupero_cluster_default,
+                                 ripetizioni_default, carico_default, unita_carico,
+                                 recupero_cluster_default,
                                  recupero_default, nota_tecnica, link)
            VALUES (@nome, @categoria_id, @serie_default, @cluster_default,
-                   @ripetizioni_default, @carico_default, @recupero_cluster_default,
+                   @ripetizioni_default, @carico_default, @unita_carico,
+                   @recupero_cluster_default,
                    @recupero_default, @nota_tecnica, @link)`
         )
         .run({ ...data, nome: data.nome.trim() }).lastInsertRowid
@@ -616,6 +620,7 @@ export function registerIpc(): void {
         `UPDATE esercizi SET nome = @nome, categoria_id = @categoria_id,
          serie_default = @serie_default, cluster_default = @cluster_default,
          ripetizioni_default = @ripetizioni_default, carico_default = @carico_default,
+         unita_carico = @unita_carico,
          recupero_cluster_default = @recupero_cluster_default,
          recupero_default = @recupero_default,
          nota_tecnica = @nota_tecnica, link = @link
@@ -993,6 +998,7 @@ export function registerIpc(): void {
     const esercizi = db
       .prepare(
         `SELECT se.esercizio_id, e.nome, c.nome AS categoria_nome, e.link,
+                e.unita_carico,
                 (e.immagine IS NOT NULL) AS ha_immagine,
                 se.serie, se.cluster, se.ripetizioni, se.carico, se.recupero_cluster,
                 se.recupero, se.nota, se.seduta_sezione_id

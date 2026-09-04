@@ -7,7 +7,7 @@
 import { BrowserWindow } from 'electron'
 import { join } from 'path'
 import { datiScheda } from './scheda-dati'
-import { chiudiConEsc } from './finestre'
+import { chiudiConEsc, zoomabile } from './finestre'
 import icona from '../../resources/icon.png?asset'
 
 // Una finestra per seduta: riaprendo la stessa scheda si porta in primo piano
@@ -39,6 +39,7 @@ export function apriScheda(sedutaId: number): void {
   // il titolo lo decidiamo noi: la pagina non deve poterlo cambiare
   win.on('page-title-updated', (e) => e.preventDefault())
   chiudiConEsc(win)
+  zoomabile(win)
   win.on('closed', () => aperte.delete(sedutaId))
   aperte.set(sedutaId, win)
 

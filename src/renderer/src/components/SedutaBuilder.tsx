@@ -166,6 +166,7 @@ export default function SedutaBuilder({
           esercizio_id: e.id,
           nome: e.nome,
           categoria_nome: e.categoria_nome,
+          unita_carico: e.unita_carico,
           serie: e.serie_default,
           cluster: e.cluster_default,
           ripetizioni: e.ripetizioni_default,

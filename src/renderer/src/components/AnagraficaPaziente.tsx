@@ -8,7 +8,7 @@ import type {
 } from '../../../shared/types'
 import { toast, toastErrore } from './Toast'
 import { chiedi } from './Conferma'
-import { errMsg, eta, formatData } from '../lib'
+import { errMsg, daQuando, eta, formatData } from '../lib'
 import EsportaCartella from './EsportaCartella'
 
 // Dati del paziente: si leggono, non si modificano per sbaglio. Per cambiarli
@@ -42,6 +42,7 @@ export default function AnagraficaPaziente({
   }
 
   const anni = eta(paziente.data_nascita)
+  const dallIntervento = daQuando(paziente.data_intervento)
   const nascita = paziente.data_nascita
     ? `${formatData(paziente.data_nascita)}${anni != null ? ` (${anni} anni)` : ''}`
     : null
@@ -56,7 +57,13 @@ export default function AnagraficaPaziente({
     { etichetta: 'Tipo di intervento', valore: paziente.tipo_intervento },
     {
       etichetta: 'Data intervento',
-      valore: paziente.data_intervento ? formatData(paziente.data_intervento) : null
+      // Come per la data di nascita, accanto alla data c'e' quello che serve
+      // davvero saper leggere al volo: a che punto del percorso siamo.
+      valore: paziente.data_intervento
+        ? `${formatData(paziente.data_intervento)}${
+            dallIntervento != null ? ` (${dallIntervento})` : ''
+          }`
+        : null
     },
     {
       etichetta: 'Lato operato/infortunato',
@@ -295,6 +302,9 @@ export function ModaleDatiPaziente({
           <label>
             Data intervento
             <input type="date" value={form.data_intervento} onChange={campo('data_intervento')} />
+            {daQuando(form.data_intervento) && (
+              <span className="hint-campo">{daQuando(form.data_intervento)} fa</span>
+            )}
           </label>
           {/* Serve agli screening: sapendo qual e' il lato interessato il
               confronto fra i due diventa interessato ÷ sano, cioè l'LSI. */}

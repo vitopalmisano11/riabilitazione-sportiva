@@ -18,7 +18,7 @@ import {
 export type FormatoExport = 'pdf' | 'docx'
 
 import type { AnteprimaScheda } from '../shared/types'
-import { chiudiConEsc } from './finestre'
+import { chiudiConEsc, zoomabile } from './finestre'
 
 function leggiPaziente(id: number): DatiPazienteExport {
   const p = getDb()
@@ -64,7 +64,8 @@ function leggiSeduta(
   }
   const esercizi = db
     .prepare(
-      `SELECT e.nome, c.nome AS categoria_nome, se.serie, se.cluster, se.ripetizioni,
+      `SELECT e.nome, c.nome AS categoria_nome, e.unita_carico,
+              se.serie, se.cluster, se.ripetizioni,
               se.carico, se.recupero_cluster, se.recupero,
               se.nota, se.seduta_sezione_id${
                 illustrata ? ', e.nota_tecnica, e.link, e.immagine' : ''
@@ -226,6 +227,7 @@ export async function apriAnteprimaCartella(
   })
   win.on('page-title-updated', (e) => e.preventDefault())
   chiudiConEsc(win)
+  zoomabile(win)
   win.on('closed', () => anteprimeAperte.delete(pazienteId))
   anteprimeAperte.set(pazienteId, win)
   await win.loadFile(tmp)
@@ -278,6 +280,7 @@ export async function apriAnteprimaReport(sessioneIds: number[]): Promise<void> 
   })
   win.on('page-title-updated', (e) => e.preventDefault())
   chiudiConEsc(win)
+  zoomabile(win)
   win.on('closed', () => reportAperti.delete(sessioneId))
   reportAperti.set(sessioneId, win)
   await win.loadFile(tmp)

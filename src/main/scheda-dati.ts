@@ -4,7 +4,6 @@
 // eseguire davvero queste query invece di limitarsi a compilarle: un nome di
 // colonna sbagliato qui si vedrebbe solo al primo clic del fisioterapista.
 import { getDb } from './db'
-import { unitaCaricoCorrente } from '../shared/dosaggio'
 
 export interface EsercizioScheda {
   nome: string
@@ -13,6 +12,7 @@ export interface EsercizioScheda {
   cluster: string | null
   ripetizioni: string | null
   carico: string | null
+  unita_carico: string | null
   recupero_cluster: string | null
   recupero: string | null
   nota: string | null
@@ -20,7 +20,6 @@ export interface EsercizioScheda {
 
 export interface SchedaPaziente {
   paziente: string
-  unita_carico: string
   data: string
   fase_nome: string | null
   note: string | null
@@ -50,7 +49,7 @@ export function datiScheda(sedutaId: number): SchedaPaziente {
 
   const esercizi = db
     .prepare(
-      `SELECT e.nome, c.nome AS categoria_nome,
+      `SELECT e.nome, c.nome AS categoria_nome, e.unita_carico,
               se.serie, se.cluster, se.ripetizioni, se.carico, se.recupero_cluster,
               se.recupero, se.nota, se.seduta_sezione_id
        FROM seduta_esercizi se
@@ -78,7 +77,6 @@ export function datiScheda(sedutaId: number): SchedaPaziente {
 
   return {
     paziente: `${s.nome} ${s.cognome}`,
-    unita_carico: unitaCaricoCorrente(),
     data: s.data,
     fase_nome: s.fase_nome,
     note: s.note,

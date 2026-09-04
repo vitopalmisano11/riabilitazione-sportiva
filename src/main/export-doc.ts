@@ -38,6 +38,7 @@ export interface DatiSedutaExport {
     esercizi: {
       nome: string
       categoria_nome: string
+      unita_carico: string | null
       serie: string | null
       cluster: string | null
       ripetizioni: string | null
@@ -86,7 +87,7 @@ export function generaHtml(
   // sottotitolo del gruppo, cosi' si legge su cosa si sta lavorando senza
   // ripeterla accanto a ogni esercizio.
   const dettagli = (e: DatiSedutaExport['sezioni'][number]['esercizi'][number]): string =>
-    [volumeTesto(e), caricoTesto(e.carico), recuperoEsteso(e)]
+    [volumeTesto(e), caricoTesto(e.carico, e.unita_carico), recuperoEsteso(e)]
       .filter(Boolean)
       .map((x) => esc(String(x)))
       .join(' · ')
@@ -292,7 +293,7 @@ export async function generaDocx(
               e.serie ?? '',
               // A cluster: "3 × 2" sono i cluster per le ripetizioni di ognuno.
               ripetizioniTesto(e) ?? '',
-              caricoTesto(e.carico) ?? '',
+              caricoTesto(e.carico, e.unita_carico) ?? '',
               recuperoTesto(e) ?? '',
               e.nota ?? ''
             ].map((t) => new TableCell({ children: [new Paragraph(t)] }))
