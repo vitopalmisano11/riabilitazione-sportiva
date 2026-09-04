@@ -909,6 +909,8 @@ assert.equal(
   assert.equal(coloriTema().accento, '#55806a')
   impostaTemaCorrente('blu')
   assert.equal(coloriTema().accento, '#2563eb')
+  impostaTemaCorrente('prugna')
+  assert.equal(coloriTema().accento, '#7a5299')
   assert.equal(temaValido('inventato'), 'verde')
   impostaTemaCorrente('verde')
 }

@@ -88,10 +88,8 @@ export default function ImpostazioniPage({
                 onScuro={onScuro}
                 barraScura={barraScura}
                 onBarraScura={onBarraScura}
-                ingrandimento={ingrandimento}
-                onIngrandimento={onIngrandimento}
               />
-              <SchedaBlocco />
+              <SchedaBlocco ingrandimento={ingrandimento} onIngrandimento={onIngrandimento} />
             </div>
           </div>
         )}
@@ -338,7 +336,13 @@ function SchedaPassword(): React.JSX.Element {
 // Blocco automatico: l'app torna alla password dopo un po' che non la tocchi.
 // Sta accanto al cambio password perche' e' la stessa domanda — chi puo' entrare
 // — vista da due parti.
-function SchedaBlocco(): React.JSX.Element {
+function SchedaBlocco({
+  ingrandimento,
+  onIngrandimento
+}: {
+  ingrandimento: number
+  onIngrandimento: (valore: number) => void
+}): React.JSX.Element {
   const [attivo, setAttivo] = useState(false)
   const [minuti, setMinuti] = useState(15)
 
@@ -357,7 +361,38 @@ function SchedaBlocco(): React.JSX.Element {
 
   return (
     <section className="card single-col">
-      <label className="riga-interruttore">
+      {/* Il programma e' scritto in pixel fissi: invece di cambiare i numeri uno
+          per uno si ingrandisce tutta la pagina, come fa il browser con Ctrl +.
+          Cosi' cresce ogni cosa in proporzione — scritte, caselle, spazi — e
+          niente si scompone. */}
+      <div className="riga-interruttore">
+        <span className="nome-interruttore">
+          Dimensione dei caratteri
+          <Aiuto testo="Ingrandisce o rimpicciolisce tutto il programma, non solo le scritte: caselle, pulsanti e spazi crescono insieme. Se ti sembra scritto piccolo, alza qui invece di avvicinarti allo schermo." />
+        </span>
+        <span className="regola-ingrandimento">
+          <button
+            title="Più piccolo"
+            disabled={ingrandimento <= 0.8}
+            onClick={() => onIngrandimento(Math.round((ingrandimento - 0.1) * 10) / 10)}
+          >
+            <Minus size={16} />
+          </button>
+          <span className="valore-ingrandimento">{Math.round(ingrandimento * 100)}%</span>
+          <button
+            title="Più grande"
+            disabled={ingrandimento >= 1.6}
+            onClick={() => onIngrandimento(Math.round((ingrandimento + 0.1) * 10) / 10)}
+          >
+            <Plus size={16} />
+          </button>
+          <button title="Torna alla misura normale" onClick={() => onIngrandimento(1)}>
+            <RotateCcw size={15} />
+          </button>
+        </span>
+      </div>
+
+      <label className="riga-interruttore riga-staccata">
         <span className="nome-interruttore">
           Blocco automatico
           <Aiuto testo="Dopo un po' che non tocchi niente, l'app torna alla schermata della password. Il lavoro aperto resta dov'è: per riprendere basta riscriverla." />
@@ -393,9 +428,7 @@ function SchedaAspetto({
   scuro,
   onScuro,
   barraScura,
-  onBarraScura,
-  ingrandimento,
-  onIngrandimento
+  onBarraScura
 }: {
   tema: Tema
   onTema: (t: Tema) => void
@@ -403,8 +436,6 @@ function SchedaAspetto({
   onScuro: (valore: boolean) => void
   barraScura: boolean
   onBarraScura: (valore: boolean) => void
-  ingrandimento: number
-  onIngrandimento: (valore: number) => void
 }): React.JSX.Element {
   return (
     <section className="card single-col">
@@ -423,37 +454,6 @@ function SchedaAspetto({
             {t.etichetta}
           </button>
         ))}
-      </div>
-
-      {/* Il programma e' scritto in pixel fissi: invece di cambiare i numeri uno
-          per uno si ingrandisce tutta la pagina, come fa il browser con Ctrl +.
-          Cosi' cresce ogni cosa in proporzione — scritte, caselle, spazi — e
-          niente si scompone. */}
-      <div className="riga-interruttore riga-staccata">
-        <span className="nome-interruttore">
-          Dimensione dei caratteri
-          <Aiuto testo="Ingrandisce o rimpicciolisce tutto il programma, non solo le scritte: caselle, pulsanti e spazi crescono insieme. Se ti sembra scritto piccolo, alza qui invece di avvicinarti allo schermo." />
-        </span>
-        <span className="regola-ingrandimento">
-          <button
-            title="Più piccolo"
-            disabled={ingrandimento <= 0.8}
-            onClick={() => onIngrandimento(Math.round((ingrandimento - 0.1) * 10) / 10)}
-          >
-            <Minus size={16} />
-          </button>
-          <span className="valore-ingrandimento">{Math.round(ingrandimento * 100)}%</span>
-          <button
-            title="Più grande"
-            disabled={ingrandimento >= 1.6}
-            onClick={() => onIngrandimento(Math.round((ingrandimento + 0.1) * 10) / 10)}
-          >
-            <Plus size={16} />
-          </button>
-          <button title="Torna alla misura normale" onClick={() => onIngrandimento(1)}>
-            <RotateCcw size={15} />
-          </button>
-        </span>
       </div>
 
       {/* Prima la barra scura era una caratteristica del blu: gli altri due

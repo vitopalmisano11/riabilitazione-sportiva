@@ -124,6 +124,36 @@
   --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
 }
 
+/* Tema prugna: un viola smorzato su un grigio appena tinto. Fra i quattro e'
+   il piu' neutro dei caldi e il piu' caldo dei freddi: non e' ne' clinico come
+   il blu ne' domestico come il terracotta. */
+:root[data-tema='prugna'] {
+  --bg: #f5f2f8;
+  --border: #e7e2ee;
+  --border-forte: #d6cfe1;
+  --text: #241d2c;
+  --text-dim: #6f6779;
+  --accent: #7a5299;
+  --accent-hover: #634081;
+  --accent-soft: #f0eaf6;
+  --accent-ombra: rgba(122, 82, 153, 0.4);
+  --logo: linear-gradient(135deg, #9a72b8, #63407f);
+  --barra: linear-gradient(180deg, #ece5f2 0%, #e0d6ea 100%);
+  --barra-testo: #453a52;
+  --barra-voce: #453a52;
+  --barra-hover: #d6c8e4;
+  --barra-hover-testo: #2b2135;
+  --barra-bordo: #cfc2de;
+  --barra-bordo-pulsante: #c2b2d3;
+  --barra-etichetta: #8d829b;
+  --intestazione: #ece6f3;
+  --intestazione-hover: #e2d9ec;
+  --intestazione-testo: #6b6178;
+  --intestazione-testo-forte: #2b2135;
+  --pannello: #f6f4f9;
+  --login: linear-gradient(160deg, #ebe3f2 0%, #dccfe9 55%, #eae2f1 100%);
+}
+
 /* ---- Barra laterale chiara o scura ----
    Prima lo decideva il colore scelto: il blu nasceva con la barra scura, il
    verde e il terracotta chiara. Adesso e' una scelta a se', valida con
@@ -154,6 +184,18 @@
   --barra-bordo-pulsante: #4d3a2e;
   --barra-etichetta: #a08d7e;
   --login: linear-gradient(160deg, #221913 0%, #35251b 55%, #221913 100%);
+}
+
+:root[data-tema='prugna'][data-barra='scura'] {
+  --barra: linear-gradient(180deg, #1e1826 0%, #2a2135 100%);
+  --barra-testo: #ece5f2;
+  --barra-voce: #cfc2de;
+  --barra-hover: #3a2f49;
+  --barra-hover-testo: #ffffff;
+  --barra-bordo: #150f1c;
+  --barra-bordo-pulsante: #493c5b;
+  --barra-etichetta: #948aa3;
+  --login: linear-gradient(160deg, #1c1624 0%, #2d2338 55%, #1c1624 100%);
 }
 
 :root[data-tema='blu'][data-barra='scura'] {
@@ -228,6 +270,14 @@
   --accent-soft: #1e2a44;
   --accent-ombra: rgba(91, 141, 239, 0.35);
   --logo: linear-gradient(135deg, #5b8def, #2b4fa8);
+}
+
+:root[data-scuro='si'][data-tema='prugna'] {
+  --accent: #a681c4;
+  --accent-hover: #b99bd3;
+  --accent-soft: #2c2337;
+  --accent-ombra: rgba(166, 129, 196, 0.35);
+  --logo: linear-gradient(135deg, #a681c4, #63407f);
 }
 
 :root[data-scuro='si'][data-tema='terracotta'] {
@@ -2723,7 +2773,7 @@ textarea {
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
+  gap: 12px;
   cursor: pointer;
 }
 
@@ -2736,8 +2786,15 @@ textarea {
   border-top: 1px solid var(--border);
 }
 
+/* Nome e "?" sulla stessa riga, sempre: come blocco il punto interrogativo
+   andava a capo appena il riquadro si stringeva. */
 .riga-interruttore .nome-interruttore {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  /* Su una riga sola: andando a capo il "?" si staccava dal nome e finiva in
+     mezzo alla riga. */
+  white-space: nowrap;
   font-size: 16px;
   color: var(--text);
   margin-bottom: 4px;

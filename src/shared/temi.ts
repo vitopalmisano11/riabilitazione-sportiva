@@ -1,4 +1,4 @@
-// I due temi di colore dell'app.
+// I colori dell'app.
 //
 // Nell'interfaccia il colore vive nelle variabili del foglio di stile
 // (src/renderer/src/styles.css): qui stanno solo i due colori che servono anche
@@ -8,12 +8,13 @@
 // Il tema scelto e' ricordato in impostazioni.json, cosi' l'app e i documenti
 // restano d'accordo fra un avvio e l'altro.
 
-export type Tema = 'verde' | 'blu' | 'terracotta'
+export type Tema = 'verde' | 'blu' | 'terracotta' | 'prugna'
 
 export const TEMI: { valore: Tema; etichetta: string; colore: string }[] = [
   { valore: 'verde', etichetta: 'Verde salvia', colore: '#55806a' },
   { valore: 'terracotta', etichetta: 'Terracotta', colore: '#a15843' },
-  { valore: 'blu', etichetta: 'Blu', colore: '#2563eb' }
+  { valore: 'blu', etichetta: 'Blu', colore: '#2563eb' },
+  { valore: 'prugna', etichetta: 'Prugna', colore: '#7a5299' }
 ]
 
 // Colori usati nei documenti: il tratto delle intestazioni e il fondo delle
@@ -28,7 +29,8 @@ export interface ColoriDocumento {
 export const COLORI_DOCUMENTO: Record<Tema, ColoriDocumento> = {
   verde: { accento: '#55806a', accentoScuro: '#446a57', intestazione: '#f0e9dc' },
   blu: { accento: '#2563eb', accentoScuro: '#1d4fc7', intestazione: '#eef2f8' },
-  terracotta: { accento: '#a15843', accentoScuro: '#85452f', intestazione: '#f3e7dc' }
+  terracotta: { accento: '#a15843', accentoScuro: '#85452f', intestazione: '#f3e7dc' },
+  prugna: { accento: '#7a5299', accentoScuro: '#634081', intestazione: '#f0eaf6' }
 }
 
 export function temaValido(v: unknown): Tema {
