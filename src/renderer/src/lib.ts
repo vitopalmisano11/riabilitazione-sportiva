@@ -19,6 +19,13 @@ export function oggiIso(): string {
   ).padStart(2, '0')}`
 }
 
+// Una data scritta 'aaaa-mm-gg' va letta come mezzanotte di qui, non di
+// Greenwich: 'new Date("2026-08-29")' vale le due di notte italiane, e nelle
+// prime ore del giorno i conti sui giorni finivano sballati di uno.
+function mezzanotteLocale(data: string): Date {
+  return new Date(`${data.slice(0, 10)}T00:00:00`)
+}
+
 // L'eta' non si memorizza mai: si calcola, altrimenti dopo un anno e' sbagliata.
 // Quanto tempo e' passato da una data, in mesi e settimane: "1 mese e 3
 // settimane". E' il modo in cui si ragiona in riabilitazione — i protocolli
@@ -26,9 +33,11 @@ export function oggiIso(): string {
 // buttano via, arrotondando per difetto alla settimana.
 export function daQuando(data: string | null): string | null {
   if (!data) return null
-  const inizio = new Date(data)
+  const inizio = mezzanotteLocale(data)
   if (Number.isNaN(inizio.getTime())) return null
+  // Si contano giorni interi: da che ora e' adesso non deve dipendere niente.
   const oggi = new Date()
+  oggi.setHours(0, 0, 0, 0)
   if (inizio > oggi) return null
 
   // Mesi interi: si conta il salto di mese, e si toglie uno se il giorno del
@@ -54,7 +63,7 @@ export function daQuando(data: string | null): string | null {
 
 export function eta(dataNascita: string | null): number | null {
   if (!dataNascita) return null
-  const nato = new Date(dataNascita)
+  const nato = mezzanotteLocale(dataNascita)
   if (Number.isNaN(nato.getTime())) return null
   const oggi = new Date()
   let anni = oggi.getFullYear() - nato.getFullYear()

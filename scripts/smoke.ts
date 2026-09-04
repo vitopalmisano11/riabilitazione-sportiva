@@ -876,6 +876,9 @@ assert.equal(
   assert.equal(daQuando(null), null)
   assert.equal(daQuando(giorniFa(3)), 'meno di una settimana')
   assert.equal(daQuando(giorniFa(7)), '1 settimana')
+  // Il caso che si e' rotto davvero: appena passata la mezzanotte, con le date
+  // lette come ore di Greenwich mancava sempre un giorno all'appello.
+  assert.equal(daQuando(giorniFa(14)), '2 settimane')
   assert.equal(daQuando(giorniFa(20)), '2 settimane')
   // un mese e qualcosa: il mese e' quello vero del calendario, non 30 giorni
   const unMeseE3Settimane = new Date()
