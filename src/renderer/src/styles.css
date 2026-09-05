@@ -2841,6 +2841,22 @@ textarea {
   gap: 8px;
 }
 
+/* Il "+" del giorno sta in fondo alla sua fascia, scolorito finche' non ci si
+   passa sopra: c'e' quando serve e non fa rumore quando si legge. */
+.btn-aggiungi-giorno {
+  margin-left: auto;
+  padding: 1px 6px;
+  border: none;
+  background: none;
+  color: var(--intestazione-testo);
+}
+
+.giorno-settimana:hover .btn-aggiungi-giorno,
+.btn-aggiungi-giorno:hover {
+  color: var(--accent);
+  background: var(--surface);
+}
+
 /* Il giorno di oggi si riconosce senza cercarlo. */
 .giorno-settimana.oggi .sotto-titolo {
   background: var(--accent-soft);

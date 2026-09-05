@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react'
+import { CalendarDays, ChevronLeft, ChevronRight, Plus } from 'lucide-react'
+import AggiungiAlGiorno from '../components/AggiungiAlGiorno'
 import type { SedutaSettimana } from '../../../shared/types'
 import { toastErrore } from '../components/Toast'
 import { errMsg, oggiIso } from '../lib'
@@ -56,6 +57,8 @@ export default function SettimanaPage({
 }): React.JSX.Element {
   const [lunedi, setLunedi] = useState<Date>(() => lunediDi(new Date()))
   const [sedute, setSedute] = useState<SedutaSettimana[]>([])
+  // Il giorno a cui si sta aggiungendo una seduta, se la finestrella e' aperta.
+  const [giornoAperto, setGiornoAperto] = useState<string | null>(null)
 
   // Ripremendo la voce del menu si torna alla settimana in corso.
   useEffect(() => {
@@ -121,6 +124,15 @@ export default function SettimanaPage({
             <div className="sotto-titolo">
               {g.nome} {g.numero}
               {g.data === oggi && <span className="badge">oggi</span>}
+              {/* Programmare partendo dal giorno: e' cosi' che si ragiona
+                  quando si prepara la settimana. */}
+              <button
+                className="btn-aggiungi-giorno"
+                title={`Aggiungi una seduta a ${g.nome} ${g.numero}`}
+                onClick={() => setGiornoAperto(g.data)}
+              >
+                <Plus size={15} />
+              </button>
             </div>
             {g.sedute.length === 0 ? (
               <p className="hint riga-vuota">—</p>
@@ -151,6 +163,17 @@ export default function SettimanaPage({
           </div>
         ))}
       </section>
+
+      {giornoAperto && (
+        <AggiungiAlGiorno
+          data={giornoAperto}
+          onApriPaziente={onApriPaziente}
+          onChiudi={(creata) => {
+            setGiornoAperto(null)
+            if (creata) carica()
+          }}
+        />
+      )}
     </div>
   )
 }
