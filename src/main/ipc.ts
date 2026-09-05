@@ -46,7 +46,10 @@ import {
   elencoBackup,
   eseguiBackup,
   backupSeServe,
+  cartellaOneDrive,
   controllaBackup,
+  copieInOneDrive,
+  usaOneDrive,
   ripristinaBackup
 } from './backup'
 import {
@@ -195,6 +198,8 @@ export function registerIpc(): void {
 
   // ---- Copie di sicurezza ----
   handle('backup:info', () => ({
+    oneDrive: cartellaOneDrive() != null,
+    inOneDrive: copieInOneDrive(),
     cartella: cartellaBackup(),
     attivo: backupAttivo(),
     daTenere: backupDaTenere(),
@@ -210,6 +215,7 @@ export function registerIpc(): void {
     impostaCartellaBackup(filePaths[0])
     return filePaths[0]
   })
+  handle('backup:usaOneDrive', () => usaOneDrive())
   handle('backup:setAttivo', (attivo: boolean) => impostaBackupAttivo(attivo))
   handle('backup:setDaTenere', (n: number) => impostaBackupDaTenere(n))
   handle('backup:eseguiOra', () => eseguiBackup())

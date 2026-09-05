@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import Aiuto from './Aiuto'
 import {
   ChevronDown,
+  Cloud,
   CircleAlert,
   CircleCheck,
   FileSpreadsheet,
@@ -112,6 +113,12 @@ export default function PannelloBackup(): React.JSX.Element {
       </label>
 
       <div className="cartella-path">{info.cartella}</div>
+      {info.inOneDrive && (
+        <span className="esito-copia esito-buono">
+          <Cloud size={15} /> Queste copie finiscono anche online, in OneDrive: se il computer si
+          rompe, i dati non si perdono.
+        </span>
+      )}
 
       <div className="modal-actions riga-backup">
         {/* Scritta sopra alla casella, come tutti gli altri campi: accanto
@@ -138,6 +145,21 @@ export default function PannelloBackup(): React.JSX.Element {
         <button onClick={() => void run(() => window.api.backup.cambiaCartella())}>
           Cambia cartella…
         </button>
+        {/* Le copie dentro OneDrive vanno online da sole: e' il modo piu'
+            semplice di averle fuori dal computer. Il pulsante compare solo se
+            OneDrive su questo computer c'e' davvero. */}
+        {info.oneDrive && !info.inOneDrive && (
+          <button
+            onClick={() =>
+              void run(async () => {
+                await window.api.backup.usaOneDrive()
+                toast('Le copie andranno in OneDrive.')
+              })
+            }
+          >
+            <Cloud size={16} /> Metti in OneDrive
+          </button>
+        )}
         {/* Le tre copie sono la stessa azione fatta in tre posti: qui dentro,
             su una chiavetta, o in tabelle leggibili. Un pulsante solo con il
             menu, invece di tre in fila che sbordavano dal riquadro. */}

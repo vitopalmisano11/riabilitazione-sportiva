@@ -769,6 +769,9 @@ export interface VoceBackup {
 
 export interface InfoBackup {
   cartella: string
+  // Se su questo computer c'e' OneDrive, e se le copie ci stanno gia' dentro.
+  oneDrive: boolean
+  inOneDrive: boolean
   attivo: boolean
   daTenere: number
   copie: VoceBackup[]
@@ -1100,6 +1103,8 @@ export interface Api {
   backup: {
     info(): Promise<InfoBackup>
     cambiaCartella(): Promise<string | null>
+    // Sposta le copie in una cartella di OneDrive: da li' vanno online da sole.
+    usaOneDrive(): Promise<string>
     setAttivo(attivo: boolean): Promise<void>
     setDaTenere(n: number): Promise<void>
     // Esegue subito una copia e ritorna la cartella creata.

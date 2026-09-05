@@ -15,9 +15,15 @@ import {
   rmSync,
   statSync
 } from 'fs'
-import { join } from 'path'
+import { join, sep } from 'path'
 import { apriAltroDb, getDb } from './db'
-import { cartellaBackup, backupAttivo, backupDaTenere, cartellaDati } from './impostazioni'
+import {
+  cartellaBackup,
+  backupAttivo,
+  backupDaTenere,
+  cartellaDati,
+  impostaCartellaBackup
+} from './impostazioni'
 
 const DB = 'riabilitazione.db'
 const AUTH = 'auth.json'
@@ -137,6 +143,32 @@ export function backupDiChiusura(): void {
   } catch {
     // in chiusura non ha senso disturbare con un errore
   }
+}
+
+// La cartella di OneDrive, se su questo computer c'e'. Windows la annuncia in
+// una variabile d'ambiente: non si va a indovinare percorsi.
+export function cartellaOneDrive(): string | null {
+  const p = process.env['OneDrive'] || process.env['OneDriveConsumer'] || ''
+  return p !== '' && existsSync(p) ? p : null
+}
+
+// Le copie stanno gia' andando online? Vero se la cartella delle copie e'
+// dentro a quella di OneDrive.
+export function copieInOneDrive(): boolean {
+  const one = cartellaOneDrive()
+  if (!one) return false
+  const dentro = cartellaBackup().toLowerCase()
+  return dentro === one.toLowerCase() || dentro.startsWith(one.toLowerCase() + sep)
+}
+
+// Sposta le copie in una cartella di OneDrive, creandola se non c'e'.
+export function usaOneDrive(): string {
+  const one = cartellaOneDrive()
+  if (!one) throw new Error('Su questo computer non risulta configurato OneDrive.')
+  const dir = join(one, 'Riabilitazione - copie di sicurezza')
+  mkdirSync(dir, { recursive: true })
+  impostaCartellaBackup(dir)
+  return dir
 }
 
 // Controllo di una copia: si apre davvero, e si guarda cosa contiene.

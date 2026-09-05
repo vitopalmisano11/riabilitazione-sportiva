@@ -324,6 +324,7 @@ const api: Api = {
   backup: {
     info: () => invoke('backup:info'),
     cambiaCartella: () => invoke('backup:cambiaCartella'),
+    usaOneDrive: () => invoke('backup:usaOneDrive'),
     setAttivo: (attivo: boolean) => invoke('backup:setAttivo', attivo),
     setDaTenere: (n: number) => invoke('backup:setDaTenere', n),
     eseguiOra: () => invoke('backup:eseguiOra'),
