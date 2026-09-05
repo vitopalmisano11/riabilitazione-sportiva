@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
-import { CalendarDays, ChevronLeft, ChevronRight, Plus } from 'lucide-react'
+import { CalendarDays, ChevronLeft, ChevronRight, Pencil, Plus, Trash2 } from 'lucide-react'
 import AggiungiAlGiorno from '../components/AggiungiAlGiorno'
 import type { SedutaSettimana } from '../../../shared/types'
 import { toastErrore } from '../components/Toast'
-import { errMsg, oggiIso } from '../lib'
+import { chiedi } from '../components/Conferma'
+import { errMsg, formatData, oggiIso } from '../lib'
 
 // La settimana di tutti i pazienti in una schermata.
 //
@@ -50,9 +51,11 @@ function intestazioneSettimana(lunedi: Date): string {
 
 export default function SettimanaPage({
   onApriPaziente,
+  onApriSeduta,
   tornaAllElenco
 }: {
   onApriPaziente: (id: number) => void
+  onApriSeduta: (pazienteId: number, sedutaId: number) => void
   tornaAllElenco: number
 }): React.JSX.Element {
   const [lunedi, setLunedi] = useState<Date>(() => lunediDi(new Date()))
@@ -76,6 +79,26 @@ export default function SettimanaPage({
   }, [lunedi])
 
   useEffect(carica, [carica])
+
+  // Si elimina anche da qui: preparare la settimana vuol dire anche disfare
+  // quello che si e' messo nel giorno sbagliato. La seduta finisce nel cestino
+  // come quando la si elimina dalla scheda del paziente.
+  const elimina = async (s: SedutaSettimana): Promise<void> => {
+    if (
+      !(await chiedi(
+        `Eliminare la seduta di ${s.paziente} del ${formatData(s.data)}?
+Finisce nel cestino: puoi rimetterla a posto da Impostazioni entro un mese.`
+      ))
+    ) {
+      return
+    }
+    try {
+      await window.api.sedute.remove(s.id)
+      carica()
+    } catch (e) {
+      toastErrore(errMsg(e))
+    }
+  }
 
   const sposta = (settimane: number): void => {
     const nuovo = new Date(lunedi)
@@ -156,6 +179,24 @@ export default function SettimanaPage({
                           .join(' · ')}
                       </span>
                     </div>
+                    {/* Il nome porta alla scheda, questo alla seduta: appena
+                        preparata la si vuole ritoccare, non cercarla nel
+                        diario del paziente. */}
+                    <span className="row-actions">
+                      <button
+                        title="Apri la seduta"
+                        onClick={() => onApriSeduta(s.paziente_id, s.id)}
+                      >
+                        <Pencil size={16} />
+                      </button>
+                      <button
+                        className="danger"
+                        title="Elimina la seduta"
+                        onClick={() => void elimina(s)}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </span>
                   </li>
                 ))}
               </ul>

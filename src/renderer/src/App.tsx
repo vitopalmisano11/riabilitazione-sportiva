@@ -148,11 +148,21 @@ export default function App(): React.JSX.Element {
   // Richiesta di aprire la scheda di un paziente da un'altra sezione. Il numero
   // progressivo serve a far scattare l'apertura anche se si richiede due volte
   // lo stesso paziente.
-  const [apriPaziente, setApriPaziente] = useState<{ id: number; seq: number } | null>(null)
+  const [apriPaziente, setApriPaziente] = useState<{
+    id: number
+    // Se c'e', si apre direttamente quella seduta invece della sola scheda.
+    sedutaId?: number
+    seq: number
+  } | null>(null)
 
   const vaiAlPaziente = (id: number): void => {
     setSezione('pazienti')
     setApriPaziente((p) => ({ id, seq: (p?.seq ?? 0) + 1 }))
+  }
+
+  const vaiAllaSeduta = (id: number, sedutaId: number): void => {
+    setSezione('pazienti')
+    setApriPaziente((p) => ({ id, sedutaId, seq: (p?.seq ?? 0) + 1 }))
   }
 
   if (!sbloccata) {
@@ -226,7 +236,11 @@ export default function App(): React.JSX.Element {
       </aside>
       <main className="content">
         {sezione === 'settimana' && (
-          <SettimanaPage onApriPaziente={vaiAlPaziente} tornaAllElenco={tornaAllElenco} />
+          <SettimanaPage
+            onApriPaziente={vaiAlPaziente}
+            onApriSeduta={vaiAllaSeduta}
+            tornaAllElenco={tornaAllElenco}
+          />
         )}
         {sezione === 'pazienti' && (
           <PazientiPage tornaAllElenco={tornaAllElenco} apriPaziente={apriPaziente} />

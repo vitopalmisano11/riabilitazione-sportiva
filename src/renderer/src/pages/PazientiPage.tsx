@@ -39,8 +39,9 @@ export default function PazientiPage({
 }: {
   // Cambia ogni volta che si ripreme "Pazienti e sedute" nel menu a sinistra.
   tornaAllElenco: number
-  // Scheda da aprire, richiesta da un'altra sezione (il follow-up).
-  apriPaziente: { id: number; seq: number } | null
+  // Scheda da aprire, richiesta da un'altra sezione (il follow-up, la
+  // settimana). Con sedutaId si apre direttamente quella seduta.
+  apriPaziente: { id: number; sedutaId?: number; seq: number } | null
 }): React.JSX.Element {
   const [pazienti, setPazienti] = useState<PazienteDettaglio[]>([])
   const [selId, setSelId] = useState<number | null>(null)
@@ -93,7 +94,7 @@ export default function PazientiPage({
   // di un paziente sotto il nome di un altro.
   useEffect(() => {
     if (apriPaziente == null) return
-    setBuilder(null)
+    setBuilder(apriPaziente.sedutaId == null ? null : { sedutaId: apriPaziente.sedutaId })
     setSelId(apriPaziente.id)
   }, [apriPaziente])
 
