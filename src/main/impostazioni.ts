@@ -26,6 +26,8 @@ interface Impostazioni {
   backupDaTenere?: number
   barraScura?: boolean
   ingrandimento?: number
+  cartellaCopia?: string
+  cartellaTabelle?: string
 }
 
 const percorsoFile = (): string => join(app.getPath('userData'), 'impostazioni.json')
@@ -112,6 +114,25 @@ export function ingrandimento(): number {
 
 export function impostaIngrandimento(valore: number): void {
   salva({ ingrandimento: Math.min(1.6, Math.max(0.8, Math.round(valore * 100) / 100)) })
+}
+
+// Dove sono finite l'ultima volta la copia completa e le tabelle leggibili.
+// Chi le manda sempre nella stessa cartella (una cartella di OneDrive, per
+// esempio) se la ritrova gia' aperta al giro dopo.
+export function cartellaCopia(): string | undefined {
+  return leggi().cartellaCopia
+}
+
+export function impostaCartellaCopia(dir: string): void {
+  salva({ cartellaCopia: dir })
+}
+
+export function cartellaTabelle(): string | undefined {
+  return leggi().cartellaTabelle
+}
+
+export function impostaCartellaTabelle(dir: string): void {
+  salva({ cartellaTabelle: dir })
 }
 
 export function scuro(): boolean {

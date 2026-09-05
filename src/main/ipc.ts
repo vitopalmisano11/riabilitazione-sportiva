@@ -17,7 +17,11 @@ import {
   blocco,
   impostaBlocco,
   barraScura,
+  cartellaCopia,
+  cartellaTabelle,
   impostaBarraScura,
+  impostaCartellaCopia,
+  impostaCartellaTabelle,
   impostaIngrandimento,
   ingrandimento,
   impostaScuro,
@@ -218,19 +222,23 @@ export function registerIpc(): void {
   handle('backup:esportaArchivio', async () => {
     const { canceled, filePaths } = await dialog.showOpenDialog({
       title: 'Dove salvare le tabelle leggibili',
+      defaultPath: cartellaTabelle(),
       properties: ['openDirectory', 'createDirectory']
     })
     if (canceled || filePaths.length === 0) return null
+    impostaCartellaTabelle(filePaths[0])
     const dest = esportaArchivio(filePaths[0])
     shell.showItemInFolder(dest)
     return dest
   })
   handle('backup:copiaFuori', async () => {
     const { canceled, filePaths } = await dialog.showOpenDialog({
-      title: 'Scegli dove mettere la copia (chiavetta, disco esterno…)',
+      title: 'Scegli dove mettere la copia (chiavetta, disco esterno, OneDrive…)',
+      defaultPath: cartellaCopia(),
       properties: ['openDirectory', 'createDirectory']
     })
     if (canceled || filePaths.length === 0) return null
+    impostaCartellaCopia(filePaths[0])
     const dest = copiaFuori(filePaths[0])
     shell.showItemInFolder(dest)
     return dest
