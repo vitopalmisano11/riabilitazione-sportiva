@@ -304,7 +304,7 @@ export default function EserciziPage(): React.JSX.Element {
             await window.api.categorie.reorder(ids)
             await loadCategorie()
           }}
-          addPlaceholder="Nuova categoria"
+          etichettaAggiungi="Nuova categoria"
           emptyHint="Nessuna categoria: creane una qui sotto."
           aiuto="Ogni categoria può essere segnata come «a cluster»: gli esercizi che le appartengono si dosano spezzando la serie in blocchi con una pausa breve dentro, come nella pliometria estensiva. L'opzione si mette aprendo la categoria."
           dopoNome={(item) =>

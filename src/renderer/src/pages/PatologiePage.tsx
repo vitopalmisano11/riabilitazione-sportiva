@@ -598,7 +598,8 @@ function StrutturaTab({ faseId }: { faseId: number }): React.JSX.Element {
           await window.api.sezioni.reorder(ids)
           await load()
         }}
-        addPlaceholder="Nuova sezione… (es. Riscaldamento)"
+        etichettaAggiungi="Nuova sezione"
+        addPlaceholder="es. Riscaldamento"
         emptyHint="Es. Riscaldamento, Mobilità, Rinforzo, Pliometria"
       />
       <section className="crud-list">
@@ -685,7 +686,8 @@ function ObiettiviTab({ faseId }: { faseId: number }): React.JSX.Element {
           await window.api.obiettivi.reorder(ids)
           await load()
         }}
-        addPlaceholder="Nuovo obiettivo…"
+        etichettaAggiungi="Nuovo obiettivo"
+        addPlaceholder="es. Camminare senza stampelle"
         emptyHint="Es. Controllo del dolore e gonfiore"
       />
     </div>
@@ -730,7 +732,8 @@ function TestTab({ faseId }: { faseId: number }): React.JSX.Element {
           await window.api.testAvanzamento.reorder(ids)
           await load()
         }}
-        addPlaceholder="Nuovo test… (es. Hop test (cm))"
+        etichettaAggiungi="Nuovo test"
+        addPlaceholder="es. Hop test (cm)"
         emptyHint="Nessun test definito per questa fase (facoltativo)."
       />
     </div>

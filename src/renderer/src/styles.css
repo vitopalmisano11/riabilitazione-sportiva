@@ -1173,8 +1173,11 @@ button.danger:hover:not(:disabled) {
 /* Il titolo del riquadro e' una testata vera e propria: fondo beige a tutta
    larghezza, cosi' si distingue dagli elenchi che ha sotto. */
 .crud-list h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin: -16px -16px 12px;
-  padding: 10px 16px;
+  padding: 8px 10px 8px 16px;
   font-size: 15px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -1271,9 +1274,21 @@ button.danger:hover:not(:disabled) {
   padding: 4px 8px;
 }
 
+/* Il pulsante che aggiunge sta in fondo alla riga del titolo, in tutte le
+   liste: sempre nello stesso posto, e con scritto cosa aggiunge. */
+.btn-aggiungi-lista {
+  margin-left: auto;
+  padding: 3px 10px;
+  font-size: 13px;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--accent);
+}
+
 .add-row {
   display: flex;
   gap: 6px;
+  margin-top: 8px;
 }
 
 .add-row input {

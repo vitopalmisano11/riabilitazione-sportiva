@@ -22,6 +22,9 @@ interface Props {
   onRename?: (id: number, nome: string) => Promise<unknown>
   onDelete: (id: number) => Promise<unknown>
   onReorder?: (ids: number[]) => Promise<unknown>
+  // Cosa c'e' scritto sul pulsante che aggiunge ("Nuova sezione") e cosa si
+  // legge dentro alla casella quando si apre.
+  etichettaAggiungi?: string
   addPlaceholder?: string
   emptyHint?: string
   // Un'aggiunta accanto al nome (un'etichetta) e un pulsante in piu' fra le
@@ -47,6 +50,7 @@ export default function CrudList({
   onRename,
   onDelete,
   onReorder,
+  etichettaAggiungi,
   addPlaceholder,
   emptyHint,
   aiuto,
@@ -55,6 +59,9 @@ export default function CrudList({
   dopoNome
 }: Props): React.JSX.Element {
   const [nuovo, setNuovo] = useState('')
+  // La casella per aggiungere compare solo quando serve: a riposo l'elenco non
+  // ha in fondo un campo vuoto che sembra sempre in attesa di qualcosa.
+  const [aperta, setAperta] = useState(false)
   const [editId, setEditId] = useState<number | null>(null)
   const [editNome, setEditNome] = useState('')
 
@@ -66,6 +73,8 @@ export default function CrudList({
     }
   }
 
+  // Dopo l'aggiunta la casella resta aperta e vuota: quando se ne mettono
+  // cinque di fila, chiuderla ogni volta sarebbe cinque clic in piu'.
   const add = (): void => {
     const n = nuovo.trim()
     if (!n || !onAdd) return
@@ -95,6 +104,14 @@ export default function CrudList({
       <h3>
         {title}
         {aiuto && <Aiuto testo={aiuto} />}
+        {(onNuovo || onAdd) && (
+          <button
+            className="btn-aggiungi-lista"
+            onClick={() => (onNuovo ? onNuovo() : setAperta(true))}
+          >
+            <Plus size={15} /> {etichettaAggiungi ?? 'Aggiungi'}
+          </button>
+        )}
       </h3>
       <ul>
         {items.map((item, idx) => {
@@ -165,25 +182,33 @@ export default function CrudList({
         })}
         {items.length === 0 && <li className="empty">{emptyHint ?? 'Nessun elemento'}</li>}
       </ul>
-      <div className="add-row">
-        {onNuovo ? (
-          <button onClick={onNuovo}>
-            <Plus size={16} /> {addPlaceholder ?? 'Aggiungi'}
+      {aperta && onAdd && (
+        <div className="add-row">
+          <input
+            autoFocus
+            placeholder={addPlaceholder ?? 'Nuovo…'}
+            value={nuovo}
+            onChange={(e) => setNuovo(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') add()
+              if (e.key === 'Escape') {
+                setNuovo('')
+                setAperta(false)
+              }
+            }}
+          />
+          <button onClick={add}>OK</button>
+          <button
+            title="Chiudi"
+            onClick={() => {
+              setNuovo('')
+              setAperta(false)
+            }}
+          >
+            <X size={16} />
           </button>
-        ) : (
-          <>
-            <input
-              placeholder={addPlaceholder ?? 'Nuovo…'}
-              value={nuovo}
-              onChange={(e) => setNuovo(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') add()
-              }}
-            />
-            <button onClick={add}>Aggiungi</button>
-          </>
-        )}
-      </div>
+        </div>
+      )}
     </section>
   )
 }
