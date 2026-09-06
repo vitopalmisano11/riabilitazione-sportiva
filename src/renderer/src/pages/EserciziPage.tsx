@@ -324,6 +324,7 @@ export default function EserciziPage(): React.JSX.Element {
           onChange={(e) => setRicerca(e.target.value)}
         />
         <select
+          className="filtro-categorie"
           value={filtroCategoria}
           onChange={(e) => setFiltroCategoria(e.target.value === '' ? '' : Number(e.target.value))}
         >

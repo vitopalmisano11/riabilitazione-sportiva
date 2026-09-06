@@ -211,6 +211,13 @@ function Step1Patologie({
               </span>
             ) : (
               <>
+                {/* La maniglia sta a sinistra, staccata: e' un appiglio per
+                    trascinare, non un'azione come le altre. */}
+                <span className="maniglia-tile">
+                  <button {...maniglia(idx)}>
+                    <GripVertical size={16} />
+                  </button>
+                </span>
                 <span className="scelta-tile-nome">{p.nome}</span>
                 {/* Le patologie che vanno al campo sono poche. Acceso, si vede
                     sempre; spento, la parola "campo" non compare proprio: il
@@ -222,10 +229,23 @@ function Step1Patologie({
                     title="Questa patologia ha un percorso al campo. Clicca per toglierlo."
                     onClick={(e) => {
                       e.stopPropagation()
-                      void run(async () => {
-                        await window.api.patologie.setCampo(p.id, false)
-                        await onChanged()
-                      })
+                      void (async () => {
+                        // Spegnere non cancella niente: le fasi al campo
+                        // restano nell'archivio, solo il loro elenco sparisce.
+                        // Va detto, perche' un pulsante che nasconde le cose
+                        // sembra un pulsante che le cancella.
+                        if (
+                          !(await chiedi(
+                            `Togliere il percorso al campo da "${p.nome}"?\nLe fasi al campo e le sedute gia' fatte non vengono cancellate: sparisce solo il loro elenco, e torna tutto riaccendendolo.`
+                          ))
+                        ) {
+                          return
+                        }
+                        void run(async () => {
+                          await window.api.patologie.setCampo(p.id, false)
+                          await onChanged()
+                        })
+                      })()
                     }}
                   >
                     campo
@@ -245,9 +265,6 @@ function Step1Patologie({
                       <Trees size={16} />
                     </button>
                   )}
-                  <button {...maniglia(idx)}>
-                    <GripVertical size={16} />
-                  </button>
                   <button title="Rinomina" onClick={() => setEdit({ id: p.id, nome: p.nome })}>
                     <Pencil size={16} />
                   </button>
@@ -280,16 +297,30 @@ function Step1Patologie({
         </p>
       )}
       {nuovaAperta && (
-        <NuovaPatologiaModal onAnnulla={() => setNuovaAperta(false)} onConferma={aggiungi} />
+        <NuovaVoceModal
+          titolo="Nuova patologia"
+          etichetta="Nome della patologia"
+          esempio="es. Ricostruzione LCA"
+          onAnnulla={() => setNuovaAperta(false)}
+          onConferma={aggiungi}
+        />
       )}
     </section>
   )
 }
 
-function NuovaPatologiaModal({
+// Una finestrella per aggiungere una voce che ha solo un nome: la usano le
+// patologie e le fasi, che si comportano allo stesso modo.
+function NuovaVoceModal({
+  titolo,
+  etichetta,
+  esempio,
   onAnnulla,
   onConferma
 }: {
+  titolo: string
+  etichetta: string
+  esempio: string
   onAnnulla: () => void
   onConferma: (nome: string) => void
 }): React.JSX.Element {
@@ -298,16 +329,16 @@ function NuovaPatologiaModal({
   return (
     <div className="modal-overlay" onClick={onAnnulla}>
       <div className="modal modal-sm" onClick={(e) => e.stopPropagation()}>
-        <h3>Nuova patologia</h3>
+        <h3>{titolo}</h3>
         <label>
-          Nome della patologia
+          {etichetta}
           <input
             autoFocus
-            placeholder="es. Ricostruzione LCA"
+            placeholder={esempio}
             value={nome}
             onChange={(e) => setNome(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') onConferma(nome)
+              if (e.key === 'Enter' && nome.trim()) onConferma(nome)
               if (e.key === 'Escape') onAnnulla()
             }}
           />
@@ -336,47 +367,69 @@ function Step2Fasi({
 }): React.JSX.Element {
   const dellaPalestra = fasi.filter((f) => f.campo !== 1)
   const delCampo = fasi.filter((f) => f.campo === 1)
+  // Quale dei due elenchi sta ricevendo una fase nuova, se la finestrella e'
+  // aperta.
+  const [nuova, setNuova] = useState<'palestra' | 'campo' | null>(null)
+
+  const creaFase = async (nome: string): Promise<void> => {
+    try {
+      await window.api.fasi.create(patologia.id, nome, nuova === 'campo')
+      setNuova(null)
+      await onChanged()
+    } catch (e) {
+      toastErrore(errMsg(e))
+    }
+  }
 
   return (
     <section className="card step-card">
+      {/* I distretti riguardano la patologia, non la fase: stanno sopra, prima
+          che si cominci a parlare di fasi. */}
+      <DistrettiPatologia patologiaId={patologia.id} />
+
       <div className="step-title">
         <span className="step-num">2</span>
         <h3>Scegli la fase di &ldquo;{patologia.nome}&rdquo;</h3>
+        <span className="spacer" />
+        <button onClick={() => setNuova('palestra')}>
+          <Plus size={16} /> Aggiungi fase
+        </button>
       </div>
-
-      <DistrettiPatologia patologiaId={patologia.id} />
 
       {/* Con il percorso al campo acceso gli elenchi diventano due, e ognuno
           dice cos'e'. Senza, resta l'elenco unico di sempre: chi non va al
           campo non vede mai la parola. */}
       {patologia.ha_campo === 1 && <div className="sotto-titolo">Fasi in palestra</div>}
-      <ElencoFasi
-        patologiaId={patologia.id}
-        fasi={dellaPalestra}
-        campo={false}
-        onSelect={onSelect}
-        onChanged={onChanged}
-      />
+      <ElencoFasi fasi={dellaPalestra} onSelect={onSelect} onChanged={onChanged} />
       {dellaPalestra.length === 0 && (
         <p className="hint">Nessuna fase ancora: creala qui sopra (es. Fase iniziale).</p>
       )}
 
       {patologia.ha_campo === 1 && (
         <>
-          <div className="sotto-titolo">Fasi al campo</div>
+          <div className="sotto-titolo riga-con-pulsante">
+            Fasi al campo
+            <button onClick={() => setNuova('campo')}>
+              <Plus size={16} /> Aggiungi fase
+            </button>
+          </div>
           <p className="hint">
             Il programma che va in parallelo a quello in palestra. Queste fasi non entrano
             nell&apos;avanzamento e non si scelgono come fase corrente: si usano creando una seduta
             e mettendola su &ldquo;Campo&rdquo;.
           </p>
-          <ElencoFasi
-            patologiaId={patologia.id}
-            fasi={delCampo}
-            campo={true}
-            onSelect={onSelect}
-            onChanged={onChanged}
-          />
+          <ElencoFasi fasi={delCampo} onSelect={onSelect} onChanged={onChanged} />
         </>
+      )}
+
+      {nuova && (
+        <NuovaVoceModal
+          titolo={nuova === 'campo' ? 'Nuova fase al campo' : 'Nuova fase'}
+          etichetta="Nome della fase"
+          esempio={nuova === 'campo' ? 'es. Campo 4 mesi' : 'es. Fase intermedia'}
+          onAnnulla={() => setNuova(null)}
+          onConferma={(n: string) => void creaFase(n)}
+        />
       )}
     </section>
   )
@@ -385,19 +438,14 @@ function Step2Fasi({
 // Un elenco di fasi: quelle della palestra o quelle del campo. Sono la stessa
 // cosa e si comportano allo stesso modo, cambia solo dove finiscono.
 function ElencoFasi({
-  patologiaId,
   fasi,
-  campo,
   onSelect,
   onChanged
 }: {
-  patologiaId: number
   fasi: Fase[]
-  campo: boolean
   onSelect: (id: number) => void
   onChanged: () => Promise<void>
 }): React.JSX.Element {
-  const [nuova, setNuova] = useState('')
   const [edit, setEdit] = useState<{ id: number; nome: string } | null>(null)
 
   const run = async (fn: () => Promise<unknown>): Promise<void> => {
@@ -406,16 +454,6 @@ function ElencoFasi({
     } catch (e) {
       toastErrore(errMsg(e))
     }
-  }
-
-  const aggiungi = (): void => {
-    const n = nuova.trim()
-    if (!n) return
-    void run(async () => {
-      await window.api.fasi.create(patologiaId, n, campo)
-      setNuova('')
-      await onChanged()
-    })
   }
 
   const salvaRename = (): void => {
@@ -461,11 +499,13 @@ function ElencoFasi({
               </span>
             ) : (
               <>
-                <span className="scelta-tile-nome">{f.nome}</span>
-                <span className="item-actions" onClick={(e) => e.stopPropagation()}>
+                <span className="maniglia-tile">
                   <button {...maniglia(idx)}>
                     <GripVertical size={16} />
                   </button>
+                </span>
+                <span className="scelta-tile-nome">{f.nome}</span>
+                <span className="item-actions" onClick={(e) => e.stopPropagation()}>
                   <button title="Rinomina" onClick={() => setEdit({ id: f.id, nome: f.nome })}>
                     <Pencil size={16} />
                   </button>
@@ -493,19 +533,6 @@ function ElencoFasi({
           </div>
         )
       })}
-      <div className="scelta-tile scelta-tile-add" onClick={(e) => e.stopPropagation()}>
-        <input
-          placeholder={campo ? 'Nuova fase al campo… (es. Campo 4 mesi)' : 'Nuova fase…'}
-          value={nuova}
-          onChange={(e) => setNuova(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') aggiungi()
-          }}
-        />
-        <button onClick={aggiungi}>
-          <Plus size={16} /> Aggiungi
-        </button>
-      </div>
     </div>
   )
 }

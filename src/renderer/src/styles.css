@@ -1325,6 +1325,12 @@ button.danger:hover:not(:disabled) {
   width: 260px;
 }
 
+/* Il filtro delle categorie non ha bisogno di tutta quella larghezza: i nomi
+   sono corti, e lo spazio serve al resto della barra. */
+.filtro-categorie {
+  max-width: 210px;
+}
+
 /* Spinge a destra quello che viene dopo, in qualunque riga di pulsanti: era
    definito solo dentro .toolbar, quindi nelle finestre non faceva niente. */
 .spacer {
@@ -2826,6 +2832,44 @@ textarea {
    dopo. */
 .stacco-cestino {
   margin-top: var(--spazio);
+}
+
+/* Nelle piastrelle di scelta la maniglia sta a sinistra, staccata dal nome:
+   e' un appiglio per trascinare, non un'azione come rinomina ed elimina, che
+   stanno tutte a destra. */
+.maniglia-tile {
+  position: absolute;
+  left: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+}
+
+.maniglia-tile button {
+  padding: 4px;
+  border: none;
+  background: none;
+  color: var(--text-dim);
+}
+
+.maniglia-tile button:hover {
+  color: var(--accent);
+  background: none;
+}
+
+/* Un titolo di sezione con il suo pulsante in fondo alla riga. */
+.riga-con-pulsante {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.riga-con-pulsante button {
+  padding: 3px 10px;
+  font-size: 13px;
+  text-transform: none;
+  letter-spacing: normal;
 }
 
 /* Il lavoro al campo e' un percorso parallelo: nel diario sta staccato da
