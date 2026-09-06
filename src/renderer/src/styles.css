@@ -2828,6 +2828,33 @@ textarea {
   margin-top: var(--spazio);
 }
 
+/* La guida dei dati: testo da leggere, non un modulo da compilare. Righe
+   larghe il giusto e spazio fra i paragrafi. */
+.guida-dati p,
+.guida-dati li {
+  margin: 6px 0;
+  line-height: 1.55;
+}
+
+.guida-dati ul {
+  margin: 4px 0 10px;
+  padding-left: 22px;
+}
+
+.guida-dati li {
+  margin-bottom: 6px;
+}
+
+.guida-dati .sotto-titolo {
+  margin-top: 18px;
+}
+
+/* Il pulsante della guida sta in fondo alla scheda, staccato dal resto. */
+.riga-guida {
+  margin-top: var(--spazio);
+  justify-content: center;
+}
+
 /* La settimana: sette blocchi uno sotto l'altro dentro allo stesso riquadro.
    I giorni vuoti restano al loro posto, con un trattino: una settimana si legge
    come una settimana, non come un elenco di giorni pieni. */

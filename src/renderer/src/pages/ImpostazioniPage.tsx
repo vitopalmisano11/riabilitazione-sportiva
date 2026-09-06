@@ -4,7 +4,17 @@ import type { Tema } from '../../../shared/temi'
 import type { EsitoArchivio, VoceCestino } from '../../../shared/types'
 import { TEMI } from '../../../shared/temi'
 import PannelloBackup from '../components/PannelloBackup'
-import { FolderOpen, Minus, Plus, RotateCcw, ShieldCheck, Trash2, Undo2 } from 'lucide-react'
+import GuidaDati from '../components/GuidaDati'
+import {
+  BookOpen,
+  FolderOpen,
+  Minus,
+  Plus,
+  RotateCcw,
+  ShieldCheck,
+  Trash2,
+  Undo2
+} from 'lucide-react'
 import { toast, toastErrore } from '../components/Toast'
 import { chiedi } from '../components/Conferma'
 import { errMsg } from '../lib'
@@ -99,6 +109,7 @@ export default function ImpostazioniPage({
 }
 
 function SchedaDati(): React.JSX.Element {
+  const [guida, setGuida] = useState(false)
   const [cartella, setCartella] = useState('')
   const [cartellaExport, setCartellaExport] = useState('')
 
@@ -176,6 +187,16 @@ function SchedaDati(): React.JSX.Element {
           </button>
         </div>
       </div>
+
+      {/* In fondo, dove uno arriva dopo aver visto i pulsanti e si e' chiesto
+          cosa fa ognuno: la spiegazione di tutti, in una finestra sola. */}
+      <div className="modal-actions riga-guida">
+        <button onClick={() => setGuida(true)}>
+          <BookOpen size={16} /> Come vengono conservati i miei dati?
+        </button>
+      </div>
+
+      {guida && <GuidaDati onChiudi={() => setGuida(false)} />}
     </section>
   )
 }
