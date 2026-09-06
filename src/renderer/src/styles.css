@@ -2843,9 +2843,9 @@ textarea {
   padding: var(--spazio-interno) calc(var(--spazio-interno) + 4px);
 }
 
-/* Il cestino non e' attaccato alle copie di sicurezza: e' l'ultima rete, viene
-   dopo. */
-.stacco-cestino {
+/* I blocchi della scheda dati sono cose diverse: fra uno e l'altro ci vuole
+   respiro, altrimenti sembrano un elenco unico. */
+.stacco-blocco {
   margin-top: var(--spazio);
 }
 

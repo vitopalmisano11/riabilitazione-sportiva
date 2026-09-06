@@ -110,6 +110,20 @@ export default function ImpostazioniPage({
 
 function SchedaDati(): React.JSX.Element {
   const [guida, setGuida] = useState(false)
+  const [esitoArchivio, setEsitoArchivio] = useState<EsitoArchivio | null>(null)
+  const [inCorso, setInCorso] = useState(false)
+
+  const controlla = async (): Promise<void> => {
+    setInCorso(true)
+    try {
+      setEsitoArchivio(await window.api.archivio.controlla())
+    } catch (e) {
+      setEsitoArchivio({ ok: false, messaggio: errMsg(e), pazienti: 0, sedute: 0 })
+    } finally {
+      setInCorso(false)
+    }
+  }
+
   const [cartella, setCartella] = useState('')
   const [cartellaExport, setCartellaExport] = useState('')
 
@@ -143,7 +157,12 @@ function SchedaDati(): React.JSX.Element {
 
   return (
     <section className="card">
-      <div className="griglia-impostazioni">
+      {/* Prima le copie di sicurezza: sono la cosa che conta, e prima stavano
+          in mezzo. Poi dove vivono i file, e in fondo le cose che si toccano
+          solo quando qualcosa non va. */}
+      <PannelloBackup />
+
+      <div className="griglia-impostazioni stacco-blocco">
       <div className="blocco-impostazione">
         <div className="sotto-titolo">
           Cartella dei dati
@@ -168,23 +187,45 @@ function SchedaDati(): React.JSX.Element {
       </div>
       </div>
 
-      <PannelloBackup />
-
-      <div className="stacco-cestino">
+      <div className="stacco-blocco">
         <SchedaCestino />
       </div>
 
-      {/* Il registro serve quando qualcosa va storto: dentro ci sono solo il
-          nome dell'operazione e l'errore, nessun dato dei pazienti. */}
-      <div className="blocco-impostazione">
-        <div className="sotto-titolo">
-          Registro degli errori
-          <Aiuto testo="Ogni errore dell'app lascia una riga in un file di testo, con la data e il punto in cui è successo. Contiene solo messaggi tecnici, nessun dato dei pazienti: serve a capire cosa si è rotto anche a giorni di distanza." />
+      {/* Le due cose che si toccano solo quando qualcosa non torna, insieme in
+          un riquadro solo: il controllo dell'archivio e il registro. */}
+      <div className="blocco-impostazione stacco-blocco">
+        <div className="sotto-titolo">Quando qualcosa non va</div>
+        <div className="riga-interruttore">
+          <span className="nome-interruttore">
+            Controllo dell&apos;archivio
+            <Aiuto testo="Controlla che il file dell'archivio non si sia rovinato e che i collegamenti fra le schede siano interi. È il controllo da fare dopo uno spegnimento brutto del computer, o quando qualcosa non torna." />
+          </span>
+          <span className="regola-ingrandimento">
+            <button disabled={inCorso} onClick={() => void controlla()}>
+              <ShieldCheck size={16} /> {inCorso ? 'Controllo…' : 'Controlla'}
+            </button>
+          </span>
         </div>
-        <div className="modal-actions">
-          <button onClick={() => void window.api.registro.apri()}>
-            <FolderOpen size={16} /> Apri il registro
-          </button>
+        {esitoArchivio && (
+          <span
+            className={esitoArchivio.ok ? 'esito-copia esito-buono' : 'esito-copia esito-guasto'}
+          >
+            {esitoArchivio.ok
+              ? `Tutto in ordine — ${esitoArchivio.pazienti} pazienti, ${esitoArchivio.sedute} sedute.`
+              : esitoArchivio.messaggio}
+          </span>
+        )}
+
+        <div className="riga-interruttore riga-staccata">
+          <span className="nome-interruttore">
+            Registro degli errori
+            <Aiuto testo="Ogni errore dell'app lascia una riga in un file di testo, con la data e il punto in cui è successo. Contiene solo messaggi tecnici, nessun dato dei pazienti: serve a capire cosa si è rotto anche a giorni di distanza." />
+          </span>
+          <span className="regola-ingrandimento">
+            <button onClick={() => void window.api.registro.apri()}>
+              <FolderOpen size={16} /> Apri il registro
+            </button>
+          </span>
         </div>
       </div>
 
@@ -366,19 +407,6 @@ function SchedaBlocco({
 }): React.JSX.Element {
   const [attivo, setAttivo] = useState(false)
   const [minuti, setMinuti] = useState(15)
-  const [esitoArchivio, setEsitoArchivio] = useState<EsitoArchivio | null>(null)
-  const [inCorso, setInCorso] = useState(false)
-
-  const controlla = async (): Promise<void> => {
-    setInCorso(true)
-    try {
-      setEsitoArchivio(await window.api.archivio.controlla())
-    } catch (e) {
-      setEsitoArchivio({ ok: false, messaggio: errMsg(e), pazienti: 0, sedute: 0 })
-    } finally {
-      setInCorso(false)
-    }
-  }
 
   useEffect(() => {
     void window.api.sicurezza.blocco().then((b) => {
@@ -424,33 +452,6 @@ function SchedaBlocco({
             <RotateCcw size={15} />
           </button>
         </span>
-      </div>
-
-      {/* Il controllo dell'archivio sta qui, con l'ingrandimento: sono tutte e
-          due cose che si fanno di rado e riguardano il programma, non i dati. */}
-      <div className="riga-staccata">
-        <div className="riga-interruttore">
-          <span className="nome-interruttore">
-            Controllo dell&apos;archivio
-            <Aiuto testo="Controlla che il file dell'archivio non si sia rovinato e che i collegamenti fra le schede siano interi. È il controllo da fare dopo uno spegnimento brutto del computer, o quando qualcosa non torna." />
-          </span>
-          <span className="regola-ingrandimento">
-            <button disabled={inCorso} onClick={() => void controlla()}>
-              <ShieldCheck size={16} /> {inCorso ? 'Controllo…' : 'Controlla'}
-            </button>
-          </span>
-        </div>
-        {/* La risposta sta sotto alla riga: accanto al pulsante faceva sbordare
-            tutto appena il riquadro si stringeva. */}
-        {esitoArchivio && (
-          <span
-            className={esitoArchivio.ok ? 'esito-copia esito-buono' : 'esito-copia esito-guasto'}
-          >
-            {esitoArchivio.ok
-              ? `Tutto in ordine — ${esitoArchivio.pazienti} pazienti, ${esitoArchivio.sedute} sedute.`
-              : esitoArchivio.messaggio}
-          </span>
-        )}
       </div>
 
       <label className="riga-interruttore riga-staccata">

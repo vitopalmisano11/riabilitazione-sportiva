@@ -160,7 +160,11 @@ export default function App(): React.JSX.Element {
     setApriPaziente((p) => ({ id, seq: (p?.seq ?? 0) + 1 }))
   }
 
-  const vaiAllaSeduta = (id: number, sedutaId: number): void => {
+  // Da dove si e' arrivati alla seduta: chiudendola si torna li'.
+  const [tornaA, setTornaA] = useState<Sezione | null>(null)
+
+  const vaiAllaSeduta = (id: number, sedutaId: number, da: Sezione): void => {
+    setTornaA(da)
     setSezione('pazienti')
     setApriPaziente((p) => ({ id, sedutaId, seq: (p?.seq ?? 0) + 1 }))
   }
@@ -238,12 +242,19 @@ export default function App(): React.JSX.Element {
         {sezione === 'settimana' && (
           <SettimanaPage
             onApriPaziente={vaiAlPaziente}
-            onApriSeduta={vaiAllaSeduta}
+            onApriSeduta={(id, sedutaId) => vaiAllaSeduta(id, sedutaId, 'settimana')}
             tornaAllElenco={tornaAllElenco}
           />
         )}
         {sezione === 'pazienti' && (
-          <PazientiPage tornaAllElenco={tornaAllElenco} apriPaziente={apriPaziente} />
+          <PazientiPage
+            tornaAllElenco={tornaAllElenco}
+            apriPaziente={apriPaziente}
+            onEsciDallaSeduta={() => {
+              if (tornaA) setSezione(tornaA)
+              setTornaA(null)
+            }}
+          />
         )}
         {sezione === 'followup' && (
           <FollowUpPage onApriPaziente={vaiAlPaziente} ricarica={tornaAllElenco} />

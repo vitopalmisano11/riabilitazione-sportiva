@@ -35,13 +35,18 @@ import { useScorciatoie } from '../scorciatoie'
 
 export default function PazientiPage({
   tornaAllElenco,
-  apriPaziente
+  apriPaziente,
+  onEsciDallaSeduta
 }: {
   // Cambia ogni volta che si ripreme "Pazienti e sedute" nel menu a sinistra.
   tornaAllElenco: number
   // Scheda da aprire, richiesta da un'altra sezione (il follow-up, la
   // settimana). Con sedutaId si apre direttamente quella seduta.
   apriPaziente: { id: number; sedutaId?: number; seq: number } | null
+  // Chiudendo una seduta aperta da un'altra sezione si torna da dove si e'
+  // arrivati, non nella scheda del paziente: chi stava preparando la settimana
+  // vuole tornare alla settimana.
+  onEsciDallaSeduta?: () => void
 }): React.JSX.Element {
   const [pazienti, setPazienti] = useState<PazienteDettaglio[]>([])
   const [selId, setSelId] = useState<number | null>(null)
@@ -53,9 +58,12 @@ export default function PazientiPage({
   const [filtroStato, setFiltroStato] = useState<'' | 'trattamento' | 'concluso'>('')
   const [patologie, setPatologie] = useState<Patologia[]>([])
   const [nuovo, setNuovo] = useState(false)
-  const [builder, setBuilder] = useState<{ sedutaId: number | null; duplicaDa?: number } | null>(
-    null
-  )
+  const [builder, setBuilder] = useState<{
+    sedutaId: number | null
+    duplicaDa?: number
+    // La seduta e' stata aperta da un'altra sezione: chiudendola si torna li'.
+    daFuori?: boolean
+  } | null>(null)
 
   const load = async (): Promise<void> => setPazienti(await window.api.pazienti.list())
 
@@ -94,7 +102,11 @@ export default function PazientiPage({
   // di un paziente sotto il nome di un altro.
   useEffect(() => {
     if (apriPaziente == null) return
-    setBuilder(apriPaziente.sedutaId == null ? null : { sedutaId: apriPaziente.sedutaId })
+    setBuilder(
+      apriPaziente.sedutaId == null
+        ? null
+        : { sedutaId: apriPaziente.sedutaId, daFuori: true }
+    )
     setSelId(apriPaziente.id)
   }, [apriPaziente])
 
@@ -159,8 +171,10 @@ export default function PazientiPage({
         sedutaId={builder.sedutaId}
         duplicaDa={builder.duplicaDa}
         onClose={(salvata) => {
+          const tornaIndietro = builder.daFuori === true
           setBuilder(null)
           if (salvata) void load()
+          if (tornaIndietro) onEsciDallaSeduta?.()
         }}
       />
     )

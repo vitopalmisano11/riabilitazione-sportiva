@@ -82,29 +82,38 @@ export function generaHtml(
   sedute: DatiSedutaExport[],
   illustrata = false
 ): string {
-  // Elenco puntato invece di una tabella per sezione: con dieci esercizi la
-  // tabella occupava mezza pagina di righe quasi vuote. La categoria fa da
-  // sottotitolo del gruppo, cosi' si legge su cosa si sta lavorando senza
-  // ripeterla accanto a ogni esercizio.
+  // I dettagli in riga servono ancora alla scheda illustrata, dove ogni
+  // esercizio ha la sua foto e il suo riquadro.
   const dettagli = (e: DatiSedutaExport['sezioni'][number]['esercizi'][number]): string =>
     [volumeTesto(e), caricoTesto(e.carico, e.unita_carico), recuperoEsteso(e)]
       .filter(Boolean)
       .map((x) => esc(String(x)))
       .join(' · ')
 
-  // Solo la sezione della seduta, senza la categoria: spesso ripete quello che
-  // dice gia' il nome della sezione ("Rinforzo" dentro "Rinforzo").
+  // La stessa tabella della finestra che si mostra al paziente: quattro colonne
+  // sempre nello stesso posto — cosa fare, quanto, con che carico, quanto
+  // riposare. Quello che si legge a schermo e quello che si stampa sono la
+  // stessa cosa, e i numeri incolonnati si ritrovano a colpo d'occhio.
   const tabella = (esercizi: DatiSedutaExport['sezioni'][number]['esercizi']): string =>
-    `<ul class="elenco-esercizi">
+    `<table class="tabella-scheda">
+      <thead><tr>
+        <th>Esercizio</th><th>Serie &times; rip.</th><th>Carico</th><th>Recupero</th>
+      </tr></thead>
+      <tbody>
       ${esercizi
-        .map((e) => {
-          const d = dettagli(e)
-          return `<li><span class="nome">${esc(e.nome)}</span>${
-            d ? ` — ${d}` : ''
-          }${e.nota ? `<span class="nota-es">${esc(e.nota)}</span>` : ''}</li>`
-        })
+        .map(
+          (e) => `<tr>
+            <td class="col-esercizio"><span class="nome">${esc(e.nome)}</span>${
+              e.nota ? `<span class="nota-es">${esc(e.nota)}</span>` : ''
+            }</td>
+            <td class="col-dose">${esc(volumeTesto(e) ?? '—')}</td>
+            <td class="col-dose">${esc(caricoTesto(e.carico, e.unita_carico) ?? '—')}</td>
+            <td class="col-dose">${esc(recuperoTesto(e) ?? '—')}</td>
+          </tr>`
+        )
         .join('')}
-    </ul>`
+      </tbody>
+    </table>`
 
   // Un esercizio per riga: foto a sinistra, testo a destra, numerati come in un
   // programma da portare a casa. Il paziente inesperto legge una cosa per volta,
@@ -164,7 +173,7 @@ export function generaHtml(
       ${s.sezioni
         .map(
           (sez) => `
-      ${sez.nome ? `<h3>${esc(sez.nome)}</h3>` : ''}
+      ${sez.nome ? `<h3><span class="fascetta">${esc(sez.nome)}</span></h3>` : ''}
       ${illustrata ? schede(sez.esercizi) : tabella(sez.esercizi)}`
         )
         .join('')}
@@ -186,16 +195,30 @@ export function generaHtml(
   .info { color: #555b66; margin: 0 0 6px; font-size: 11px; }
   h2 { font-size: 15px; border-bottom: 2px solid ${accento}; padding-bottom: 4px; margin: 18px 0 8px; }
   h2 .fase { color: ${accento}; font-weight: 600; }
-  h3 { font-size: 13px; margin: 12px 0 4px; color: ${accento}; }
+  h3 { font-size: 13px; margin: 14px 0 6px; color: ${accento}; }
+  h3 .fascetta { display: inline-block; background: ${intestazione}; color: ${accento};
+                 border-radius: 999px; padding: 3px 11px; font-size: 11px;
+                 text-transform: uppercase; letter-spacing: 0.05em; }
   .nuova-pagina { page-break-before: always; }
   .obiettivi { margin: 0 0 8px; }
   .gruppo-esercizi { margin: 0 0 8px; page-break-inside: avoid; }
   .gruppo-esercizi .cat { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
                           color: ${accento}; margin-bottom: 2px; }
-  ul.elenco-esercizi { margin: 0; padding-left: 18px; }
-  ul.elenco-esercizi li { margin-bottom: 3px; }
-  ul.elenco-esercizi .nome { font-weight: 600; }
-  ul.elenco-esercizi .nota-es { display: block; color: #555b66; font-size: 11px; }
+  /* La tabella della seduta: la stessa che il paziente vede a schermo. Niente
+     griglia di bordi, solo una riga sottile fra un esercizio e l'altro. */
+  table.tabella-scheda { width: 100%; border-collapse: collapse; page-break-inside: auto; }
+  table.tabella-scheda th { border: none; border-bottom: 1.5px solid #ccd2da; padding: 0 8px 4px;
+                            font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em;
+                            color: #6b7280; text-align: center; white-space: nowrap; }
+  table.tabella-scheda th:first-child { text-align: left; }
+  table.tabella-scheda td { border: none; border-bottom: 1px solid #e6eaef; padding: 6px 8px;
+                            vertical-align: top; }
+  table.tabella-scheda tr { page-break-inside: avoid; }
+  table.tabella-scheda .col-esercizio { width: auto; }
+  table.tabella-scheda .nome { display: block; font-weight: 600; font-size: 12.5px; }
+  table.tabella-scheda .nota-es { display: block; margin-top: 2px; color: #555b66;
+                                  font-size: 11px; font-style: italic; }
+  table.tabella-scheda .col-dose { width: 1%; white-space: nowrap; text-align: center; }
   table { width: 100%; border-collapse: collapse; }
   th, td { border: 1px solid #ccd2da; padding: 6px 8px; text-align: left; vertical-align: top; }
   th { background: ${intestazione}; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; }

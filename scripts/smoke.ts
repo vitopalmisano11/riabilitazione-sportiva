@@ -283,14 +283,20 @@ const seduteExport = [
 const html = generaHtml(pazExport, seduteExport)
 assert.ok(html.includes('Rossi') && html.includes('Seduta del 10/08/2026'))
 assert.ok(html.includes('Mobilizzazione &amp; scivolamenti rotulei')) // escaping HTML
-// La seduta si stampa come elenco puntato per categoria, non piu' come
-// tabella: restano il nome della sezione, la categoria e i dettagli in riga.
+// La seduta si stampa con la stessa tabella della finestra che si mostra al
+// paziente: fascetta della sezione, e quattro colonne incolonnate.
 assert.ok(html.includes('Riscaldamento'))
-assert.ok(html.includes('rec. 1 min'))
+assert.ok(html.includes('class="fascetta"'), 'fascetta della sezione')
+assert.ok(html.includes('tabella-scheda'), 'tabella come quella a schermo')
+assert.ok(html.includes('<th>Recupero</th>'), 'intestazioni delle colonne')
+// nella sua colonna il recupero si scrive corto: "rec." lo dice gia'
+// l'intestazione
+assert.ok(html.includes('1 min'))
+assert.ok(!html.includes('rec. 1 min'), 'nella tabella il recupero non ripete rec.')
 assert.ok(html.includes('3 × 10'))
-// il cluster: "4 × (3 × 2)" e i due recuperi spiegati, non "15\" / 2'"
+// il cluster: 4 x (3 x 2), e i due recuperi separati dalla barra
 assert.ok(html.includes('4 × (3 × 2)'), 'volume a cluster')
-assert.ok(html.includes(`rec. 15" tra i cluster, 2' tra le serie`), 'recuperi a cluster')
+assert.ok(html.includes(`15" / 2'`), 'recuperi a cluster nella colonna')
 // La scheda normale non porta mai foto, spiegazioni o link, anche se
 // l'esercizio li ha: e' quella corta per chi sa gia' cosa fare.
 assert.ok(!html.includes('<div class="scheda-es">'))
@@ -319,6 +325,9 @@ const conFoto = [
 const illustrata = generaHtml(pazExport, conFoto, true)
 assert.ok(illustrata.includes('data:image/png;base64,iVBORw0KGgo='))
 assert.ok(illustrata.includes('Scendi lentamente'))
+// nella scheda illustrata ogni esercizio ha il suo riquadro, e li' il
+// recupero si scrive per esteso: non c'e' nessuna colonna a dire cos'e'
+assert.ok(illustrata.includes('rec. 1 min'), 'recupero esteso nella illustrata')
 // gli esercizi sono numerati, come in un programma da portare a casa
 assert.ok(illustrata.includes('<span class="num">1</span>'))
 assert.ok(illustrata.includes('<span class="num">2</span>'))
