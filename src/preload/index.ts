@@ -110,6 +110,7 @@ const api: Api = {
     list: () => invoke('patologie:list'),
     create: (nome: string) => invoke('patologie:create', nome),
     update: (id: number, nome: string) => invoke('patologie:update', id, nome),
+    setCampo: (id: number, attivo: boolean) => invoke('patologie:setCampo', id, attivo),
     remove: (id: number) => invoke('patologie:delete', id),
     reorder: (ids: number[]) => invoke('patologie:reorder', ids),
     distretti: (patologiaId: number) => invoke('patologie:distretti', patologiaId),
@@ -118,7 +119,8 @@ const api: Api = {
   },
   fasi: {
     list: (patologiaId: number) => invoke('fasi:list', patologiaId),
-    create: (patologiaId: number, nome: string) => invoke('fasi:create', patologiaId, nome),
+    create: (patologiaId: number, nome: string, campo?: boolean) =>
+      invoke('fasi:create', patologiaId, nome, campo === true),
     update: (id: number, nome: string) => invoke('fasi:update', id, nome),
     remove: (id: number) => invoke('fasi:delete', id),
     reorder: (ids: number[]) => invoke('fasi:reorder', ids)

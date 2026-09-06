@@ -4,6 +4,8 @@ export interface Patologia {
   id: number
   nome: string
   ordine: number
+  // Questa patologia ha anche un percorso al campo (crociato e poco altro).
+  ha_campo: 0 | 1
 }
 
 export interface Fase {
@@ -11,6 +13,9 @@ export interface Fase {
   patologia_id: number
   nome: string
   ordine: number
+  // Fase del percorso al campo: non entra nell'avanzamento e non si puo'
+  // scegliere come fase corrente del paziente.
+  campo: 0 | 1
 }
 
 export interface Obiettivo {
@@ -184,6 +189,7 @@ export interface SedutaSettimana {
   paziente_id: number
   paziente: string
   fase_nome: string | null
+  fase_campo: 0 | 1
   num_esercizi: number
 }
 
@@ -200,6 +206,8 @@ export interface SedutaRiepilogo {
   paziente_id: number
   data: string
   fase_nome: string | null
+  // 1 se la seduta e' stata costruita su una fase del percorso al campo.
+  fase_campo: 0 | 1
   note: string | null
   num_esercizi: number
   obiettivi_nomi: string | null
@@ -856,6 +864,8 @@ export interface Api {
     list(): Promise<Patologia[]>
     create(nome: string): Promise<number>
     update(id: number, nome: string): Promise<void>
+    // Accende o spegne il percorso al campo per questa patologia.
+    setCampo(id: number, attivo: boolean): Promise<void>
     remove(id: number): Promise<void>
     reorder(ids: number[]): Promise<void>
     // distretti abituali della patologia: preselezione della valutazione
@@ -864,7 +874,7 @@ export interface Api {
   }
   fasi: {
     list(patologiaId: number): Promise<Fase[]>
-    create(patologiaId: number, nome: string): Promise<number>
+    create(patologiaId: number, nome: string, campo?: boolean): Promise<number>
     update(id: number, nome: string): Promise<void>
     remove(id: number): Promise<void>
     reorder(ids: number[]): Promise<void>

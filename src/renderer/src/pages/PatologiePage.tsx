@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ChevronRight, GripVertical, Pencil, Plus, X } from 'lucide-react'
+import {
+  Trees, ChevronRight, GripVertical, Pencil, Plus, X } from 'lucide-react'
 import type {
   Categoria,
   Distretto,
@@ -211,7 +212,39 @@ function Step1Patologie({
             ) : (
               <>
                 <span className="scelta-tile-nome">{p.nome}</span>
+                {/* Le patologie che vanno al campo sono poche. Acceso, si vede
+                    sempre; spento, la parola "campo" non compare proprio: il
+                    pulsante per accenderlo sta con le altre azioni, che si
+                    scoprono passandoci sopra col mouse. */}
+                {p.ha_campo === 1 && (
+                  <button
+                    className="pillola-campo attivo"
+                    title="Questa patologia ha un percorso al campo. Clicca per toglierlo."
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      void run(async () => {
+                        await window.api.patologie.setCampo(p.id, false)
+                        await onChanged()
+                      })
+                    }}
+                  >
+                    campo
+                  </button>
+                )}
                 <span className="item-actions" onClick={(e) => e.stopPropagation()}>
+                  {p.ha_campo !== 1 && (
+                    <button
+                      title="Aggiungi un percorso al campo: un secondo elenco di fasi, per il lavoro sul campo in parallelo alla palestra"
+                      onClick={() =>
+                        void run(async () => {
+                          await window.api.patologie.setCampo(p.id, true)
+                          await onChanged()
+                        })
+                      }
+                    >
+                      <Trees size={16} />
+                    </button>
+                  )}
                   <button {...maniglia(idx)}>
                     <GripVertical size={16} />
                   </button>
@@ -301,6 +334,69 @@ function Step2Fasi({
   onSelect: (id: number) => void
   onChanged: () => Promise<void>
 }): React.JSX.Element {
+  const dellaPalestra = fasi.filter((f) => f.campo !== 1)
+  const delCampo = fasi.filter((f) => f.campo === 1)
+
+  return (
+    <section className="card step-card">
+      <div className="step-title">
+        <span className="step-num">2</span>
+        <h3>Scegli la fase di &ldquo;{patologia.nome}&rdquo;</h3>
+      </div>
+
+      <DistrettiPatologia patologiaId={patologia.id} />
+
+      {/* Con il percorso al campo acceso gli elenchi diventano due, e ognuno
+          dice cos'e'. Senza, resta l'elenco unico di sempre: chi non va al
+          campo non vede mai la parola. */}
+      {patologia.ha_campo === 1 && <div className="sotto-titolo">Fasi in palestra</div>}
+      <ElencoFasi
+        patologiaId={patologia.id}
+        fasi={dellaPalestra}
+        campo={false}
+        onSelect={onSelect}
+        onChanged={onChanged}
+      />
+      {dellaPalestra.length === 0 && (
+        <p className="hint">Nessuna fase ancora: creala qui sopra (es. Fase iniziale).</p>
+      )}
+
+      {patologia.ha_campo === 1 && (
+        <>
+          <div className="sotto-titolo">Fasi al campo</div>
+          <p className="hint">
+            Il programma che va in parallelo a quello in palestra. Queste fasi non entrano
+            nell&apos;avanzamento e non si scelgono come fase corrente: si usano creando una seduta
+            e mettendola su &ldquo;Campo&rdquo;.
+          </p>
+          <ElencoFasi
+            patologiaId={patologia.id}
+            fasi={delCampo}
+            campo={true}
+            onSelect={onSelect}
+            onChanged={onChanged}
+          />
+        </>
+      )}
+    </section>
+  )
+}
+
+// Un elenco di fasi: quelle della palestra o quelle del campo. Sono la stessa
+// cosa e si comportano allo stesso modo, cambia solo dove finiscono.
+function ElencoFasi({
+  patologiaId,
+  fasi,
+  campo,
+  onSelect,
+  onChanged
+}: {
+  patologiaId: number
+  fasi: Fase[]
+  campo: boolean
+  onSelect: (id: number) => void
+  onChanged: () => Promise<void>
+}): React.JSX.Element {
   const [nuova, setNuova] = useState('')
   const [edit, setEdit] = useState<{ id: number; nome: string } | null>(null)
 
@@ -316,7 +412,7 @@ function Step2Fasi({
     const n = nuova.trim()
     if (!n) return
     void run(async () => {
-      await window.api.fasi.create(patologia.id, n)
+      await window.api.fasi.create(patologiaId, n, campo)
       setNuova('')
       await onChanged()
     })
@@ -340,17 +436,10 @@ function Step2Fasi({
   })
 
   return (
-    <section className="card step-card">
-      <div className="step-title">
-        <span className="step-num">2</span>
-        <h3>Scegli la fase di &ldquo;{patologia.nome}&rdquo;</h3>
-      </div>
-
-      <DistrettiPatologia patologiaId={patologia.id} />
-      <div className="scelta-tiles">
-        {fasi.map((f, idx) => {
-          const dnd = contenitore(idx)
-          return (
+    <div className="scelta-tiles">
+      {fasi.map((f, idx) => {
+        const dnd = contenitore(idx)
+        return (
           <div
             key={f.id}
             {...dnd}
@@ -402,26 +491,22 @@ function Step2Fasi({
               </>
             )}
           </div>
-          )
-        })}
-        <div className="scelta-tile scelta-tile-add" onClick={(e) => e.stopPropagation()}>
-          <input
-            placeholder="Nuova fase…"
-            value={nuova}
-            onChange={(e) => setNuova(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') aggiungi()
-            }}
-          />
-          <button onClick={aggiungi}>
-            <Plus size={16} /> Aggiungi
-          </button>
-        </div>
+        )
+      })}
+      <div className="scelta-tile scelta-tile-add" onClick={(e) => e.stopPropagation()}>
+        <input
+          placeholder={campo ? 'Nuova fase al campo… (es. Campo 4 mesi)' : 'Nuova fase…'}
+          value={nuova}
+          onChange={(e) => setNuova(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') aggiungi()
+          }}
+        />
+        <button onClick={aggiungi}>
+          <Plus size={16} /> Aggiungi
+        </button>
       </div>
-      {fasi.length === 0 && (
-        <p className="hint">Nessuna fase ancora: creala qui sopra (es. Fase iniziale).</p>
-      )}
-    </section>
+    </div>
   )
 }
 

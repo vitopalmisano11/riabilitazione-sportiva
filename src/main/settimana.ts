@@ -14,6 +14,8 @@ export interface SedutaSettimana {
   paziente_id: number
   paziente: string
   fase_nome: string | null
+  // 1 se la seduta e' del percorso al campo: nella settimana si riconosce.
+  fase_campo: 0 | 1
   num_esercizi: number
 }
 
@@ -22,7 +24,7 @@ export function seduteDellaSettimana(dal: string, al: string): SedutaSettimana[]
     .prepare(
       `SELECT s.id, s.data, s.paziente_id,
               p.cognome || ' ' || p.nome AS paziente,
-              f.nome AS fase_nome,
+              f.nome AS fase_nome, COALESCE(f.campo, 0) AS fase_campo,
               (SELECT COUNT(*) FROM seduta_esercizi se WHERE se.seduta_id = s.id) AS num_esercizi
        FROM sedute s
        JOIN pazienti p ON p.id = s.paziente_id

@@ -434,8 +434,11 @@ function SchedaPaziente({
     }
   }
 
-  const idxFase = fasi.findIndex((f) => f.id === paziente.fase_corrente_id)
-  const prossima = idxFase >= 0 ? fasi[idxFase + 1] : fasi[0]
+  // L'avanzamento cammina solo sulle fasi di palestra: da Intermedia si passa
+  // ad Avanzata, mai a una fase del campo, che e' un percorso parallelo.
+  const fasiPalestra = fasi.filter((f) => f.campo !== 1)
+  const idxFase = fasiPalestra.findIndex((f) => f.id === paziente.fase_corrente_id)
+  const prossima = idxFase >= 0 ? fasiPalestra[idxFase + 1] : fasiPalestra[0]
 
   const avanza = async (): Promise<void> => {
     if (!prossima) return
@@ -798,8 +801,19 @@ function DiarioCard({
   // stato da mettere a mano, la data basta. Le programmate si leggono dalla piu'
   // vicina, le svolte dalla piu' recente.
   const oggi = oggiIso()
-  const programmate = sedute.filter((s) => s.data > oggi).sort((a, b) => a.data.localeCompare(b.data))
-  const fatte = sedute.filter((s) => s.data <= oggi)
+  // Il lavoro al campo va in parallelo a quello in palestra: sta in un elenco
+  // suo, che compare solo per chi ce l'ha. Dentro a ognuno dei due, le
+  // programmate stanno sopra alle svolte.
+  const inPalestra = sedute.filter((s) => s.fase_campo !== 1)
+  const alCampo = sedute.filter((s) => s.fase_campo === 1)
+  const programmate = inPalestra
+    .filter((s) => s.data > oggi)
+    .sort((a, b) => a.data.localeCompare(b.data))
+  const fatte = inPalestra.filter((s) => s.data <= oggi)
+  const campoProgrammate = alCampo
+    .filter((s) => s.data > oggi)
+    .sort((a, b) => a.data.localeCompare(b.data))
+  const campoFatte = alCampo.filter((s) => s.data <= oggi)
 
   useEffect(() => {
     void load()
@@ -950,6 +964,18 @@ function DiarioCard({
         </p>
       ) : (
         <ul className="sedute-list">{fatte.map(riga)}</ul>
+      )}
+
+      {/* Il campo: un riquadro a parte, che c'e' solo per chi ha quel percorso
+          (in pratica i crociati). Per tutti gli altri la scheda resta identica. */}
+      {alCampo.length > 0 && (
+        <div className="blocco-campo">
+          <div className="sotto-titolo">Al campo</div>
+          {campoProgrammate.length > 0 && (
+            <ul className="sedute-list">{campoProgrammate.map(riga)}</ul>
+          )}
+          {campoFatte.length > 0 && <ul className="sedute-list">{campoFatte.map(riga)}</ul>}
+        </div>
       )}
 
       {periodo && (

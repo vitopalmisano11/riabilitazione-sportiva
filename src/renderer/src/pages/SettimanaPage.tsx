@@ -171,6 +171,7 @@ Finisce nel cestino: puoi rimetterla a posto da Impostazioni entro un mese.`
                       </button>
                       <span className="seduta-meta">
                         {[
+                          s.fase_campo === 1 ? 'al campo' : null,
                           s.fase_nome,
                           `${s.num_esercizi} ${s.num_esercizi === 1 ? 'esercizio' : 'esercizi'}`,
                           s.data > oggi ? 'programmata' : null

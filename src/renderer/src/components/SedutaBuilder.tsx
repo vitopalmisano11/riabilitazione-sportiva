@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type {
+  Fase,
   Categoria,
   EsercizioConCategoria,
   Obiettivo,
@@ -53,6 +54,9 @@ export default function SedutaBuilder({
   const [raggiunti, setRaggiunti] = useState<number[]>([])
   const [templateCats, setTemplateCats] = useState<Record<number, number[]>>({})
   const [libreria, setLibreria] = useState<EsercizioConCategoria[]>([])
+  // Le fasi della patologia del paziente: servono a sapere se c'e' un percorso
+  // al campo e quali sono le sue fasi.
+  const [fasi, setFasi] = useState<Fase[]>([])
   const [categorie, setCategorie] = useState<Categoria[]>([])
   const [ricerche, setRicerche] = useState<Record<number, string>>({})
   const [nuovaSezione, setNuovaSezione] = useState('')
@@ -66,14 +70,18 @@ export default function SedutaBuilder({
   useEffect(() => {
     void (async () => {
       try {
-        const [lib, cats, ragg] = await Promise.all([
+        const [lib, cats, ragg, elencoFasi] = await Promise.all([
           window.api.esercizi.list(false),
           window.api.categorie.list(),
-          window.api.pazienti.obiettiviRaggiunti(paziente.id)
+          window.api.pazienti.obiettiviRaggiunti(paziente.id),
+          paziente.patologia_id == null
+            ? Promise.resolve([] as Fase[])
+            : window.api.fasi.list(paziente.patologia_id)
         ])
         setLibreria(lib)
         setCategorie(cats)
         setRaggiunti(ragg)
+        setFasi(elencoFasi)
 
         let fase = paziente.fase_corrente_id
         let faseN: string | null = paziente.fase_nome
@@ -132,6 +140,44 @@ export default function SedutaBuilder({
     })()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  const fasiCampo = fasi.filter((f) => f.campo === 1)
+  const alCampo = fasi.find((f) => f.id === faseId)?.campo === 1
+
+  // Passare da palestra a campo (o cambiare fase del campo) vuol dire
+  // ricominciare da un'altra struttura: si chiede prima, perche' quello che
+  // c'e' dentro andrebbe perso.
+  const cambiaFase = async (nuova: number | null): Promise<void> => {
+    if (nuova === faseId) return
+    const pieno = sezioni.some((s) => s.righe.length > 0)
+    if (
+      pieno &&
+      !(await chiedi(
+        'Cambiando programma le sezioni e gli esercizi di questa seduta vengono sostituiti con quelli della struttura scelta. Procedere?'
+      ))
+    ) {
+      return
+    }
+    setFaseId(nuova)
+    setFaseNome(nuova == null ? null : (fasi.find((f) => f.id === nuova)?.nome ?? null))
+    if (nuova == null) {
+      setSezioni([])
+      setObiettivi([])
+      setTemplateCats({})
+      return
+    }
+    try {
+      const [obs, template] = await Promise.all([
+        window.api.obiettivi.list(nuova),
+        window.api.sezioni.list(nuova)
+      ])
+      setObiettivi(obs)
+      setTemplateCats(Object.fromEntries(template.map((t) => [t.id, t.categoria_ids])))
+      setSezioni(template.map((t) => ({ sezione_id: t.id, nome: t.nome, righe: [] })))
+    } catch (e) {
+      toastErrore(errMsg(e))
+    }
+  }
 
   const totaleEsercizi = useMemo(
     () => sezioni.reduce((n, s) => n + s.righe.length, 0),
@@ -352,6 +398,39 @@ export default function SedutaBuilder({
             )}
             {duplicaDa != null && ' · contenuti copiati da una seduta precedente'}
           </p>
+          {/* I due binari: in palestra si parte dalla fase corrente del
+              paziente, al campo da una delle fasi del percorso parallelo. La
+              fase corrente del paziente non si tocca mai. Compare solo per le
+              patologie che il campo ce l'hanno. */}
+          {fasiCampo.length > 0 && (
+            <div className="scelta-binario">
+              <button
+                className={alCampo ? '' : 'scelta-attiva'}
+                onClick={() => void cambiaFase(paziente.fase_corrente_id)}
+              >
+                In palestra
+              </button>
+              <button
+                className={alCampo ? 'scelta-attiva' : ''}
+                onClick={() => void cambiaFase(fasiCampo[0].id)}
+              >
+                Al campo
+              </button>
+              {alCampo && fasiCampo.length > 1 && (
+                <select
+                  value={faseId ?? 0}
+                  title="Quale programma da campo"
+                  onChange={(e) => void cambiaFase(Number(e.target.value))}
+                >
+                  {fasiCampo.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.nome}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+          )}
         </div>
         <div className="builder-header-actions">
           <label className="field data-field">

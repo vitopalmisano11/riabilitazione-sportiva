@@ -63,7 +63,7 @@ db.pragma('foreign_keys = ON')
 
 runMigrations(db)
 runMigrations(db) // idempotente
-assert.equal(db.pragma('user_version', { simple: true }), 30)
+assert.equal(db.pragma('user_version', { simple: true }), 31)
 
 const count = (table: string): number =>
   (db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n
@@ -702,8 +702,22 @@ assert.equal(
   // fuori dalla settimana chiesta: non deve comparire
   ins("INSERT INTO sedute (paziente_id, data) VALUES (?, '2026-10-13')", pz1)
 
+  // Una seduta costruita su una fase del campo si riconosce.
+  const patC = ins("INSERT INTO patologie (nome, ha_campo) VALUES ('LCA', 1)")
+  const faseCampo = ins(
+    "INSERT INTO fasi (patologia_id, nome, campo) VALUES (?, 'Campo 4 mesi', 1)",
+    patC
+  )
+  const fasePal = ins("INSERT INTO fasi (patologia_id, nome) VALUES (?, 'Intermedia')", patC)
+  ins("INSERT INTO sedute (paziente_id, data, fase_id) VALUES (?, '2026-10-09', ?)", pz2, faseCampo)
+  ins("INSERT INTO sedute (paziente_id, data, fase_id) VALUES (?, '2026-10-06', ?)", pz2, fasePal)
+
   const sett = seduteDellaSettimana('2026-10-05', '2026-10-11')
-  assert.equal(sett.length, 2)
+  assert.equal(sett.length, 4)
+  assert.equal(sett.filter((x) => x.fase_campo === 1).length, 1)
+  assert.equal(sett.find((x) => x.fase_campo === 1)?.fase_nome, 'Campo 4 mesi')
+  // le sedute di palestra non si segnano come campo
+  assert.equal(sett.filter((x) => x.fase_campo !== 1).length, 3)
   // in ordine di data, e con il nome gia' pronto da mostrare
   assert.equal(sett[0].data, '2026-10-05')
   assert.equal(sett[0].paziente, 'Bianchi Anna')

@@ -331,6 +331,11 @@ export function registerIpc(): void {
     const stmt = db.prepare('UPDATE patologie SET ordine = ? WHERE id = ?')
     db.transaction(() => ids.forEach((id, i) => stmt.run(i, id)))()
   })
+  // Poche patologie hanno un percorso al campo: l'interruttore sta qui, cosi'
+  // tutte le altre non vedono mai la parola "campo".
+  handle('patologie:setCampo', (id: number, attivo: boolean) => {
+    getDb().prepare('UPDATE patologie SET ha_campo = ? WHERE id = ?').run(attivo ? 1 : 0, id)
+  })
   handle('patologie:update', (id: number, nome: string) => {
     getDb().prepare('UPDATE patologie SET nome = ? WHERE id = ?').run(nome.trim(), id)
   })
@@ -447,17 +452,25 @@ export function registerIpc(): void {
   })
 
   // ---- Fasi ----
+  // Tutte le fasi della patologia, palestra e campo insieme: chi le usa
+  // filtra secondo il posto in cui deve mostrarle.
   handle('fasi:list', (patologiaId: number) =>
-    getDb().prepare('SELECT * FROM fasi WHERE patologia_id = ? ORDER BY ordine, id').all(patologiaId)
+    getDb()
+      .prepare('SELECT * FROM fasi WHERE patologia_id = ? ORDER BY campo, ordine, id')
+      .all(patologiaId)
   )
-  handle('fasi:create', (patologiaId: number, nome: string) => {
+  handle('fasi:create', (patologiaId: number, nome: string, campo = false) => {
     const db = getDb()
+    // L'ordine si conta dentro all'elenco di appartenenza: palestra e campo
+    // sono due elenchi, ognuno con la sua numerazione.
     const { next } = db
-      .prepare('SELECT COALESCE(MAX(ordine), -1) + 1 AS next FROM fasi WHERE patologia_id = ?')
-      .get(patologiaId) as { next: number }
+      .prepare(
+        'SELECT COALESCE(MAX(ordine), -1) + 1 AS next FROM fasi WHERE patologia_id = ? AND campo = ?'
+      )
+      .get(patologiaId, campo ? 1 : 0) as { next: number }
     return Number(
-      db.prepare('INSERT INTO fasi (patologia_id, nome, ordine) VALUES (?, ?, ?)')
-        .run(patologiaId, nome.trim(), next).lastInsertRowid
+      db.prepare('INSERT INTO fasi (patologia_id, nome, ordine, campo) VALUES (?, ?, ?, ?)')
+        .run(patologiaId, nome.trim(), next, campo ? 1 : 0).lastInsertRowid
     )
   })
   handle('fasi:update', (id: number, nome: string) => {
@@ -1002,7 +1015,8 @@ export function registerIpc(): void {
   handle('sedute:list', (pazienteId: number) =>
     getDb()
       .prepare(
-        `SELECT s.id, s.paziente_id, s.data, f.nome AS fase_nome, s.note,
+        `SELECT s.id, s.paziente_id, s.data, f.nome AS fase_nome,
+           COALESCE(f.campo, 0) AS fase_campo, s.note,
            (SELECT COUNT(*) FROM seduta_esercizi se WHERE se.seduta_id = s.id) AS num_esercizi,
            (SELECT GROUP_CONCAT(o.nome, ' · ')
               FROM seduta_obiettivi so JOIN obiettivi o ON o.id = so.obiettivo_id

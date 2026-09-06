@@ -2828,6 +2828,49 @@ textarea {
   margin-top: var(--spazio);
 }
 
+/* Il lavoro al campo e' un percorso parallelo: nel diario sta staccato da
+   quello in palestra, non in coda. */
+.blocco-campo {
+  margin-top: var(--spazio);
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+}
+
+/* I due binari della seduta: palestra e campo. Due pulsanti affiancati, quello
+   scelto pieno del colore dell'app, come la scelta del tema. */
+.scelta-binario {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.scelta-binario button {
+  padding: 4px 12px;
+  font-size: 14px;
+}
+
+.scelta-binario select {
+  margin-left: 4px;
+}
+
+/* L'interruttore del percorso al campo sulla patologia: piccolo, con scritto
+   il suo nome, acceso prende il colore dell'app. Stesso modo del "cluster"
+   sulle categorie: una cosa che si accende una volta e resta li' a dire com'e'. */
+.pillola-campo {
+  flex: none;
+  padding: 2px 8px;
+  margin-left: 8px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.pillola-campo.attivo {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
 /* La guida dei dati: testo da leggere, non un modulo da compilare. Righe
    larghe il giusto e spazio fra i paragrafi. */
 .guida-dati p,

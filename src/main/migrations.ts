@@ -807,6 +807,23 @@ const MIGRATIONS: string[] = [
   //      un giorno all'altro.
   `
   ALTER TABLE pazienti ADD COLUMN aspettative TEXT;
+  `,
+
+  // 31 - il percorso al campo. Chi si opera di crociato lavora su due binari
+  //      in parallelo: tre giorni in palestra e uno sul campo, con una
+  //      struttura di seduta diversa. Le fasi del campo (Campo 4 mesi, 6, 9)
+  //      stanno nella stessa patologia — il campo fa parte di quel percorso —
+  //      ma in un elenco a parte: cosi' "avanza di fase" continua a passare da
+  //      Intermedia ad Avanzata e non propone mai un campo, e la fase corrente
+  //      del paziente resta quella di palestra.
+  //
+  //      L'interruttore sta sulla PATOLOGIA, non sulla singola fase: le
+  //      patologie che vanno al campo sono poche, e cosi' tutte le altre non
+  //      vedono mai la parola "campo". Una fase e' del campo per l'elenco in
+  //      cui la crei, non perche' qualcuno te lo chiede.
+  `
+  ALTER TABLE patologie ADD COLUMN ha_campo INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE fasi ADD COLUMN campo INTEGER NOT NULL DEFAULT 0;
   `
 ]
 
