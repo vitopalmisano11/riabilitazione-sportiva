@@ -4,6 +4,8 @@ import { coloriTema } from '../shared/temi'
 import { righeProfilo } from './profilo'
 import {
   caricoTesto,
+  intensitaTesto,
+  rirTesto,
   recuperoEsteso,
   recuperoTesto,
   ripetizioniTesto,
@@ -47,6 +49,7 @@ export interface DatiSedutaExport {
       serie: string | null
       cluster: string | null
       ripetizioni: string | null
+      rir: string | null
       carico: string | null
       recupero_cluster: string | null
       recupero: string | null
@@ -122,7 +125,7 @@ export function generaHtml(
   // I dettagli in riga servono ancora alla scheda illustrata, dove ogni
   // esercizio ha la sua foto e il suo riquadro.
   const dettagli = (e: DatiSedutaExport['sezioni'][number]['esercizi'][number]): string =>
-    [volumeTesto(e), caricoTesto(e.carico, e.unita_carico), recuperoEsteso(e)]
+    [volumeTesto(e), caricoTesto(e.carico, e.unita_carico), rirTesto(e), recuperoEsteso(e)]
       .filter(Boolean)
       .map((x) => esc(String(x)))
       .join(' · ')
@@ -144,7 +147,7 @@ export function generaHtml(
               e.nota ? `<span class="nota-es">${esc(e.nota)}</span>` : ''
             }</td>
             <td class="col-dose">${esc(volumeTesto(e) ?? '—')}</td>
-            <td class="col-dose">${esc(caricoTesto(e.carico, e.unita_carico) ?? '—')}</td>
+            <td class="col-dose">${esc(intensitaTesto(e) ?? '—')}</td>
             <td class="col-dose">${esc(recuperoTesto(e) ?? '—')}</td>
           </tr>`
         )
@@ -162,6 +165,7 @@ export function generaHtml(
     const voci: [string, string | null][] = [
       ['Serie × rip.', volumeTesto(e)],
       ['Carico', caricoTesto(e.carico, e.unita_carico)],
+      ['RIR', rirTesto(e) === null ? null : String(e.rir).trim()],
       ['Recupero', recuperoTesto(e)]
     ]
     const presenti = voci.filter(([, v]) => v)

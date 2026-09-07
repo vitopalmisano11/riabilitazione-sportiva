@@ -31,6 +31,9 @@ export interface Dosaggio {
   serie: string | null
   cluster: string | null
   ripetizioni: string | null
+  // Le ripetizioni di riserva: "RIR 2" vuol dire che a fine serie ne restavano
+  // due. Dice quanto e' pesante la serie meglio del carico da solo.
+  rir: string | null
   recupero_cluster: string | null
   recupero: string | null
 }
@@ -38,6 +41,23 @@ export interface Dosaggio {
 const pieno = (v: string | null | undefined): string | null => {
   const t = (v ?? '').trim()
   return t === '' ? null : t
+}
+
+// Il RIR come si scrive, o niente se non c'e'. Il numero da solo non si
+// capirebbe: un "2" accanto a un carico sembra tutto fuorche' una riserva.
+export function rirTesto(d: Partial<Dosaggio>): string | null {
+  const r = pieno(d.rir)
+  return r === null ? null : `RIR ${r}`
+}
+
+// Quanto e' pesante la serie: il carico e, se c'e', le ripetizioni di
+// riserva. Stanno insieme perche' rispondono alla stessa domanda, e cosi' la
+// tabella resta a quattro colonne anche per chi il RIR non lo usa.
+export function intensitaTesto(
+  d: Partial<Dosaggio> & { carico?: string | null; unita_carico?: string | null }
+): string | null {
+  const parti = [caricoTesto(d.carico, d.unita_carico), rirTesto(d)].filter(Boolean)
+  return parti.length === 0 ? null : parti.join(' · ')
 }
 
 export function aCluster(d: Partial<Dosaggio>): boolean {

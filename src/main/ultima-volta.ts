@@ -19,11 +19,11 @@ export function ultimaVoltaPerPaziente(
 ): UltimaVolta[] {
   return getDb()
     .prepare(
-      `SELECT esercizio_id, data, serie, cluster, ripetizioni, carico,
+      `SELECT esercizio_id, data, serie, cluster, ripetizioni, rir, carico,
               recupero_cluster, recupero
        FROM (
          SELECT se.esercizio_id, s.data, se.serie, se.cluster, se.ripetizioni,
-                se.carico, se.recupero_cluster, se.recupero,
+                se.rir, se.carico, se.recupero_cluster, se.recupero,
                 ROW_NUMBER() OVER (
                   PARTITION BY se.esercizio_id ORDER BY s.data DESC, s.id DESC
                 ) AS n

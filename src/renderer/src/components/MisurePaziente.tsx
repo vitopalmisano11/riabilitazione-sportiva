@@ -17,8 +17,12 @@ const QUOTE = [70, 75, 80, 85, 90]
 
 // Massimale stimato con la formula di Epley: carico × (1 + ripetizioni / 30).
 // Con una ripetizione sola torna il carico stesso, che infatti e' il massimale.
-function stima(carico: number, ripetizioni: number): number {
-  return Math.round(carico * (1 + ripetizioni / 30) * 10) / 10
+//
+// Le ripetizioni che contano sono quelle che avrebbe fatto arrivando a non
+// farne piu': se ne ha fatte 8 fermandosi con 2 di riserva, la serie vale 10.
+// Senza il RIR la stima di una serie tenuta larga viene sempre bassa.
+function stima(carico: number, ripetizioni: number, rir = 0): number {
+  return Math.round(carico * (1 + (ripetizioni + rir) / 30) * 10) / 10
 }
 
 const num = (v: string): number | null => {
@@ -47,6 +51,7 @@ export default function MisurePaziente({
   const [valore, setValore] = useState('')
   const [carico, setCarico] = useState('')
   const [ripetizioni, setRipetizioni] = useState('')
+  const [rir, setRir] = useState('')
   const [data, setData] = useState(oggiIso())
 
   const carica = useCallback((): void => {
@@ -74,12 +79,13 @@ export default function MisurePaziente({
     }
   }
 
-  // Se il massimale vero non l'hai misurato: quanto ha sollevato e per quante
-  // ripetizioni, e il numero esce da solo.
+  // Se il massimale vero non l'hai misurato: quanto ha sollevato, per quante
+  // ripetizioni e quante gliene restavano, e il numero esce da solo.
   const stimato = ((): number | null => {
     const c = num(carico)
     const r = num(ripetizioni)
-    return c != null && r != null && c > 0 && r > 0 ? stima(c, r) : null
+    const res = num(rir)
+    return c != null && r != null && c > 0 && r > 0 ? stima(c, r, res ?? 0) : null
   })()
 
   const aggiungi = async (): Promise<void> => {
@@ -94,6 +100,7 @@ export default function MisurePaziente({
       setValore('')
       setCarico('')
       setRipetizioni('')
+      setRir('')
       setNuovo(false)
       carica()
     } catch (e) {
@@ -155,7 +162,7 @@ export default function MisurePaziente({
         <div className="card-header-row">
           <h3>
             Massimali
-            <Aiuto testo="scrivi il massimale di un esercizio e premendo sul numero vedi quanto sono il 70, il 75, l'80, l'85 e il 90 per cento: il carico della fase di forza si prescrive così. se non l'hai misurato davvero, puoi farlo stimare dal carico e dalle ripetizioni di una serie." />
+            <Aiuto testo="scrivi il massimale di un esercizio e premendo sul numero vedi quanto sono il 70, il 75, l'80, l'85 e il 90 per cento: il carico della fase di forza si prescrive così. se non l'hai misurato davvero, puoi farlo stimare da una serie: quanto ha sollevato, per quante ripetizioni e quante gliene restavano in canna (il RIR). il RIR si può lasciare vuoto, e allora vale come una serie portata fino in fondo." />
           </h3>
           {!nuovo && (
             <button className="btn-aggiungi-lista" onClick={() => setNuovo(true)}>
@@ -211,8 +218,19 @@ export default function MisurePaziente({
                 value={ripetizioni}
                 onChange={(e) => setRipetizioni(e.target.value)}
               />
+              {/* Le ripetizioni di riserva: si puo' lasciare vuoto, e allora
+                  vale come una serie portata fino in fondo. */}
+              <span className="hint">rip. con</span>
+              <input
+                className="campo-stima"
+                type="text"
+                inputMode="decimal"
+                placeholder="RIR"
+                value={rir}
+                onChange={(e) => setRir(e.target.value)}
+              />
               <span className="hint">
-                {stimato == null ? 'ripetizioni' : `ripetizioni → circa ${arrotonda(stimato)} kg`}
+                {stimato == null ? 'di riserva' : `di riserva → circa ${arrotonda(stimato)} kg`}
               </span>
             </div>
             <div className="modal-actions">

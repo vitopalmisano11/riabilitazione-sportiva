@@ -34,6 +34,7 @@ interface FormState {
   serie_default: string
   cluster_default: string
   ripetizioni_default: string
+  rir_default: string
   carico_default: string
   unita_carico: string
   recupero_cluster_default: string
@@ -53,6 +54,7 @@ const FORM_VUOTO: FormState = {
   serie_default: '',
   cluster_default: '',
   ripetizioni_default: '',
+  rir_default: '',
   carico_default: '',
   unita_carico: '',
   recupero_cluster_default: '',
@@ -81,6 +83,7 @@ export default function EserciziPage(): React.JSX.Element {
     id: number | null
     nome: string
     cluster: boolean
+    rir: boolean
   } | null>(null)
   const [ricerca, setRicerca] = useState('')
   const [filtroCategoria, setFiltroCategoria] = useState<number | ''>('')
@@ -142,6 +145,9 @@ export default function EserciziPage(): React.JSX.Element {
       // numeri che nessuno ha piu' modo di correggere.
       cluster_default: clusterNelForm ? form.cluster_default.trim() || null : null,
       ripetizioni_default: form.ripetizioni_default.trim() || null,
+      // Come per il cluster: fuori da una categoria che usa il RIR il campo non
+      // si vede, e si salva vuoto.
+      rir_default: rirNelForm ? form.rir_default.trim() || null : null,
       carico_default: form.carico_default.trim() || null,
       unita_carico: form.unita_carico.trim() || null,
       recupero_cluster_default: clusterNelForm
@@ -178,6 +184,7 @@ export default function EserciziPage(): React.JSX.Element {
           ? await window.api.categorie.create(nome)
           : (await window.api.categorie.update(formCat.id, nome), formCat.id)
       await window.api.categorie.setCluster(id, formCat.cluster)
+      await window.api.categorie.setRir(id, formCat.rir)
       setFormCat(null)
       await loadCategorie()
       await load()
@@ -192,6 +199,7 @@ export default function EserciziPage(): React.JSX.Element {
     serie: e.serie_default,
     cluster: e.cluster_default,
     ripetizioni: e.ripetizioni_default,
+    rir: e.rir_default,
     recupero_cluster: e.recupero_cluster_default,
     recupero: e.recupero_default
   })
@@ -200,6 +208,9 @@ export default function EserciziPage(): React.JSX.Element {
   // scelta in quel momento: cambiando categoria, compaiono o spariscono.
   const clusterNelForm =
     form != null && categorie.find((c) => c.id === form.categoria_id)?.dosaggio_cluster === 1
+
+  const rirNelForm =
+    form != null && categorie.find((c) => c.id === form.categoria_id)?.dosaggio_rir === 1
 
   // Come verra' scritto il dosaggio sulla scheda: finche' i campi sono vuoti si
   // mostra un esempio, cosi' si capisce cosa ci va senza doverlo spiegare.
@@ -231,6 +242,7 @@ export default function EserciziPage(): React.JSX.Element {
         serie_default: e.serie_default ?? '',
         cluster_default: e.cluster_default ?? '',
         ripetizioni_default: e.ripetizioni_default ?? '',
+        rir_default: e.rir_default ?? '',
         carico_default: e.carico_default ?? '',
         unita_carico: e.unita_carico ?? '',
         recupero_cluster_default: e.recupero_cluster_default ?? '',
@@ -287,13 +299,14 @@ export default function EserciziPage(): React.JSX.Element {
         <CrudList
           title="Categorie"
           items={categorie}
-          onNuovo={() => setFormCat({ id: null, nome: '', cluster: false })}
+          onNuovo={() => setFormCat({ id: null, nome: '', cluster: false, rir: false })}
           onModifica={(item) => {
             const c = categorie.find((x) => x.id === item.id)
             setFormCat({
               id: item.id,
               nome: item.nome,
-              cluster: c?.dosaggio_cluster === 1
+              cluster: c?.dosaggio_cluster === 1,
+              rir: c?.dosaggio_rir === 1
             })
           }}
           onDelete={async (id) => {
@@ -307,11 +320,15 @@ export default function EserciziPage(): React.JSX.Element {
           etichettaAggiungi="Nuova categoria"
           emptyHint="Nessuna categoria: creane una qui sotto."
           aiuto="Ogni categoria può essere segnata come «a cluster»: gli esercizi che le appartengono si dosano spezzando la serie in blocchi con una pausa breve dentro, come nella pliometria estensiva. L'opzione si mette aprendo la categoria."
-          dopoNome={(item) =>
-            categorie.find((c) => c.id === item.id)?.dosaggio_cluster === 1 ? (
-              <span className="badge">cluster</span>
-            ) : null
-          }
+          dopoNome={(item) => {
+            const c = categorie.find((x) => x.id === item.id)
+            return (
+              <>
+                {c?.dosaggio_cluster === 1 && <span className="badge">cluster</span>}
+                {c?.dosaggio_rir === 1 && <span className="badge">RIR</span>}
+              </>
+            )
+          }}
         />
         </div>
       </details>
@@ -515,7 +532,18 @@ export default function EserciziPage(): React.JSX.Element {
                 onChange={(e) => setFormCat({ ...formCat, cluster: e.target.checked })}
               />
               Dosaggio a cluster
-              <Aiuto testo="Gli esercizi di questa categoria si dosano spezzando la serie in blocchi con una pausa breve dentro: 4 serie da 3 cluster da 2 ripetizioni, 15 secondi tra i cluster e 2 minuti tra le serie. Nel loro form compaiono i campi in più; le altre categorie restano come sono." />
+              <Aiuto testo="gli esercizi di questa categoria si dosano spezzando la serie in blocchi con una pausa breve dentro: 4 serie da 3 cluster da 2 ripetizioni, 15 secondi tra i cluster e 2 minuti tra le serie. nel loro form compaiono i campi in più; le altre categorie restano come sono." />
+            </label>
+            {/* Come il cluster: la spunta sta sulla categoria, cosi' la
+                casellina in piu' la vedono solo gli esercizi a cui serve. */}
+            <label className="checkbox-inline">
+              <input
+                type="checkbox"
+                checked={formCat.rir}
+                onChange={(e) => setFormCat({ ...formCat, rir: e.target.checked })}
+              />
+              Ripetizioni di riserva (RIR)
+              <Aiuto testo="quante ripetizioni restano in canna a fine serie: RIR 2 vuol dire fermarsi due prima del cedimento. dice quanto è pesante la serie meglio del carico da solo, e serve nella forza più che nella mobilità. spuntandola, gli esercizi di questa categoria hanno una casellina in più nella seduta." />
             </label>
             <div className="modal-actions">
               <button onClick={() => setFormCat(null)}>Annulla</button>
@@ -588,6 +616,16 @@ export default function EserciziPage(): React.JSX.Element {
                   onChange={(e) => setForm({ ...form, ripetizioni_default: e.target.value })}
                 />
               </label>
+              {rirNelForm && (
+                <label>
+                  RIR
+                  <input
+                    value={form.rir_default}
+                    placeholder="es. 2"
+                    onChange={(e) => setForm({ ...form, rir_default: e.target.value })}
+                  />
+                </label>
+              )}
               {/* Carico e unita' stanno nella stessa casella: sono una cosa
                   sola ("10 kg"), e come campi separati avrebbero sballato la
                   griglia del form. L'unita' e' dell'esercizio, perche' la panca

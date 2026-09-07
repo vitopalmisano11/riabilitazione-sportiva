@@ -31,6 +31,8 @@ export interface Categoria {
   ordine: number
   // Gli esercizi di questa categoria si dosano a cluster (pliometria estensiva).
   dosaggio_cluster: 0 | 1
+  // ...e/o con le ripetizioni di riserva (la forza).
+  dosaggio_rir: 0 | 1
 }
 
 export interface Esercizio {
@@ -41,6 +43,8 @@ export interface Esercizio {
   // A cluster: quanti cluster per serie, e le ripetizioni sono per cluster.
   cluster_default: string | null
   ripetizioni_default: string | null
+  // Quante ripetizioni restano in canna a fine serie.
+  rir_default: string | null
   carico_default: string | null
   // Cosa si scrive dopo il numero del carico: "kg", "sec", niente.
   unita_carico: string | null
@@ -66,6 +70,7 @@ export interface EsercizioInput {
   serie_default: string | null
   cluster_default: string | null
   ripetizioni_default: string | null
+  rir_default: string | null
   carico_default: string | null
   unita_carico: string | null
   recupero_cluster_default: string | null
@@ -208,6 +213,8 @@ export interface SedutaEsercizioInput {
   serie: string | null
   cluster: string | null
   ripetizioni: string | null
+  // Le ripetizioni di riserva: quante ne restavano a fine serie.
+  rir: string | null
   carico: string | null
   recupero_cluster: string | null
   recupero: string | null
@@ -275,6 +282,7 @@ export interface UltimaVolta {
   serie: string | null
   cluster: string | null
   ripetizioni: string | null
+  rir: string | null
   carico: string | null
   recupero_cluster: string | null
   recupero: string | null
@@ -998,6 +1006,7 @@ export interface Api {
     update(id: number, nome: string): Promise<void>
     // Accende o spegne il dosaggio a cluster per gli esercizi di questa categoria.
     setCluster(id: number, attivo: boolean): Promise<void>
+    setRir(id: number, attivo: boolean): Promise<void>
     remove(id: number): Promise<void>
     reorder(ids: number[]): Promise<void>
   }

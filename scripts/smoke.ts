@@ -52,6 +52,8 @@ import { copyFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { daQuando } from '../src/renderer/src/lib'
 import {
   caricoTesto,
+  intensitaTesto,
+  rirTesto,
   recuperoEsteso,
   recuperoTesto,
   ripetizioniTesto,
@@ -65,7 +67,7 @@ db.pragma('foreign_keys = ON')
 
 runMigrations(db)
 runMigrations(db) // idempotente
-assert.equal(db.pragma('user_version', { simple: true }), 36)
+assert.equal(db.pragma('user_version', { simple: true }), 37)
 
 const count = (table: string): number =>
   (db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n
@@ -258,10 +260,26 @@ const seduteExport = [
             serie: '3',
             cluster: null,
             ripetizioni: '10',
+            rir: null,
             carico: null,
             recupero_cluster: null,
             recupero: '1 min',
             nota: 'lento'
+          },
+          {
+            // Con le ripetizioni di riserva: il carico e il RIR si leggono
+            // nella stessa colonna, che e' la stessa domanda.
+            nome: 'Squat',
+            categoria_nome: 'Forza',
+            unita_carico: 'kg',
+            serie: '4',
+            cluster: null,
+            ripetizioni: '8',
+            rir: '2',
+            carico: '60',
+            recupero_cluster: null,
+            recupero: "2'",
+            nota: null
           },
           {
             // Dosaggio a cluster: la serie si spezza in blocchi con una pausa
@@ -272,6 +290,7 @@ const seduteExport = [
             serie: '4',
             cluster: '3',
             ripetizioni: '2',
+            rir: null,
             carico: null,
             recupero_cluster: '15"',
             recupero: "2'",
@@ -296,6 +315,8 @@ assert.ok(html.includes('<th>Recupero</th>'), 'intestazioni delle colonne')
 assert.ok(html.includes('1 min'))
 assert.ok(!html.includes('rec. 1 min'), 'nella tabella il recupero non ripete rec.')
 assert.ok(html.includes('3 × 10'))
+// il RIR sta nella colonna del carico, accanto ai chili
+assert.ok(html.includes('60 kg · RIR 2'), 'carico e RIR nella stessa colonna')
 // il cluster: 4 x (3 x 2), e i due recuperi separati dalla barra
 assert.ok(html.includes('4 × (3 × 2)'), 'volume a cluster')
 assert.ok(html.includes(`15" / 2'`), 'recuperi a cluster nella colonna')
@@ -1543,6 +1564,14 @@ initDb(join(dirCartella, 'cartella.db'), dekHex)
     // senza cluster il dosaggio resta quello di sempre
     assert.equal(volumeTesto({ serie: '3', cluster: null, ripetizioni: '10' }), '3 × 10')
     assert.equal(recuperoEsteso({ recupero_cluster: null, recupero: '1 min' }), 'rec. 1 min')
+  // le ripetizioni di riserva: il numero da solo non si capirebbe
+  assert.equal(rirTesto({ rir: '2' }), 'RIR 2')
+  assert.equal(rirTesto({ rir: null }), null)
+  assert.equal(rirTesto({ rir: '  ' }), null)
+  assert.equal(intensitaTesto({ carico: '60', unita_carico: 'kg', rir: '2' }), '60 kg · RIR 2')
+  assert.equal(intensitaTesto({ carico: '60', unita_carico: 'kg', rir: null }), '60 kg')
+  assert.equal(intensitaTesto({ carico: null, rir: '2' }), 'RIR 2')
+  assert.equal(intensitaTesto({ carico: null, rir: null }), null)
 
     // e finisce anche nelle tabelle che si aprono senza l'app
     const dirCl = mkdtempSync(join(tmpdir(), 'riab-csv-cl-'))

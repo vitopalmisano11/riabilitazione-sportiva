@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { RotateCw } from 'lucide-react'
 import type { SchedaPaziente as Dati } from '../../shared/types'
 import { errMsg, formatData } from './lib'
-import { caricoTesto, recuperoTesto, volumeTesto } from '../../shared/dosaggio'
+import { caricoTesto, intensitaTesto, recuperoTesto, volumeTesto } from '../../shared/dosaggio'
 
 // Quello che vede il paziente mentre si allena: solo il suo programma. Ne
 // stanno aperte piu' d'una insieme, una per paziente.
@@ -72,7 +72,7 @@ export default function SchedaPaziente({ sedutaId }: { sedutaId: number }): Reac
                       {e.nota && <span className="nota-es">{e.nota}</span>}
                     </td>
                     <td className="col-dose">{volumeTesto(e) ?? '—'}</td>
-                    <td className="col-dose">{caricoTesto(e.carico, e.unita_carico) ?? '—'}</td>
+                    <td className="col-dose">{intensitaTesto(e) ?? '—'}</td>
                     <td className="col-dose">{recuperoTesto(e) ?? '—'}</td>
                   </tr>
                 ))}

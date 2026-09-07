@@ -940,6 +940,21 @@ const MIGRATIONS: string[] = [
     ('Se il dolore resta il giorno dopo, riduci il carico e riprendi.', 2),
     ('Esegui i movimenti lentamente e in controllo, senza slanci.', 3),
     ('Se compare gonfiore, ghiaccio e riposo, e sentimi.', 4);
+  `,
+
+  // 37 - il RIR, le ripetizioni che restano in canna.
+  //
+  //      "4 x 8 con 2 ripetizioni di riserva" dice quanto e' pesante la serie
+  //      meglio di quanto lo dica il carico da solo, e serve anche a stimare il
+  //      massimale senza andare a cercarlo.
+  //
+  //      La spunta sta sulla categoria, come per il cluster: ha senso nella
+  //      forza e non nella mobilita', e le categorie che non ce l'hanno non si
+  //      ritrovano una casella in piu' nella riga della seduta.
+  `
+  ALTER TABLE categorie ADD COLUMN dosaggio_rir INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE esercizi ADD COLUMN rir_default TEXT;
+  ALTER TABLE seduta_esercizi ADD COLUMN rir TEXT;
   `
 ]
 

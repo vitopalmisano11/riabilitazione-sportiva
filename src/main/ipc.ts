@@ -744,6 +744,11 @@ export function registerIpc(): void {
       .prepare('UPDATE categorie SET dosaggio_cluster = ? WHERE id = ?')
       .run(attivo ? 1 : 0, id)
   })
+  // Stessa cosa per le ripetizioni di riserva: hanno senso nella forza, non
+  // nella mobilita'.
+  handle('categorie:setRir', (id: number, attivo: boolean) => {
+    getDb().prepare('UPDATE categorie SET dosaggio_rir = ? WHERE id = ?').run(attivo ? 1 : 0, id)
+  })
   handle('categorie:delete', (id: number) => {
     eliminaConCestino('categorie', id, 'Categoria di esercizi', nomeDi('categorie', id))
   })
@@ -754,10 +759,10 @@ export function registerIpc(): void {
     getDb()
       .prepare(
         `SELECT e.id, e.nome, e.categoria_id, e.serie_default, e.cluster_default,
-                e.ripetizioni_default, e.carico_default, e.unita_carico,
+                e.ripetizioni_default, e.rir_default, e.carico_default, e.unita_carico,
                 e.recupero_cluster_default,
                 e.recupero_default, e.nota_tecnica, e.link, e.archiviato,
-                c.nome AS categoria_nome, c.dosaggio_cluster,
+                c.nome AS categoria_nome, c.dosaggio_cluster, c.dosaggio_rir,
                 (SELECT COUNT(*) FROM seduta_esercizi se WHERE se.esercizio_id = e.id) AS usi,
                 (e.immagine IS NOT NULL) AS ha_immagine
          FROM esercizi e JOIN categorie c ON c.id = e.categoria_id
@@ -771,11 +776,11 @@ export function registerIpc(): void {
       getDb()
         .prepare(
           `INSERT INTO esercizi (nome, categoria_id, serie_default, cluster_default,
-                                 ripetizioni_default, carico_default, unita_carico,
+                                 ripetizioni_default, rir_default, carico_default, unita_carico,
                                  recupero_cluster_default,
                                  recupero_default, nota_tecnica, link)
            VALUES (@nome, @categoria_id, @serie_default, @cluster_default,
-                   @ripetizioni_default, @carico_default, @unita_carico,
+                   @ripetizioni_default, @rir_default, @carico_default, @unita_carico,
                    @recupero_cluster_default,
                    @recupero_default, @nota_tecnica, @link)`
         )
@@ -787,7 +792,8 @@ export function registerIpc(): void {
       .prepare(
         `UPDATE esercizi SET nome = @nome, categoria_id = @categoria_id,
          serie_default = @serie_default, cluster_default = @cluster_default,
-         ripetizioni_default = @ripetizioni_default, carico_default = @carico_default,
+         ripetizioni_default = @ripetizioni_default, rir_default = @rir_default,
+         carico_default = @carico_default,
          unita_carico = @unita_carico,
          recupero_cluster_default = @recupero_cluster_default,
          recupero_default = @recupero_default,
@@ -1122,9 +1128,9 @@ export function registerIpc(): void {
     )
     const insEs = db.prepare(
       `INSERT INTO seduta_esercizi (seduta_id, esercizio_id, serie, cluster, ripetizioni,
-                                    carico, recupero_cluster, recupero, nota, ordine,
+                                    rir, carico, recupero_cluster, recupero, nota, ordine,
                                     seduta_sezione_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     input.esercizi.forEach((e, i) =>
       insEs.run(
@@ -1133,6 +1139,7 @@ export function registerIpc(): void {
         e.serie,
         e.cluster,
         e.ripetizioni,
+        e.rir,
         e.carico,
         e.recupero_cluster,
         e.recupero,
@@ -1196,7 +1203,7 @@ export function registerIpc(): void {
         `SELECT se.esercizio_id, e.nome, c.nome AS categoria_nome, e.link,
                 e.unita_carico,
                 (e.immagine IS NOT NULL) AS ha_immagine,
-                se.serie, se.cluster, se.ripetizioni, se.carico, se.recupero_cluster,
+                se.serie, se.cluster, se.ripetizioni, se.rir, se.carico, se.recupero_cluster,
                 se.recupero, se.nota, se.seduta_sezione_id
          FROM seduta_esercizi se
          JOIN esercizi e ON e.id = se.esercizio_id
@@ -1257,7 +1264,7 @@ export function registerIpc(): void {
       .all(origineId) as { id: number; sezione_id: number | null; nome: string }[]
     const esercizi = db
       .prepare(
-        `SELECT esercizio_id, serie, cluster, ripetizioni, carico, recupero_cluster,
+        `SELECT esercizio_id, serie, cluster, ripetizioni, rir, carico, recupero_cluster,
                 recupero, nota, seduta_sezione_id
          FROM seduta_esercizi WHERE seduta_id = ? ORDER BY ordine, id`
       )
@@ -1266,6 +1273,7 @@ export function registerIpc(): void {
       serie: string | null
       cluster: string | null
       ripetizioni: string | null
+      rir: string | null
       carico: string | null
       recupero_cluster: string | null
       recupero: string | null
@@ -1299,6 +1307,7 @@ export function registerIpc(): void {
             serie: e.serie,
             cluster: e.cluster,
             ripetizioni: e.ripetizioni,
+            rir: e.rir,
             carico: e.carico,
             recupero_cluster: e.recupero_cluster,
             recupero: e.recupero,

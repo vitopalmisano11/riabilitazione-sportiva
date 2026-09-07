@@ -27,7 +27,7 @@ import Aiuto from './Aiuto'
 import { errMsg, formatData, oggiIso } from '../lib'
 import { useScorciatoie } from '../scorciatoie'
 import { sposta, useRiordino } from '../riordino'
-import { caricoTesto, recuperoTesto, volumeTesto } from '../../../shared/dosaggio'
+import { caricoTesto, recuperoTesto, rirTesto, volumeTesto } from '../../../shared/dosaggio'
 
 // Da 0 a 10: la scala che si usa a voce con il paziente.
 const VOTI = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
@@ -235,6 +235,13 @@ export default function SedutaBuilder({
     (r.cluster ?? '') !== '' ||
     categorie.some((c) => c.nome === r.categoria_nome && c.dosaggio_cluster === 1)
 
+  // La casellina del RIR compare dove la categoria la prevede, e comunque dove
+  // un numero c'e' gia': una seduta vecchia deve restare modificabile anche se
+  // nel frattempo la spunta e' stata tolta.
+  const mostraRir = (r: { categoria_nome: string; rir: string | null }): boolean =>
+    (r.rir ?? '') !== '' ||
+    categorie.some((c) => c.nome === r.categoria_nome && c.dosaggio_rir === 1)
+
   // Esercizi proposti per una sezione: quelli delle sue categorie (nell'ordine configurato)
   const proposte = (s: SezioneBuilder): EsercizioConCategoria[] => {
     if (s.sezione_id == null) return []
@@ -257,6 +264,7 @@ export default function SedutaBuilder({
           serie: e.serie_default,
           cluster: e.cluster_default,
           ripetizioni: e.ripetizioni_default,
+          rir: e.rir_default,
           carico: e.carico_default,
           recupero_cluster: e.recupero_cluster_default,
           recupero: e.recupero_default,
@@ -278,7 +286,15 @@ export default function SedutaBuilder({
   const updateRiga = (
     idxSez: number,
     idxRiga: number,
-    campo: 'serie' | 'cluster' | 'ripetizioni' | 'carico' | 'recupero_cluster' | 'recupero' | 'nota',
+    campo:
+      | 'serie'
+      | 'cluster'
+      | 'ripetizioni'
+      | 'rir'
+      | 'carico'
+      | 'recupero_cluster'
+      | 'recupero'
+      | 'nota',
     valore: string
   ): void => {
     setSezioni(
@@ -305,6 +321,7 @@ export default function SedutaBuilder({
                       serie: u.serie,
                       cluster: u.cluster,
                       ripetizioni: u.ripetizioni,
+                      rir: u.rir,
                       carico: u.carico,
                       recupero_cluster: u.recupero_cluster,
                       recupero: u.recupero
@@ -319,7 +336,7 @@ export default function SedutaBuilder({
 
   // Cosa aveva fatto l'ultima volta, gia' scritto come si legge.
   const testoUltima = (r: SedutaEsercizioDettaglio, u: UltimaVolta): string =>
-    [volumeTesto(u), caricoTesto(u.carico, r.unita_carico), recuperoTesto(u)]
+    [volumeTesto(u), rirTesto(u), caricoTesto(u.carico, r.unita_carico), recuperoTesto(u)]
       .filter(Boolean)
       .join(' · ')
 
@@ -427,6 +444,7 @@ export default function SedutaBuilder({
           serie: r.serie?.trim() || null,
           cluster: r.cluster?.trim() || null,
           ripetizioni: r.ripetizioni?.trim() || null,
+          rir: r.rir?.trim() || null,
           carico: r.carico?.trim() || null,
           recupero_cluster: r.recupero_cluster?.trim() || null,
           recupero: r.recupero?.trim() || null,
@@ -738,6 +756,15 @@ export default function SedutaBuilder({
                         value={r.ripetizioni ?? ''}
                         onChange={(e) => updateRiga(idxSez, idxRiga, 'ripetizioni', e.target.value)}
                       />
+                      {mostraRir(r) && (
+                        <input
+                          className="campo-cluster"
+                          title="Ripetizioni di riserva"
+                          placeholder="RIR"
+                          value={r.rir ?? ''}
+                          onChange={(e) => updateRiga(idxSez, idxRiga, 'rir', e.target.value)}
+                        />
+                      )}
                       <input
                         title="Carico"
                         placeholder="carico"

@@ -190,6 +190,7 @@ const api: Api = {
     create: (nome: string) => invoke('categorie:create', nome),
     update: (id: number, nome: string) => invoke('categorie:update', id, nome),
     setCluster: (id: number, attivo: boolean) => invoke('categorie:setCluster', id, attivo),
+    setRir: (id: number, attivo: boolean) => invoke('categorie:setRir', id, attivo),
     remove: (id: number) => invoke('categorie:delete', id),
     reorder: (ids: number[]) => invoke('categorie:reorder', ids)
   },
