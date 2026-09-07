@@ -894,6 +894,52 @@ const MIGRATIONS: string[] = [
     valore REAL NOT NULL,
     PRIMARY KEY (segno_id, seduta_id)
   );
+  `,
+
+  // 36 - le indicazioni per casa e i numeri dell'atleta.
+  //
+  //      Al foglio che il paziente si porta a casa manca la parte che decide
+  //      se lo fara' bene: quante volte a settimana, e come regolarsi con il
+  //      dolore. Le frasi stanno in un elenco unico (si scrivono una volta e
+  //      si riusano), e per ogni paziente si spunta quali valgono per lui.
+  //
+  //      I massimali servono a prescrivere il carico in percentuale nella fase
+  //      di forza. Sono una riga per esercizio con la data, perche' cambiano;
+  //      peso e altezza invece stanno sul paziente, sono una cosa sola.
+  `
+  ALTER TABLE pazienti ADD COLUMN frequenza_casa TEXT;
+  ALTER TABLE pazienti ADD COLUMN peso REAL;
+  ALTER TABLE pazienti ADD COLUMN altezza REAL;
+
+  CREATE TABLE indicazioni (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    testo TEXT NOT NULL,
+    ordine INTEGER NOT NULL DEFAULT 0
+  );
+
+  CREATE TABLE paziente_indicazioni (
+    paziente_id INTEGER NOT NULL REFERENCES pazienti(id) ON DELETE CASCADE,
+    indicazione_id INTEGER NOT NULL REFERENCES indicazioni(id) ON DELETE CASCADE,
+    PRIMARY KEY (paziente_id, indicazione_id)
+  );
+
+  CREATE TABLE massimali (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    paziente_id INTEGER NOT NULL REFERENCES pazienti(id) ON DELETE CASCADE,
+    esercizio TEXT NOT NULL,
+    valore REAL NOT NULL,
+    unita TEXT,
+    data TEXT NOT NULL
+  );
+
+  -- Qualche indicazione gia' pronta: sono quelle che si scrivono sempre, e
+  -- cosi' l'elenco non parte vuoto. Si cambiano e si cancellano.
+  INSERT INTO indicazioni (testo, ordine) VALUES
+    ('Puoi accettare un dolore fino a 4 su 10 durante gli esercizi.', 0),
+    ('Fermati alla comparsa del dolore.', 1),
+    ('Se il dolore resta il giorno dopo, riduci il carico e riprendi.', 2),
+    ('Esegui i movimenti lentamente e in controllo, senza slanci.', 3),
+    ('Se compare gonfiore, ghiaccio e riposo, e sentimi.', 4);
   `
 ]
 

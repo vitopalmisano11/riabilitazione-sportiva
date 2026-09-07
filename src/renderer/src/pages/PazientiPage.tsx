@@ -27,6 +27,8 @@ import ProgrammaSettimana from '../components/ProgrammaSettimana'
 import QuestionariPaziente from '../components/QuestionariPaziente'
 import AnagraficaPaziente, { ModaleDatiPaziente } from '../components/AnagraficaPaziente'
 import SegniPaziente from '../components/SegniPaziente'
+import IndicazioniCasa from '../components/IndicazioniCasa'
+import MisurePaziente from '../components/MisurePaziente'
 import AnamnesiPaziente from '../components/AnamnesiPaziente'
 import ValutazionePaziente from '../components/ValutazionePaziente'
 import { toast, toastErrore } from '../components/Toast'
@@ -360,12 +362,16 @@ export default function PazientiPage({
   )
 }
 
-type SchedaAperta = 'diario' | 'clinica' | 'percorso'
+type SchedaAperta = 'diario' | 'clinica' | 'percorso' | 'misure'
 
 const SCHEDE_PAZIENTE: { key: SchedaAperta; label: string }[] = [
   { key: 'diario', label: 'Diario sedute' },
   { key: 'clinica', label: 'Clinica' },
-  { key: 'percorso', label: 'Percorso' }
+  { key: 'percorso', label: 'Percorso' },
+  // I numeri dell'atleta: peso, altezza e i massimali con cui si prescrive il
+  // carico. Stanno in una linguetta loro perche' si aprono di rado, e nel
+  // percorso avrebbero allungato la pagina che si guarda tutti i giorni.
+  { key: 'misure', label: 'Misure' }
 ]
 
 function SchedaPaziente({
@@ -630,8 +636,15 @@ function SchedaPaziente({
       </section>
 
       <ObiettiviCard paziente={paziente} />
+
+      {/* Sta nel percorso perche' e' parte del programma: cosa deve fare a
+          casa, ogni quanto, e come regolarsi. Finisce sul foglio che si porta
+          via. */}
+      <IndicazioniCasa paziente={paziente} onChanged={onChanged} />
         </>
       )}
+
+      {scheda === 'misure' && <MisurePaziente paziente={paziente} onChanged={onChanged} />}
     </div>
   )
 }

@@ -23,12 +23,23 @@ import { chiudiConEsc, zoomabile } from './finestre'
 function leggiPaziente(id: number): DatiPazienteExport {
   const p = getDb()
     .prepare(
-      `SELECT p.nome, p.cognome, p.tipo_intervento, p.data_intervento, pat.nome AS patologia_nome
+      `SELECT p.nome, p.cognome, p.tipo_intervento, p.data_intervento, p.frequenza_casa,
+              pat.nome AS patologia_nome
        FROM pazienti p LEFT JOIN patologie pat ON pat.id = p.patologia_id
        WHERE p.id = ?`
     )
     .get(id) as DatiPazienteExport | undefined
   if (!p) throw new Error('Paziente non trovato.')
+  // Le indicazioni scelte per lui: finiscono in fondo al foglio.
+  p.indicazioni = (
+    getDb()
+      .prepare(
+        `SELECT i.testo FROM paziente_indicazioni pi
+         JOIN indicazioni i ON i.id = pi.indicazione_id
+         WHERE pi.paziente_id = ? ORDER BY i.ordine, i.id`
+      )
+      .all(id) as { testo: string }[]
+  ).map((r) => r.testo)
   return p
 }
 

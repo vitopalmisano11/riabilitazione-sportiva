@@ -117,6 +117,12 @@ export interface Paziente {
   // I limiti da non superare, in cima alla scheda e mentre si compone la
   // seduta: "non oltre 90° di flessione fino a 6 settimane", "carico parziale".
   precauzioni: string | null
+  // Quante volte a settimana deve fare il programma a casa, come si scrive sul
+  // foglio: "3 volte a settimana".
+  frequenza_casa: string | null
+  // I numeri dell'atleta: servono a prescrivere il carico.
+  peso: number | null
+  altezza: number | null
   patologia_id: number | null
   fase_corrente_id: number | null
   // 'trattamento' = lo stai seguendo adesso; 'concluso' = il ciclo e' finito e
@@ -151,6 +157,24 @@ export interface PazienteInput {
   data_intervento: string | null
   precauzioni: string | null
   arto_operato: 'dx' | 'sx' | null
+}
+
+// Una frase da mettere sul foglio che il paziente si porta a casa. Stanno in
+// un elenco unico e si spuntano paziente per paziente.
+export interface Indicazione {
+  id: number
+  testo: string
+  ordine: number
+}
+
+// Un massimale: quanto sollevava in quell'esercizio, e quando.
+export interface Massimale {
+  id: number
+  paziente_id: number
+  esercizio: string
+  valore: number
+  unita: string | null
+  data: string
 }
 
 // Un segno di riferimento: la cosa che di questo paziente si ricontrolla a
@@ -1004,6 +1028,24 @@ export interface Api {
       eseguito: boolean,
       valore: string | null
     ): Promise<void>
+  }
+  // Le frasi per il foglio da portare a casa: l'elenco e chi le ha.
+  indicazioni: {
+    list(): Promise<Indicazione[]>
+    create(testo: string): Promise<number>
+    rinomina(id: number, testo: string): Promise<void>
+    remove(id: number): Promise<void>
+    // Quelle scelte per un paziente, con ogni quanto deve fare il programma.
+    delPaziente(pazienteId: number): Promise<number[]>
+    setDelPaziente(pazienteId: number, ids: number[], frequenza: string | null): Promise<void>
+  }
+  // I massimali del paziente, per prescrivere il carico in percentuale.
+  massimali: {
+    list(pazienteId: number): Promise<Massimale[]>
+    create(pazienteId: number, esercizio: string, valore: number, unita: string | null, data: string): Promise<number>
+    remove(id: number): Promise<void>
+    // Peso e altezza stanno sul paziente: sono una cosa sola, non una storia.
+    setMisure(pazienteId: number, peso: number | null, altezza: number | null): Promise<void>
   }
   // I segni di riferimento del paziente e le loro misure.
   segni: {

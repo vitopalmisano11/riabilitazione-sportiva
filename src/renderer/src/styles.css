@@ -4678,6 +4678,128 @@ textarea {
   font-size: 13px;
 }
 
+/* Indicazioni per casa: una spunta per riga, la frase per intero. */
+.lista-indicazioni {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+}
+
+.lista-indicazioni li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 4px;
+}
+
+.lista-indicazioni .checkbox-inline {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: var(--text);
+}
+
+.campo-frequenza {
+  max-width: 260px;
+}
+
+/* Peso, altezza e massimali: caselle strette in riga, i numeri sono corti. */
+.riga-misure {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.campo-misura {
+  flex: 0 1 130px;
+}
+
+.campo-esercizio-max {
+  flex: 1 1 200px;
+}
+
+.riga-stima {
+  align-items: center;
+  margin-top: 10px;
+}
+
+.riga-stima svg {
+  color: var(--text-dim);
+}
+
+.campo-stima {
+  width: 80px;
+}
+
+.nuovo-massimale {
+  padding: 12px;
+  margin-bottom: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--pannello);
+}
+
+.lista-massimali {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.lista-massimali > li {
+  border-bottom: 1px solid var(--bg);
+  padding: 6px 4px;
+}
+
+.lista-massimali > li:last-child {
+  border-bottom: none;
+}
+
+.riga-massimale {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.max-esercizio {
+  flex: 1;
+  min-width: 140px;
+  font-weight: 600;
+}
+
+.max-valore {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* Le percentuali del massimale: si aprono premendo sul numero. */
+.quote-massimale {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin: 4px 0 6px 4px;
+}
+
+.quota {
+  display: flex;
+  flex-direction: column;
+}
+
+.quota-et {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+}
+
+.quota-val {
+  font-size: 15px;
+}
+
 /* I segni di riferimento: una riga per segno, il nome a sinistra e i due
    numeri (da dove e' partito, dov'e' adesso) al centro. Niente grafici: sono
    due numeri, e due numeri si leggono. */

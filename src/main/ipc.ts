@@ -426,6 +426,75 @@ export function registerIpc(): void {
       return id
     })()
   })
+  // ---- Indicazioni per casa ----
+  handle('indicazioni:list', () =>
+    getDb().prepare('SELECT * FROM indicazioni ORDER BY ordine, id').all()
+  )
+  handle('indicazioni:create', (testo: string) => {
+    const db = getDb()
+    const { next } = db
+      .prepare('SELECT COALESCE(MAX(ordine), -1) + 1 AS next FROM indicazioni')
+      .get() as { next: number }
+    return Number(
+      db.prepare('INSERT INTO indicazioni (testo, ordine) VALUES (?, ?)').run(testo.trim(), next)
+        .lastInsertRowid
+    )
+  })
+  handle('indicazioni:rinomina', (id: number, testo: string) => {
+    getDb().prepare('UPDATE indicazioni SET testo = ? WHERE id = ?').run(testo.trim(), id)
+  })
+  handle('indicazioni:delete', (id: number) => {
+    getDb().prepare('DELETE FROM indicazioni WHERE id = ?').run(id)
+  })
+  handle('indicazioni:delPaziente', (pazienteId: number) =>
+    (
+      getDb()
+        .prepare('SELECT indicazione_id FROM paziente_indicazioni WHERE paziente_id = ?')
+        .all(pazienteId) as { indicazione_id: number }[]
+    ).map((r) => r.indicazione_id)
+  )
+  handle(
+    'indicazioni:setDelPaziente',
+    (pazienteId: number, ids: number[], frequenza: string | null) => {
+      const db = getDb()
+      db.transaction(() => {
+        db.prepare('DELETE FROM paziente_indicazioni WHERE paziente_id = ?').run(pazienteId)
+        const ins = db.prepare(
+          'INSERT INTO paziente_indicazioni (paziente_id, indicazione_id) VALUES (?, ?)'
+        )
+        for (const id of ids) ins.run(pazienteId, id)
+        db.prepare('UPDATE pazienti SET frequenza_casa = ? WHERE id = ?').run(
+          frequenza?.trim() || null,
+          pazienteId
+        )
+      })()
+    }
+  )
+
+  // ---- Massimali e misure dell'atleta ----
+  handle('massimali:list', (pazienteId: number) =>
+    getDb()
+      .prepare('SELECT * FROM massimali WHERE paziente_id = ? ORDER BY data DESC, id DESC')
+      .all(pazienteId)
+  )
+  handle(
+    'massimali:create',
+    (pazienteId: number, esercizio: string, valore: number, unita: string | null, data: string) =>
+      Number(
+        getDb()
+          .prepare(
+            'INSERT INTO massimali (paziente_id, esercizio, valore, unita, data) VALUES (?, ?, ?, ?, ?)'
+          )
+          .run(pazienteId, esercizio.trim(), valore, unita?.trim() || null, data).lastInsertRowid
+      )
+  )
+  handle('massimali:delete', (id: number) => {
+    getDb().prepare('DELETE FROM massimali WHERE id = ?').run(id)
+  })
+  handle('massimali:setMisure', (pazienteId: number, peso: number | null, altezza: number | null) => {
+    getDb().prepare('UPDATE pazienti SET peso = ?, altezza = ? WHERE id = ?').run(peso, altezza, pazienteId)
+  })
+
   // ---- Segni di riferimento: le due o tre cose che si ricontrollano ----
   handle('segni:list', (pazienteId: number) =>
     getDb()

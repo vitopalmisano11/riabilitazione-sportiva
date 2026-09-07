@@ -27,6 +27,10 @@ export interface DatiPazienteExport {
   tipo_intervento: string | null
   data_intervento: string | null
   patologia_nome: string | null
+  // Cosa deve fare a casa: ogni quanto, e le indicazioni scelte per lui.
+  // Finiscono in fondo al foglio, dopo il programma.
+  frequenza_casa?: string | null
+  indicazioni?: string[]
 }
 
 export interface DatiSedutaExport {
@@ -94,6 +98,20 @@ export function intestazioneHtml(colore: string): string {
     .carta-intestata .ci-chi { font-size: 12.5px; font-weight: 600; color: ${colore}; }
     .carta-intestata .ci-dove { font-size: 10px; color: #6b7280; margin-top: 1px; }
   </style>`
+}
+
+// Le indicazioni per casa, in fondo al foglio: ogni quanto farlo e come
+// regolarsi. Sono la parte che decide se il programma verra' fatto bene, e
+// finora sul foglio non c'era.
+function indicazioniHtml(p: DatiPazienteExport): string {
+  const voci = p.indicazioni ?? []
+  const quando = (p.frequenza_casa ?? '').trim()
+  if (voci.length === 0 && quando === '') return ''
+  return `<div class="per-casa">
+    <div class="pc-titolo">Da fare a casa</div>
+    ${quando ? `<div class="pc-quando">${esc(quando)}</div>` : ''}
+    ${voci.length ? `<ul>${voci.map((v) => `<li>${esc(v)}</li>`).join('')}</ul>` : ''}
+  </div>`
 }
 
 export function generaHtml(
@@ -297,6 +315,15 @@ export function generaHtml(
   .scheda-es .come { color: #555b66; margin-top: 4px; }
   .scheda-es .nota-es { color: #555b66; margin-top: 4px; font-style: italic; }
   .scheda-es .video { display: inline-block; margin-top: 6px; color: ${accento}; font-weight: 600; }
+  /* Le indicazioni per casa: un riquadro chiaro in fondo, staccato dal
+     programma ma sullo stesso foglio. */
+  .per-casa { margin-top: 16px; padding: 9px 12px; border: 1px solid #dfe4ea;
+              border-radius: 5px; page-break-inside: avoid; }
+  .per-casa .pc-titolo { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em;
+                         color: ${accento}; font-weight: 600; }
+  .per-casa .pc-quando { font-size: 13px; font-weight: 600; margin-top: 2px; }
+  .per-casa ul { margin: 5px 0 0; padding-left: 16px; }
+  .per-casa li { margin-bottom: 2px; }
 </style>
 </head>
 <body>
@@ -304,6 +331,7 @@ export function generaHtml(
   <h1>${esc(p.cognome)} ${esc(p.nome)}</h1>
   <p class="info">${infoPaziente(p).map(esc).join(' &nbsp;·&nbsp; ')}</p>
   ${sedHtml}
+  ${indicazioniHtml(p)}
 </body>
 </html>`
 }
@@ -407,6 +435,23 @@ export async function generaDocx(
       )
     }
   })
+
+  // Le indicazioni per casa anche nel Word, in fondo come sul foglio.
+  const perCasa = p.indicazioni ?? []
+  const quandoCasa = (p.frequenza_casa ?? '').trim()
+  if (perCasa.length > 0 || quandoCasa !== '') {
+    children.push(
+      new Paragraph({
+        text: 'Da fare a casa',
+        heading: HeadingLevel.HEADING_2,
+        spacing: { before: 300 }
+      })
+    )
+    if (quandoCasa !== '') {
+      children.push(new Paragraph({ children: [new TextRun({ text: quandoCasa, bold: true })] }))
+    }
+    for (const v of perCasa) children.push(new Paragraph({ text: v, bullet: { level: 0 } }))
+  }
 
   const doc = new Document({ sections: [{ children }] })
   return Packer.toBuffer(doc)

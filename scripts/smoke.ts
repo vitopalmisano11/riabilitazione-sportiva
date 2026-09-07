@@ -65,7 +65,7 @@ db.pragma('foreign_keys = ON')
 
 runMigrations(db)
 runMigrations(db) // idempotente
-assert.equal(db.pragma('user_version', { simple: true }), 35)
+assert.equal(db.pragma('user_version', { simple: true }), 36)
 
 const count = (table: string): number =>
   (db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n
@@ -742,6 +742,23 @@ assert.equal(
   // il focus della giornata arriva fino alla riga della settimana
   assert.equal(sett[0].focus, 'preparazione corsa')
   assert.equal(sett[1].focus, null)
+}
+
+// --- Le indicazioni per casa in fondo al foglio ---
+{
+  // Senza indicazioni il foglio finisce con il programma, come prima.
+  assert.ok(!generaHtml(pazExport, seduteExport).includes('class="per-casa"'))
+  const conCasa = generaHtml(
+    {
+      ...pazExport,
+      frequenza_casa: '3 volte a settimana',
+      indicazioni: ['Fermati alla comparsa del dolore.']
+    },
+    seduteExport
+  )
+  assert.ok(conCasa.includes('Da fare a casa'), 'blocco delle indicazioni')
+  assert.ok(conCasa.includes('3 volte a settimana'))
+  assert.ok(conCasa.includes('Fermati alla comparsa del dolore.'))
 }
 
 // --- Chi firma i fogli: l'intestazione dei documenti ---

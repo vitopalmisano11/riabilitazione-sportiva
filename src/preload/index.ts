@@ -83,6 +83,28 @@ const api: Api = {
     setBlocco: (b: { attivo: boolean; minuti: number }) => invoke('sicurezza:setBlocco', b),
     verificaPassword: (password: string) => invoke('sicurezza:verificaPassword', password)
   },
+  indicazioni: {
+    list: () => invoke('indicazioni:list'),
+    create: (testo: string) => invoke('indicazioni:create', testo),
+    rinomina: (id: number, testo: string) => invoke('indicazioni:rinomina', id, testo),
+    remove: (id: number) => invoke('indicazioni:delete', id),
+    delPaziente: (pazienteId: number) => invoke('indicazioni:delPaziente', pazienteId),
+    setDelPaziente: (pazienteId: number, ids: number[], frequenza: string | null) =>
+      invoke('indicazioni:setDelPaziente', pazienteId, ids, frequenza)
+  },
+  massimali: {
+    list: (pazienteId: number) => invoke('massimali:list', pazienteId),
+    create: (
+      pazienteId: number,
+      esercizio: string,
+      valore: number,
+      unita: string | null,
+      data: string
+    ) => invoke('massimali:create', pazienteId, esercizio, valore, unita, data),
+    remove: (id: number) => invoke('massimali:delete', id),
+    setMisure: (pazienteId: number, peso: number | null, altezza: number | null) =>
+      invoke('massimali:setMisure', pazienteId, peso, altezza)
+  },
   segni: {
     list: (pazienteId: number) => invoke('segni:list', pazienteId),
     andamento: (pazienteId: number) => invoke('segni:andamento', pazienteId),
