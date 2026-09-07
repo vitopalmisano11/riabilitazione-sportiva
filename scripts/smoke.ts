@@ -21,6 +21,7 @@ import {
   isPlaintextDb
 } from '../src/main/db'
 import { seduteDellaSettimana } from '../src/main/settimana'
+import { ultimaVoltaPerPaziente } from '../src/main/ultima-volta'
 import { generaCartella, SEZIONI } from '../src/main/export-cartella'
 import { esportaArchivio } from '../src/main/esporta-archivio'
 import {
@@ -63,7 +64,7 @@ db.pragma('foreign_keys = ON')
 
 runMigrations(db)
 runMigrations(db) // idempotente
-assert.equal(db.pragma('user_version', { simple: true }), 32)
+assert.equal(db.pragma('user_version', { simple: true }), 33)
 
 const count = (table: string): number =>
   (db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n
@@ -740,6 +741,44 @@ assert.equal(
   // il focus della giornata arriva fino alla riga della settimana
   assert.equal(sett[0].focus, 'preparazione corsa')
   assert.equal(sett[1].focus, null)
+}
+
+// --- L'ultima volta che il paziente ha fatto un esercizio ---
+{
+  const c = getDb()
+  const ins = (sql: string, ...a: unknown[]): number =>
+    Number(c.prepare(sql).run(...a).lastInsertRowid)
+  const pz = ins("INSERT INTO pazienti (nome, cognome) VALUES ('Ugo', 'Verdi')")
+  const cat = ins("INSERT INTO categorie (nome) VALUES ('Forza')")
+  const es1 = ins('INSERT INTO esercizi (nome, categoria_id) VALUES (?, ?)', 'Squat', cat)
+  const es2 = ins('INSERT INTO esercizi (nome, categoria_id) VALUES (?, ?)', 'Ponte', cat)
+  const vecchia = ins("INSERT INTO sedute (paziente_id, data) VALUES (?, '2026-01-10')", pz)
+  const recente = ins("INSERT INTO sedute (paziente_id, data) VALUES (?, '2026-02-20')", pz)
+  // una seduta programmata per il futuro: non l'ha ancora fatta
+  const futura = ins("INSERT INTO sedute (paziente_id, data) VALUES (?, '2099-01-01')", pz)
+  const insEs = (sid: number, eid: number, serie: string, carico: string): void => {
+    c.prepare(
+      'INSERT INTO seduta_esercizi (seduta_id, esercizio_id, serie, carico, ordine) VALUES (?, ?, ?, ?, 0)'
+    ).run(sid, eid, serie, carico)
+  }
+  insEs(vecchia, es1, '3', '40')
+  insEs(recente, es1, '4', '50')
+  insEs(vecchia, es2, '2', '')
+  insEs(futura, es1, '5', '999')
+
+  const u = ultimaVoltaPerPaziente(pz, null)
+  assert.equal(u.length, 2)
+  const squat = u.find((x) => x.esercizio_id === es1)
+  // vince la piu' recente fra quelle gia' fatte, non la programmata
+  assert.equal(squat?.data, '2026-02-20')
+  assert.equal(squat?.serie, '4')
+  assert.equal(squat?.carico, '50')
+  // escludendo la seduta che si sta modificando si torna a quella prima
+  const senza = ultimaVoltaPerPaziente(pz, recente)
+  assert.equal(senza.find((x) => x.esercizio_id === es1)?.carico, '40')
+  // un paziente che non ha mai fatto niente non ha nessun precedente
+  const altro = ins("INSERT INTO pazienti (nome, cognome) VALUES ('Ida', 'Neri')")
+  assert.equal(ultimaVoltaPerPaziente(altro, null).length, 0)
 }
 
 // --- Controllo dell'archivio: un database sano lo dice ---

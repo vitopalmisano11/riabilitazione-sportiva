@@ -6,16 +6,21 @@ import type {
   Obiettivo,
   PazienteDettaglio,
   SedutaEsercizioDettaglio,
-  SedutaInput
+  SedutaInput,
+  UltimaVolta
 } from '../../../shared/types'
-import { GripVertical, ImageIcon, Pencil, Plus, Video, X } from 'lucide-react'
+import { CornerDownLeft, GripVertical, ImageIcon, Pencil, Plus, Video, X } from 'lucide-react'
 import { toastErrore } from './Toast'
 import { chiedi } from './Conferma'
 import ImmagineEsercizio from './ImmagineEsercizio'
-import { errMsg, oggiIso } from '../lib'
+import Aiuto from './Aiuto'
+import { errMsg, formatData, oggiIso } from '../lib'
 import { useScorciatoie } from '../scorciatoie'
 import { sposta, useRiordino } from '../riordino'
-import { volumeTesto } from '../../../shared/dosaggio'
+import { caricoTesto, recuperoTesto, volumeTesto } from '../../../shared/dosaggio'
+
+// Da 0 a 10: la scala che si usa a voce con il paziente.
+const VOTI = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
 interface Props {
   paziente: PazienteDettaglio
@@ -53,6 +58,11 @@ export default function SedutaBuilder({
   // gia' usati.
   const [focus, setFocus] = useState('')
   const [focusUsati, setFocusUsati] = useState<string[]>([])
+  // Come e' andata: due numeri da 0 a 10, vuoti se non li si chiede.
+  const [dolore, setDolore] = useState('')
+  const [sforzo, setSforzo] = useState('')
+  // Cosa aveva fatto l'ultima volta, esercizio per esercizio.
+  const [ultime, setUltime] = useState<Record<number, UltimaVolta>>({})
   const [note, setNote] = useState('')
   const [sezioni, setSezioni] = useState<SezioneBuilder[]>([])
   const [obiettivi, setObiettivi] = useState<Obiettivo[]>([])
@@ -75,20 +85,22 @@ export default function SedutaBuilder({
   useEffect(() => {
     void (async () => {
       try {
-        const [lib, cats, ragg, elencoFasi, usati] = await Promise.all([
+        const [lib, cats, ragg, elencoFasi, usati, precedenti] = await Promise.all([
           window.api.esercizi.list(false),
           window.api.categorie.list(),
           window.api.pazienti.obiettiviRaggiunti(paziente.id),
           paziente.patologia_id == null
             ? Promise.resolve([] as Fase[])
             : window.api.fasi.list(paziente.patologia_id),
-          window.api.sedute.focusUsati()
+          window.api.sedute.focusUsati(),
+          window.api.sedute.ultimaVolta(paziente.id, sedutaId)
         ])
         setLibreria(lib)
         setCategorie(cats)
         setRaggiunti(ragg)
         setFasi(elencoFasi)
         setFocusUsati(usati)
+        setUltime(Object.fromEntries(precedenti.map((u) => [u.esercizio_id, u])))
 
         let fase = paziente.fase_corrente_id
         let faseN: string | null = paziente.fase_nome
@@ -96,6 +108,8 @@ export default function SedutaBuilder({
           const s = await window.api.sedute.get(sedutaId)
           setData(s.data)
           setFocus(s.focus ?? '')
+          setDolore(s.dolore == null ? '' : String(s.dolore))
+          setSforzo(s.sforzo == null ? '' : String(s.sforzo))
           setNote(s.note ?? '')
           setSezioni(s.sezioni.map((sz) => ({ ...sz, righe: sz.esercizi })))
           fase = s.fase_id
@@ -259,6 +273,39 @@ export default function SedutaBuilder({
     )
   }
 
+  // Rimette in riga i numeri dell'ultima volta, tutti insieme: da li' si
+  // decide se aumentare o no, che e' il gesto vero della progressione.
+  const ricopiaUltima = (idxSez: number, idxRiga: number, u: UltimaVolta): void => {
+    setSezioni(
+      sezioni.map((s, i) =>
+        i === idxSez
+          ? {
+              ...s,
+              righe: s.righe.map((r, j) =>
+                j === idxRiga
+                  ? {
+                      ...r,
+                      serie: u.serie,
+                      cluster: u.cluster,
+                      ripetizioni: u.ripetizioni,
+                      carico: u.carico,
+                      recupero_cluster: u.recupero_cluster,
+                      recupero: u.recupero
+                    }
+                  : r
+              )
+            }
+          : s
+      )
+    )
+  }
+
+  // Cosa aveva fatto l'ultima volta, gia' scritto come si legge.
+  const testoUltima = (r: SedutaEsercizioDettaglio, u: UltimaVolta): string =>
+    [volumeTesto(u), caricoTesto(u.carico, r.unita_carico), recuperoTesto(u)]
+      .filter(Boolean)
+      .join(' · ')
+
   const rimuoviRiga = (idxSez: number, idxRiga: number): void => {
     setSezioni(
       sezioni.map((s, i) =>
@@ -348,6 +395,8 @@ export default function SedutaBuilder({
       data,
       fase_id: faseId,
       focus: focus.trim() || null,
+      dolore: dolore === '' ? null : Number(dolore),
+      sforzo: sforzo === '' ? null : Number(sforzo),
       note: note.trim() || null,
       sezioni: sezioni.map((s) => ({ sezione_id: s.sezione_id, nome: s.nome })),
       esercizi: sezioni.flatMap((s, i) =>
@@ -689,6 +738,27 @@ export default function SedutaBuilder({
                         onChange={(e) => updateRiga(idxSez, idxRiga, 'nota', e.target.value)}
                       />
                     </div>
+                    {/* Cosa aveva fatto l'ultima volta con questo esercizio.
+                        Sta sotto ai numeri di oggi, dove serve: la progressione
+                        si decide guardando il dato, non a memoria. Il pulsante
+                        li rimette in riga tutti insieme, poi si ritocca. */}
+                    {ultime[r.esercizio_id] && testoUltima(r, ultime[r.esercizio_id]) !== '' && (
+                      <div className="ultima-volta">
+                        <span className="ultima-quando">
+                          l&apos;ultima volta, {formatData(ultime[r.esercizio_id].data)}:
+                        </span>
+                        <span className="ultima-dose">
+                          {testoUltima(r, ultime[r.esercizio_id])}
+                        </span>
+                        <button
+                          className="btn-piccolo"
+                          title="Rimetti questi numeri nella riga"
+                          onClick={() => ricopiaUltima(idxSez, idxRiga, ultime[r.esercizio_id])}
+                        >
+                          <CornerDownLeft size={14} /> Ricopia
+                        </button>
+                      </div>
+                    )}
                     <button
                       title="Rimuovi"
                       className="danger btn-togli"
@@ -792,6 +862,39 @@ export default function SedutaBuilder({
       </section>
 
       <section className="card">
+        {/* Come e' andata, prima delle note: due numeri da 0 a 10 che si
+            possono confrontare seduta dopo seduta. Restano vuoti se non li si
+            chiede: non tutte le sedute vanno misurate. */}
+        <div className="riga-percepito">
+          <label className="field campo-percepito">
+            <span className="nome-percepito">
+              Dolore
+              <Aiuto testo="quanto ha fatto male oggi, da 0 (niente) a 10 (il massimo). è quello che dice il paziente, non quello che vedi tu: serve a confrontare le sedute fra loro." />
+            </span>
+            <select value={dolore} onChange={(e) => setDolore(e.target.value)}>
+              <option value="">—</option>
+              {VOTI.map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field campo-percepito">
+            <span className="nome-percepito">
+              Sforzo
+              <Aiuto testo="quanto è stata dura la seduta per lui, da 0 (niente) a 10 (massimo sforzo). due sedute con gli stessi carichi possono costare molto diverso, e questo numero te lo dice." />
+            </span>
+            <select value={sforzo} onChange={(e) => setSforzo(e.target.value)}>
+              <option value="">—</option>
+              {VOTI.map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
         <label className="field note-seduta">
           Note della seduta
           <textarea

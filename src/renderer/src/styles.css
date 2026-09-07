@@ -4644,8 +4644,57 @@ textarea {
 .righe-seduta li {
   display: flex;
   align-items: center;
+  /* La riga dell'ultima volta va a capo sotto ai numeri di oggi. */
+  flex-wrap: wrap;
   gap: 8px;
   padding: 6px 8px;
+}
+
+/* Cosa aveva fatto l'ultima volta: una riga sola sotto all'esercizio, scritta
+   piccola perche' e' un riferimento, non un dato da compilare. */
+.ultima-volta {
+  flex: 1 0 100%;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  /* rientrata quanto la maniglia, cosi' cade sotto al nome */
+  margin-left: 30px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.ultima-quando {
+  text-transform: lowercase;
+}
+
+.ultima-dose {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.ultima-volta .btn-piccolo {
+  padding: 2px 8px;
+  font-size: 13px;
+}
+
+/* Dolore e sforzo percepito, sopra alle note: due caselline strette, il resto
+   della riga vuoto. Sono numeri, non un testo da scrivere. */
+.riga-percepito {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.campo-percepito select {
+  width: 84px;
+}
+
+.nome-percepito {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .righe-seduta .maniglia-riga button {

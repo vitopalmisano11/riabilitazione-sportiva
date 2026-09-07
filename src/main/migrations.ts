@@ -833,6 +833,16 @@ const MIGRATIONS: string[] = [
   //      scrive lo sceglie sul momento — l'app suggerisce quelli gia' usati.
   `
   ALTER TABLE sedute ADD COLUMN focus TEXT;
+  `,
+
+  // 33 - come e' andata la seduta: il dolore e lo sforzo percepito, da 0 a 10.
+  //      Due numeri e non una frase nelle note, perche' il senso e' poterli
+  //      confrontare: sapere che oggi il dolore e' 3 dove un mese fa era 7 e'
+  //      un dato clinico, "andava meglio" no. Restano vuoti se non li si
+  //      compila: non tutte le sedute vanno misurate.
+  `
+  ALTER TABLE sedute ADD COLUMN dolore INTEGER;
+  ALTER TABLE sedute ADD COLUMN sforzo INTEGER;
   `
 ]
 

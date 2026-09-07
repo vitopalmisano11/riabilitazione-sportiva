@@ -185,6 +185,8 @@ const api: Api = {
     list: (pazienteId: number) => invoke('sedute:list', pazienteId),
     settimana: (dal: string, al: string) => invoke('sedute:settimana', dal, al),
     focusUsati: () => invoke('sedute:focusUsati'),
+    ultimaVolta: (pazienteId: number, escludi: number | null) =>
+      invoke('sedute:ultimaVolta', pazienteId, escludi),
     get: (id: number) => invoke('sedute:get', id),
     create: (data: SedutaInput) => invoke('sedute:create', data),
     update: (id: number, data: SedutaInput) => invoke('sedute:update', id, data),

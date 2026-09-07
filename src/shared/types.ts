@@ -178,6 +178,9 @@ export interface SedutaInput {
   fase_id: number | null
   // Di cosa e' fatta questa giornata: "preparazione corsa", "salti", "potenza".
   focus: string | null
+  // Come e' andata: dolore e sforzo percepito da 0 a 10, se li si e' chiesti.
+  dolore: number | null
+  sforzo: number | null
   note: string | null
   sezioni: SedutaSezioneInput[]
   esercizi: SedutaEsercizioInput[]
@@ -204,11 +207,25 @@ export interface EsitoArchivio {
   sedute: number
 }
 
+// Com'era dosato un esercizio l'ultima volta che quel paziente l'ha fatto.
+export interface UltimaVolta {
+  esercizio_id: number
+  data: string
+  serie: string | null
+  cluster: string | null
+  ripetizioni: string | null
+  carico: string | null
+  recupero_cluster: string | null
+  recupero: string | null
+}
+
 export interface SedutaRiepilogo {
   id: number
   paziente_id: number
   data: string
   focus: string | null
+  dolore: number | null
+  sforzo: number | null
   fase_nome: string | null
   // 1 se la seduta e' stata costruita su una fase del percorso al campo.
   fase_campo: 0 | 1
@@ -238,6 +255,8 @@ export interface SedutaDettaglio {
   fase_id: number | null
   fase_nome: string | null
   focus: string | null
+  dolore: number | null
+  sforzo: number | null
   note: string | null
   sezioni: SedutaSezioneDettaglio[]
 }
@@ -949,6 +968,11 @@ export interface Api {
     // I focus gia' usati, dal piu' recente: si suggeriscono invece di
     // riscriverli.
     focusUsati(): Promise<string[]>
+    // L'ultima volta che questo paziente ha fatto ciascun esercizio, con i
+    // numeri di quella volta. Serve a decidere la progressione guardando il
+    // dato invece che a memoria. `escludi` e' la seduta che si sta
+    // modificando: se stessa non e' "l'ultima volta".
+    ultimaVolta(pazienteId: number, escludi: number | null): Promise<UltimaVolta[]>
     // Le sedute di tutti i pazienti fra due date, per la settimana.
     settimana(dal: string, al: string): Promise<SedutaSettimana[]>
     get(id: number): Promise<SedutaDettaglio>

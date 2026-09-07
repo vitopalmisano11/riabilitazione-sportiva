@@ -95,6 +95,7 @@ import {
 } from './valutazione'
 import type { Tema } from '../shared/temi'
 import { seduteDellaSettimana } from './settimana'
+import { ultimaVoltaPerPaziente } from './ultima-volta'
 import type {
   TipoChart,
   AnamnesiProssima,
@@ -1015,7 +1016,7 @@ export function registerIpc(): void {
   handle('sedute:list', (pazienteId: number) =>
     getDb()
       .prepare(
-        `SELECT s.id, s.paziente_id, s.data, s.focus, f.nome AS fase_nome,
+        `SELECT s.id, s.paziente_id, s.data, s.focus, s.dolore, s.sforzo, f.nome AS fase_nome,
            COALESCE(f.campo, 0) AS fase_campo, s.note,
            (SELECT COUNT(*) FROM seduta_esercizi se WHERE se.seduta_id = s.id) AS num_esercizi,
            (SELECT GROUP_CONCAT(o.nome, ' · ')
@@ -1040,6 +1041,11 @@ export function registerIpc(): void {
         )
         .all() as { focus: string }[]
     ).map((r) => r.focus)
+  )
+  // Com'era dosato ogni esercizio l'ultima volta che questo paziente l'ha
+  // fatto: la query sta in un file suo, cosi' il test la puo' eseguire.
+  handle('sedute:ultimaVolta', (pazienteId: number, escludi: number | null) =>
+    ultimaVoltaPerPaziente(pazienteId, escludi)
   )
   handle('sedute:get', (id: number) => {
     const db = getDb()
@@ -1088,9 +1094,18 @@ export function registerIpc(): void {
     return db.transaction(() => {
       const sid = db
         .prepare(
-          'INSERT INTO sedute (paziente_id, data, fase_id, focus, note) VALUES (?, ?, ?, ?, ?)'
+          `INSERT INTO sedute (paziente_id, data, fase_id, focus, dolore, sforzo, note)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`
         )
-        .run(input.paziente_id, input.data, input.fase_id, input.focus, input.note).lastInsertRowid
+        .run(
+          input.paziente_id,
+          input.data,
+          input.fase_id,
+          input.focus,
+          input.dolore,
+          input.sforzo,
+          input.note
+        ).lastInsertRowid
       insertFigliSeduta(sid, input)
       return Number(sid)
     })()
@@ -1139,6 +1154,10 @@ export function registerIpc(): void {
           data,
           fase_id: sorgente.fase_id,
           focus: sorgente.focus,
+          // Dolore e sforzo non si copiano: sono come e' andata quella volta,
+          // non qualcosa da programmare.
+          dolore: null,
+          sforzo: null,
           note: sorgente.note,
           sezioni: sezioni.map((z) => ({ sezione_id: z.sezione_id, nome: z.nome })),
           esercizi: esercizi.map((e) => ({
@@ -1167,10 +1186,15 @@ export function registerIpc(): void {
   handle('sedute:update', (id: number, input: SedutaInput) => {
     const db = getDb()
     db.transaction(() => {
-      db.prepare('UPDATE sedute SET data = ?, fase_id = ?, focus = ?, note = ? WHERE id = ?').run(
+      db.prepare(
+        `UPDATE sedute SET data = ?, fase_id = ?, focus = ?, dolore = ?, sforzo = ?, note = ?
+         WHERE id = ?`
+      ).run(
         input.data,
         input.fase_id,
         input.focus,
+        input.dolore,
+        input.sforzo,
         input.note,
         id
       )
