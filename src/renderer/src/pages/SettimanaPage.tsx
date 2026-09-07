@@ -189,13 +189,12 @@ Finisce nel cestino: puoi rimetterla a posto da Impostazioni entro un mese.`
                       <button className="briciola nome-nel-titolo" onClick={() => onApriPaziente(s.paziente_id)}>
                         {s.paziente}
                       </button>
-                      {/* Prima da dove viene la seduta, poi il focus in
-                          evidenza, poi quanto e' lunga: il focus sta in mezzo
-                          perche' e' quello che distingue due sedute uguali. */}
+                      {/* Il focus della seduta si legge nella scheda del
+                          paziente, non qui: qui serve sapere chi viene e
+                          quanto dura. */}
                       <span className="seduta-meta">
                         {prima(s)}
-                        {s.focus && <span className="seduta-focus">{s.focus}</span>}
-                        {prima(s) || s.focus ? ' · ' : ''}
+                        {prima(s) ? ' · ' : ''}
                         {dopo(s, oggi)}
                       </span>
                     </div>
