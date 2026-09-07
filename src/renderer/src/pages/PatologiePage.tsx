@@ -11,6 +11,7 @@ import type {
   TestAvanzamento
 } from '../../../shared/types'
 import CrudList from '../components/CrudList'
+import Aiuto from '../components/Aiuto'
 import { sposta, useRiordino } from '../riordino'
 import { toastErrore } from '../components/Toast'
 import { chiedi } from '../components/Conferma'
@@ -408,16 +409,14 @@ function Step2Fasi({
       {patologia.ha_campo === 1 && (
         <>
           <div className="sotto-titolo riga-con-pulsante">
-            Fasi al campo
+            <span className="nome-interruttore">
+              Fasi al campo
+              <Aiuto testo="Il programma che va in parallelo a quello in palestra. Queste fasi non entrano nell'avanzamento e non si scelgono come fase corrente: si usano creando una seduta e mettendola su “Campo”." />
+            </span>
             <button onClick={() => setNuova('campo')}>
               <Plus size={16} /> Aggiungi fase
             </button>
           </div>
-          <p className="hint">
-            Il programma che va in parallelo a quello in palestra. Queste fasi non entrano
-            nell&apos;avanzamento e non si scelgono come fase corrente: si usano creando una seduta
-            e mettendola su &ldquo;Campo&rdquo;.
-          </p>
           <ElencoFasi fasi={delCampo} onSelect={onSelect} onChanged={onChanged} />
         </>
       )}
@@ -663,11 +662,8 @@ function ObiettiviTab({ faseId }: { faseId: number }): React.JSX.Element {
 
   return (
     <div>
-      <p className="hint tab-hint">
-        Gli obiettivi si spuntano come &ldquo;raggiunti&rdquo; nella scheda del paziente, non a
-        ogni seduta.
-      </p>
       <CrudList
+        aiuto="Gli obiettivi si spuntano come “raggiunti” nella scheda del paziente, non a ogni seduta."
         title="Obiettivi della fase"
         items={obiettivi}
         onAdd={async (n) => {
@@ -708,13 +704,10 @@ function TestTab({ faseId }: { faseId: number }): React.JSX.Element {
 
   return (
     <div>
-      <p className="hint tab-hint">
-        Checklist informativa per il passaggio alla fase successiva (opzionale, non blocca
-        l&apos;avanzamento). Indica l&apos;unità di misura nel nome, es. &ldquo;Hop test
-        (cm)&rdquo;.
-      </p>
+
       <CrudList
         title="Test di avanzamento"
+        aiuto="Checklist informativa per il passaggio alla fase successiva: è facoltativa e non blocca l'avanzamento. Indica l'unità di misura nel nome, per esempio “Hop test (cm)”."
         items={tests}
         onAdd={async (n) => {
           await window.api.testAvanzamento.create(faseId, n)

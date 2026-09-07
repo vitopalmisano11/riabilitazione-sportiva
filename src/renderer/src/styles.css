@@ -909,9 +909,6 @@ button.danger:hover:not(:disabled) {
   margin: 0;
 }
 
-.tab-hint {
-  margin: 0 0 12px !important;
-}
 
 .obiettivo-raggiunto {
   text-decoration: line-through;

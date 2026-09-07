@@ -207,7 +207,10 @@ export function generaHtml(
   /* La tabella della seduta: la stessa che il paziente vede a schermo. Niente
      griglia di bordi, solo una riga sottile fra un esercizio e l'altro. */
   table.tabella-scheda { width: 100%; border-collapse: collapse; page-break-inside: auto; }
-  table.tabella-scheda th { border: none; border-bottom: 1.5px solid #ccd2da; padding: 0 8px 4px;
+  /* La riga dei titoli non ha sfondo: colorata come la fascetta della sezione
+     le due cose si confondevano. Restano il maiuscolo e il colore chiaro. */
+  table.tabella-scheda th { background: none; border: none;
+                            border-bottom: 1.5px solid #ccd2da; padding: 0 8px 4px;
                             font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em;
                             color: #6b7280; text-align: center; white-space: nowrap; }
   table.tabella-scheda th:first-child { text-align: left; }
