@@ -935,6 +935,15 @@ assert.equal(
   assert.equal(daQuando(null), null)
   assert.equal(daQuando(giorniFa(3)), 'meno di una settimana')
   assert.equal(daQuando(giorniFa(7)), '1 settimana')
+  // Date fisse, che non dipendono da che giorno e' oggi. Il caso che si e'
+  // rotto davvero: dal 31 agosto al 7 settembre e' una settimana, ma sommando
+  // i mesi a mano il 31 agosto scivolava al 1 settembre e ne mancava uno.
+  assert.equal(daQuando('2026-08-31', new Date(2026, 8, 7)), '1 settimana')
+  assert.equal(daQuando('2026-01-31', new Date(2026, 1, 28)), '4 settimane')
+  assert.equal(daQuando('2026-03-15', new Date(2026, 8, 7)), '5 mesi e 3 settimane')
+  assert.equal(daQuando('2026-09-07', new Date(2026, 8, 7)), 'meno di una settimana')
+  // una data nel futuro non si conta
+  assert.equal(daQuando('2026-09-08', new Date(2026, 8, 7)), null)
   // Il caso che si e' rotto davvero: appena passata la mezzanotte, con le date
   // lette come ore di Greenwich mancava sempre un giorno all'appello.
   assert.equal(daQuando(giorniFa(14)), '2 settimane')

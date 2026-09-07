@@ -31,25 +31,33 @@ function mezzanotteLocale(data: string): Date {
 // settimane". E' il modo in cui si ragiona in riabilitazione — i protocolli
 // parlano di settimane, non di giorni — quindi i giorni che avanzano si
 // buttano via, arrotondando per difetto alla settimana.
-export function daQuando(data: string | null): string | null {
+export function daQuando(data: string | null, riferimento?: Date): string | null {
   if (!data) return null
   const inizio = mezzanotteLocale(data)
   if (Number.isNaN(inizio.getTime())) return null
   // Si contano giorni interi: da che ora e' adesso non deve dipendere niente.
-  const oggi = new Date()
+  // Il riferimento si puo' passare per provare la funzione su date fisse.
+  const oggi = new Date(riferimento ?? new Date())
   oggi.setHours(0, 0, 0, 0)
   if (inizio > oggi) return null
 
-  // Mesi interi: si conta il salto di mese, e si toglie uno se il giorno del
-  // mese non e' ancora arrivato.
-  let mesi = (oggi.getFullYear() - inizio.getFullYear()) * 12 + (oggi.getMonth() - inizio.getMonth())
-  const stessoGiorno = new Date(inizio)
-  stessoGiorno.setMonth(inizio.getMonth() + mesi)
-  if (stessoGiorno > oggi) {
-    mesi -= 1
-    stessoGiorno.setMonth(stessoGiorno.getMonth() - 1)
-  }
+  // Mesi interi: quanti mesi sono passati, meno uno se il giorno del mese non
+  // e' ancora arrivato.
+  let mesi =
+    (oggi.getFullYear() - inizio.getFullYear()) * 12 + (oggi.getMonth() - inizio.getMonth())
+  if (oggi.getDate() < inizio.getDate()) mesi -= 1
   if (mesi < 0) return null
+
+  // La data "stesso giorno, mesi dopo", senza farsi scavalcare dai mesi corti:
+  // il 31 agosto piu' un mese non e' il 31 settembre (non esiste), e sommando
+  // i mesi a mano JavaScript scivolerebbe al 1 ottobre falsando il conto.
+  const stessoGiorno = new Date(inizio.getFullYear(), inizio.getMonth() + mesi, 1)
+  const ultimoDelMese = new Date(
+    stessoGiorno.getFullYear(),
+    stessoGiorno.getMonth() + 1,
+    0
+  ).getDate()
+  stessoGiorno.setDate(Math.min(inizio.getDate(), ultimoDelMese))
 
   const giorni = Math.floor((oggi.getTime() - stessoGiorno.getTime()) / 86400000)
   const settimane = Math.floor(giorni / 7)
