@@ -13,6 +13,8 @@ export interface SedutaSettimana {
   data: string
   paziente_id: number
   paziente: string
+  // Di cosa e' fatta la giornata: si legge nella riga, accanto alla fase.
+  focus: string | null
   fase_nome: string | null
   // 1 se la seduta e' del percorso al campo: nella settimana si riconosce.
   fase_campo: 0 | 1
@@ -22,7 +24,7 @@ export interface SedutaSettimana {
 export function seduteDellaSettimana(dal: string, al: string): SedutaSettimana[] {
   return getDb()
     .prepare(
-      `SELECT s.id, s.data, s.paziente_id,
+      `SELECT s.id, s.data, s.paziente_id, s.focus,
               p.cognome || ' ' || p.nome AS paziente,
               f.nome AS fase_nome, COALESCE(f.campo, 0) AS fase_campo,
               (SELECT COUNT(*) FROM seduta_esercizi se WHERE se.seduta_id = s.id) AS num_esercizi

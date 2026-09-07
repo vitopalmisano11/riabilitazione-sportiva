@@ -144,6 +144,13 @@ export default function App(): React.JSX.Element {
   const vaiA = (s: Sezione): void => {
     setSezione(s)
     setTornaAllElenco((n) => n + 1)
+    // Si dimentica anche il paziente che si era chiesto di aprire da un'altra
+    // sezione. Restava li' anche dopo, e siccome la pagina dei pazienti la si
+    // chiude e riapre passando da un'altra voce del menu, quella richiesta
+    // vecchia veniva eseguita di nuovo: si premeva "Pazienti e sedute" e si
+    // finiva dentro alla scheda dell'ultimo paziente invece che nell'elenco.
+    setApriPaziente(null)
+    setTornaA(null)
   }
   // Richiesta di aprire la scheda di un paziente da un'altra sezione. Il numero
   // progressivo serve a far scattare l'apertura anche se si richiede due volte

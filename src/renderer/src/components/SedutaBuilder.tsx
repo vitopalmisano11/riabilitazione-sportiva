@@ -34,6 +34,7 @@ interface SezioneBuilder {
 interface BozzaSeduta {
   data: string
   faseId: number | null
+  focus?: string
   note: string
   sezioni: SezioneBuilder[]
 }
@@ -48,6 +49,10 @@ export default function SedutaBuilder({
   const [data, setData] = useState(oggiIso())
   const [faseId, setFaseId] = useState<number | null>(paziente.fase_corrente_id)
   const [faseNome, setFaseNome] = useState<string | null>(paziente.fase_nome)
+  // Di cosa e' fatta la giornata. Testo libero, con i suggerimenti di quelli
+  // gia' usati.
+  const [focus, setFocus] = useState('')
+  const [focusUsati, setFocusUsati] = useState<string[]>([])
   const [note, setNote] = useState('')
   const [sezioni, setSezioni] = useState<SezioneBuilder[]>([])
   const [obiettivi, setObiettivi] = useState<Obiettivo[]>([])
@@ -70,24 +75,27 @@ export default function SedutaBuilder({
   useEffect(() => {
     void (async () => {
       try {
-        const [lib, cats, ragg, elencoFasi] = await Promise.all([
+        const [lib, cats, ragg, elencoFasi, usati] = await Promise.all([
           window.api.esercizi.list(false),
           window.api.categorie.list(),
           window.api.pazienti.obiettiviRaggiunti(paziente.id),
           paziente.patologia_id == null
             ? Promise.resolve([] as Fase[])
-            : window.api.fasi.list(paziente.patologia_id)
+            : window.api.fasi.list(paziente.patologia_id),
+          window.api.sedute.focusUsati()
         ])
         setLibreria(lib)
         setCategorie(cats)
         setRaggiunti(ragg)
         setFasi(elencoFasi)
+        setFocusUsati(usati)
 
         let fase = paziente.fase_corrente_id
         let faseN: string | null = paziente.fase_nome
         if (sedutaId != null) {
           const s = await window.api.sedute.get(sedutaId)
           setData(s.data)
+          setFocus(s.focus ?? '')
           setNote(s.note ?? '')
           setSezioni(s.sezioni.map((sz) => ({ ...sz, righe: sz.esercizi })))
           fase = s.fase_id
@@ -95,6 +103,7 @@ export default function SedutaBuilder({
         } else if (duplicaDa != null) {
           const s = await window.api.sedute.get(duplicaDa)
           setSezioni(s.sezioni.map((sz) => ({ ...sz, righe: sz.esercizi })))
+          setFocus(s.focus ?? '')
         }
         setFaseId(fase)
         setFaseNome(faseN)
@@ -124,6 +133,7 @@ export default function SedutaBuilder({
             if (await chiedi(`C'è una seduta lasciata a metà il ${etichetta}. Vuoi riprenderla?`)) {
               const salvata = JSON.parse(bozza.contenuto) as BozzaSeduta
               setData(salvata.data)
+              setFocus(salvata.focus ?? '')
               setNote(salvata.note)
               setSezioni(salvata.sezioni)
               if (salvata.faseId != null) fase = salvata.faseId
@@ -297,13 +307,13 @@ export default function SedutaBuilder({
   // sedute nuove — quelle gia' salvate sono gia' al sicuro nel loro posto.
   useEffect(() => {
     if (!pronto || sedutaId != null) return
-    if (totaleEsercizi === 0 && note.trim() === '') return
-    const bozza: BozzaSeduta = { data, faseId, note, sezioni }
+    if (totaleEsercizi === 0 && note.trim() === '' && focus.trim() === '') return
+    const bozza: BozzaSeduta = { data, faseId, focus, note, sezioni }
     const attesa = setTimeout(() => {
       void window.api.bozze.salva(paziente.id, JSON.stringify(bozza)).catch(() => undefined)
     }, 1000)
     return () => clearTimeout(attesa)
-  }, [pronto, sedutaId, paziente.id, data, faseId, note, sezioni, totaleEsercizi])
+  }, [pronto, sedutaId, paziente.id, data, faseId, focus, note, sezioni, totaleEsercizi])
 
   // Esc annulla, Ctrl+S salva: la seduta si compila con la tastiera, senza
   // tornare col mouse in fondo alla finestra.
@@ -337,6 +347,7 @@ export default function SedutaBuilder({
       paziente_id: paziente.id,
       data,
       fase_id: faseId,
+      focus: focus.trim() || null,
       note: note.trim() || null,
       sezioni: sezioni.map((s) => ({ sezione_id: s.sezione_id, nome: s.nome })),
       esercizi: sezioni.flatMap((s, i) =>
@@ -356,6 +367,11 @@ export default function SedutaBuilder({
     try {
       if (sedutaId == null) await window.api.sedute.create(input)
       else await window.api.sedute.update(sedutaId, input)
+      // Salvata la seduta, la bozza non serve piu' e va tolta subito. Restando
+      // li' veniva riproposta ("c'e' una seduta lasciata a meta'") alla seduta
+      // nuova successiva dello stesso paziente, anche se non si era perso
+      // niente: la seduta di prima era salvata benissimo.
+      await window.api.bozze.elimina(paziente.id).catch(() => undefined)
       onClose(true)
     } catch (e) {
       toastErrore(errMsg(e))
@@ -436,6 +452,24 @@ export default function SedutaBuilder({
           <label className="field data-field">
             Data
             <input type="date" value={data} onChange={(e) => setData(e.target.value)} />
+          </label>
+          {/* Il focus della giornata: due sedute della stessa fase possono
+              essere due cose diverse, e nell'elenco si distinguono da qui.
+              Si scrive a mano, ma quelli gia' usati si ripropongono. */}
+          <label className="field focus-field">
+            Focus
+            <input
+              type="text"
+              list="focus-usati"
+              placeholder="es. preparazione corsa"
+              value={focus}
+              onChange={(e) => setFocus(e.target.value)}
+            />
+            <datalist id="focus-usati">
+              {focusUsati.map((f) => (
+                <option key={f} value={f} />
+              ))}
+            </datalist>
           </label>
           <button onClick={() => void annulla()}>Annulla</button>
           <button className="primary" onClick={() => void salva()}>

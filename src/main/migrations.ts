@@ -824,6 +824,15 @@ const MIGRATIONS: string[] = [
   `
   ALTER TABLE patologie ADD COLUMN ha_campo INTEGER NOT NULL DEFAULT 0;
   ALTER TABLE fasi ADD COLUMN campo INTEGER NOT NULL DEFAULT 0;
+  `,
+
+  // 32 - il focus della seduta. Due sedute della stessa fase possono essere
+  //      due giornate diverse ("preparazione corsa", "salti", "potenza"), e
+  //      nell'elenco si distinguevano solo dalla data. E' testo libero e non
+  //      un elenco da configurare: cambia da paziente a paziente, e chi lo
+  //      scrive lo sceglie sul momento — l'app suggerisce quelli gia' usati.
+  `
+  ALTER TABLE sedute ADD COLUMN focus TEXT;
   `
 ]
 

@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
-import { CalendarDays, ChevronLeft, ChevronRight, Pencil, Plus, Trash2 } from 'lucide-react'
+import {
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  Pencil,
+  Plus,
+  Presentation,
+  Trash2
+} from 'lucide-react'
 import AggiungiAlGiorno from '../components/AggiungiAlGiorno'
 import type { SedutaSettimana } from '../../../shared/types'
 import { toastErrore } from '../components/Toast'
@@ -48,6 +56,18 @@ function intestazioneSettimana(lunedi: Date): string {
   const inizio = stessoMese ? `${lunedi.getDate()}` : `${lunedi.getDate()} ${MESI[lunedi.getMonth()]}`
   return `${inizio} – ${domenica.getDate()} ${MESI[domenica.getMonth()]} ${domenica.getFullYear()}`
 }
+
+// Quello che si legge accanto al nome, prima e dopo il focus.
+const prima = (s: SedutaSettimana): string =>
+  [s.fase_campo === 1 ? 'al campo' : null, s.fase_nome].filter(Boolean).join(' · ')
+
+const dopo = (s: SedutaSettimana, oggi: string): string =>
+  [
+    `${s.num_esercizi} ${s.num_esercizi === 1 ? 'esercizio' : 'esercizi'}`,
+    s.data > oggi ? 'programmata' : null
+  ]
+    .filter(Boolean)
+    .join(' · ')
 
 export default function SettimanaPage({
   onApriPaziente,
@@ -169,21 +189,28 @@ Finisce nel cestino: puoi rimetterla a posto da Impostazioni entro un mese.`
                       <button className="briciola nome-nel-titolo" onClick={() => onApriPaziente(s.paziente_id)}>
                         {s.paziente}
                       </button>
+                      {/* Prima da dove viene la seduta, poi il focus in
+                          evidenza, poi quanto e' lunga: il focus sta in mezzo
+                          perche' e' quello che distingue due sedute uguali. */}
                       <span className="seduta-meta">
-                        {[
-                          s.fase_campo === 1 ? 'al campo' : null,
-                          s.fase_nome,
-                          `${s.num_esercizi} ${s.num_esercizi === 1 ? 'esercizio' : 'esercizi'}`,
-                          s.data > oggi ? 'programmata' : null
-                        ]
-                          .filter(Boolean)
-                          .join(' · ')}
+                        {prima(s)}
+                        {s.focus && <span className="seduta-focus">{s.focus}</span>}
+                        {prima(s) || s.focus ? ' · ' : ''}
+                        {dopo(s, oggi)}
                       </span>
                     </div>
-                    {/* Il nome porta alla scheda, questo alla seduta: appena
-                        preparata la si vuole ritoccare, non cercarla nel
-                        diario del paziente. */}
+                    {/* Il nome porta alla scheda, questi alla seduta: appena
+                        preparata la si vuole mostrare o ritoccare, non cercarla
+                        nel diario del paziente. */}
                     <span className="row-actions">
+                      <button
+                        title="Mostra la scheda al paziente (si apre in una finestra a parte)"
+                        onClick={() =>
+                          void window.api.scheda.apri(s.id).catch((e) => toastErrore(errMsg(e)))
+                        }
+                      >
+                        <Presentation size={16} />
+                      </button>
                       <button
                         title="Apri la seduta"
                         onClick={() => onApriSeduta(s.paziente_id, s.id)}

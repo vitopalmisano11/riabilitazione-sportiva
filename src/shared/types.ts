@@ -176,6 +176,8 @@ export interface SedutaInput {
   paziente_id: number
   data: string
   fase_id: number | null
+  // Di cosa e' fatta questa giornata: "preparazione corsa", "salti", "potenza".
+  focus: string | null
   note: string | null
   sezioni: SedutaSezioneInput[]
   esercizi: SedutaEsercizioInput[]
@@ -188,6 +190,7 @@ export interface SedutaSettimana {
   data: string
   paziente_id: number
   paziente: string
+  focus: string | null
   fase_nome: string | null
   fase_campo: 0 | 1
   num_esercizi: number
@@ -205,6 +208,7 @@ export interface SedutaRiepilogo {
   id: number
   paziente_id: number
   data: string
+  focus: string | null
   fase_nome: string | null
   // 1 se la seduta e' stata costruita su una fase del percorso al campo.
   fase_campo: 0 | 1
@@ -233,6 +237,7 @@ export interface SedutaDettaglio {
   data: string
   fase_id: number | null
   fase_nome: string | null
+  focus: string | null
   note: string | null
   sezioni: SedutaSezioneDettaglio[]
 }
@@ -941,6 +946,9 @@ export interface Api {
   }
   sedute: {
     list(pazienteId: number): Promise<SedutaRiepilogo[]>
+    // I focus gia' usati, dal piu' recente: si suggeriscono invece di
+    // riscriverli.
+    focusUsati(): Promise<string[]>
     // Le sedute di tutti i pazienti fra due date, per la settimana.
     settimana(dal: string, al: string): Promise<SedutaSettimana[]>
     get(id: number): Promise<SedutaDettaglio>

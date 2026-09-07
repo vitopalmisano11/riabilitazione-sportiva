@@ -63,7 +63,7 @@ db.pragma('foreign_keys = ON')
 
 runMigrations(db)
 runMigrations(db) // idempotente
-assert.equal(db.pragma('user_version', { simple: true }), 31)
+assert.equal(db.pragma('user_version', { simple: true }), 32)
 
 const count = (table: string): number =>
   (db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n
@@ -708,7 +708,10 @@ assert.equal(
     Number(c.prepare(sql).run(...a).lastInsertRowid)
   const pz1 = ins("INSERT INTO pazienti (nome, cognome) VALUES ('Anna', 'Bianchi')")
   const pz2 = ins("INSERT INTO pazienti (nome, cognome) VALUES ('Marco', 'Rossi')")
-  ins("INSERT INTO sedute (paziente_id, data) VALUES (?, '2026-10-05')", pz1)
+  ins(
+    "INSERT INTO sedute (paziente_id, data, focus) VALUES (?, '2026-10-05', 'preparazione corsa')",
+    pz1
+  )
   ins("INSERT INTO sedute (paziente_id, data) VALUES (?, '2026-10-07')", pz2)
   // fuori dalla settimana chiesta: non deve comparire
   ins("INSERT INTO sedute (paziente_id, data) VALUES (?, '2026-10-13')", pz1)
@@ -734,6 +737,9 @@ assert.equal(
   assert.equal(sett[0].paziente, 'Bianchi Anna')
   assert.equal(sett[1].paziente, 'Rossi Marco')
   assert.equal(typeof sett[0].num_esercizi, 'number')
+  // il focus della giornata arriva fino alla riga della settimana
+  assert.equal(sett[0].focus, 'preparazione corsa')
+  assert.equal(sett[1].focus, null)
 }
 
 // --- Controllo dell'archivio: un database sano lo dice ---

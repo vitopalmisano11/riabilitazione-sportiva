@@ -1015,7 +1015,7 @@ export function registerIpc(): void {
   handle('sedute:list', (pazienteId: number) =>
     getDb()
       .prepare(
-        `SELECT s.id, s.paziente_id, s.data, f.nome AS fase_nome,
+        `SELECT s.id, s.paziente_id, s.data, s.focus, f.nome AS fase_nome,
            COALESCE(f.campo, 0) AS fase_campo, s.note,
            (SELECT COUNT(*) FROM seduta_esercizi se WHERE se.seduta_id = s.id) AS num_esercizi,
            (SELECT GROUP_CONCAT(o.nome, ' · ')
@@ -1027,6 +1027,19 @@ export function registerIpc(): void {
          ORDER BY s.data DESC, s.id DESC`
       )
       .all(pazienteId)
+  )
+  // I focus gia' scritti, dal piu' usato di recente: si ripropongono mentre si
+  // scrive, cosi' "preparazione corsa" si scrive una volta sola.
+  handle('sedute:focusUsati', () =>
+    (
+      getDb()
+        .prepare(
+          `SELECT focus FROM sedute
+           WHERE focus IS NOT NULL AND TRIM(focus) <> ''
+           GROUP BY focus ORDER BY MAX(data) DESC, MAX(id) DESC LIMIT 30`
+        )
+        .all() as { focus: string }[]
+    ).map((r) => r.focus)
   )
   handle('sedute:get', (id: number) => {
     const db = getDb()
@@ -1074,8 +1087,10 @@ export function registerIpc(): void {
     const db = getDb()
     return db.transaction(() => {
       const sid = db
-        .prepare('INSERT INTO sedute (paziente_id, data, fase_id, note) VALUES (?, ?, ?, ?)')
-        .run(input.paziente_id, input.data, input.fase_id, input.note).lastInsertRowid
+        .prepare(
+          'INSERT INTO sedute (paziente_id, data, fase_id, focus, note) VALUES (?, ?, ?, ?, ?)'
+        )
+        .run(input.paziente_id, input.data, input.fase_id, input.focus, input.note).lastInsertRowid
       insertFigliSeduta(sid, input)
       return Number(sid)
     })()
@@ -1086,7 +1101,7 @@ export function registerIpc(): void {
   handle('sedute:programma', (origineId: number, date: string[]) => {
     const db = getDb()
     const sorgente = db.prepare('SELECT * FROM sedute WHERE id = ?').get(origineId) as
-      | { paziente_id: number; fase_id: number | null; note: string | null }
+      | { paziente_id: number; fase_id: number | null; focus: string | null; note: string | null }
       | undefined
     if (!sorgente) throw new Error('Seduta da copiare non trovata.')
     const sezioni = db
@@ -1114,12 +1129,16 @@ export function registerIpc(): void {
       const create: number[] = []
       for (const data of date) {
         const sid = db
-          .prepare('INSERT INTO sedute (paziente_id, data, fase_id, note) VALUES (?, ?, ?, ?)')
-          .run(sorgente.paziente_id, data, sorgente.fase_id, sorgente.note).lastInsertRowid
+          .prepare(
+            'INSERT INTO sedute (paziente_id, data, fase_id, focus, note) VALUES (?, ?, ?, ?, ?)'
+          )
+          .run(sorgente.paziente_id, data, sorgente.fase_id, sorgente.focus, sorgente.note)
+          .lastInsertRowid
         insertFigliSeduta(sid, {
           paziente_id: sorgente.paziente_id,
           data,
           fase_id: sorgente.fase_id,
+          focus: sorgente.focus,
           note: sorgente.note,
           sezioni: sezioni.map((z) => ({ sezione_id: z.sezione_id, nome: z.nome })),
           esercizi: esercizi.map((e) => ({
@@ -1148,9 +1167,10 @@ export function registerIpc(): void {
   handle('sedute:update', (id: number, input: SedutaInput) => {
     const db = getDb()
     db.transaction(() => {
-      db.prepare('UPDATE sedute SET data = ?, fase_id = ?, note = ? WHERE id = ?').run(
+      db.prepare('UPDATE sedute SET data = ?, fase_id = ?, focus = ?, note = ? WHERE id = ?').run(
         input.data,
         input.fase_id,
+        input.focus,
         input.note,
         id
       )
