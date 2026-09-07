@@ -26,17 +26,19 @@ import { errMsg } from '../lib'
 // c'era. Sono cose che si toccano di rado ma che vanno trovate subito, percio'
 // stanno in una sezione sola, a schede, come la configurazione.
 
-// Due sole schede, divise per domanda: "dove stanno le mie cose e come sono al
-// sicuro" da una parte, "come si comporta l'app con me" dall'altra. Il cestino
-// sta con i dati perche' e' l'ultima rete prima di perderli davvero; il colore
-// sta con la password perche' sono tutte e due preferenze tue, non dell'archivio.
-type Scheda = 'dati' | 'app' | 'profilo'
+// Tre schede, divise per domanda: "chi sono io", "come si comporta l'app con
+// me" e "dove stanno le mie cose e come sono al sicuro". Il cestino sta con i
+// dati perche' e' l'ultima rete prima di perderli davvero; il colore sta con la
+// password perche' sono tutte e due preferenze tue, non dell'archivio.
+type Scheda = 'profilo' | 'app' | 'dati'
 
+// Dall'alto in basso come si scende dal proprio nome all'archivio: prima chi
+// sei, poi come si comporta l'app con te, e in fondo dove stanno le cose e
+// come sono al sicuro.
 const SCHEDE: { key: Scheda; label: string }[] = [
-  { key: 'dati', label: 'Dati e backup' },
+  { key: 'profilo', label: 'Profilo' },
   { key: 'app', label: 'Accesso e aspetto' },
-  // Chi firma i fogli: si compila una volta e non ci si torna piu'.
-  { key: 'profilo', label: 'Profilo' }
+  { key: 'dati', label: 'Dati e backup' }
 ]
 
 export default function ImpostazioniPage({
@@ -60,11 +62,12 @@ export default function ImpostazioniPage({
   ingrandimento: number
   onIngrandimento: (valore: number) => void
 }): React.JSX.Element {
-  const [scheda, setScheda] = useState<Scheda>('dati')
+  // Aprendo Impostazioni si arriva sulla prima scheda, come in configurazione.
+  const [scheda, setScheda] = useState<Scheda>('profilo')
 
   useEffect(() => {
     if (tornaAllInizio === 0) return
-    setScheda('dati')
+    setScheda('profilo')
   }, [tornaAllInizio])
 
   return (
