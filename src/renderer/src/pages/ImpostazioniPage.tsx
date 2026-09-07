@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
 import Aiuto from '../components/Aiuto'
 import type { Tema } from '../../../shared/temi'
-import type { EsitoArchivio, VoceCestino } from '../../../shared/types'
+import type { EsitoArchivio, Profilo, VoceCestino } from '../../../shared/types'
 import { TEMI } from '../../../shared/temi'
 import PannelloBackup from '../components/PannelloBackup'
 import GuidaDati from '../components/GuidaDati'
 import {
   BookOpen,
   FolderOpen,
+  IdCard,
   Minus,
   Plus,
   RotateCcw,
@@ -29,11 +30,13 @@ import { errMsg } from '../lib'
 // sicuro" da una parte, "come si comporta l'app con me" dall'altra. Il cestino
 // sta con i dati perche' e' l'ultima rete prima di perderli davvero; il colore
 // sta con la password perche' sono tutte e due preferenze tue, non dell'archivio.
-type Scheda = 'dati' | 'app'
+type Scheda = 'dati' | 'app' | 'profilo'
 
 const SCHEDE: { key: Scheda; label: string }[] = [
   { key: 'dati', label: 'Dati e backup' },
-  { key: 'app', label: 'Accesso e aspetto' }
+  { key: 'app', label: 'Accesso e aspetto' },
+  // Chi firma i fogli: si compila una volta e non ci si torna piu'.
+  { key: 'profilo', label: 'Profilo' }
 ]
 
 export default function ImpostazioniPage({
@@ -84,6 +87,7 @@ export default function ImpostazioniPage({
           paziente: qui dentro ogni pannello e' una card. */}
       <div className="scheda">
         {scheda === 'dati' && <SchedaDati />}
+        {scheda === 'profilo' && <SchedaProfilo />}
         {scheda === 'app' && (
           <div className="griglia-impostazioni">
             <SchedaPassword />
@@ -337,6 +341,104 @@ function SchedaCestino(): React.JSX.Element {
       )}
       </div>
     </details>
+  )
+}
+
+// Chi firma i fogli stampati: si compila una volta, e da quel momento ogni
+// documento esce con il tuo nome invece che anonimo.
+const CAMPI_PROFILO: { chiave: keyof Profilo; etichetta: string; esempio: string }[] = [
+  { chiave: 'nome', etichetta: 'Nome e cognome', esempio: 'es. Dott. Mario Rossi' },
+  { chiave: 'qualifica', etichetta: 'Qualifica', esempio: 'es. Fisioterapista' },
+  { chiave: 'studio', etichetta: 'Studio', esempio: 'es. Studio di Riabilitazione Sportiva' },
+  { chiave: 'indirizzo', etichetta: 'Indirizzo', esempio: 'es. via Roma 3, Bari' },
+  { chiave: 'telefono', etichetta: 'Telefono', esempio: 'es. 333 1234567' },
+  { chiave: 'email', etichetta: 'Email', esempio: 'es. studio@esempio.it' }
+]
+
+const PROFILO_VUOTO: Profilo = {
+  nome: null,
+  qualifica: null,
+  studio: null,
+  indirizzo: null,
+  telefono: null,
+  email: null
+}
+
+function SchedaProfilo(): React.JSX.Element {
+  const [profilo, setProfilo] = useState<Profilo>(PROFILO_VUOTO)
+  const [salvato, setSalvato] = useState(true)
+
+  useEffect(() => {
+    void window.api.profilo
+      .leggi()
+      .then((p) => setProfilo(p))
+      .catch((e) => toastErrore(errMsg(e)))
+  }, [])
+
+  const cambia = (chiave: keyof Profilo, valore: string): void => {
+    setProfilo({ ...profilo, [chiave]: valore })
+    setSalvato(false)
+  }
+
+  const salva = async (): Promise<void> => {
+    try {
+      await window.api.profilo.salva(profilo)
+      setSalvato(true)
+      toast('Profilo salvato.')
+    } catch (e) {
+      toastErrore(errMsg(e))
+    }
+  }
+
+  // L'anteprima e' la stessa cosa che finisce in cima al foglio: cosi' si vede
+  // subito com'e' venuta, senza stampare per scoprirlo.
+  const chi = [profilo.nome, profilo.qualifica].filter(Boolean).join(' · ')
+  const dove = [profilo.studio, profilo.indirizzo, profilo.telefono, profilo.email]
+    .filter(Boolean)
+    .join(' · ')
+
+  return (
+    <section className="card">
+      <div className="blocco-impostazione">
+        <div className="sotto-titolo">
+          Chi firma i fogli
+          <Aiuto testo="nome, qualifica e contatti compaiono in cima a tutto quello che stampi: schede, cartella e report. lascia vuoto quello che non ti serve, e quella riga non comparirà. i pazienti non lo vedono da nessun'altra parte." />
+        </div>
+        <div className="form-row-2">
+          {CAMPI_PROFILO.map((c) => (
+            <label key={c.chiave} className="field">
+              {c.etichetta}
+              <input
+                type="text"
+                placeholder={c.esempio}
+                value={profilo[c.chiave] ?? ''}
+                onChange={(e) => cambia(c.chiave, e.target.value)}
+              />
+            </label>
+          ))}
+        </div>
+
+        <div className="anteprima-profilo">
+          <span className="hint">Come esce in cima al foglio</span>
+          {chi === '' && dove === '' ? (
+            <p className="hint">
+              Finché è vuoto i fogli escono come adesso, senza intestazione.
+            </p>
+          ) : (
+            <div className="foglio-finto">
+              {chi !== '' && <div className="riga-chi">{chi}</div>}
+              {dove !== '' && <div className="riga-dove">{dove}</div>}
+            </div>
+          )}
+        </div>
+
+        <div className="modal-actions">
+          <button className="primary" disabled={salvato} onClick={() => void salva()}>
+            <IdCard size={16} /> {salvato ? 'Salvato' : 'Salva il profilo'}
+          </button>
+        </div>
+      </div>
+    </section>
   )
 }
 

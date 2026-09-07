@@ -22,6 +22,7 @@ import {
 } from '../src/main/db'
 import { seduteDellaSettimana } from '../src/main/settimana'
 import { ultimaVoltaPerPaziente } from '../src/main/ultima-volta'
+import { leggiProfilo, righeProfilo, salvaProfilo } from '../src/main/profilo'
 import { generaCartella, SEZIONI } from '../src/main/export-cartella'
 import { esportaArchivio } from '../src/main/esporta-archivio'
 import {
@@ -64,7 +65,7 @@ db.pragma('foreign_keys = ON')
 
 runMigrations(db)
 runMigrations(db) // idempotente
-assert.equal(db.pragma('user_version', { simple: true }), 33)
+assert.equal(db.pragma('user_version', { simple: true }), 34)
 
 const count = (table: string): number =>
   (db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n
@@ -741,6 +742,41 @@ assert.equal(
   // il focus della giornata arriva fino alla riga della settimana
   assert.equal(sett[0].focus, 'preparazione corsa')
   assert.equal(sett[1].focus, null)
+}
+
+// --- Chi firma i fogli: l'intestazione dei documenti ---
+{
+  // Senza profilo il foglio esce come prima, senza intestazione.
+  assert.ok(!generaHtml(pazExport, seduteExport).includes('carta-intestata'))
+  salvaProfilo({
+    nome: 'Dott. Mario Rossi',
+    qualifica: 'Fisioterapista',
+    studio: null,
+    indirizzo: 'via Roma 3, Bari',
+    telefono: '333 1234567',
+    email: null
+  })
+  const p = leggiProfilo()
+  assert.equal(p.nome, 'Dott. Mario Rossi')
+  // le caselle lasciate vuote non diventano righe vuote
+  assert.equal(p.studio, null)
+  const { chi, dove } = righeProfilo()
+  assert.equal(chi, 'Dott. Mario Rossi · Fisioterapista')
+  assert.equal(dove, 'via Roma 3, Bari · 333 1234567')
+  const conProfilo = generaHtml(pazExport, seduteExport)
+  assert.ok(conProfilo.includes('carta-intestata'), 'intestazione nel foglio')
+  assert.ok(conProfilo.includes('Dott. Mario Rossi · Fisioterapista'))
+  assert.ok(conProfilo.includes('via Roma 3, Bari · 333 1234567'))
+  // e poi si toglie, cosi' le prove che vengono dopo trovano i fogli com'erano
+  salvaProfilo({
+    nome: null,
+    qualifica: null,
+    studio: null,
+    indirizzo: null,
+    telefono: null,
+    email: null
+  })
+  assert.equal(righeProfilo().chi, '')
 }
 
 // --- L'ultima volta che il paziente ha fatto un esercizio ---

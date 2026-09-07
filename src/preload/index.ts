@@ -11,6 +11,7 @@ import type {
   EsercizioInput,
   PazienteCreateInput,
   PazienteInput,
+  Profilo,
   DistrettoCompleto,
   QuestionarioCompleto,
   SedutaInput,
@@ -81,6 +82,10 @@ const api: Api = {
     blocco: () => invoke('sicurezza:blocco'),
     setBlocco: (b: { attivo: boolean; minuti: number }) => invoke('sicurezza:setBlocco', b),
     verificaPassword: (password: string) => invoke('sicurezza:verificaPassword', password)
+  },
+  profilo: {
+    leggi: () => invoke('profilo:leggi'),
+    salva: (p: Profilo) => invoke('profilo:salva', p)
   },
   registro: {
     ultimi: () => invoke('registro:ultimi'),

@@ -1,6 +1,7 @@
 // Generazione documenti (HTML per il PDF, docx per Word) da dati già letti.
 // Nessuna dipendenza da Electron: testabile con Node (vedi scripts/smoke.ts).
 import { coloriTema } from '../shared/temi'
+import { righeProfilo } from './profilo'
 import {
   caricoTesto,
   recuperoEsteso,
@@ -77,6 +78,24 @@ function infoPaziente(p: DatiPazienteExport): string[] {
 // una foto per esercizio, la spiegazione e il link al video. Le foto stanno
 // tutte in riquadri della stessa misura (ritagliate al centro), altrimenti una
 // verticale e una orizzontale sfalserebbero tutta la pagina.
+// L'intestazione di chi firma, uguale in tutti i documenti: chi sei sopra,
+// come ti si trova sotto, e una riga sottile che la stacca dal contenuto. Se
+// il profilo e' vuoto non esce niente e il foglio resta come prima.
+export function intestazioneHtml(colore: string): string {
+  const { chi, dove } = righeProfilo()
+  if (chi === '' && dove === '') return ''
+  return `<div class="carta-intestata">
+    ${chi ? `<div class="ci-chi">${esc(chi)}</div>` : ''}
+    ${dove ? `<div class="ci-dove">${esc(dove)}</div>` : ''}
+  </div>
+  <style>
+    .carta-intestata { border-bottom: 1px solid ${colore}; padding-bottom: 5px;
+                       margin-bottom: 10px; }
+    .carta-intestata .ci-chi { font-size: 12.5px; font-weight: 600; color: ${colore}; }
+    .carta-intestata .ci-dove { font-size: 10px; color: #6b7280; margin-top: 1px; }
+  </style>`
+}
+
 export function generaHtml(
   p: DatiPazienteExport,
   sedute: DatiSedutaExport[],
@@ -281,6 +300,7 @@ export function generaHtml(
 </style>
 </head>
 <body>
+  ${intestazioneHtml(accento)}
   <h1>${esc(p.cognome)} ${esc(p.nome)}</h1>
   <p class="info">${infoPaziente(p).map(esc).join(' &nbsp;·&nbsp; ')}</p>
   ${sedHtml}
@@ -293,6 +313,18 @@ export async function generaDocx(
   sedute: DatiSedutaExport[]
 ): Promise<Buffer> {
   const children: (Paragraph | Table)[] = []
+
+  // Anche il documento Word esce con l'intestazione di chi firma: chi lo
+  // riceve deve sapere da chi arriva, in qualunque formato.
+  const { chi, dove } = righeProfilo()
+  if (chi !== '') {
+    children.push(new Paragraph({ children: [new TextRun({ text: chi, bold: true })] }))
+  }
+  if (dove !== '') {
+    children.push(
+      new Paragraph({ children: [new TextRun({ text: dove, size: 16, color: '6B7280' })] })
+    )
+  }
 
   children.push(
     new Paragraph({ text: `${p.cognome} ${p.nome}`, heading: HeadingLevel.TITLE })

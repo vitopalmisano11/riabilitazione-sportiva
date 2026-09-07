@@ -843,6 +843,25 @@ const MIGRATIONS: string[] = [
   `
   ALTER TABLE sedute ADD COLUMN dolore INTEGER;
   ALTER TABLE sedute ADD COLUMN sforzo INTEGER;
+  `,
+
+  // 34 - chi firma i fogli. Nome, qualifica e contatti di chi lavora con
+  //      l'app: finiscono in cima a tutto quello che si stampa, che prima
+  //      usciva anonimo. Una riga sola, sempre quella (il vincolo su id lo
+  //      garantisce). Sta nel database e non nel file delle impostazioni
+  //      perche' cosi' segue le copie di sicurezza: rimettendo l'archivio su
+  //      un altro computer l'intestazione c'e' ancora.
+  `
+  CREATE TABLE profilo (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    nome TEXT,
+    qualifica TEXT,
+    studio TEXT,
+    indirizzo TEXT,
+    telefono TEXT,
+    email TEXT
+  );
+  INSERT INTO profilo (id) VALUES (1);
   `
 ]
 

@@ -207,6 +207,16 @@ export interface EsitoArchivio {
   sedute: number
 }
 
+// Chi firma i fogli stampati: compare in cima ai documenti.
+export interface Profilo {
+  nome: string | null
+  qualifica: string | null
+  studio: string | null
+  indirizzo: string | null
+  telefono: string | null
+  email: string | null
+}
+
 // Com'era dosato un esercizio l'ultima volta che quel paziente l'ha fatto.
 export interface UltimaVolta {
   esercizio_id: number
@@ -855,6 +865,11 @@ export interface Api {
     setBlocco(b: { attivo: boolean; minuti: number }): Promise<void>
     // true se la password e' quella giusta; non riapre il database.
     verificaPassword(password: string): Promise<boolean>
+  }
+  // Chi firma i fogli: nome, qualifica e contatti in cima ai documenti.
+  profilo: {
+    leggi(): Promise<Profilo>
+    salva(p: Profilo): Promise<void>
   }
   // Il registro degli errori: solo nomi di operazioni e messaggi, niente dati.
   registro: {

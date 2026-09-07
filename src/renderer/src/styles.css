@@ -4678,6 +4678,31 @@ textarea {
   font-size: 13px;
 }
 
+/* Come esce l'intestazione in cima al foglio: si vede qui invece di doverlo
+   stampare per scoprirlo. */
+.anteprima-profilo {
+  margin-top: var(--spazio);
+}
+
+.foglio-finto {
+  margin-top: 6px;
+  padding: 10px 14px;
+  background: var(--campo);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.foglio-finto .riga-chi {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.foglio-finto .riga-dove {
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
 /* Dolore e sforzo percepito, sopra alle note: due caselline strette, il resto
    della riga vuoto. Sono numeri, non un testo da scrivere. */
 .riga-percepito {

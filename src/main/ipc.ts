@@ -96,6 +96,7 @@ import {
 import type { Tema } from '../shared/temi'
 import { seduteDellaSettimana } from './settimana'
 import { ultimaVoltaPerPaziente } from './ultima-volta'
+import { leggiProfilo, salvaProfilo } from './profilo'
 import type {
   TipoChart,
   AnamnesiProssima,
@@ -107,6 +108,7 @@ import type {
   PazienteCreateInput,
   PazienteDettaglio,
   PazienteInput,
+  Profilo,
   DistrettoCompleto,
   QuestionarioCompleto,
   SedutaInput,
@@ -424,6 +426,10 @@ export function registerIpc(): void {
       return id
     })()
   })
+  // ---- Chi firma i fogli stampati ----
+  handle('profilo:leggi', () => leggiProfilo())
+  handle('profilo:salva', (p: Profilo) => salvaProfilo(p))
+
   // ---- Bozza della seduta in costruzione ----
   handle('bozze:leggi', (pazienteId: number) =>
     getDb()

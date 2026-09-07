@@ -11,6 +11,7 @@
 import { getDb } from './db'
 import { COLORI_SINTOMI } from '../shared/sintomi'
 import { coloriTema } from '../shared/temi'
+import { intestazioneHtml } from './export-doc'
 import {
   ARCO_PROFILO,
   DITA_DORSO,
@@ -1036,6 +1037,7 @@ export function generaCartella(pazienteId: number, sezioni: SezioneCartella[]): 
 </head>
 <body>
 <div class="foglio">
+  ${intestazioneHtml(accento)}
   <h1>${esc(c.cognome)} ${esc(c.nome)}</h1>
   <p class="info">Cartella fisioterapica · stampata il ${data(oggiIso())}</p>
   ${corpo || '<p class="testo">Nessun contenuto nelle sezioni scelte.</p>'}

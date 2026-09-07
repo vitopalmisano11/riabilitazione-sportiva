@@ -10,6 +10,7 @@
 // cui confrontarsi e un riferimento inventato sarebbe peggio di nessuno.
 import { getDb } from './db'
 import { coloriTema } from '../shared/temi'
+import { intestazioneHtml } from './export-doc'
 import { asimmetria, combina, esito, lsi, riassumi } from '../shared/misure'
 import type { MisuraTest, RiassuntoMisura } from '../shared/types'
 
@@ -603,6 +604,7 @@ export function generaReportScreening(sessioneIds: number[]): DatiReport {
   <button onclick="window.print()">Scarica in PDF</button>
 </div>
 <div class="foglio">
+  ${intestazioneHtml(accento)}
   <h1>${esc(s.cognome)} ${esc(s.nome)}</h1>
   <p class="sotto">Screening del ${data(s.data as string)}${
     scelti.length > 1
