@@ -119,6 +119,26 @@ export function generaHtml(
   // programma da portare a casa. Il paziente inesperto legge una cosa per volta,
   // e la foto e la spiegazione stanno vicine.
   let numero = 0
+  // I tre numeri come nella tabella: etichetta piccola sopra, valore sotto.
+  // Cosi' anche con la foto accanto si leggono nello stesso modo del resto.
+  const numeri = (e: DatiSedutaExport['sezioni'][number]['esercizi'][number]): string => {
+    const voci: [string, string | null][] = [
+      ['Serie × rip.', volumeTesto(e)],
+      ['Carico', caricoTesto(e.carico, e.unita_carico)],
+      ['Recupero', recuperoTesto(e)]
+    ]
+    const presenti = voci.filter(([, v]) => v)
+    if (presenti.length === 0) return ''
+    return `<div class="numeri">${presenti
+      .map(
+        ([et, v]) =>
+          `<div class="numero"><span class="et">${esc(et)}</span><span class="val">${esc(
+            String(v)
+          )}</span></div>`
+      )
+      .join('')}</div>`
+  }
+
   const schede = (esercizi: DatiSedutaExport['sezioni'][number]['esercizi']): string => {
     // Il riquadro della foto si tiene anche dove la foto manca, cosi' le righe
     // restano allineate. Ma se in tutta la sezione non ce n'e' nessuna, sarebbe
@@ -127,7 +147,6 @@ export function generaHtml(
     return `<div class="schede">
       ${esercizi
         .map((e) => {
-          const d = dettagli(e)
           numero += 1
           return `<div class="scheda-es">
             ${
@@ -141,7 +160,7 @@ export function generaHtml(
               <span class="num">${numero}</span>
               <div class="corpo">
                 <div class="nome">${esc(e.nome)}</div>
-                ${d ? `<div class="dose">${d}</div>` : ''}
+                ${numeri(e)}
                 ${
                   e.nota_tecnica
                     ? `<div class="come">${esc(e.nota_tecnica).replace(/\n/g, '<br>')}</div>`
@@ -195,9 +214,13 @@ export function generaHtml(
   .info { color: #555b66; margin: 0 0 6px; font-size: 11px; }
   h2 { font-size: 15px; border-bottom: 2px solid ${accento}; padding-bottom: 4px; margin: 18px 0 8px; }
   h2 .fase { color: ${accento}; font-weight: 600; }
-  h3 { font-size: 13px; margin: 14px 0 6px; color: ${accento}; }
-  h3 .fascetta { display: inline-block; background: ${intestazione}; color: ${accento};
-                 border-radius: 999px; padding: 3px 11px; font-size: 11px;
+  h3 { font-size: 13px; margin: 16px 0 7px; color: ${accento}; }
+  /* La fascetta della sezione, come nella finestra che si mostra al paziente:
+     tenue, non un blocco di colore. Sulla carta il beige pieno pesava. */
+  h3 .fascetta { display: inline-block;
+                 background: color-mix(in srgb, ${intestazione} 55%, #fff);
+                 color: ${accento}; border-radius: 999px; padding: 3px 11px;
+                 font-size: 10.5px; font-weight: 600;
                  text-transform: uppercase; letter-spacing: 0.05em; }
   .nuova-pagina { page-break-before: always; }
   .obiettivi { margin: 0 0 8px; }
@@ -241,11 +264,17 @@ export function generaHtml(
      segue (dosaggio, spiegazione) partiva dal bordo del pallino e non dal nome. */
   .scheda-es .testo { flex: 1; min-width: 0; display: flex; gap: 7px; }
   .scheda-es .corpo { flex: 1; min-width: 0; }
-  .scheda-es .nome { font-weight: 700; font-size: 13px; }
+  .scheda-es .nome { font-weight: 600; font-size: 13.5px; }
   .scheda-es .num { flex: 0 0 auto; width: 17px; height: 17px; margin-top: 1px;
                     border-radius: 50%; background: ${accento}; color: #fff; font-size: 10px;
                     text-align: center; line-height: 17px; }
-  .scheda-es .dose { margin-top: 3px; font-weight: 600; }
+  /* I numeri come le colonne della tabella: etichetta piccola in maiuscolo e
+     sotto il valore. */
+  .scheda-es .numeri { display: flex; gap: 18px; margin-top: 5px; }
+  .scheda-es .numero { display: flex; flex-direction: column; }
+  .scheda-es .numero .et { font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em;
+                           color: #6b7280; }
+  .scheda-es .numero .val { font-size: 13px; }
   .scheda-es .come { color: #555b66; margin-top: 4px; }
   .scheda-es .nota-es { color: #555b66; margin-top: 4px; font-style: italic; }
   .scheda-es .video { display: inline-block; margin-top: 6px; color: ${accento}; font-weight: 600; }

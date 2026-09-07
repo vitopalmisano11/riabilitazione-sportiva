@@ -325,9 +325,11 @@ const conFoto = [
 const illustrata = generaHtml(pazExport, conFoto, true)
 assert.ok(illustrata.includes('data:image/png;base64,iVBORw0KGgo='))
 assert.ok(illustrata.includes('Scendi lentamente'))
-// nella scheda illustrata ogni esercizio ha il suo riquadro, e li' il
-// recupero si scrive per esteso: non c'e' nessuna colonna a dire cos'e'
-assert.ok(illustrata.includes('rec. 1 min'), 'recupero esteso nella illustrata')
+// anche nella scheda illustrata i numeri si leggono come le colonne della
+// tabella: etichetta sopra, valore sotto
+assert.ok(illustrata.includes('class="numeri"'), 'numeri incolonnati')
+assert.ok(illustrata.includes('Serie × rip.'), 'etichette dei numeri')
+assert.ok(illustrata.includes('1 min'), 'il valore del recupero')
 // gli esercizi sono numerati, come in un programma da portare a casa
 assert.ok(illustrata.includes('<span class="num">1</span>'))
 assert.ok(illustrata.includes('<span class="num">2</span>'))
