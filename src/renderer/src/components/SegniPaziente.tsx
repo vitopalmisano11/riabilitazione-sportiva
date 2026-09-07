@@ -70,7 +70,7 @@ export default function SegniPaziente({
     <details className="blocco-apribile blocco-segni">
       <summary>
         Segni di riferimento{segni.length > 0 ? ` (${segni.length})` : ''}
-        <Aiuto testo="serve solo se vuoi seguire un numero nel tempo: il dolore in un movimento, un grado di mobilità, un test veloce. lo scegli qui e lo ritrovi in fondo a ogni seduta, accanto a dolore e sforzo, e qui vedi da dove sei partito e dove sei arrivato. per tutto il resto vanno benissimo le note della seduta." />
+        <Aiuto testo="Serve solo se vuoi seguire un numero nel tempo: il dolore in un movimento, un grado di mobilità, un test veloce. Lo scegli qui e lo ritrovi in fondo a ogni seduta, accanto a dolore e sforzo, e qui vedi da dove sei partito e dove sei arrivato. Per tutto il resto vanno benissimo le note della seduta." />
       </summary>
       <div className="contenuto-apribile contenuto-segni">
       <div className="card-header-row riga-titolo-segni">

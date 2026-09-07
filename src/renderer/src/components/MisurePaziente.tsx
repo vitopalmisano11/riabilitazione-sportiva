@@ -125,7 +125,7 @@ export default function MisurePaziente({
       <section className="card">
         <h3>
           Peso e altezza
-          <Aiuto testo="servono a leggere i carichi in rapporto al paziente. sono numeri che cambiano di rado: quello che ricontrolli tutte le volte va nei segni di riferimento, qui sotto, oppure nelle note della seduta." />
+          <Aiuto testo="Servono a leggere i carichi in rapporto al paziente. Sono numeri che cambiano di rado: quello che ricontrolli tutte le volte va nei segni di riferimento, qui sotto, oppure nelle note della seduta." />
         </h3>
         <div className="riga-misure">
           <label className="field campo-misura">
@@ -162,7 +162,7 @@ export default function MisurePaziente({
         <div className="card-header-row">
           <h3>
             Massimali
-            <Aiuto testo="scrivi il massimale di un esercizio e premendo sul numero vedi quanto sono il 70, il 75, l'80, l'85 e il 90 per cento: il carico della fase di forza si prescrive così. se non l'hai misurato davvero, puoi farlo stimare da una serie: quanto ha sollevato, per quante ripetizioni e quante gliene restavano in canna (il RIR). il RIR si può lasciare vuoto, e allora vale come una serie portata fino in fondo." />
+            <Aiuto testo="Scrivi il massimale di un esercizio e premendo sul numero vedi quanto sono il 70, il 75, l'80, l'85 e il 90 per cento: il carico della fase di forza si prescrive così. Se non l'hai misurato davvero, puoi farlo stimare da una serie: quanto ha sollevato, per quante ripetizioni e quante gliene restavano in canna (il RIR). Il RIR si può lasciare vuoto, e allora vale come una serie portata fino in fondo." />
           </h3>
           {!nuovo && (
             <button className="btn-aggiungi-lista" onClick={() => setNuovo(true)}>

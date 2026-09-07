@@ -405,7 +405,7 @@ function SchedaProfilo(): React.JSX.Element {
       <div className="blocco-impostazione">
         <div className="sotto-titolo">
           Chi firma i fogli
-          <Aiuto testo="nome, qualifica e contatti compaiono in cima a tutto quello che stampi: schede, cartella e report. lascia vuoto quello che non ti serve, e quella riga non comparirà; finché è tutto vuoto i fogli escono come adesso, senza intestazione." />
+          <Aiuto testo="Nome, qualifica e contatti compaiono in cima a tutto quello che stampi: schede, cartella e report. Lascia vuoto quello che non ti serve, e quella riga non comparirà; finché è tutto vuoto i fogli escono come adesso, senza intestazione." />
         </div>
         <div className="form-row-2">
           {CAMPI_PROFILO.map((c) => (

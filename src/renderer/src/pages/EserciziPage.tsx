@@ -532,7 +532,7 @@ export default function EserciziPage(): React.JSX.Element {
                 onChange={(e) => setFormCat({ ...formCat, cluster: e.target.checked })}
               />
               Dosaggio a cluster
-              <Aiuto testo="gli esercizi di questa categoria si dosano spezzando la serie in blocchi con una pausa breve dentro: 4 serie da 3 cluster da 2 ripetizioni, 15 secondi tra i cluster e 2 minuti tra le serie. nel loro form compaiono i campi in più; le altre categorie restano come sono." />
+              <Aiuto testo="Gli esercizi di questa categoria si dosano spezzando la serie in blocchi con una pausa breve dentro: 4 serie da 3 cluster da 2 ripetizioni, 15 secondi tra i cluster e 2 minuti tra le serie. Nel loro form compaiono i campi in più; le altre categorie restano come sono." />
             </label>
             {/* Come il cluster: la spunta sta sulla categoria, cosi' la
                 casellina in piu' la vedono solo gli esercizi a cui serve. */}
@@ -543,7 +543,7 @@ export default function EserciziPage(): React.JSX.Element {
                 onChange={(e) => setFormCat({ ...formCat, rir: e.target.checked })}
               />
               Ripetizioni di riserva (RIR)
-              <Aiuto testo="quante ripetizioni restano in canna a fine serie: RIR 2 vuol dire fermarsi due prima del cedimento. dice quanto è pesante la serie meglio del carico da solo, e serve nella forza più che nella mobilità. spuntandola, gli esercizi di questa categoria hanno una casellina in più nella seduta." />
+              <Aiuto testo="Quante ripetizioni restano in canna a fine serie: RIR 2 vuol dire fermarsi due prima del cedimento. Dice quanto è pesante la serie meglio del carico da solo, e serve nella forza più che nella mobilità. Spuntandola, gli esercizi di questa categoria hanno una casellina in più nella seduta." />
             </label>
             <div className="modal-actions">
               <button onClick={() => setFormCat(null)}>Annulla</button>

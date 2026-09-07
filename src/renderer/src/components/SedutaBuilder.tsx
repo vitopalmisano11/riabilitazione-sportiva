@@ -927,7 +927,7 @@ export default function SedutaBuilder({
           <label className="field campo-percepito">
             <span className="nome-percepito">
               Dolore
-              <Aiuto testo="quanto ha fatto male oggi, da 0 (niente) a 10 (il massimo). è quello che dice il paziente, non quello che vedi tu: serve a confrontare le sedute fra loro." />
+              <Aiuto testo="Quanto ha fatto male oggi, da 0 (niente) a 10 (il massimo). È quello che dice il paziente, non quello che vedi tu: serve a confrontare le sedute fra loro." />
             </span>
             <select value={dolore} onChange={(e) => setDolore(e.target.value)}>
               <option value="">—</option>
@@ -941,7 +941,7 @@ export default function SedutaBuilder({
           <label className="field campo-percepito">
             <span className="nome-percepito">
               Sforzo
-              <Aiuto testo="quanto è stata dura la seduta per lui, da 0 (niente) a 10 (massimo sforzo). due sedute con gli stessi carichi possono costare molto diverso, e questo numero te lo dice." />
+              <Aiuto testo="Quanto è stata dura la seduta per lui, da 0 (niente) a 10 (massimo sforzo). Due sedute con gli stessi carichi possono costare molto diverso, e questo numero te lo dice." />
             </span>
             <select value={sforzo} onChange={(e) => setSforzo(e.target.value)}>
               <option value="">—</option>

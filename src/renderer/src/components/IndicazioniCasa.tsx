@@ -96,7 +96,7 @@ export default function IndicazioniCasa({
       <div className="card-header-row">
         <h3>
           Indicazioni per casa
-          <Aiuto testo="quello che spunti qui esce sul foglio che dai al paziente, sotto al programma: ogni quanto farlo e come regolarsi con il dolore. le frasi sono in comune, si scrivono una volta e si riusano su chi ti serve." />
+          <Aiuto testo="Quello che spunti qui esce sul foglio che dai al paziente, sotto al programma: ogni quanto farlo e come regolarsi con il dolore. Le frasi sono in comune, si scrivono una volta e si riusano su chi ti serve." />
         </h3>
         {!nuova && (
           <button className="btn-aggiungi-lista" onClick={() => setNuova(true)}>
