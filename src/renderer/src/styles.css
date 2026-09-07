@@ -4800,6 +4800,18 @@ textarea {
   font-size: 15px;
 }
 
+/* I segni di riferimento stanno in fondo alle misure, in un blocco chiuso: la
+   larghezza pero' e' quella della scheda, non quella stretta degli altri
+   blocchi apribili, perche' dentro c'e' un elenco. */
+.blocco-segni .contenuto-segni {
+  max-width: none;
+}
+
+.riga-titolo-segni {
+  justify-content: flex-end;
+  margin-bottom: 4px;
+}
+
 /* I segni di riferimento: una riga per segno, il nome a sinistra e i due
    numeri (da dove e' partito, dov'e' adesso) al centro. Niente grafici: sono
    due numeri, e due numeri si leggono. */

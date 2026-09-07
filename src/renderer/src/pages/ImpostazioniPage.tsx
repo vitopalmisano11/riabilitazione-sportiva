@@ -405,7 +405,7 @@ function SchedaProfilo(): React.JSX.Element {
       <div className="blocco-impostazione">
         <div className="sotto-titolo">
           Chi firma i fogli
-          <Aiuto testo="nome, qualifica e contatti compaiono in cima a tutto quello che stampi: schede, cartella e report. lascia vuoto quello che non ti serve, e quella riga non comparirà. i pazienti non lo vedono da nessun'altra parte." />
+          <Aiuto testo="nome, qualifica e contatti compaiono in cima a tutto quello che stampi: schede, cartella e report. lascia vuoto quello che non ti serve, e quella riga non comparirà; finché è tutto vuoto i fogli escono come adesso, senza intestazione." />
         </div>
         <div className="form-row-2">
           {CAMPI_PROFILO.map((c) => (
@@ -421,19 +421,15 @@ function SchedaProfilo(): React.JSX.Element {
           ))}
         </div>
 
-        <div className="anteprima-profilo">
-          <span className="hint">Come esce in cima al foglio</span>
-          {chi === '' && dove === '' ? (
-            <p className="hint">
-              Finché è vuoto i fogli escono come adesso, senza intestazione.
-            </p>
-          ) : (
+        {(chi !== '' || dove !== '') && (
+          <div className="anteprima-profilo">
+            <span className="hint">Come esce in cima al foglio</span>
             <div className="foglio-finto">
               {chi !== '' && <div className="riga-chi">{chi}</div>}
               {dove !== '' && <div className="riga-dove">{dove}</div>}
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         <div className="modal-actions">
           <button className="primary" disabled={salvato} onClick={() => void salva()}>

@@ -63,13 +63,17 @@ export default function SegniPaziente({
   // legge "da 7 a 3", non "da 7 0-10 a 3 0-10".
   const val = (n: number | null): string => (n == null ? '—' : String(n))
 
+  // Chiuso, in fondo alla scheda: e' una cosa in piu' per chi vuole seguire un
+  // numero nel tempo, non un passaggio della giornata. Chi non la usa non la
+  // vede nemmeno.
   return (
-    <section className="card">
-      <div className="card-header-row">
-        <h3>
-          Segni di riferimento
-          <Aiuto testo="le due o tre cose che di questo paziente ricontrolli tutte le volte: il dolore in un movimento, un grado di mobilità, un test veloce. il numero si scrive in fondo alla seduta, accanto a dolore e sforzo, e qui si vede da dove sei partito e dove sei arrivato." />
-        </h3>
+    <details className="blocco-apribile blocco-segni">
+      <summary>
+        Segni di riferimento{segni.length > 0 ? ` (${segni.length})` : ''}
+        <Aiuto testo="serve solo se vuoi seguire un numero nel tempo: il dolore in un movimento, un grado di mobilità, un test veloce. lo scegli qui e lo ritrovi in fondo a ogni seduta, accanto a dolore e sforzo, e qui vedi da dove sei partito e dove sei arrivato. per tutto il resto vanno benissimo le note della seduta." />
+      </summary>
+      <div className="contenuto-apribile contenuto-segni">
+      <div className="card-header-row riga-titolo-segni">
         {!nuovo && (
           <button className="btn-aggiungi-lista" title="Aggiungi un segno" onClick={() => setNuovo(true)}>
             <Plus size={16} /> Aggiungi segno
@@ -109,9 +113,7 @@ export default function SegniPaziente({
       )}
 
       {segni.length === 0 ? (
-        <p className="hint">
-          Nessun segno scelto. Scegline due o tre e li ritrovi in fondo a ogni seduta.
-        </p>
+        <p className="hint">Nessun segno scelto.</p>
       ) : (
         <ul className="lista-segni">
           {segni.map((s) => (
@@ -147,6 +149,7 @@ export default function SegniPaziente({
           ))}
         </ul>
       )}
-    </section>
+      </div>
+    </details>
   )
 }

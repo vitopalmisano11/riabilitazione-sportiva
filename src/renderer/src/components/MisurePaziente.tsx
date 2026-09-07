@@ -118,7 +118,7 @@ export default function MisurePaziente({
       <section className="card">
         <h3>
           Peso e altezza
-          <Aiuto testo="servono a leggere i carichi in rapporto al paziente. sono numeri che cambiano di rado: quello che ricontrolli tutte le volte va nei segni di riferimento, nella scheda clinica." />
+          <Aiuto testo="servono a leggere i carichi in rapporto al paziente. sono numeri che cambiano di rado: quello che ricontrolli tutte le volte va nei segni di riferimento, qui sotto, oppure nelle note della seduta." />
         </h3>
         <div className="riga-misure">
           <label className="field campo-misura">

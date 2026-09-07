@@ -562,11 +562,6 @@ function SchedaPaziente({
 
       {scheda === 'clinica' && (
         <>
-          {/* In cima alla clinica: sono i numeri che si guardano piu' spesso,
-              e stanno sopra alla valutazione completa perche' e' quella che si
-              rifa' di rado. */}
-          <SegniPaziente paziente={paziente} />
-
           <AnamnesiPaziente paziente={paziente} />
 
           <ValutazionePaziente paziente={paziente} />
@@ -644,7 +639,15 @@ function SchedaPaziente({
         </>
       )}
 
-      {scheda === 'misure' && <MisurePaziente paziente={paziente} onChanged={onChanged} />}
+      {scheda === 'misure' && (
+        <>
+          <MisurePaziente paziente={paziente} onChanged={onChanged} />
+          {/* I segni stanno in fondo, chiusi: chi non li usa non li vede, e
+              tante cose (il gonfiore, per dirne una) si scrivono meglio nelle
+              note della seduta. */}
+          <SegniPaziente paziente={paziente} />
+        </>
+      )}
     </div>
   )
 }
