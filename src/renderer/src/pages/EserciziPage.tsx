@@ -378,116 +378,120 @@ export default function EserciziPage(): React.JSX.Element {
         </button>
       </div>
 
-      <table className="data-table tabella-esercizi">
-        <thead>
-          <tr>
-            <th className="col-nome">Nome</th>
-            <th className="col-categoria">Categoria</th>
-            <th className="col-param">Serie</th>
-            <th className="col-param" title="Ripetizioni">
-              Rip.
-            </th>
-            <th className="col-param">Carico</th>
-            <th className="col-param">Recupero</th>
-            <th className="col-nota">Nota</th>
-            <th className="col-azioni"></th>
-          </tr>
-        </thead>
-        <tbody>
-          {visibili.map((e) => (
-            <tr key={e.id} className={e.archiviato ? 'archiviato' : ''}>
-              <td className="col-nome">
-                {/* Nome e icone in due colonne: in linea, con un nome lungo che
-                    va a capo, le icone finivano sotto la seconda riga. */}
-                <div className="cella-nome">
-                  <span className="nome-esercizio" title={e.nome}>
-                    {e.nome}
-                  </span>
-                  <span className="icone-nome">
-                {e.link && (
-                  <button
-                    className="icona-esercizio"
-                    title="Apri video"
-                    onClick={() => window.api.apriLink(e.link!).catch((err) => toastErrore(errMsg(err)))}
-                  >
-                    <Video size={16} />
-                  </button>
-                )}
-                {e.ha_immagine === 1 && (
-                  <button
-                    className="icona-esercizio"
-                    title="Vedi immagine"
-                    onClick={() => setImmagineAperta(e)}
-                  >
-                    <ImageIcon size={16} />
-                  </button>
-                )}
-                {e.archiviato ? <span className="badge">archiviato</span> : null}
-                  </span>
-                </div>
-              </td>
-              <td className="col-categoria" title={e.categoria_nome}>
-                {e.categoria_nome}
-              </td>
-              <td className="col-param">{e.serie_default ?? '—'}</td>
-              <td className="col-param" title={aCluster(dosaggioDi(e)) ? 'Cluster × ripetizioni' : undefined}>
-                {ripetizioniTesto(dosaggioDi(e)) ?? '—'}
-              </td>
-              <td className="col-param">
-                {caricoTesto(e.carico_default, e.unita_carico) ?? '—'}
-              </td>
-              <td className="col-param" title={aCluster(dosaggioDi(e)) ? 'Tra i cluster / tra le serie' : undefined}>
-                {recuperoTesto(dosaggioDi(e)) ?? '—'}
-              </td>
-              <td className="col-nota">
-                {e.nota_tecnica && (
-                  <span
-                    className="icona-esercizio nota-aiuto"
-                    onMouseEnter={(ev) => {
-                      const r = ev.currentTarget.getBoundingClientRect()
-                      const sopra = r.bottom > window.innerHeight - 180
-                      setBolla({
-                        testo: e.nota_tecnica!,
-                        x: r.right,
-                        y: sopra ? r.top - 6 : r.bottom + 6,
-                        sopra
-                      })
-                    }}
-                    onMouseLeave={() => setBolla(null)}
-                  >
-                    <HelpCircle size={16} />
-                  </span>
-                )}
-              </td>
-              <td className="row-actions col-azioni">
-                <button title="Modifica" onClick={() => void apriModifica(e)}>
-                  <Pencil size={16} />
-                </button>
-                <button
-                  title={
-                    e.archiviato
-                      ? 'Rimetti in elenco'
-                      : "Togli dall'elenco, tenendo le sedute in cui l'hai usato"
-                  }
-                  onClick={() => void archivia(e)}
-                >
-                  {e.archiviato ? <ArchiveRestore size={16} /> : <Archive size={16} />}
-                </button>
-                <button className="danger" title="Elimina" onClick={() => void elimina(e)}>
-                  <Trash2 size={16} />
-                </button>
-              </td>
-            </tr>
-          ))}
-          {visibili.length === 0 && (
+      {/* La tabella scorre di lato dentro al suo riquadro: con il testo
+          ingrandito non ci sta piu' in larghezza, e prima usciva fuori. */}
+      <div className="tabella-scorre">
+        <table className="data-table tabella-esercizi">
+          <thead>
             <tr>
-              <td colSpan={8} className="empty">
-                Nessun esercizio. Crea le categorie, poi aggiungi qui gli esercizi.
-              </td>
+              <th className="col-nome">Nome</th>
+              <th className="col-categoria">Categoria</th>
+              <th className="col-param">Serie</th>
+              <th className="col-param" title="Ripetizioni">
+                Rip.
+              </th>
+              <th className="col-param">Carico</th>
+              <th className="col-param">Recupero</th>
+              <th className="col-nota">Nota</th>
+              <th className="col-azioni"></th>
             </tr>
-          )}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {visibili.map((e) => (
+              <tr key={e.id} className={e.archiviato ? 'archiviato' : ''}>
+                <td className="col-nome">
+                  {/* Nome e icone in due colonne: in linea, con un nome lungo che
+                      va a capo, le icone finivano sotto la seconda riga. */}
+                  <div className="cella-nome">
+                    <span className="nome-esercizio" title={e.nome}>
+                      {e.nome}
+                    </span>
+                    <span className="icone-nome">
+                  {e.link && (
+                    <button
+                      className="icona-esercizio"
+                      title="Apri video"
+                      onClick={() => window.api.apriLink(e.link!).catch((err) => toastErrore(errMsg(err)))}
+                    >
+                      <Video size={16} />
+                    </button>
+                  )}
+                  {e.ha_immagine === 1 && (
+                    <button
+                      className="icona-esercizio"
+                      title="Vedi immagine"
+                      onClick={() => setImmagineAperta(e)}
+                    >
+                      <ImageIcon size={16} />
+                    </button>
+                  )}
+                  {e.archiviato ? <span className="badge">archiviato</span> : null}
+                    </span>
+                  </div>
+                </td>
+                <td className="col-categoria" title={e.categoria_nome}>
+                  {e.categoria_nome}
+                </td>
+                <td className="col-param">{e.serie_default ?? '—'}</td>
+                <td className="col-param" title={aCluster(dosaggioDi(e)) ? 'Cluster × ripetizioni' : undefined}>
+                  {ripetizioniTesto(dosaggioDi(e)) ?? '—'}
+                </td>
+                <td className="col-param">
+                  {caricoTesto(e.carico_default, e.unita_carico) ?? '—'}
+                </td>
+                <td className="col-param" title={aCluster(dosaggioDi(e)) ? 'Tra i cluster / tra le serie' : undefined}>
+                  {recuperoTesto(dosaggioDi(e)) ?? '—'}
+                </td>
+                <td className="col-nota">
+                  {e.nota_tecnica && (
+                    <span
+                      className="icona-esercizio nota-aiuto"
+                      onMouseEnter={(ev) => {
+                        const r = ev.currentTarget.getBoundingClientRect()
+                        const sopra = r.bottom > window.innerHeight - 180
+                        setBolla({
+                          testo: e.nota_tecnica!,
+                          x: r.right,
+                          y: sopra ? r.top - 6 : r.bottom + 6,
+                          sopra
+                        })
+                      }}
+                      onMouseLeave={() => setBolla(null)}
+                    >
+                      <HelpCircle size={16} />
+                    </span>
+                  )}
+                </td>
+                <td className="row-actions col-azioni">
+                  <button title="Modifica" onClick={() => void apriModifica(e)}>
+                    <Pencil size={16} />
+                  </button>
+                  <button
+                    title={
+                      e.archiviato
+                        ? 'Rimetti in elenco'
+                        : "Togli dall'elenco, tenendo le sedute in cui l'hai usato"
+                    }
+                    onClick={() => void archivia(e)}
+                  >
+                    {e.archiviato ? <ArchiveRestore size={16} /> : <Archive size={16} />}
+                  </button>
+                  <button className="danger" title="Elimina" onClick={() => void elimina(e)}>
+                    <Trash2 size={16} />
+                  </button>
+                </td>
+              </tr>
+            ))}
+            {visibili.length === 0 && (
+              <tr>
+                <td colSpan={8} className="empty">
+                  Nessun esercizio. Crea le categorie, poi aggiungi qui gli esercizi.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
 
       {formCat && (
         <div className="modal-overlay" onClick={() => setFormCat(null)}>

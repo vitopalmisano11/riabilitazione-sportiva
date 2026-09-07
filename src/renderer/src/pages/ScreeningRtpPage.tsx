@@ -783,53 +783,57 @@ function Misura({
         {misura.unita && <span className="unita"> ({misura.unita})</span>}
         {calcolata && <span className="unita"> — calcolata</span>}
       </div>
-      <table className="tabella-misura">
-        <thead>
-          <tr>
-            <th />
-            {!calcolata &&
-              colonne.map((c) => (
-                <th key={c ?? 'unica'}>{c == null ? 'Valore' : `Prova ${c}`}</th>
-              ))}
-            <th>
-              {calcolata
-                ? 'Risultato'
-                : misura.riassunto === 'media'
-                  ? 'Media'
-                  : misura.riassunto === 'peggiore'
-                    ? 'Peggiore'
-                    : 'Migliore'}
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {lati.map((lato) => (
-            <tr key={lato ?? 'unico'}>
-              <th>
-                {lato == null ? '' : lato === 'dx' ? 'Destra' : 'Sinistra'}
-                {lato != null && artoOperato === lato && (
-                  <span className="unita"> (interessato)</span>
-                )}
-              </th>
+      {/* La tabella scorre di lato dentro al suo riquadro: con il testo
+          ingrandito non ci sta piu' in larghezza, e prima usciva fuori. */}
+      <div className="tabella-scorre">
+        <table className="tabella-misura">
+          <thead>
+            <tr>
+              <th />
               {!calcolata &&
                 colonne.map((c) => (
-                  <td key={c ?? 'unica'}>
-                    <input
-                      inputMode="decimal"
-                      value={valori[chiave(misuraId, lato, c)] ?? ''}
-                      onChange={(e) => onScrivi(chiave(misuraId, lato, c), e.target.value)}
-                    />
-                  </td>
+                  <th key={c ?? 'unica'}>{c == null ? 'Valore' : `Prova ${c}`}</th>
                 ))}
-              <td className="valore-sintesi">
-                {sintesi.get(lato ?? '') != null
-                  ? Number(sintesi.get(lato ?? '')).toFixed(2)
-                  : '—'}
-              </td>
+              <th>
+                {calcolata
+                  ? 'Risultato'
+                  : misura.riassunto === 'media'
+                    ? 'Media'
+                    : misura.riassunto === 'peggiore'
+                      ? 'Peggiore'
+                      : 'Migliore'}
+              </th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {lati.map((lato) => (
+              <tr key={lato ?? 'unico'}>
+                <th>
+                  {lato == null ? '' : lato === 'dx' ? 'Destra' : 'Sinistra'}
+                  {lato != null && artoOperato === lato && (
+                    <span className="unita"> (interessato)</span>
+                  )}
+                </th>
+                {!calcolata &&
+                  colonne.map((c) => (
+                    <td key={c ?? 'unica'}>
+                      <input
+                        inputMode="decimal"
+                        value={valori[chiave(misuraId, lato, c)] ?? ''}
+                        onChange={(e) => onScrivi(chiave(misuraId, lato, c), e.target.value)}
+                      />
+                    </td>
+                  ))}
+                <td className="valore-sintesi">
+                  {sintesi.get(lato ?? '') != null
+                    ? Number(sintesi.get(lato ?? '')).toFixed(2)
+                    : '—'}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       {lsi != null && (
         <p className={`asimmetria${superato === false ? ' alta' : ''}`}>
           {artoOperato != null ? 'LSI' : 'Simmetria'} {lsi.toFixed(1)}%

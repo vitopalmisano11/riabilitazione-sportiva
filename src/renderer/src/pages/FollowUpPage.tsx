@@ -151,84 +151,86 @@ export default function FollowUpPage({
               Nessun paziente ha ancora concluso il trattamento. Quando ne concludi uno finisce qui.
             </p>
           ) : (
-            <table className="data-table tabella-followup">
-              <thead>
-                <tr>
-                  <th className="col-nome">Paziente</th>
-                  <th>Da sentire il</th>
-                  <th>Contattato</th>
-                  <th>Recensione</th>
-                  <th>Se torna</th>
-                </tr>
-              </thead>
-              <tbody>
-                {concluso.map((p) => {
-                  const scaduto = p.follow_up_il != null && p.follow_up_il <= oggi
-                  return (
-                    <tr key={p.id}>
-                      <td className="col-nome">
-                        <button
-                          className="nome-cliccabile"
-                          title="Apri la scheda del paziente"
-                          onClick={() => onApriPaziente(p.id)}
-                        >
-                          {p.cognome} {p.nome}
-                        </button>
-                        {p.contattato_il && (
-                          <span className="sotto-riga">
-                            ultimo contatto {formatData(p.contattato_il)}
-                          </span>
-                        )}
-                      </td>
-                      <td>
-                        <input
-                          type="date"
-                          className={scaduto ? 'data-scaduta' : ''}
-                          value={p.follow_up_il ?? ''}
-                          onChange={(e) =>
-                            void esegui(() =>
-                              window.api.followUp.setFollowUp(p.id, e.target.value || null)
-                            )
-                          }
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="checkbox"
-                          title="L’ho sentito e non ho altro in programma"
-                          checked={p.contattato_il != null && p.follow_up_il == null}
-                          onChange={(e) =>
-                            void esegui(() =>
-                              window.api.followUp.segnaContattato(p.id, e.target.checked)
-                            )
-                          }
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="checkbox"
-                          title="Ha lasciato la recensione"
-                          checked={p.recensione === 1}
-                          onChange={(e) =>
-                            void esegui(() =>
-                              window.api.followUp.setRecensione(p.id, e.target.checked)
-                            )
-                          }
-                        />
-                      </td>
-                      <td>
-                        <button
-                          title="Riportalo fra i pazienti in trattamento"
-                          onClick={() => void riprendi(p)}
-                        >
-                          <RotateCcw size={16} /> Riprendi
-                        </button>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+            <div className="tabella-scorre">
+              <table className="data-table tabella-followup">
+                <thead>
+                  <tr>
+                    <th className="col-nome">Paziente</th>
+                    <th>Da sentire il</th>
+                    <th>Contattato</th>
+                    <th>Recensione</th>
+                    <th>Se torna</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {concluso.map((p) => {
+                    const scaduto = p.follow_up_il != null && p.follow_up_il <= oggi
+                    return (
+                      <tr key={p.id}>
+                        <td className="col-nome">
+                          <button
+                            className="nome-cliccabile"
+                            title="Apri la scheda del paziente"
+                            onClick={() => onApriPaziente(p.id)}
+                          >
+                            {p.cognome} {p.nome}
+                          </button>
+                          {p.contattato_il && (
+                            <span className="sotto-riga">
+                              ultimo contatto {formatData(p.contattato_il)}
+                            </span>
+                          )}
+                        </td>
+                        <td>
+                          <input
+                            type="date"
+                            className={scaduto ? 'data-scaduta' : ''}
+                            value={p.follow_up_il ?? ''}
+                            onChange={(e) =>
+                              void esegui(() =>
+                                window.api.followUp.setFollowUp(p.id, e.target.value || null)
+                              )
+                            }
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="checkbox"
+                            title="L’ho sentito e non ho altro in programma"
+                            checked={p.contattato_il != null && p.follow_up_il == null}
+                            onChange={(e) =>
+                              void esegui(() =>
+                                window.api.followUp.segnaContattato(p.id, e.target.checked)
+                              )
+                            }
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="checkbox"
+                            title="Ha lasciato la recensione"
+                            checked={p.recensione === 1}
+                            onChange={(e) =>
+                              void esegui(() =>
+                                window.api.followUp.setRecensione(p.id, e.target.checked)
+                              )
+                            }
+                          />
+                        </td>
+                        <td>
+                          <button
+                            title="Riportalo fra i pazienti in trattamento"
+                            onClick={() => void riprendi(p)}
+                          >
+                            <RotateCcw size={16} /> Riprendi
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
         </section>
       </div>

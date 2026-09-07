@@ -422,9 +422,15 @@ body {
   background: transparent;
 }
 
+/* Con il testo ingrandito le caselle e i pulsanti chiedono piu' spazio del
+   riquadro che li contiene, e senza queste due righe uscivano fuori invece di
+   stringersi: le caselle hanno una larghezza minima loro (quella del "size"
+   dell'HTML) e i pulsanti non si restringono mai sotto la loro scritta. */
 input,
 textarea,
 select {
+  min-width: 0;
+  max-width: 100%;
   user-select: text;
   font: inherit;
   color: inherit;
@@ -496,6 +502,12 @@ input[type='checkbox'] {
 
 button {
   font: inherit;
+  /* Mai piu' largo del posto che ha: con il testo grande la scritta va a capo
+     dentro al pulsante invece di sbordare dal riquadro. */
+  min-width: 0;
+  max-width: 100%;
+  flex-wrap: wrap;
+  overflow-wrap: anywhere;
   padding: 9px 16px;
   border: 1px solid var(--border-forte);
   border-radius: var(--radius-sm);
@@ -1329,12 +1341,16 @@ button.danger:hover:not(:disabled) {
 .toolbar {
   display: flex;
   align-items: center;
+  /* A capo invece che fuori: con il testo ingrandito la barra non ci sta piu'
+     in una riga sola. */
+  flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 14px;
 }
 
 .toolbar input[type='search'] {
   width: 260px;
+  flex: 1 1 180px;
 }
 
 /* Il filtro delle categorie non ha bisogno di tutta quella larghezza: i nomi
@@ -1359,6 +1375,27 @@ button.danger:hover:not(:disabled) {
   gap: 6px;
   color: var(--text-dim);
   font-size: 16px;
+}
+
+/* Le tabelle larghe (esercizi, follow-up, movimenti, misure) scorrono di lato
+   dentro al loro riquadro. Con il testo ingrandito le colonne non si possono
+   stringere oltre un certo punto, e la tabella usciva dal riquadro portandosi
+   fuori anche i pulsanti dell'ultima colonna. */
+.tabella-scorre {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+/* Sotto questa larghezza le colonne diventano illeggibili (nomi ridotti a tre
+   lettere e puntini): meglio far scorrere la tabella che stringerla ancora. */
+.tabella-scorre > table {
+  min-width: 640px;
+}
+
+/* Otto colonne: sotto questa larghezza il nome dell'esercizio si riduce a due
+   lettere e i puntini. */
+.tabella-scorre > .tabella-esercizi {
+  min-width: 820px;
 }
 
 .data-table {
@@ -1716,18 +1753,22 @@ span.row-actions button {
 .builder-header-actions {
   display: flex;
   align-items: flex-end;
+  /* Data, focus e i due pulsanti vanno a capo insieme quando non ci stanno:
+     prima uscivano dall'intestazione, verso destra. */
+  flex-wrap: wrap;
   gap: 8px;
-  flex-shrink: 0;
 }
 
 .data-field {
-  min-width: 150px;
+  flex: 1 1 140px;
+  min-width: 130px;
 }
 
 /* Il focus della seduta sta accanto alla data: e' testo libero, quindi un po'
    piu' larga. */
 .focus-field {
-  min-width: 190px;
+  flex: 1 1 180px;
+  min-width: 150px;
 }
 
 .builder-col {
@@ -2122,6 +2163,7 @@ span.row-actions button {
 .sedute-list li {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 10px;
   padding: 10px 4px;
   border-bottom: 1px solid var(--bg);
@@ -3048,8 +3090,11 @@ textarea {
 .regola-ingrandimento {
   display: flex;
   align-items: center;
+  /* I pulsanti della riga vanno a capo restando allineati a destra, invece di
+     spingere fuori dal riquadro. */
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 4px;
-  flex: none;
 }
 
 .regola-ingrandimento button {
@@ -3093,6 +3138,9 @@ textarea {
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
+  /* Se il nome e i pulsanti non ci stanno in una riga, i pulsanti scendono
+     sotto: prima restavano in riga e uscivano dal riquadro. */
+  flex-wrap: wrap;
   gap: 12px;
   cursor: pointer;
 }
@@ -3112,9 +3160,11 @@ textarea {
   display: flex;
   align-items: center;
   gap: 6px;
-  /* Su una riga sola: andando a capo il "?" si staccava dal nome e finiva in
-     mezzo alla riga. */
-  white-space: nowrap;
+  /* Il nome puo' andare a capo, ma il "?" gli resta accanto: e' un elemento a
+     se', quindi si tiene sulla stessa riga del testo e scende con lui. Prima
+     era vietato andare a capo, e con il testo grande la riga sfondava. */
+  white-space: normal;
+  min-width: 0;
   font-size: 16px;
   color: var(--text);
   margin-bottom: 4px;
@@ -3168,6 +3218,7 @@ textarea {
 .ricerca-sopra {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 12px;
 }

@@ -533,80 +533,84 @@ function TabellaMovimenti({
   ): React.JSX.Element => (
     <div className="blocco-movimento">
       <div className="sotto-titolo">{titolo}</div>
-      <table className="tabella-movimenti">
-        <thead>
-          <tr>
-            <th className="col-nome">Movimento</th>
-            <th className="col-restrizione">Restrizione</th>
-            <th>Dolore</th>
-            {conGradi && <th className="col-gradi">Gradi</th>}
-          </tr>
-        </thead>
-        <tbody>
-          {movimenti.map((m) => {
-            const id = m.id as number
-            const r = rilievo(id)
-            const restrizione = r[campoRestrizione]
-            return (
-              <tr key={id}>
-                <td className="col-nome">{m.nome}</td>
-                <td className="col-restrizione">
-                  <span className="scala-segni">
-                    {SEGNI.map((g) => (
-                      <button
-                        key={g.valore}
-                        type="button"
-                        title={g.titolo}
-                        disabled={soloLettura}
-                        className={restrizione === g.valore ? 'scelta-attiva' : ''}
-                        // ripremendo lo stesso segno si toglie: e' il modo piu'
-                        // veloce per correggere un clic sbagliato
-                        onClick={() =>
-                          onCambia(id, {
-                            [campoRestrizione]: restrizione === g.valore ? null : g.valore
-                          })
-                        }
-                      >
-                        {g.segno}
-                      </button>
-                    ))}
-                  </span>
-                </td>
-                <td className="col-dolore">
-                  <input
-                    type="checkbox"
-                    title="Dolore durante il movimento"
-                    disabled={soloLettura}
-                    // i rilievi vecchi avevano il dolore graduato: qualunque
-                    // valore diverso da zero vuol dire che il dolore c'era
-                    checked={(r[campoDolore] ?? 0) > 0}
-                    onChange={(e) => onCambia(id, { [campoDolore]: e.target.checked ? 1 : null })}
-                  />
-                </td>
-                {conGradi && (
-                  <td className="col-gradi">
-                    {m.gradi === 1 ? (
-                      <input
-                        type="number"
-                        className="campo-gradi"
-                        disabled={soloLettura}
-                        value={r[campoGradi] ?? ''}
-                        onChange={(e) =>
-                          onCambia(id, {
-                            [campoGradi]: e.target.value === '' ? null : Number(e.target.value)
-                          })
-                        }
-                      />
-                    ) : (
-                      <span className="hint">—</span>
-                    )}
+      {/* La tabella scorre di lato dentro al suo riquadro: con il testo
+          ingrandito non ci sta piu' in larghezza, e prima usciva fuori. */}
+      <div className="tabella-scorre">
+        <table className="tabella-movimenti">
+          <thead>
+            <tr>
+              <th className="col-nome">Movimento</th>
+              <th className="col-restrizione">Restrizione</th>
+              <th>Dolore</th>
+              {conGradi && <th className="col-gradi">Gradi</th>}
+            </tr>
+          </thead>
+          <tbody>
+            {movimenti.map((m) => {
+              const id = m.id as number
+              const r = rilievo(id)
+              const restrizione = r[campoRestrizione]
+              return (
+                <tr key={id}>
+                  <td className="col-nome">{m.nome}</td>
+                  <td className="col-restrizione">
+                    <span className="scala-segni">
+                      {SEGNI.map((g) => (
+                        <button
+                          key={g.valore}
+                          type="button"
+                          title={g.titolo}
+                          disabled={soloLettura}
+                          className={restrizione === g.valore ? 'scelta-attiva' : ''}
+                          // ripremendo lo stesso segno si toglie: e' il modo piu'
+                          // veloce per correggere un clic sbagliato
+                          onClick={() =>
+                            onCambia(id, {
+                              [campoRestrizione]: restrizione === g.valore ? null : g.valore
+                            })
+                          }
+                        >
+                          {g.segno}
+                        </button>
+                      ))}
+                    </span>
                   </td>
-                )}
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
+                  <td className="col-dolore">
+                    <input
+                      type="checkbox"
+                      title="Dolore durante il movimento"
+                      disabled={soloLettura}
+                      // i rilievi vecchi avevano il dolore graduato: qualunque
+                      // valore diverso da zero vuol dire che il dolore c'era
+                      checked={(r[campoDolore] ?? 0) > 0}
+                      onChange={(e) => onCambia(id, { [campoDolore]: e.target.checked ? 1 : null })}
+                    />
+                  </td>
+                  {conGradi && (
+                    <td className="col-gradi">
+                      {m.gradi === 1 ? (
+                        <input
+                          type="number"
+                          className="campo-gradi"
+                          disabled={soloLettura}
+                          value={r[campoGradi] ?? ''}
+                          onChange={(e) =>
+                            onCambia(id, {
+                              [campoGradi]: e.target.value === '' ? null : Number(e.target.value)
+                            })
+                          }
+                        />
+                      ) : (
+                        <span className="hint">—</span>
+                      )}
+                    </td>
+                  )}
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
 
       {/* Una nota per riquadro: quello che si annota ("in inclinazione a destra
           tira a sinistra") riguarda l'insieme dei movimenti provati in quel
