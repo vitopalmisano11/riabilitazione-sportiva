@@ -83,6 +83,16 @@ const api: Api = {
     setBlocco: (b: { attivo: boolean; minuti: number }) => invoke('sicurezza:setBlocco', b),
     verificaPassword: (password: string) => invoke('sicurezza:verificaPassword', password)
   },
+  segni: {
+    list: (pazienteId: number) => invoke('segni:list', pazienteId),
+    andamento: (pazienteId: number) => invoke('segni:andamento', pazienteId),
+    create: (pazienteId: number, nome: string, unita: string | null) =>
+      invoke('segni:create', pazienteId, nome, unita),
+    rinomina: (id: number, nome: string, unita: string | null) =>
+      invoke('segni:rinomina', id, nome, unita),
+    remove: (id: number) => invoke('segni:delete', id),
+    dellaSeduta: (sedutaId: number) => invoke('segni:dellaSeduta', sedutaId)
+  },
   profilo: {
     leggi: () => invoke('profilo:leggi'),
     salva: (p: Profilo) => invoke('profilo:salva', p)

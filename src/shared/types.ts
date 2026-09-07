@@ -114,6 +114,9 @@ export interface Paziente {
   diagnosi: string | null
   tipo_intervento: string | null
   data_intervento: string | null
+  // I limiti da non superare, in cima alla scheda e mentre si compone la
+  // seduta: "non oltre 90° di flessione fino a 6 settimane", "carico parziale".
+  precauzioni: string | null
   patologia_id: number | null
   fase_corrente_id: number | null
   // 'trattamento' = lo stai seguendo adesso; 'concluso' = il ciclo e' finito e
@@ -146,7 +149,29 @@ export interface PazienteInput {
   diagnosi: string | null
   tipo_intervento: string | null
   data_intervento: string | null
+  precauzioni: string | null
   arto_operato: 'dx' | 'sx' | null
+}
+
+// Un segno di riferimento: la cosa che di questo paziente si ricontrolla a
+// ogni seduta per sapere se sta andando meglio.
+export interface Segno {
+  id: number
+  paziente_id: number
+  nome: string
+  // Come si misura: "0-10", "°", "cm". Serve solo a scriverlo accanto al
+  // numero, il valore resta un numero.
+  unita: string | null
+  ordine: number
+}
+
+// Come sta andando un segno: la prima misura, l'ultima, e quante ne hai.
+export interface AndamentoSegno extends Segno {
+  prima_data: string | null
+  prima_valore: number | null
+  ultima_data: string | null
+  ultima_valore: number | null
+  misure: number
 }
 
 export type PazienteCreateInput = PazienteInput & {
@@ -181,6 +206,8 @@ export interface SedutaInput {
   // Come e' andata: dolore e sforzo percepito da 0 a 10, se li si e' chiesti.
   dolore: number | null
   sforzo: number | null
+  // I segni di riferimento misurati in questa seduta.
+  segni: { segno_id: number; valore: number }[]
   note: string | null
   sezioni: SedutaSezioneInput[]
   esercizi: SedutaEsercizioInput[]
@@ -977,6 +1004,16 @@ export interface Api {
       eseguito: boolean,
       valore: string | null
     ): Promise<void>
+  }
+  // I segni di riferimento del paziente e le loro misure.
+  segni: {
+    list(pazienteId: number): Promise<Segno[]>
+    andamento(pazienteId: number): Promise<AndamentoSegno[]>
+    create(pazienteId: number, nome: string, unita: string | null): Promise<number>
+    rinomina(id: number, nome: string, unita: string | null): Promise<void>
+    remove(id: number): Promise<void>
+    // I valori misurati in una seduta, per riaprirla e ritoccarli.
+    dellaSeduta(sedutaId: number): Promise<{ segno_id: number; valore: number }[]>
   }
   sedute: {
     list(pazienteId: number): Promise<SedutaRiepilogo[]>

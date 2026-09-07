@@ -134,6 +134,7 @@ const VUOTO = {
   lavoro: '',
   inviato_da: '',
   diagnosi: '',
+  precauzioni: '',
   tipo_intervento: '',
   data_intervento: '',
   arto_operato: ''
@@ -163,6 +164,7 @@ export function ModaleDatiPaziente({
           lavoro: paziente.lavoro ?? '',
           inviato_da: paziente.inviato_da ?? '',
           diagnosi: paziente.diagnosi ?? '',
+          precauzioni: paziente.precauzioni ?? '',
           tipo_intervento: paziente.tipo_intervento ?? '',
           data_intervento: paziente.data_intervento ?? '',
           arto_operato: paziente.arto_operato ?? ''
@@ -201,6 +203,7 @@ export function ModaleDatiPaziente({
       lavoro: vuotoNull(form.lavoro),
       inviato_da: vuotoNull(form.inviato_da),
       diagnosi: vuotoNull(form.diagnosi),
+      precauzioni: vuotoNull(form.precauzioni),
       tipo_intervento: vuotoNull(form.tipo_intervento),
       data_intervento: form.data_intervento || null,
       arto_operato: form.arto_operato === '' ? null : (form.arto_operato as 'dx' | 'sx')
@@ -276,6 +279,19 @@ export function ModaleDatiPaziente({
             placeholder="Quella del medico o la tua ipotesi"
             value={form.diagnosi}
             onChange={campo('diagnosi')}
+          />
+        </label>
+
+        {/* Le precauzioni non stanno fra le note: quello che si scrive qui
+            compare in cima alla scheda e mentre si compone la seduta, dove non
+            si puo' non vederlo. */}
+        <label>
+          Precauzioni e limiti
+          <textarea
+            rows={1}
+            placeholder="es. non oltre 90° di flessione fino a 6 settimane, carico parziale"
+            value={form.precauzioni}
+            onChange={campo('precauzioni')}
           />
         </label>
 

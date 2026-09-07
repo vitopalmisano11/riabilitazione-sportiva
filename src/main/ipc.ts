@@ -426,6 +426,58 @@ export function registerIpc(): void {
       return id
     })()
   })
+  // ---- Segni di riferimento: le due o tre cose che si ricontrollano ----
+  handle('segni:list', (pazienteId: number) =>
+    getDb()
+      .prepare('SELECT * FROM segni WHERE paziente_id = ? ORDER BY ordine, id')
+      .all(pazienteId)
+  )
+  // Prima misura e ultima, con le date: e' quello che si legge nella scheda
+  // ("dolore nello squat: da 7 a 3"). Il resto delle misure non serve li'.
+  handle('segni:andamento', (pazienteId: number) =>
+    getDb()
+      .prepare(
+        `SELECT g.*,
+           (SELECT s.data FROM segno_valori v JOIN sedute s ON s.id = v.seduta_id
+             WHERE v.segno_id = g.id ORDER BY s.data, s.id LIMIT 1) AS prima_data,
+           (SELECT v.valore FROM segno_valori v JOIN sedute s ON s.id = v.seduta_id
+             WHERE v.segno_id = g.id ORDER BY s.data, s.id LIMIT 1) AS prima_valore,
+           (SELECT s.data FROM segno_valori v JOIN sedute s ON s.id = v.seduta_id
+             WHERE v.segno_id = g.id ORDER BY s.data DESC, s.id DESC LIMIT 1) AS ultima_data,
+           (SELECT v.valore FROM segno_valori v JOIN sedute s ON s.id = v.seduta_id
+             WHERE v.segno_id = g.id ORDER BY s.data DESC, s.id DESC LIMIT 1) AS ultima_valore,
+           (SELECT COUNT(*) FROM segno_valori v WHERE v.segno_id = g.id) AS misure
+         FROM segni g WHERE g.paziente_id = ? ORDER BY g.ordine, g.id`
+      )
+      .all(pazienteId)
+  )
+  handle('segni:create', (pazienteId: number, nome: string, unita: string | null) => {
+    const db = getDb()
+    const { next } = db
+      .prepare('SELECT COALESCE(MAX(ordine), -1) + 1 AS next FROM segni WHERE paziente_id = ?')
+      .get(pazienteId) as { next: number }
+    return Number(
+      db
+        .prepare('INSERT INTO segni (paziente_id, nome, unita, ordine) VALUES (?, ?, ?, ?)')
+        .run(pazienteId, nome.trim(), unita?.trim() || null, next).lastInsertRowid
+    )
+  })
+  handle('segni:rinomina', (id: number, nome: string, unita: string | null) => {
+    getDb()
+      .prepare('UPDATE segni SET nome = ?, unita = ? WHERE id = ?')
+      .run(nome.trim(), unita?.trim() || null, id)
+  })
+  // Eliminando il segno se ne vanno anche le misure: senza il segno non
+  // vogliono dire piu' niente.
+  handle('segni:delete', (id: number) => {
+    getDb().prepare('DELETE FROM segni WHERE id = ?').run(id)
+  })
+  handle('segni:dellaSeduta', (sedutaId: number) =>
+    getDb()
+      .prepare('SELECT segno_id, valore FROM segno_valori WHERE seduta_id = ?')
+      .all(sedutaId)
+  )
+
   // ---- Chi firma i fogli stampati ----
   handle('profilo:leggi', () => leggiProfilo())
   handle('profilo:salva', (p: Profilo) => salvaProfilo(p))
@@ -766,10 +818,10 @@ export function registerIpc(): void {
         .prepare(
           `INSERT INTO pazienti
              (nome, cognome, data_nascita, telefono, email, lavoro, inviato_da, diagnosi,
-              tipo_intervento, data_intervento, patologia_id, fase_corrente_id)
+              tipo_intervento, data_intervento, precauzioni, patologia_id, fase_corrente_id)
            VALUES
              (@nome, @cognome, @data_nascita, @telefono, @email, @lavoro, @inviato_da, @diagnosi,
-              @tipo_intervento, @data_intervento, @patologia_id, @fase_corrente_id)`
+              @tipo_intervento, @data_intervento, @precauzioni, @patologia_id, @fase_corrente_id)`
         )
         .run({ ...data, nome: data.nome.trim(), cognome: data.cognome.trim() }).lastInsertRowid
     )
@@ -781,7 +833,7 @@ export function registerIpc(): void {
          data_nascita = @data_nascita, telefono = @telefono, email = @email,
          lavoro = @lavoro, inviato_da = @inviato_da, diagnosi = @diagnosi,
          tipo_intervento = @tipo_intervento, data_intervento = @data_intervento,
-         arto_operato = @arto_operato
+         precauzioni = @precauzioni, arto_operato = @arto_operato
          WHERE id = @id`
       )
       .run({ ...data, nome: data.nome.trim(), cognome: data.cognome.trim(), id })
@@ -987,6 +1039,12 @@ export function registerIpc(): void {
   // ---- Sedute ----
   function insertFigliSeduta(sedutaId: number | bigint, input: SedutaInput): void {
     const db = getDb()
+    // Le misure dei segni di riferimento seguono la seduta in cui sono state
+    // prese: si salvano e si cancellano con lei.
+    const insSegno = db.prepare(
+      'INSERT INTO segno_valori (segno_id, seduta_id, valore) VALUES (?, ?, ?)'
+    )
+    for (const v of input.segni) insSegno.run(v.segno_id, sedutaId, v.valore)
     const insSez = db.prepare(
       'INSERT INTO seduta_sezioni (seduta_id, sezione_id, nome, ordine) VALUES (?, ?, ?, ?)'
     )
@@ -1164,6 +1222,7 @@ export function registerIpc(): void {
           // non qualcosa da programmare.
           dolore: null,
           sforzo: null,
+          segni: [],
           note: sorgente.note,
           sezioni: sezioni.map((z) => ({ sezione_id: z.sezione_id, nome: z.nome })),
           esercizi: esercizi.map((e) => ({
@@ -1204,6 +1263,7 @@ export function registerIpc(): void {
         input.note,
         id
       )
+      db.prepare('DELETE FROM segno_valori WHERE seduta_id = ?').run(id)
       db.prepare('DELETE FROM seduta_obiettivi WHERE seduta_id = ?').run(id)
       db.prepare('DELETE FROM seduta_esercizi WHERE seduta_id = ?').run(id)
       db.prepare('DELETE FROM seduta_sezioni WHERE seduta_id = ?').run(id)

@@ -862,6 +862,38 @@ const MIGRATIONS: string[] = [
     email TEXT
   );
   INSERT INTO profilo (id) VALUES (1);
+  `,
+
+  // 35 - i segni di riferimento e le precauzioni.
+  //
+  //      I segni sono le due o tre cose che di quel paziente si ricontrollano
+  //      a ogni seduta ("dolore nello squat", "flessione del ginocchio"): un
+  //      numero, sempre lo stesso, che dice se la strada e' giusta. Sono del
+  //      paziente e non della patologia, perche' si scelgono guardando lui.
+  //      Il valore sta appeso alla seduta in cui l'hai misurato: cosi' segue
+  //      la seduta se la si elimina, e la data non va scritta due volte.
+  //
+  //      Le precauzioni sono i limiti da non superare ("non oltre 90° di
+  //      flessione fino a 6 settimane"). Stanno in un campo loro e non nelle
+  //      note perche' devono comparire in cima alla scheda e mentre componi la
+  //      seduta: una nota che va riletta non serve a niente.
+  `
+  ALTER TABLE pazienti ADD COLUMN precauzioni TEXT;
+
+  CREATE TABLE segni (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    paziente_id INTEGER NOT NULL REFERENCES pazienti(id) ON DELETE CASCADE,
+    nome TEXT NOT NULL,
+    unita TEXT,
+    ordine INTEGER NOT NULL DEFAULT 0
+  );
+
+  CREATE TABLE segno_valori (
+    segno_id INTEGER NOT NULL REFERENCES segni(id) ON DELETE CASCADE,
+    seduta_id INTEGER NOT NULL REFERENCES sedute(id) ON DELETE CASCADE,
+    valore REAL NOT NULL,
+    PRIMARY KEY (segno_id, seduta_id)
+  );
   `
 ]
 

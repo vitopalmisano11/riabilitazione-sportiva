@@ -26,6 +26,7 @@ import SedutaBuilder from '../components/SedutaBuilder'
 import ProgrammaSettimana from '../components/ProgrammaSettimana'
 import QuestionariPaziente from '../components/QuestionariPaziente'
 import AnagraficaPaziente, { ModaleDatiPaziente } from '../components/AnagraficaPaziente'
+import SegniPaziente from '../components/SegniPaziente'
 import AnamnesiPaziente from '../components/AnamnesiPaziente'
 import ValutazionePaziente from '../components/ValutazionePaziente'
 import { toast, toastErrore } from '../components/Toast'
@@ -484,6 +485,16 @@ function SchedaPaziente({
     <div className="scheda">
       <AnagraficaPaziente paziente={paziente} onChanged={onChanged} onDeleted={onDeleted} />
 
+      {/* I limiti da non superare, subito sotto al nome e sopra a tutto il
+          resto: si scrivono nei dati del paziente e si rileggono qui senza
+          doverli cercare. */}
+      {paziente.precauzioni && (
+        <p className="fascia-precauzioni">
+          <AlertTriangle size={16} />
+          {paziente.precauzioni}
+        </p>
+      )}
+
       {/* I due gesti di tutti i giorni restano sempre a portata di clic, in
           qualunque linguetta ti trovi: creare la seduta di oggi, o ripartire da
           quella di ieri invece di rifarla da zero. */}
@@ -545,6 +556,11 @@ function SchedaPaziente({
 
       {scheda === 'clinica' && (
         <>
+          {/* In cima alla clinica: sono i numeri che si guardano piu' spesso,
+              e stanno sopra alla valutazione completa perche' e' quella che si
+              rifa' di rado. */}
+          <SegniPaziente paziente={paziente} />
+
           <AnamnesiPaziente paziente={paziente} />
 
           <ValutazionePaziente paziente={paziente} />

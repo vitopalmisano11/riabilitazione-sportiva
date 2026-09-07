@@ -4678,6 +4678,100 @@ textarea {
   font-size: 13px;
 }
 
+/* I segni di riferimento: una riga per segno, il nome a sinistra e i due
+   numeri (da dove e' partito, dov'e' adesso) al centro. Niente grafici: sono
+   due numeri, e due numeri si leggono. */
+.lista-segni {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.lista-segni li {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--bg);
+}
+
+.lista-segni li:last-child {
+  border-bottom: none;
+}
+
+.segno-nome {
+  flex: 1;
+  min-width: 140px;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.segno-andamento {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.segno-prima {
+  color: var(--text-dim);
+}
+
+.segno-freccia {
+  color: var(--text-dim);
+}
+
+.segno-ultima {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.riga-nuovo-segno {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.riga-nuovo-segno input {
+  flex: 1 1 180px;
+}
+
+.riga-nuovo-segno .campo-unita {
+  flex: 0 1 150px;
+}
+
+/* L'unita' di misura accanto al nome del segno, nella riga della seduta. */
+.unita-segno {
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+/* I limiti da non superare: una fascia sottile sotto al nome del paziente e
+   nell'intestazione della seduta. Ambra e non rossa: e' un promemoria che deve
+   farsi notare, non un errore. */
+.fascia-precauzioni {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 var(--spazio);
+  padding: 8px 12px;
+  border-left: 3px solid #d97706;
+  border-radius: var(--radius-sm);
+  background: rgba(217, 119, 6, 0.1);
+  color: var(--text);
+  font-size: 14px;
+}
+
+.fascia-precauzioni svg {
+  flex: none;
+  margin-top: 2px;
+  color: #b45309;
+}
+
 /* Come esce l'intestazione in cima al foglio: si vede qui invece di doverlo
    stampare per scoprirlo. */
 .anteprima-profilo {
@@ -4712,8 +4806,9 @@ textarea {
   margin-bottom: 12px;
 }
 
-.campo-percepito select {
-  width: 84px;
+.campo-percepito select,
+.campo-percepito input {
+  width: 90px;
 }
 
 .nome-percepito {

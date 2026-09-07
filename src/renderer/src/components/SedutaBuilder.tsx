@@ -6,10 +6,20 @@ import type {
   Obiettivo,
   PazienteDettaglio,
   SedutaEsercizioDettaglio,
+  Segno,
   SedutaInput,
   UltimaVolta
 } from '../../../shared/types'
-import { CornerDownLeft, GripVertical, ImageIcon, Pencil, Plus, Video, X } from 'lucide-react'
+import {
+  AlertTriangle,
+  CornerDownLeft,
+  GripVertical,
+  ImageIcon,
+  Pencil,
+  Plus,
+  Video,
+  X
+} from 'lucide-react'
 import { toastErrore } from './Toast'
 import { chiedi } from './Conferma'
 import ImmagineEsercizio from './ImmagineEsercizio'
@@ -63,6 +73,9 @@ export default function SedutaBuilder({
   const [sforzo, setSforzo] = useState('')
   // Cosa aveva fatto l'ultima volta, esercizio per esercizio.
   const [ultime, setUltime] = useState<Record<number, UltimaVolta>>({})
+  // I segni di riferimento di questo paziente e la misura di oggi.
+  const [segni, setSegni] = useState<Segno[]>([])
+  const [misure, setMisure] = useState<Record<number, string>>({})
   const [note, setNote] = useState('')
   const [sezioni, setSezioni] = useState<SezioneBuilder[]>([])
   const [obiettivi, setObiettivi] = useState<Obiettivo[]>([])
@@ -85,7 +98,7 @@ export default function SedutaBuilder({
   useEffect(() => {
     void (async () => {
       try {
-        const [lib, cats, ragg, elencoFasi, usati, precedenti] = await Promise.all([
+        const [lib, cats, ragg, elencoFasi, usati, precedenti, elencoSegni] = await Promise.all([
           window.api.esercizi.list(false),
           window.api.categorie.list(),
           window.api.pazienti.obiettiviRaggiunti(paziente.id),
@@ -93,7 +106,8 @@ export default function SedutaBuilder({
             ? Promise.resolve([] as Fase[])
             : window.api.fasi.list(paziente.patologia_id),
           window.api.sedute.focusUsati(),
-          window.api.sedute.ultimaVolta(paziente.id, sedutaId)
+          window.api.sedute.ultimaVolta(paziente.id, sedutaId),
+          window.api.segni.list(paziente.id)
         ])
         setLibreria(lib)
         setCategorie(cats)
@@ -101,6 +115,7 @@ export default function SedutaBuilder({
         setFasi(elencoFasi)
         setFocusUsati(usati)
         setUltime(Object.fromEntries(precedenti.map((u) => [u.esercizio_id, u])))
+        setSegni(elencoSegni)
 
         let fase = paziente.fase_corrente_id
         let faseN: string | null = paziente.fase_nome
@@ -110,6 +125,8 @@ export default function SedutaBuilder({
           setFocus(s.focus ?? '')
           setDolore(s.dolore == null ? '' : String(s.dolore))
           setSforzo(s.sforzo == null ? '' : String(s.sforzo))
+          const gia = await window.api.segni.dellaSeduta(sedutaId)
+          setMisure(Object.fromEntries(gia.map((v) => [v.segno_id, String(v.valore)])))
           setNote(s.note ?? '')
           setSezioni(s.sezioni.map((sz) => ({ ...sz, righe: sz.esercizi })))
           fase = s.fase_id
@@ -397,6 +414,11 @@ export default function SedutaBuilder({
       focus: focus.trim() || null,
       dolore: dolore === '' ? null : Number(dolore),
       sforzo: sforzo === '' ? null : Number(sforzo),
+      // Solo i segni che hai misurato davvero: una casella lasciata vuota non
+      // e' uno zero.
+      segni: segni
+        .map((g) => ({ segno_id: g.id, valore: Number((misure[g.id] ?? '').replace(',', '.')) }))
+        .filter((v) => (misure[v.segno_id] ?? '').trim() !== '' && !Number.isNaN(v.valore)),
       note: note.trim() || null,
       sezioni: sezioni.map((s) => ({ sezione_id: s.sezione_id, nome: s.nome })),
       esercizi: sezioni.flatMap((s, i) =>
@@ -526,6 +548,15 @@ export default function SedutaBuilder({
           </button>
         </div>
       </header>
+
+      {/* I limiti da non superare, sotto all'intestazione: si compone la seduta
+          guardandoli, non ricordandoseli. */}
+      {paziente.precauzioni && (
+        <p className="fascia-precauzioni">
+          <AlertTriangle size={16} />
+          {paziente.precauzioni}
+        </p>
+      )}
 
       {faseId != null && obiettivi.length > 0 && (
         <section className="card obiettivi-info">
@@ -894,6 +925,25 @@ export default function SedutaBuilder({
               ))}
             </select>
           </label>
+          {/* I segni di riferimento di questo paziente, nella stessa riga: si
+              ricontrollano qui, seduta dopo seduta, ed e' da questi numeri che
+              si vede se la strada e' giusta. Compaiono solo se ne hai scelti,
+              dalla scheda Clinica. */}
+          {segni.map((g) => (
+            <label key={g.id} className="field campo-percepito">
+              <span className="nome-percepito">
+                {g.nome}
+                {g.unita && <span className="unita-segno">{g.unita}</span>}
+              </span>
+              <input
+                type="text"
+                inputMode="decimal"
+                placeholder="—"
+                value={misure[g.id] ?? ''}
+                onChange={(e) => setMisure({ ...misure, [g.id]: e.target.value })}
+              />
+            </label>
+          ))}
         </div>
         <label className="field note-seduta">
           Note della seduta
