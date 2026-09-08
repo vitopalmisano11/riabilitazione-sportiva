@@ -91,13 +91,17 @@ export default function IndicazioniCasa({
     }
   }
 
+  // Chiuse: si compilano una volta all'inizio e poi si toccano di rado, e nel
+  // percorso stavano aperte tutti i giorni a occupare mezza pagina. Il numero
+  // di quelle scelte si legge senza aprire.
   return (
-    <section className="card">
-      <div className="card-header-row">
-        <h3>
-          Indicazioni per casa
-          <Aiuto testo="Quello che spunti qui esce sul foglio che dai al paziente, sotto al programma: ogni quanto farlo e come regolarsi con il dolore. Le frasi sono in comune, si scrivono una volta e si riusano su chi ti serve." />
-        </h3>
+    <details className="blocco-apribile blocco-indicazioni">
+      <summary>
+        Indicazioni per casa{scelte.length > 0 ? ` (${scelte.length})` : ''}
+        <Aiuto testo="Quello che spunti qui esce sul foglio che dai al paziente, sotto al programma: ogni quanto farlo e come regolarsi con il dolore. Le frasi sono in comune, si scrivono una volta e si riusano su chi ti serve." />
+      </summary>
+      <div className="contenuto-apribile contenuto-indicazioni">
+      <div className="card-header-row riga-titolo-segni">
         {!nuova && (
           <button className="btn-aggiungi-lista" onClick={() => setNuova(true)}>
             <Plus size={16} /> Aggiungi indicazione
@@ -172,6 +176,7 @@ export default function IndicazioniCasa({
           {salvato ? 'Salvato' : 'Salva le indicazioni'}
         </button>
       </div>
-    </section>
+      </div>
+    </details>
   )
 }

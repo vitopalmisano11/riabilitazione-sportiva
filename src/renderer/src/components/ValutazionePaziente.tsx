@@ -352,9 +352,13 @@ function SchedaValutazione({
           />
         </label>
 
+        {/* Un riquadro per distretto, e dentro un riquadro per i movimenti e
+            uno per ogni gruppo di test: senza, la pagina era un seguito di
+            righe in cui non si capiva dove finiva una cosa e cominciava
+            l'altra. */}
         {librerie.map((lib) => (
-          <div key={lib.distretto.id} className="lista-domande">
-            <div className="sotto-titolo">{lib.distretto.nome}</div>
+          <div key={lib.distretto.id} className="riquadro-distretto">
+            <div className="sotto-titolo titolo-distretto">{lib.distretto.nome}</div>
 
             {lib.movimenti.length > 0 && (
               <TabellaMovimenti
@@ -371,12 +375,12 @@ function SchedaValutazione({
               const test = lib.test.filter((t) => t.gruppo === g.valore)
               if (test.length === 0) return null
               return (
-                <div key={g.valore}>
+                <div key={g.valore} className="riquadro-test">
                   <div className="sotto-titolo">{g.etichetta}</div>
                   {test.map((t) => {
                     const r = rispostaTest(t.id as number)
                     return (
-                      <div key={t.id} className="riga-parametro">
+                      <div key={t.id} className="riga-parametro riga-test">
                         <span className="item-nome">{t.nome}</span>
                         {t.risposta === 'posneg' ? (
                           <span className="scelta-coppia">
@@ -606,7 +610,7 @@ function TabellaMovimenti({
   )
 
   return (
-    <div className="movimenti">
+    <div className="movimenti riquadro-test">
       <table className="tabella-movimenti">
         <thead>
           <tr>

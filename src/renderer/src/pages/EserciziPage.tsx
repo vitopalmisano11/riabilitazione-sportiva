@@ -310,7 +310,7 @@ export default function EserciziPage(): React.JSX.Element {
           Categorie esercizi ({categorie.length})
         </button>
         {categorieAperte && (
-        <div className="contenuto-apribile">
+        <div className="contenuto-apribile contenuto-categorie">
         <input
           type="search"
           className="cerca-categoria"

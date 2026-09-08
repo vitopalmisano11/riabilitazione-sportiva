@@ -4482,6 +4482,59 @@ textarea {
 /* Movimento attivo e passivo affiancati, ognuno nel suo riquadro. Sotto una
    certa larghezza vanno uno sopra l'altro: schiacciati diventerebbero
    illeggibili. */
+/* La valutazione oggettiva si legge a riquadri: uno per distretto, e dentro
+   uno per i movimenti e uno per ogni gruppo di test. Prima era un seguito di
+   righe in cui non si capiva dove finiva una cosa e cominciava l'altra. */
+.riquadro-distretto {
+  border: 1px solid var(--border-forte);
+  border-radius: var(--radius);
+  padding: 0 var(--spazio-interno) var(--spazio-interno);
+  margin-top: var(--spazio);
+}
+
+/* Il nome del distretto fa da cartellino del riquadro: attaccato al bordo di
+   sopra, largo quanto lui. */
+.riquadro-distretto .titolo-distretto {
+  margin: 0 calc(var(--spazio-interno) * -1) var(--spazio-interno);
+  border-radius: var(--radius) var(--radius) 0 0;
+  font-size: 14px;
+  color: var(--intestazione-testo-forte);
+}
+
+.riquadro-test {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 4px 12px 12px;
+  margin-bottom: 12px;
+}
+
+.riquadro-test:last-child {
+  margin-bottom: 0;
+}
+
+.riquadro-test > .sotto-titolo:first-child {
+  margin-top: 10px;
+}
+
+/* Un test per riga, staccato dal successivo: sono cose diverse, non un blocco
+   unico di caselle. */
+.riga-test {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--bg);
+}
+
+.riga-test:last-child {
+  border-bottom: none;
+}
+
+/* L'elenco delle categorie nella libreria: come quello delle sezioni di fase,
+   oltre una certa altezza scorre invece di allungare la pagina. */
+.contenuto-categorie .crud-list > ul {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
 /* Una tabella sola per i movimenti: il nome a sinistra, poi l'attivo e il
    passivo. Prima erano due tabelle affiancate, ognuna troppo larga per il suo
    spazio: per segnare i gradi bisognava scorrere di lato. */
@@ -4918,7 +4971,8 @@ textarea {
 /* I segni di riferimento stanno in fondo alle misure, in un blocco chiuso: la
    larghezza pero' e' quella della scheda, non quella stretta degli altri
    blocchi apribili, perche' dentro c'e' un elenco. */
-.blocco-segni .contenuto-segni {
+.blocco-segni .contenuto-segni,
+.blocco-indicazioni .contenuto-indicazioni {
   max-width: none;
 }
 
