@@ -3005,6 +3005,16 @@ textarea {
   margin-left: 0;
 }
 
+/* Il posto dell'etichetta c'e' in tutte le piastrelle, anche in quelle senza:
+   e' l'unico modo perche' i nomi cadano tutti alla stessa altezza invece di
+   alzarsi di mezza riga dove l'etichetta c'e'. */
+.riga-pillola {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+}
+
 /* Un titolo di sezione con il suo pulsante in fondo alla riga. */
 .riga-con-pulsante {
   display: flex;

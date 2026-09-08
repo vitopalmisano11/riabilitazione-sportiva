@@ -218,6 +218,10 @@ function Step1Patologie({
                     nome resta l'unica cosa al centro, senza niente che gli
                     stia accanto a spostarlo. */}
                 <span className="scelta-tile-nome">{p.nome}</span>
+                {/* Lo spazio dell'etichetta c'e' sempre, anche vuoto: cosi' i
+                    nomi stanno tutti alla stessa altezza, e quello con il campo
+                    non risulta piu' in alto degli altri. */}
+                <span className="riga-pillola">
                 {/* Le patologie che vanno al campo sono poche. Acceso, si vede
                     sempre; spento, la parola "campo" non compare proprio: il
                     pulsante per accenderlo sta con le altre azioni, che si
@@ -250,6 +254,7 @@ function Step1Patologie({
                     campo
                   </button>
                 )}
+                </span>
                 <span className="item-actions" onClick={(e) => e.stopPropagation()}>
                   {p.ha_campo !== 1 && (
                     <button
