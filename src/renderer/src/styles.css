@@ -1111,12 +1111,12 @@ button.danger:hover:not(:disabled) {
   pointer-events: auto;
 }
 
-/* I comandi stanno nell'angolo in alto a destra, tutti insieme: al centro in
+/* I comandi stanno nell'angolo in basso a destra, tutti insieme: al centro in
    basso rubavano una riga alla piastrella, e il nome non era mai davvero al
    centro. Compaiono passandoci sopra. */
 .scelta-tile .item-actions {
   position: absolute;
-  top: 4px;
+  bottom: 4px;
   right: 4px;
   justify-content: flex-end;
   gap: 2px;
@@ -2998,13 +2998,10 @@ textarea {
   user-select: none;
 }
 
-/* L'etichetta "campo" in basso al centro, fuori dalla riga del nome: da li'
-   non lo sposta piu' di lato. */
+/* L'etichetta "campo" sta sotto al nome e si muove con lui: sono la stessa
+   cosa, e staccata in fondo alla piastrella sembrava appartenere al riquadro
+   invece che alla patologia. */
 .pillola-in-basso {
-  position: absolute;
-  left: 50%;
-  bottom: 6px;
-  transform: translateX(-50%);
   margin-left: 0;
 }
 
@@ -4710,10 +4707,14 @@ textarea {
 
 /* Le piastrelle da cui si sceglie (patologie, distretti, questionari, test):
    con trenta voci la pagina diventava lunghissima. Il limite e' alto, quattro o
-   cinque file: con poche voci non si vede nessuna barra. */
+   cinque file: con poche voci non si vede nessuna barra.
+   Il margine interno serve allo scorrimento: passandoci sopra la piastrella si
+   alza di un pixel, e senza quello spazio il bordo di sopra veniva tagliato via
+   dal riquadro che scorre — si illuminava tutto il contorno tranne quello. */
 .scelta-tiles {
   max-height: 520px;
   overflow-y: auto;
+  padding: 4px;
 }
 
 /* Una tabella sola per i movimenti: il nome a sinistra, poi l'attivo e il
