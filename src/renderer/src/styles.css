@@ -2705,6 +2705,75 @@ span.row-actions button {
   line-height: 1.4;
 }
 
+/* La scala numerica come quella di carta: i pallini in fila su una riga, il
+   numero dentro. La riga e' disegnata dietro ai pallini, che la coprono. */
+.scala-pallini {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: 560px;
+  padding: 2px 0;
+}
+
+.scala-pallini::before {
+  content: '';
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  top: 50%;
+  height: 2px;
+  background: var(--border-forte);
+  /* Sotto ai pallini: sono loro a doversi leggere. */
+  z-index: 0;
+}
+
+.scala-pallini .pallino {
+  position: relative;
+  z-index: 1;
+  width: 34px;
+  height: 34px;
+  min-width: 0;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--surface);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.scala-pallini .pallino:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Il valore scelto: pieno e un po' piu' grande, si vede da lontano mentre il
+   paziente indica il suo numero. */
+.scala-pallini .pallino.scelto {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  transform: scale(1.15);
+  box-shadow: var(--shadow-sm);
+}
+
+.scala-pallini .pallino:disabled {
+  opacity: 1;
+}
+
+.scala-pallini .pallino:disabled:not(.scelto) {
+  color: var(--text-dim);
+  opacity: 0.5;
+}
+
+/* Nella riga di un test la scala sta accanto al nome, quindi piu' stretta. */
+.riga-test .scala-pallini {
+  max-width: 260px;
+  flex: none;
+}
+
 .compila-risposte {
   display: flex;
   flex-wrap: wrap;
@@ -4811,6 +4880,9 @@ textarea {
   display: flex;
   justify-content: space-between;
   gap: 16px;
+  /* Larga quanto la fascia dei pallini: i due nomi devono cadere sotto ai due
+     estremi della scala, non ai bordi della pagina. */
+  max-width: 560px;
   margin-top: 4px;
   color: var(--text-dim);
   font-size: 13px;

@@ -15,6 +15,7 @@ import type {
 } from '../../../shared/types'
 import { toast, toastErrore } from './Toast'
 import { chiedi } from './Conferma'
+import ScalaPallini from './ScalaPallini'
 import { errMsg, formatData, oggiIso } from '../lib'
 import { useScorciatoie } from '../scorciatoie'
 import { GRUPPI } from '../pages/DistrettiPage'
@@ -398,21 +399,19 @@ function SchedaValutazione({
                             ))}
                           </span>
                         ) : t.risposta === 'scala5' ? (
-                          <select
-                            className="campo-stretto"
-                            disabled={soloLettura}
-                            value={r.valore ?? ''}
-                            onChange={(e) =>
-                              cambiaTest(t.id as number, { valore: e.target.value || null })
+                          // La stessa fascia di pallini dei questionari: e'
+                          // una scala, e come scala si legge.
+                          <ScalaPallini
+                            min={0}
+                            max={5}
+                            valore={r.valore == null || r.valore === '' ? null : Number(r.valore)}
+                            soloLettura={soloLettura}
+                            onCambia={(v) =>
+                              cambiaTest(t.id as number, {
+                                valore: r.valore === String(v) ? null : String(v)
+                              })
                             }
-                          >
-                            <option value="">—</option>
-                            {['0', '1', '2', '3', '4', '5'].map((v) => (
-                              <option key={v} value={v}>
-                                {v}
-                              </option>
-                            ))}
-                          </select>
+                          />
                         ) : (
                           <input
                             disabled={soloLettura}

@@ -5,6 +5,7 @@ import type {
   QuestionarioCompleto
 } from '../../../shared/types'
 import { toast, toastErrore } from './Toast'
+import ScalaPallini from './ScalaPallini'
 import { errMsg, formatData, oggiIso } from '../lib'
 
 // Lo schermo è girato verso il paziente, che legge le domande, ma a cliccare è
@@ -110,18 +111,32 @@ export default function CompilaQuestionario({
             {conId.map((d) => (
               <li key={d.id}>
                 <p className="compila-testo">{d.testo}</p>
-                <div className="compila-risposte">
-                  {opzioniDi(d).map((o, i) => (
-                    <button
-                      key={i}
-                      className={risposte[d.id] === o.valore ? 'scelta-attiva' : ''}
-                      disabled={soloLettura}
-                      onClick={() => setRisposte({ ...risposte, [d.id]: o.valore })}
-                    >
-                      {o.etichetta}
-                    </button>
-                  ))}
-                </div>
+                {/* Le scale corte si mostrano come la scala di carta: una
+                    fascia di pallini da un estremo all'altro. Le altre restano
+                    pulsanti, che con risposte scritte per esteso e' l'unica
+                    forma che ci sta. */}
+                {aFascia(d) ? (
+                  <ScalaPallini
+                    min={d.scala_min ?? 0}
+                    max={d.scala_max ?? 10}
+                    valore={risposte[d.id] ?? null}
+                    soloLettura={soloLettura}
+                    onCambia={(v) => setRisposte({ ...risposte, [d.id]: v })}
+                  />
+                ) : (
+                  <div className="compila-risposte">
+                    {opzioniDi(d).map((o, i) => (
+                      <button
+                        key={i}
+                        className={risposte[d.id] === o.valore ? 'scelta-attiva' : ''}
+                        disabled={soloLettura}
+                        onClick={() => setRisposte({ ...risposte, [d.id]: o.valore })}
+                      >
+                        {o.etichetta}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 {/* Cosa vogliono dire i due estremi: sotto ai numeri, uno a
                     sinistra e uno a destra, come sulla scala di carta. Senza,
                     "0" e "10" non dicono da che parte sta il male. */}
@@ -174,6 +189,15 @@ export default function CompilaQuestionario({
       </div>
     </div>
   )
+}
+
+// Una scala si disegna a pallini se i passi sono pochi: da 0 a 10 e' la NPRS,
+// da 0 a 100 sarebbero cento pallini e allora restano i pulsanti.
+function aFascia(d: DomandaQuestionario): boolean {
+  if (d.tipo !== 'scala') return false
+  const min = d.scala_min ?? 0
+  const max = d.scala_max ?? 10
+  return max - min > 0 && max - min <= 11
 }
 
 // Le tre forme di domanda diventano tutte lo stesso elenco di pulsanti.
