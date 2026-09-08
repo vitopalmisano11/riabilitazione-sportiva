@@ -4,6 +4,8 @@ import {
   ArchiveRestore,
   ArrowDownAZ,
   ArrowDownWideNarrow,
+  ChevronDown,
+  ChevronRight,
   HelpCircle,
   ImageIcon,
   Pencil,
@@ -86,6 +88,13 @@ export default function EserciziPage(): React.JSX.Element {
     rir: boolean
   } | null>(null)
   const [ricerca, setRicerca] = useState('')
+  // Il riquadro delle categorie si apre e si richiude, e dentro ha la sua
+  // ricerca: con trenta categorie l'elenco aperto copriva tutta la pagina.
+  const [categorieAperte, setCategorieAperte] = useState(false)
+  const [ricercaCat, setRicercaCat] = useState('')
+  const qCat = ricercaCat.trim().toLowerCase()
+  const categorieTrovate =
+    qCat === '' ? categorie : categorie.filter((c) => c.nome.toLowerCase().includes(qCat))
   const [filtroCategoria, setFiltroCategoria] = useState<number | ''>('')
   const [form, setForm] = useState<FormState | null>(null)
   const [immagineAperta, setImmagineAperta] = useState<EsercizioConCategoria | null>(null)
@@ -293,12 +302,25 @@ export default function EserciziPage(): React.JSX.Element {
         <h2>Libreria esercizi</h2>
       </header>
 
-      <details className="blocco-apribile">
-        <summary>Categorie esercizi ({categorie.length})</summary>
+      <div className="blocco-apribile">
+        {/* Un pulsante vero e proprio, con la freccetta che gira: si vede che
+            si puo' richiudere, cosa che con il solo titolo non si capiva. */}
+        <button className="riga-apribile" onClick={() => setCategorieAperte(!categorieAperte)}>
+          {categorieAperte ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+          Categorie esercizi ({categorie.length})
+        </button>
+        {categorieAperte && (
         <div className="contenuto-apribile">
+        <input
+          type="search"
+          className="cerca-categoria"
+          placeholder="Cerca categoria…"
+          value={ricercaCat}
+          onChange={(e) => setRicercaCat(e.target.value)}
+        />
         <CrudList
           title="Categorie"
-          items={categorie}
+          items={categorieTrovate}
           onNuovo={() => setFormCat({ id: null, nome: '', cluster: false, rir: false })}
           onModifica={(item) => {
             const c = categorie.find((x) => x.id === item.id)
@@ -313,10 +335,17 @@ export default function EserciziPage(): React.JSX.Element {
             await window.api.categorie.remove(id)
             await loadCategorie()
           }}
-          onReorder={async (ids) => {
-            await window.api.categorie.reorder(ids)
-            await loadCategorie()
-          }}
+          // Cercando si vede solo una parte dell'elenco: riordinarla
+          // sposterebbe anche quelle che non si vedono, quindi la maniglia
+          // sparisce finche' la ricerca e' attiva.
+          onReorder={
+            qCat === ''
+              ? async (ids) => {
+                  await window.api.categorie.reorder(ids)
+                  await loadCategorie()
+                }
+              : undefined
+          }
           etichettaAggiungi="Nuova categoria"
           emptyHint="Nessuna categoria: creane una qui sotto."
           aiuto="Ogni categoria può essere segnata come «a cluster»: gli esercizi che le appartengono si dosano spezzando la serie in blocchi con una pausa breve dentro, come nella pliometria estensiva. L'opzione si mette aprendo la categoria."
@@ -331,7 +360,8 @@ export default function EserciziPage(): React.JSX.Element {
           }}
         />
         </div>
-      </details>
+        )}
+      </div>
 
       <div className="toolbar">
         <input

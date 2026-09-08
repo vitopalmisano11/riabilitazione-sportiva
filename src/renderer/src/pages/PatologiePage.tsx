@@ -541,6 +541,7 @@ function StrutturaTab({ faseId }: { faseId: number }): React.JSX.Element {
   const [sezioni, setSezioni] = useState<SezioneConCategorie[]>([])
   const [selSez, setSelSez] = useState<number | null>(null)
   const [categorie, setCategorie] = useState<Categoria[]>([])
+  const [ricercaCat, setRicercaCat] = useState('')
 
   const load = useCallback(
     (): Promise<void> => window.api.sezioni.list(faseId).then(setSezioni),
@@ -572,6 +573,9 @@ function StrutturaTab({ faseId }: { faseId: number }): React.JSX.Element {
 
   const nomeCategoria = (cid: number): string => categorie.find((c) => c.id === cid)?.nome ?? '?'
   const nonAssociate = categorie.filter((c) => !sez?.categoria_ids.includes(c.id))
+  const qCat = ricercaCat.trim().toLowerCase()
+  const daAggiungere =
+    qCat === '' ? nonAssociate : nonAssociate.filter((c) => c.nome.toLowerCase().includes(qCat))
 
   return (
     <div className="struttura-tab">
@@ -625,8 +629,17 @@ function StrutturaTab({ faseId }: { faseId: number }): React.JSX.Element {
             {nonAssociate.length > 0 && (
               <>
                 <div className="sotto-titolo">Altre categorie</div>
-                <ul className="checkbox-list">
-                  {nonAssociate.map((c) => (
+                {/* Con trenta categorie scorrerle tutte per trovarne una e'
+                    piu' lento che scriverne tre lettere. */}
+                <input
+                  type="search"
+                  className="cerca-categoria"
+                  placeholder="Cerca categoria…"
+                  value={ricercaCat}
+                  onChange={(e) => setRicercaCat(e.target.value)}
+                />
+                <ul className="checkbox-list elenco-categorie-scorre">
+                  {daAggiungere.map((c) => (
                     <li key={c.id}>
                       <label>
                         <input
@@ -638,6 +651,9 @@ function StrutturaTab({ faseId }: { faseId: number }): React.JSX.Element {
                       </label>
                     </li>
                   ))}
+                  {daAggiungere.length === 0 && (
+                    <li className="empty">Nessuna categoria con questo nome.</li>
+                  )}
                 </ul>
               </>
             )}

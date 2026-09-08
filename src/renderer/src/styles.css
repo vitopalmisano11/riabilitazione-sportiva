@@ -3257,6 +3257,38 @@ textarea {
   background: var(--pannello);
 }
 
+/* La riga che apre e chiude un riquadro: un pulsante vero, con la freccetta
+   che gira, cosi' si vede che si puo' anche richiudere. */
+.riga-apribile {
+  width: 100%;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 10px 14px;
+  border: none;
+  background: none;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.riga-apribile:hover:not(:disabled) {
+  background: none;
+  color: var(--accent);
+}
+
+/* La ricerca dentro a un elenco di categorie: sta sopra all'elenco, larga
+   quanto il riquadro. */
+.cerca-categoria {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+/* L'elenco delle categorie da aggiungere non fa crescere la pagina all'infinito:
+   oltre una certa altezza scorre dentro al suo riquadro. */
+.elenco-categorie-scorre {
+  max-height: 260px;
+  overflow-y: auto;
+}
+
 .blocco-apribile > summary {
   cursor: pointer;
   padding: 10px 14px;
@@ -3713,6 +3745,21 @@ textarea {
   text-align: center;
   /* senza questo il simbolo dei gradi andava a capo da solo */
   white-space: nowrap;
+}
+
+/* Le sei colonne dei rilievi sono strette e a misura del loro contenuto: tre
+   pulsanti, una spunta, una casella da tre cifre. Lo spazio che avanza va al
+   nome del movimento. */
+.tabella-movimenti .col-restrizione {
+  width: 120px;
+}
+
+.tabella-movimenti .col-dolore {
+  width: 54px;
+}
+
+.tabella-movimenti .col-gradi {
+  width: 66px;
 }
 
 .campo-gradi {
@@ -4435,12 +4482,31 @@ textarea {
 /* Movimento attivo e passivo affiancati, ognuno nel suo riquadro. Sotto una
    certa larghezza vanno uno sopra l'altro: schiacciati diventerebbero
    illeggibili. */
-.movimenti-attivo-passivo {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-  gap: var(--spazio);
-  align-items: start;
+/* Una tabella sola per i movimenti: il nome a sinistra, poi l'attivo e il
+   passivo. Prima erano due tabelle affiancate, ognuna troppo larga per il suo
+   spazio: per segnare i gradi bisognava scorrere di lato. */
+.movimenti {
   margin-bottom: var(--spazio);
+}
+
+.note-movimenti {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--spazio);
+}
+
+/* La riga verticale che separa l'attivo dal passivo, e il nome del lato sopra
+   alle sue tre colonne. */
+.tabella-movimenti .stacco-lato {
+  border-left: 1px solid var(--border);
+}
+
+.tabella-movimenti .lato-attivo,
+.tabella-movimenti .lato-passivo {
+  color: var(--text);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  padding-bottom: 2px;
 }
 
 /* La casella delle note sta dentro al riquadro del suo lato, sotto la tabella:
@@ -4501,13 +4567,21 @@ textarea {
 
 /* Il nome del movimento va a capo se e' lungo: con le colonne a larghezza
    fissa, tenerlo su una riga sola lo faceva uscire e finire sotto ai pulsanti
-   della restrizione ("Rotazione interna" era il caso). */
+   della restrizione ("Rotazione interna" era il caso). La colonna e' stretta
+   quanto basta: lo spazio serve ai rilievi, che sono sei. */
+.tabella-movimenti td.col-nome,
+.tabella-movimenti th.col-nome {
+  width: 22%;
+  min-width: 110px;
+}
+
 .tabella-movimenti td.col-nome {
   text-align: left;
   white-space: normal;
   overflow-wrap: anywhere;
   line-height: 1.25;
   padding-right: 10px;
+  font-size: 14px;
 }
 
 .tabella-movimenti th.col-nome {

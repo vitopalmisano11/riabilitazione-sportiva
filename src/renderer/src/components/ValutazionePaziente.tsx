@@ -524,119 +524,137 @@ function TabellaMovimenti({
 }): React.JSX.Element {
   const conGradi = movimenti.some((m) => m.gradi === 1)
 
-  const blocco = (
-    titolo: string,
+  // Una riga per movimento: il nome, poi i rilievi dell'attivo e quelli del
+  // passivo. Le due meta' si distinguono con una riga verticale.
+  const celle = (
+    id: number,
+    m: MovimentoDistretto,
     campoRestrizione: 'attivo_restrizione' | 'passivo_restrizione',
     campoDolore: 'attivo_dolore' | 'passivo_dolore',
     campoGradi: 'attivo_gradi' | 'passivo_gradi',
-    lato: 'attivo' | 'passivo'
-  ): React.JSX.Element => (
-    <div className="blocco-movimento">
-      <div className="sotto-titolo">{titolo}</div>
-      {/* La tabella scorre di lato dentro al suo riquadro: con il testo
-          ingrandito non ci sta piu' in larghezza, e prima usciva fuori. */}
-      <div className="tabella-scorre">
-        <table className="tabella-movimenti">
-          <thead>
-            <tr>
-              <th className="col-nome">Movimento</th>
-              <th className="col-restrizione">Restrizione</th>
-              <th>Dolore</th>
-              {conGradi && <th className="col-gradi">Gradi</th>}
-            </tr>
-          </thead>
-          <tbody>
-            {movimenti.map((m) => {
-              const id = m.id as number
-              const r = rilievo(id)
-              const restrizione = r[campoRestrizione]
-              return (
-                <tr key={id}>
-                  <td className="col-nome">{m.nome}</td>
-                  <td className="col-restrizione">
-                    <span className="scala-segni">
-                      {SEGNI.map((g) => (
-                        <button
-                          key={g.valore}
-                          type="button"
-                          title={g.titolo}
-                          disabled={soloLettura}
-                          className={restrizione === g.valore ? 'scelta-attiva' : ''}
-                          // ripremendo lo stesso segno si toglie: e' il modo piu'
-                          // veloce per correggere un clic sbagliato
-                          onClick={() =>
-                            onCambia(id, {
-                              [campoRestrizione]: restrizione === g.valore ? null : g.valore
-                            })
-                          }
-                        >
-                          {g.segno}
-                        </button>
-                      ))}
-                    </span>
-                  </td>
-                  <td className="col-dolore">
-                    <input
-                      type="checkbox"
-                      title="Dolore durante il movimento"
-                      disabled={soloLettura}
-                      // i rilievi vecchi avevano il dolore graduato: qualunque
-                      // valore diverso da zero vuol dire che il dolore c'era
-                      checked={(r[campoDolore] ?? 0) > 0}
-                      onChange={(e) => onCambia(id, { [campoDolore]: e.target.checked ? 1 : null })}
-                    />
-                  </td>
-                  {conGradi && (
-                    <td className="col-gradi">
-                      {m.gradi === 1 ? (
-                        <input
-                          type="number"
-                          className="campo-gradi"
-                          disabled={soloLettura}
-                          value={r[campoGradi] ?? ''}
-                          onChange={(e) =>
-                            onCambia(id, {
-                              [campoGradi]: e.target.value === '' ? null : Number(e.target.value)
-                            })
-                          }
-                        />
-                      ) : (
-                        <span className="hint">—</span>
-                      )}
-                    </td>
-                  )}
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      </div>
+    primaColonna: boolean
+  ): React.JSX.Element => {
+    const r = rilievo(id)
+    const restrizione = r[campoRestrizione]
+    const stacco = primaColonna ? ' stacco-lato' : ''
+    return (
+      <>
+        <td className={`col-restrizione${stacco}`}>
+          <span className="scala-segni">
+            {SEGNI.map((g) => (
+              <button
+                key={g.valore}
+                type="button"
+                title={g.titolo}
+                disabled={soloLettura}
+                className={restrizione === g.valore ? 'scelta-attiva' : ''}
+                // ripremendo lo stesso segno si toglie: e' il modo piu' veloce
+                // per correggere un clic sbagliato
+                onClick={() =>
+                  onCambia(id, {
+                    [campoRestrizione]: restrizione === g.valore ? null : g.valore
+                  })
+                }
+              >
+                {g.segno}
+              </button>
+            ))}
+          </span>
+        </td>
+        <td className="col-dolore">
+          <input
+            type="checkbox"
+            title="Dolore durante il movimento"
+            disabled={soloLettura}
+            // i rilievi vecchi avevano il dolore graduato: qualunque valore
+            // diverso da zero vuol dire che il dolore c'era
+            checked={(r[campoDolore] ?? 0) > 0}
+            onChange={(e) => onCambia(id, { [campoDolore]: e.target.checked ? 1 : null })}
+          />
+        </td>
+        {conGradi && (
+          <td className="col-gradi">
+            {m.gradi === 1 ? (
+              <input
+                type="number"
+                className="campo-gradi"
+                disabled={soloLettura}
+                value={r[campoGradi] ?? ''}
+                onChange={(e) =>
+                  onCambia(id, {
+                    [campoGradi]: e.target.value === '' ? null : Number(e.target.value)
+                  })
+                }
+              />
+            ) : (
+              <span className="hint">&mdash;</span>
+            )}
+          </td>
+        )}
+      </>
+    )
+  }
 
-      {/* Una nota per riquadro: quello che si annota ("in inclinazione a destra
-          tira a sinistra") riguarda l'insieme dei movimenti provati in quel
-          modo, non il singolo movimento. */}
-      <label className="nota-movimenti">
-        Note
-        <textarea
-          rows={2}
-          disabled={soloLettura}
-          value={note[lato] ?? ''}
-          onChange={(e) => onNote({ [lato]: e.target.value || null })}
-        />
-      </label>
-    </div>
+  const intestazioneLato = (primaColonna: boolean): React.JSX.Element => (
+    <>
+      <th className={primaColonna ? 'col-restrizione stacco-lato' : 'col-restrizione'}>
+        Restrizione
+      </th>
+      <th className="col-dolore">Dolore</th>
+      {conGradi && <th className="col-gradi">Gradi</th>}
+    </>
   )
 
   return (
-    <div className="movimenti-attivo-passivo">
-      {blocco('Movimento attivo', 'attivo_restrizione', 'attivo_dolore', 'attivo_gradi', 'attivo')}
-      {blocco(
-        'Movimento passivo',
-        'passivo_restrizione',
-        'passivo_dolore',
-        'passivo_gradi',
-        'passivo'
-      )}
+    <div className="movimenti">
+      <table className="tabella-movimenti">
+        <thead>
+          <tr>
+            <th className="col-nome" rowSpan={2}>
+              Movimento
+            </th>
+            <th className="lato-attivo stacco-lato" colSpan={conGradi ? 3 : 2}>
+              Attivo
+            </th>
+            <th className="lato-passivo stacco-lato" colSpan={conGradi ? 3 : 2}>
+              Passivo
+            </th>
+          </tr>
+          <tr>
+            {intestazioneLato(true)}
+            {intestazioneLato(true)}
+          </tr>
+        </thead>
+        <tbody>
+          {movimenti.map((m) => {
+            const id = m.id as number
+            return (
+              <tr key={id}>
+                <td className="col-nome">{m.nome}</td>
+                {celle(id, m, 'attivo_restrizione', 'attivo_dolore', 'attivo_gradi', true)}
+                {celle(id, m, 'passivo_restrizione', 'passivo_dolore', 'passivo_gradi', true)}
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+
+      {/* Una nota per lato: quello che si annota ("in inclinazione a destra
+          tira a sinistra") riguarda l'insieme dei movimenti provati in quel
+          modo, non il singolo movimento. */}
+      <div className="note-movimenti">
+        {(['attivo', 'passivo'] as const).map((lato) => (
+          <label key={lato} className="nota-movimenti">
+            Note del movimento {lato}
+            <textarea
+              rows={2}
+              disabled={soloLettura}
+              value={note[lato] ?? ''}
+              onChange={(e) => onNote({ [lato]: e.target.value || null })}
+            />
+          </label>
+        ))}
+      </div>
     </div>
   )
 }
