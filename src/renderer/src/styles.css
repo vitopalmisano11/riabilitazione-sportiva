@@ -1356,7 +1356,8 @@ button.danger:hover:not(:disabled) {
 /* Il filtro delle categorie non ha bisogno di tutta quella larghezza: i nomi
    sono corti, e lo spazio serve al resto della barra. */
 .filtro-categorie {
-  max-width: 210px;
+  max-width: 230px;
+  flex: 1 1 180px;
 }
 
 /* Spinge a destra quello che viene dopo, in qualunque riga di pulsanti: era
@@ -4595,6 +4596,80 @@ textarea {
 
 .riga-test:last-child {
   border-bottom: none;
+}
+
+/* La casella in cui si sceglie scrivendo, al posto del menu a tendina: la
+   tendina di Windows con trenta voci si apre lunga mezza schermata e da dentro
+   l'app non si puo' accorciare. */
+.scelta-cerca {
+  position: relative;
+}
+
+.riga-scelta-cerca {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+}
+
+.riga-scelta-cerca input {
+  flex: 1;
+  min-width: 0;
+}
+
+.riga-scelta-cerca .btn-icona {
+  flex: none;
+  padding: 0 8px;
+  color: var(--text-dim);
+}
+
+/* L'elenco sta sopra a quello che c'e' sotto, come farebbe una tendina, e non
+   supera mai sette righe. */
+.elenco-scelta {
+  position: absolute;
+  z-index: 20;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  max-height: 260px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--border-forte);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+}
+
+.elenco-scelta li {
+  display: block;
+}
+
+.elenco-scelta .briciola {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  color: var(--text);
+}
+
+.elenco-scelta .briciola:hover:not(:disabled) {
+  background: var(--intestazione);
+  color: var(--intestazione-testo-forte);
+}
+
+.elenco-scelta .briciola.scelta-attiva {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.elenco-scelta .empty {
+  padding: 7px 10px;
+  color: var(--text-dim);
+  font-size: 14px;
 }
 
 /* Gli elenchi lunghi scorrono dentro al loro riquadro invece di allungare la

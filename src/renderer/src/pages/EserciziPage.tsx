@@ -17,6 +17,7 @@ import { toastErrore } from '../components/Toast'
 import { chiedi } from '../components/Conferma'
 import CrudList from '../components/CrudList'
 import Aiuto from '../components/Aiuto'
+import SceltaConRicerca from '../components/SceltaConRicerca'
 import ImmagineEsercizio from '../components/ImmagineEsercizio'
 import { errMsg } from '../lib'
 import type { Dosaggio } from '../../../shared/dosaggio'
@@ -370,18 +371,15 @@ export default function EserciziPage(): React.JSX.Element {
           value={ricerca}
           onChange={(e) => setRicerca(e.target.value)}
         />
-        <select
-          className="filtro-categorie"
-          value={filtroCategoria}
-          onChange={(e) => setFiltroCategoria(e.target.value === '' ? '' : Number(e.target.value))}
-        >
-          <option value="">Tutte le categorie</option>
-          {categorie.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.nome}
-            </option>
-          ))}
-        </select>
+        <div className="filtro-categorie">
+          <SceltaConRicerca
+            voci={categorie}
+            valore={filtroCategoria}
+            segnaposto="Tutte le categorie"
+            vuoto="Tutte le categorie"
+            onCambia={setFiltroCategoria}
+          />
+        </div>
         {/* Due interruttori, non due scritte: l'ordine e gli archiviati sono
             stati dell'elenco, e da pulsanti occupano un quarto dello spazio. */}
         <button
@@ -599,22 +597,14 @@ export default function EserciziPage(): React.JSX.Element {
             </label>
             <label>
               Categoria *
-              <select
-                value={form.categoria_id}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    categoria_id: e.target.value === '' ? '' : Number(e.target.value)
-                  })
-                }
-              >
-                <option value="">— seleziona —</option>
-                {categorie.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.nome}
-                  </option>
-                ))}
-              </select>
+              {/* Si scrive invece di scorrere: con trenta categorie la tendina
+                  di Windows si apriva lunga mezza schermata. */}
+              <SceltaConRicerca
+                voci={categorie}
+                valore={form.categoria_id}
+                segnaposto="Scrivi o scegli la categoria…"
+                onCambia={(id) => setForm({ ...form, categoria_id: id })}
+              />
             </label>
             <p className="modal-testo">
               Valori di default, proposti quando aggiungi l&apos;esercizio a una seduta:

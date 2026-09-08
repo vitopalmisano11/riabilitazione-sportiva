@@ -26,6 +26,7 @@ import SedutaBuilder from '../components/SedutaBuilder'
 import ProgrammaSettimana from '../components/ProgrammaSettimana'
 import QuestionariPaziente from '../components/QuestionariPaziente'
 import AnagraficaPaziente, { ModaleDatiPaziente } from '../components/AnagraficaPaziente'
+import SceltaConRicerca from '../components/SceltaConRicerca'
 import SegniPaziente from '../components/SegniPaziente'
 import IndicazioniCasa from '../components/IndicazioniCasa'
 import MisurePaziente from '../components/MisurePaziente'
@@ -244,19 +245,13 @@ export default function PazientiPage({
             <div className="pannello-filtri">
               <label className="compila-data">
                 Patologia
-                <select
-                  value={filtroPatologia}
-                  onChange={(e) =>
-                    setFiltroPatologia(e.target.value === '' ? '' : Number(e.target.value))
-                  }
-                >
-                  <option value="">tutte</option>
-                  {patologie.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.nome}
-                    </option>
-                  ))}
-                </select>
+                <SceltaConRicerca
+                  voci={patologie}
+                  valore={filtroPatologia}
+                  segnaposto="tutte"
+                  vuoto="tutte"
+                  onCambia={setFiltroPatologia}
+                />
               </label>
               <label className="compila-data">
                 Stato
@@ -579,19 +574,13 @@ function SchedaPaziente({
         <div className="riga-percorso">
           <label className="field">
             Patologia
-            <select
-              value={paziente.patologia_id ?? ''}
-              onChange={(e) =>
-                void setPatologia(e.target.value === '' ? null : Number(e.target.value))
-              }
-            >
-              <option value="">— nessuna —</option>
-              {patologie.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.nome}
-                </option>
-              ))}
-            </select>
+            <SceltaConRicerca
+              voci={patologie}
+              valore={paziente.patologia_id ?? ''}
+              segnaposto="— nessuna —"
+              vuoto="— nessuna —"
+              onCambia={(id) => void setPatologia(id === '' ? null : id)}
+            />
           </label>
           <label className="field campo-fase">
             Fase corrente

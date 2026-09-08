@@ -8,6 +8,7 @@ import type {
 } from '../../../shared/types'
 import { toast, toastErrore } from './Toast'
 import { chiedi } from './Conferma'
+import SceltaConRicerca from './SceltaConRicerca'
 import { errMsg, daQuando, eta, formatData } from '../lib'
 import EsportaCartella from './EsportaCartella'
 
@@ -340,20 +341,16 @@ export function ModaleDatiPaziente({
             <div className="form-row-2">
               <label>
                 Patologia
-                <select
-                  value={patologiaId}
-                  onChange={(e) => {
-                    setPatologiaId(e.target.value === '' ? '' : Number(e.target.value))
+                <SceltaConRicerca
+                  voci={patologie}
+                  valore={patologiaId}
+                  segnaposto="— nessuna —"
+                  vuoto="— nessuna —"
+                  onCambia={(id) => {
+                    setPatologiaId(id)
                     setFaseId('')
                   }}
-                >
-                  <option value="">— nessuna —</option>
-                  {patologie.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.nome}
-                    </option>
-                  ))}
-                </select>
+                />
               </label>
               <label>
                 Fase iniziale
