@@ -67,7 +67,7 @@ db.pragma('foreign_keys = ON')
 
 runMigrations(db)
 runMigrations(db) // idempotente
-assert.equal(db.pragma('user_version', { simple: true }), 37)
+assert.equal(db.pragma('user_version', { simple: true }), 38)
 
 const count = (table: string): number =>
   (db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n
@@ -414,6 +414,8 @@ assert.equal(
     tipo: 'si_no' as const,
     scala_min: null,
     scala_max: null,
+    etichetta_min: null,
+    etichetta_max: null,
     opzioni: []
   }))
   const mescolate = [...domande.slice(4), ...domande.slice(0, 4)]
@@ -424,7 +426,13 @@ assert.equal(
       nome: 'Prova',
       istruzioni: null,
       ordine: 0,
-      archiviato: 0
+      archiviato: 0,
+      // Il cambiamento che conta: cinque punti in meno sul totale.
+      mcid_punteggio_id: -101,
+      mcid_punti: 5,
+      mcid_percentuale: null,
+      mcid_migliora_calando: 1,
+      mcid_nota: null
     },
     domande: mescolate,
     // I punteggi arrivano con id negativi, come quelli appena creati
@@ -584,7 +592,14 @@ assert.equal(
       nome: 'Scala definita a meta',
       istruzioni: null,
       ordine: 1,
-      archiviato: 0 as const
+      archiviato: 0 as const,
+      // Questo questionario il cambiamento che conta non ce l'ha: e' il caso
+      // normale, e non deve comparire nessun confronto.
+      mcid_punteggio_id: null,
+      mcid_punti: null,
+      mcid_percentuale: null,
+      mcid_migliora_calando: 1 as const,
+      mcid_nota: null
     },
     domande: [
       {
@@ -593,6 +608,8 @@ assert.equal(
         tipo: 'si_no' as const,
         scala_min: null,
         scala_max: null,
+        etichetta_min: null,
+        etichetta_max: null,
         opzioni: []
       }
     ],
@@ -638,8 +655,59 @@ assert.equal(
       }
     ]
   })
-  const elenco = elencoCompilazioni(pazQ) as { id: number; fascia: string | null }[]
+  const elenco = elencoCompilazioni(pazQ) as {
+    id: number
+    fascia: string | null
+    variazione: { punti: number; percentuale: number; significativa: boolean; dal: string } | null
+  }[]
   assert.equal(elenco.find((x) => x.id === compSenza)?.fascia, 'Presente')
+  // Il questionario senza soglia non dice niente sul cambiamento.
+  assert.equal(elenco.find((x) => x.id === compSenza)?.variazione, null)
+
+  // --- Il cambiamento che conta ---
+  // "Prova" ha la soglia a 5 punti in meno sul Totale. La prima compilazione
+  // (2026-09-01, poi corretta al 02 con Totale 5) fa da riferimento: non ha un
+  // confronto, le altre si misurano su di lei.
+  {
+    const prima = elencoCompilazioni(pazQ).find((x) => (x as { id: number }).id === compId) as {
+      variazione: unknown
+    }
+    assert.equal(prima.variazione, null, 'la prima compilazione non si confronta con se stessa')
+
+    // Sei risposte in meno: Totale da 5 a 0, cinque punti guadagnati, e siccome
+    // qui si migliora calando il numero e' positivo.
+    const dopo = salvaCompilazione({
+      paziente_id: pazQ,
+      questionario_id: qId,
+      data: '2026-09-20',
+      note: null,
+      risposte: rispondi([])
+    })
+    const conVar = elencoCompilazioni(pazQ).find(
+      (x) => (x as { id: number }).id === dopo
+    ) as {
+      variazione: { punti: number; percentuale: number; significativa: boolean; dal: string }
+    }
+    assert.equal(conVar.variazione.punti, 5)
+    assert.equal(conVar.variazione.percentuale, 100)
+    assert.equal(conVar.variazione.dal, '2026-09-02')
+    assert.ok(conVar.variazione.significativa, 'cinque punti raggiungono la soglia')
+
+    // Un peggioramento: il punteggio sale, il cambiamento e' negativo e non
+    // conta come miglioramento.
+    const peggio = salvaCompilazione({
+      paziente_id: pazQ,
+      questionario_id: qId,
+      data: '2026-09-25',
+      note: null,
+      risposte: rispondi([1, 2, 3, 4, 5, 6, 7])
+    })
+    const conPeggio = elencoCompilazioni(pazQ).find(
+      (x) => (x as { id: number }).id === peggio
+    ) as { variazione: { punti: number; significativa: boolean } }
+    assert.ok(conPeggio.variazione.punti < 0, 'peggiorando il numero e negativo')
+    assert.equal(conPeggio.variazione.significativa, false)
+  }
   // il valore ricalcolato resta scritto: anche la cartella stampata lo legge da li'
   assert.equal(fasciaSalvata(), 'Presente')
 }

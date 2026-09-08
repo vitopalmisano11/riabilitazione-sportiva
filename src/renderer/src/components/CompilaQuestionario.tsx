@@ -122,6 +122,15 @@ export default function CompilaQuestionario({
                     </button>
                   ))}
                 </div>
+                {/* Cosa vogliono dire i due estremi: sotto ai numeri, uno a
+                    sinistra e uno a destra, come sulla scala di carta. Senza,
+                    "0" e "10" non dicono da che parte sta il male. */}
+                {d.tipo === 'scala' && (d.etichetta_min || d.etichetta_max) && (
+                  <div className="compila-estremi">
+                    <span>{d.etichetta_min}</span>
+                    <span>{d.etichetta_max}</span>
+                  </div>
+                )}
               </li>
             ))}
             {conId.length === 0 && <li className="hint">Questo questionario non ha domande.</li>}

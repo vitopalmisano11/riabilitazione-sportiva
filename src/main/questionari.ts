@@ -50,9 +50,20 @@ export function salvaQuestionario(dati: QuestionarioCompleto): void {
   const qid = dati.questionario.id
 
   db.transaction(() => {
-    db.prepare('UPDATE questionari SET nome = ?, istruzioni = ? WHERE id = ?').run(
+    // Il punteggio a cui si riferisce il MCID si scrive dopo, quando i
+    // punteggi sono stati salvati: se e' stato appena creato, adesso avrebbe
+    // ancora un id provvisorio.
+    db.prepare(
+      `UPDATE questionari SET nome = ?, istruzioni = ?, mcid_punti = ?,
+         mcid_percentuale = ?, mcid_migliora_calando = ?, mcid_nota = ?
+       WHERE id = ?`
+    ).run(
       dati.questionario.nome.trim(),
       dati.questionario.istruzioni,
+      dati.questionario.mcid_punti,
+      dati.questionario.mcid_percentuale,
+      dati.questionario.mcid_migliora_calando ? 1 : 0,
+      dati.questionario.mcid_nota,
       qid
     )
 
@@ -61,11 +72,13 @@ export function salvaQuestionario(dati: QuestionarioCompleto): void {
     eliminaMancanti(db, 'questionario_domande', 'questionario_id', qid, idsDomande)
 
     const insDom = db.prepare(
-      `INSERT INTO questionario_domande (questionario_id, testo, tipo, scala_min, scala_max, ordine)
-       VALUES (?, ?, ?, ?, ?, ?)`
+      `INSERT INTO questionario_domande (questionario_id, testo, tipo, scala_min, scala_max,
+                                         etichetta_min, etichetta_max, ordine)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
     )
     const updDom = db.prepare(
-      `UPDATE questionario_domande SET testo = ?, tipo = ?, scala_min = ?, scala_max = ?, ordine = ?
+      `UPDATE questionario_domande SET testo = ?, tipo = ?, scala_min = ?, scala_max = ?,
+         etichetta_min = ?, etichetta_max = ?, ordine = ?
        WHERE id = ?`
     )
     // Una domanda non ancora salvata arriva con un id negativo, assegnato
@@ -77,12 +90,18 @@ export function salvaQuestionario(dati: QuestionarioCompleto): void {
     dati.domande.forEach((d, i) => {
       const min = d.tipo === 'scala' ? d.scala_min : null
       const max = d.tipo === 'scala' ? d.scala_max : null
+      // I nomi degli estremi valgono solo per la scala: cambiando tipo di
+      // domanda non restano appesi.
+      const etMin = d.tipo === 'scala' ? d.etichetta_min?.trim() || null : null
+      const etMax = d.tipo === 'scala' ? d.etichetta_max?.trim() || null : null
       if (d.id == null || d.id < 0) {
-        const nuovo = Number(insDom.run(qid, d.testo.trim(), d.tipo, min, max, i).lastInsertRowid)
+        const nuovo = Number(
+          insDom.run(qid, d.testo.trim(), d.tipo, min, max, etMin, etMax, i).lastInsertRowid
+        )
         if (d.id != null) idDomanda.set(d.id, nuovo)
         idDefinitivo[i] = nuovo
       } else {
-        updDom.run(d.testo.trim(), d.tipo, min, max, i, d.id)
+        updDom.run(d.testo.trim(), d.tipo, min, max, etMin, etMax, i, d.id)
         idDefinitivo[i] = d.id
       }
       // Le opzioni si riscrivono sempre: non sono citate da nessun'altra tabella.
@@ -141,6 +160,14 @@ export function salvaQuestionario(dati: QuestionarioCompleto): void {
       if (id == null) throw new Error('Riferimento a un punteggio non valido.')
       return id
     }
+
+    // Adesso che i punteggi hanno il loro id vero si puo' scrivere a quale si
+    // riferisce il cambiamento che conta.
+    const rifMcid = dati.questionario.mcid_punteggio_id
+    db.prepare('UPDATE questionari SET mcid_punteggio_id = ? WHERE id = ?').run(
+      rifMcid == null ? null : rifMcid >= 0 ? rifMcid : (idPunteggio.get(rifMcid) ?? null),
+      qid
+    )
 
     // --- fasce ---
     const idsFasce = dati.fasce.map((f) => f.id).filter((x): x is number => x != null && x > 0)
@@ -219,16 +246,63 @@ export function calcola(
 // mostrava il profilo di rischio in alcune date e in altre no. Qui si ricalcola
 // dalle risposte, che non cambiano mai, e si riscrive se e' diverso — cosi'
 // anche la cartella stampata, che legge il valore memorizzato, resta allineata.
+// Quanto e' cambiato il punteggio rispetto alla prima volta, e se il
+// cambiamento e' grande abbastanza da contare.
+//
+// Il confronto si fa con la prima compilazione di quel questionario perche' la
+// domanda clinica e' "da quando l'ho preso in carico, sta meglio davvero?".
+// "Meglio" non e' sempre "meno": in un questionario di dolore o disabilita' il
+// punteggio scende, in uno di funzione sale, e il questionario dice da che
+// parte sta.
+function variazione(
+  q: {
+    mcid_punteggio_id: number | null
+    mcid_punti: number | null
+    mcid_percentuale: number | null
+    mcid_migliora_calando: number
+  },
+  nomePunteggio: string,
+  adesso: number,
+  prima: number,
+  dal: string
+): Record<string, unknown> | null {
+  if (q.mcid_punti == null && q.mcid_percentuale == null) return null
+  const grezza = adesso - prima
+  const punti = q.mcid_migliora_calando ? -grezza : grezza
+  // La percentuale si legge sul punto di partenza: dieci punti presi da 60
+  // sono un conto, presi da 20 un altro.
+  const percentuale = prima === 0 ? 0 : Math.round((punti / Math.abs(prima)) * 1000) / 10
+  const perPunti = q.mcid_punti != null && punti >= q.mcid_punti
+  const perCento = q.mcid_percentuale != null && percentuale >= q.mcid_percentuale
+  return {
+    punteggio_nome: nomePunteggio,
+    punti: Math.round(punti * 10) / 10,
+    percentuale,
+    significativa: perPunti || perCento,
+    dal
+  }
+}
+
 export function elencoCompilazioni(pazienteId: number): Record<string, unknown>[] {
   const db = getDb()
   const righe = db
     .prepare(
-      `SELECT pq.id, pq.data, pq.questionario_id, pq.fascia, pq.note, q.nome AS questionario_nome
+      `SELECT pq.id, pq.data, pq.questionario_id, pq.fascia, pq.note, q.nome AS questionario_nome,
+              q.mcid_punteggio_id, q.mcid_punti, q.mcid_percentuale, q.mcid_migliora_calando
        FROM paziente_questionari pq JOIN questionari q ON q.id = pq.questionario_id
        WHERE pq.paziente_id = ?
        ORDER BY pq.data DESC, pq.id DESC`
     )
-    .all(pazienteId) as { id: number; questionario_id: number; fascia: string | null }[]
+    .all(pazienteId) as {
+    id: number
+    data: string
+    questionario_id: number
+    fascia: string | null
+    mcid_punteggio_id: number | null
+    mcid_punti: number | null
+    mcid_percentuale: number | null
+    mcid_migliora_calando: number
+  }[]
 
   const risposteStmt = db.prepare(
     'SELECT domanda_id, valore FROM questionario_risposte WHERE compilazione_id = ?'
@@ -238,11 +312,34 @@ export function elencoCompilazioni(pazienteId: number): Record<string, unknown>[
   )
   const aggiorna = db.prepare('UPDATE paziente_questionari SET fascia = ? WHERE id = ?')
 
+  // Il nome del punteggio su cui si misura il cambiamento, e la prima
+  // compilazione di ogni questionario: le righe arrivano dalla piu' recente,
+  // quindi la prima e' l'ultima dell'elenco.
+  const nomePunteggio = db.prepare('SELECT nome FROM questionario_punteggi WHERE id = ?')
+  const prime = new Map<number, { id: number; data: string }>()
+  for (const r of righe) prime.set(r.questionario_id, { id: r.id, data: r.data })
+
   return righe.map((r) => {
     const risposte = risposteStmt.all(r.id) as { domanda_id: number; valore: number }[]
     const { fascia } = calcola(r.questionario_id, risposte)
     if (fascia !== r.fascia) aggiorna.run(fascia, r.id)
-    return { ...r, fascia, punteggi: punteggiStmt.all(r.id) }
+    const punteggi = punteggiStmt.all(r.id) as { nome: string; valore: number }[]
+
+    let var_: Record<string, unknown> | null = null
+    const prima = prime.get(r.questionario_id)
+    const rif = r.mcid_punteggio_id == null ? null : (nomePunteggio.get(r.mcid_punteggio_id) as
+      | { nome: string }
+      | undefined)
+    if (rif && prima && prima.id !== r.id) {
+      const adesso = punteggi.find((p) => p.nome === rif.nome)
+      const allora = (punteggiStmt.all(prima.id) as { nome: string; valore: number }[]).find(
+        (p) => p.nome === rif.nome
+      )
+      if (adesso && allora) {
+        var_ = variazione(r, rif.nome, adesso.valore, allora.valore, prima.data)
+      }
+    }
+    return { ...r, fascia, punteggi, variazione: var_ }
   })
 }
 

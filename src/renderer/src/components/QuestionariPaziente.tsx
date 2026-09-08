@@ -87,6 +87,22 @@ export default function QuestionariPaziente({
                 <span className="seduta-data">{formatData(c.data)}</span>
                 <span className="seduta-meta">{c.questionario_nome}</span>
                 {c.note && <span className="seduta-obiettivi">{c.note}</span>}
+                {/* Quanto e' cambiato rispetto alla prima volta, e se il
+                    cambiamento e' abbastanza grande da contare: compare solo
+                    per i questionari che hanno la soglia scritta. */}
+                {c.variazione && (
+                  <span className="variazione-questionario">
+                    <span className={c.variazione.punti >= 0 ? 'meglio' : 'peggio'}>
+                      {c.variazione.punti >= 0 ? '+' : '−'}
+                      {Math.abs(c.variazione.punti).toString().replace('.', ',')} punti (
+                      {Math.abs(c.variazione.percentuale).toString().replace('.', ',')}%)
+                    </span>
+                    <span className="hint">dal {formatData(c.variazione.dal)}</span>
+                    {c.variazione.significativa && (
+                      <span className="badge-fascia">cambiamento che conta</span>
+                    )}
+                  </span>
+                )}
               </div>
               {/* Il punteggio e' il risultato e si vede sempre; la fascia di
                   rischio solo dove il questionario ne prevede una. */}

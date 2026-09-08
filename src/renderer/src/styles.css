@@ -4678,6 +4678,47 @@ textarea {
   font-size: 13px;
 }
 
+/* Gli estremi della scala mentre si compila: uno a sinistra e uno a destra
+   sotto ai numeri, come sulla scala di carta. */
+.compila-estremi {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 4px;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+.compila-estremi span:last-child {
+  text-align: right;
+}
+
+/* Quanto e' cambiato il punteggio dalla prima volta. */
+.variazione-questionario {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.variazione-questionario .meglio {
+  color: var(--success);
+  font-weight: 600;
+}
+
+.variazione-questionario .peggio {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+/* La scheda del cambiamento nell'editor dei questionari. */
+.blocco-cambiamento {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 /* Indicazioni per casa: una spunta per riga, la frase per intero. */
 .lista-indicazioni {
   list-style: none;

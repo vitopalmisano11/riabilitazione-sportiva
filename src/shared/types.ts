@@ -349,6 +349,14 @@ export interface Questionario {
   istruzioni: string | null
   ordine: number
   archiviato: 0 | 1
+  // Il cambiamento che conta (MCID), preso dalla letteratura di quel
+  // questionario: su quale punteggio si misura, quanti punti e/o quale
+  // percentuale, e da che parte sta il miglioramento.
+  mcid_punteggio_id: number | null
+  mcid_punti: number | null
+  mcid_percentuale: number | null
+  mcid_migliora_calando: 0 | 1
+  mcid_nota: string | null
 }
 
 // id null = elemento nuovo, non ancora salvato
@@ -364,6 +372,10 @@ export interface DomandaQuestionario {
   tipo: TipoDomanda
   scala_min: number | null
   scala_max: number | null
+  // Cosa vogliono dire i due estremi della scala: "nessun dolore" e "il
+  // peggiore possibile". Senza, 0 e 10 da soli non si sa da che parte stanno.
+  etichetta_min: string | null
+  etichetta_max: string | null
   opzioni: OpzioneDomanda[]
 }
 
@@ -408,6 +420,19 @@ export interface CompilazioneInput {
   risposte: RispostaQuestionario[]
 }
 
+// Quanto e' cambiato il punteggio rispetto alla prima volta che il paziente ha
+// compilato quel questionario, e se il cambiamento e' abbastanza grande da
+// contare (il MCID scritto sul questionario).
+export interface VariazioneCompilazione {
+  punteggio_nome: string
+  // Positivo = migliorato, negativo = peggiorato, comunque vada il punteggio.
+  punti: number
+  percentuale: number
+  significativa: boolean
+  // La data della compilazione con cui si sta confrontando.
+  dal: string
+}
+
 export interface CompilazioneRiepilogo {
   id: number
   data: string
@@ -416,6 +441,7 @@ export interface CompilazioneRiepilogo {
   fascia: string | null
   note: string | null
   punteggi: { nome: string; valore: number }[]
+  variazione: VariazioneCompilazione | null
 }
 
 // ---- Test di valutazione (da letteratura) ----

@@ -955,6 +955,35 @@ const MIGRATIONS: string[] = [
   ALTER TABLE categorie ADD COLUMN dosaggio_rir INTEGER NOT NULL DEFAULT 0;
   ALTER TABLE esercizi ADD COLUMN rir_default TEXT;
   ALTER TABLE seduta_esercizi ADD COLUMN rir TEXT;
+  `,
+
+  // 38 - i questionari: i nomi degli estremi della scala e il cambiamento che
+  //      conta.
+  //
+  //      In una scala numerica "0" e "10" da soli non vogliono dire niente: chi
+  //      risponde deve leggere da che parte sta il male ("nessun dolore" /
+  //      "il peggiore che si possa immaginare"). Sono due etichette per
+  //      domanda, e restano vuote dove non servono.
+  //
+  //      Il MCID e' il cambiamento minimo che il paziente sente come un
+  //      miglioramento vero. Sta sul questionario perche' e' una proprieta' di
+  //      quel questionario, non del paziente: si scrive una volta, prendendola
+  //      dalla letteratura, e da li' in poi l'app sa dire se la differenza fra
+  //      due compilazioni conta davvero. Puo' essere in punti, in percentuale o
+  //      tutte e due: alcuni questionari danno la soglia in tutti e due i modi
+  //      perche' partire da 60 su 70 o da 20 su 70 non e' la stessa cosa.
+  `
+  ALTER TABLE questionario_domande ADD COLUMN etichetta_min TEXT;
+  ALTER TABLE questionario_domande ADD COLUMN etichetta_max TEXT;
+
+  ALTER TABLE questionari ADD COLUMN mcid_punteggio_id INTEGER
+    REFERENCES questionario_punteggi(id) ON DELETE SET NULL;
+  ALTER TABLE questionari ADD COLUMN mcid_punti REAL;
+  ALTER TABLE questionari ADD COLUMN mcid_percentuale REAL;
+  -- 1 = il paziente migliora quando il punteggio scende (dolore, disabilita');
+  -- 0 = migliora quando sale (funzione, qualita' della vita).
+  ALTER TABLE questionari ADD COLUMN mcid_migliora_calando INTEGER NOT NULL DEFAULT 1;
+  ALTER TABLE questionari ADD COLUMN mcid_nota TEXT;
   `
 ]
 
