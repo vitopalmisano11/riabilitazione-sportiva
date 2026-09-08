@@ -1127,7 +1127,14 @@ button.danger:hover:not(:disabled) {
 .scelta-tile-nome {
   font-weight: 600;
   font-size: 17px;
-  overflow-wrap: break-word;
+  /* A capo fra una parola e l'altra: spezzare "Ricostruzione" a meta' si
+     leggeva peggio di una riga in piu'. */
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+  line-height: 1.25;
+  /* Un margine ai lati: il nome non arriva mai al bordo ne' alla maniglia. */
+  padding: 0 4px;
   min-width: 0;
 }
 
@@ -2981,11 +2988,14 @@ textarea {
 /* Nelle piastrelle di scelta la maniglia sta a sinistra, staccata dal nome:
    e' un appiglio per trascinare, non un'azione come rinomina ed elimina, che
    stanno tutte a destra. */
+/* La maniglia sta nell'angolo in alto a sinistra, non a meta' altezza: al
+   centro della piastrella il nome le finiva addosso, e con i nomi lunghi le si
+   attaccava proprio. Nell'angolo non tocca niente, e il nome resta al centro
+   del pulsante. */
 .maniglia-tile {
   position: absolute;
-  left: 6px;
-  top: 50%;
-  transform: translateY(-50%);
+  left: 4px;
+  top: 4px;
   display: flex;
 }
 
