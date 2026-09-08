@@ -87,12 +87,32 @@ function ciambella(dx: number | null, sx: number | null): string {
   }
   const quota = (sx ?? 0) / totale
   const circonferenza = 2 * Math.PI * R
+  const arco = circonferenza * quota
+
+  // Un lato solo: e' un anello intero, senza tagli da smussare.
+  if (quota > 0.995 || quota < 0.005) {
+    return `<svg viewBox="0 0 140 140" class="ciambella">
+      <circle cx="70" cy="70" r="${R}" fill="none" stroke="${quota > 0.5 ? ROSSO : BLU}"
+        stroke-width="${spessore}"/>
+    </svg>`
+  }
+
+  // Le due punte dello spicchio sono arrotondate: i tagli netti facevano
+  // sembrare il disegno spigoloso. Il cappuccio tondo aggiunge mezzo spessore
+  // per parte, quindi l'arco si accorcia di uno spessore e si sposta in avanti
+  // di mezzo: cosi' lo spicchio resta lungo quanto deve.
+  const cappuccio = Math.min(spessore, arco * 0.9)
+  const disegnato = Math.max(arco - cappuccio, 0.1)
+
   // Il primo arco parte in alto e gira in senso orario.
   return `<svg viewBox="0 0 140 140" class="ciambella">
     <g transform="rotate(-90 70 70)">
-      <circle cx="70" cy="70" r="${R}" fill="none" stroke="${BLU}" stroke-width="${spessore}"/>
+      <circle cx="70" cy="70" r="${R}" fill="none" stroke="${BLU}" stroke-width="${spessore}"
+        stroke-linecap="round"/>
       <circle cx="70" cy="70" r="${R}" fill="none" stroke="${ROSSO}" stroke-width="${spessore}"
-        stroke-dasharray="${(circonferenza * quota).toFixed(2)} ${circonferenza.toFixed(2)}"/>
+        stroke-linecap="round"
+        stroke-dasharray="${disegnato.toFixed(2)} ${circonferenza.toFixed(2)}"
+        stroke-dashoffset="${(-cappuccio / 2).toFixed(2)}"/>
     </g>
   </svg>`
 }
@@ -511,8 +531,10 @@ export function generaReportScreening(sessioneIds: number[]): DatiReport {
        border-bottom: 1px solid #e0d7c6; }
   /* Ogni test dentro il suo riquadro: con quattro o cinque test di fila,
      tabelle e grafici si confonderebbero fra loro. */
+  /* Lo spazio sopra al titolo e' lo stesso che c'e' sotto al riquadro: senza,
+     il titolo era appiccicato al bordo di sopra e staccato da quello di sotto. */
   .test { page-break-inside: avoid; margin: 0 0 12px; border: 1px solid #e4e9f0;
-          border-radius: 5px; padding: 0 10px 10px; }
+          border-radius: 5px; padding: 9px 10px 10px; }
   .test h4 { margin: 0 0 8px; }
   .misura + .misura { border-top: 1px dashed #e4e9f0; padding-top: 8px; }
   .misura { display: block; margin: 6px 0 10px; }
@@ -608,7 +630,7 @@ export function generaReportScreening(sessioneIds: number[]): DatiReport {
   <h1>${esc(s.cognome)} ${esc(s.nome)}</h1>
   <p class="sotto">Screening del ${data(s.data as string)}${
     scelti.length > 1
-      ? ` · confronto con ${data(scelti[0].data)}, variazioni riferite a quella data`
+      ? ` · confronto con ${data(scelti[0].data)}`
       : ''
   }</p>
   <dl class="info">${info
