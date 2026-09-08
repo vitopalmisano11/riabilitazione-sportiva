@@ -298,7 +298,7 @@ function SchedaCestino(): React.JSX.Element {
       <summary>
         Cestino{voci.length > 0 ? ` (${voci.length})` : ' — vuoto'}
       </summary>
-      <div className="contenuto-apribile">
+      <div className="contenuto-apribile contenuto-cestino">
       {voci.length > 0 && (
         <div className="modal-actions">
           <button

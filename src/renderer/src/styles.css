@@ -4597,10 +4597,40 @@ textarea {
   border-bottom: none;
 }
 
-/* L'elenco delle categorie nella libreria: come quello delle sezioni di fase,
-   oltre una certa altezza scorre invece di allungare la pagina. */
-.contenuto-categorie .crud-list > ul {
+/* Gli elenchi lunghi scorrono dentro al loro riquadro invece di allungare la
+   pagina all'infinito: si guarda un pezzo per volta e il resto della schermata
+   (i pulsanti, il modulo accanto) resta dov'e'.
+   L'altezza e' generosa — dieci o dodici righe — perche' l'elenco corto, che e'
+   il caso normale, non deve sembrare tagliato. */
+.crud-list > ul,
+.contenuto-cestino .sedute-list {
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+/* Gli elenchi che si aprono dentro a un riquadro gia' piccolo sono piu' corti
+   ancora: sono una scelta da fare al volo, non una pagina da leggere. */
+.contenuto-categorie .crud-list > ul,
+.lista-indicazioni,
+.lista-massimali,
+.lista-segni {
   max-height: 300px;
+  overflow-y: auto;
+}
+
+/* Gli esercizi proposti mentre componi la seduta (e l'elenco dei pazienti
+   nella finestrella della settimana, che usa la stessa lista): sotto c'e' il
+   resto del programma, e l'elenco non deve spingerlo fuori dallo schermo. */
+.esercizi-proposti {
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+/* Le piastrelle da cui si sceglie (patologie, distretti, questionari, test):
+   con trenta voci la pagina diventava lunghissima. Il limite e' alto, quattro o
+   cinque file: con poche voci non si vede nessuna barra. */
+.scelta-tiles {
+  max-height: 520px;
   overflow-y: auto;
 }
 
