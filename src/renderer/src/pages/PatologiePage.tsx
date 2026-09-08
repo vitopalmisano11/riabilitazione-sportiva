@@ -155,7 +155,7 @@ function Step1Patologie({
     })
   }
 
-  const { contenitore, maniglia } = useRiordino<number>((da, a) => {
+  const { contenitore, maniglia: presa } = useRiordino<number>((da, a) => {
     const ids = sposta(patologie, da, a).map((p) => p.id)
     void run(async () => {
       await window.api.patologie.reorder(ids)
@@ -194,7 +194,9 @@ function Step1Patologie({
           <div
             key={p.id}
             {...dnd}
+            {...presa(idx)}
             className={['scelta-tile', dnd.className].filter(Boolean).join(' ')}
+            title="Apri · trascina per spostare"
             onClick={() => onSelect(p.id)}
           >
             {edit && edit.id === p.id ? (
@@ -212,13 +214,9 @@ function Step1Patologie({
               </span>
             ) : (
               <>
-                {/* La maniglia sta a sinistra, staccata: e' un appiglio per
-                    trascinare, non un'azione come le altre. */}
-                <span className="maniglia-tile">
-                  <button {...maniglia(idx)}>
-                    <GripVertical size={16} />
-                  </button>
-                </span>
+                {/* Niente maniglia: si prende la piastrella e la si sposta. Il
+                    nome resta l'unica cosa al centro, senza niente che gli
+                    stia accanto a spostarlo. */}
                 <span className="scelta-tile-nome">{p.nome}</span>
                 {/* Le patologie che vanno al campo sono poche. Acceso, si vede
                     sempre; spento, la parola "campo" non compare proprio: il
@@ -226,7 +224,7 @@ function Step1Patologie({
                     scoprono passandoci sopra col mouse. */}
                 {p.ha_campo === 1 && (
                   <button
-                    className="pillola-campo attivo"
+                    className="pillola-campo attivo pillola-in-basso"
                     title="Questa patologia ha un percorso al campo. Clicca per toglierlo."
                     onClick={(e) => {
                       e.stopPropagation()
@@ -464,7 +462,7 @@ function ElencoFasi({
     })
   }
 
-  const { contenitore, maniglia } = useRiordino<number>((da, a) => {
+  const { contenitore, maniglia: presa } = useRiordino<number>((da, a) => {
     const ids = sposta(fasi, da, a).map((f) => f.id)
     void run(async () => {
       await window.api.fasi.reorder(ids)
@@ -480,7 +478,9 @@ function ElencoFasi({
           <div
             key={f.id}
             {...dnd}
+            {...presa(idx)}
             className={['scelta-tile', dnd.className].filter(Boolean).join(' ')}
+            title="Apri · trascina per spostare"
             onClick={() => onSelect(f.id)}
           >
             {edit?.id === f.id ? (
@@ -498,11 +498,6 @@ function ElencoFasi({
               </span>
             ) : (
               <>
-                <span className="maniglia-tile">
-                  <button {...maniglia(idx)}>
-                    <GripVertical size={16} />
-                  </button>
-                </span>
                 <span className="scelta-tile-nome">{f.nome}</span>
                 <span className="item-actions" onClick={(e) => e.stopPropagation()}>
                   <button title="Rinomina" onClick={() => setEdit({ id: f.id, nome: f.nome })}>

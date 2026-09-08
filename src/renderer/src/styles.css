@@ -1111,12 +1111,15 @@ button.danger:hover:not(:disabled) {
   pointer-events: auto;
 }
 
+/* I comandi stanno nell'angolo in alto a destra, tutti insieme: al centro in
+   basso rubavano una riga alla piastrella, e il nome non era mai davvero al
+   centro. Compaiono passandoci sopra. */
 .scelta-tile .item-actions {
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 7px;
-  justify-content: center;
+  top: 4px;
+  right: 4px;
+  justify-content: flex-end;
+  gap: 2px;
 }
 
 /* la rinomina resta a tutta larghezza dentro la casella */
@@ -2988,27 +2991,21 @@ textarea {
 /* Nelle piastrelle di scelta la maniglia sta a sinistra, staccata dal nome:
    e' un appiglio per trascinare, non un'azione come rinomina ed elimina, che
    stanno tutte a destra. */
-/* La maniglia sta nell'angolo in alto a sinistra, non a meta' altezza: al
-   centro della piastrella il nome le finiva addosso, e con i nomi lunghi le si
-   attaccava proprio. Nell'angolo non tocca niente, e il nome resta al centro
-   del pulsante. */
-.maniglia-tile {
+/* Le piastrelle non hanno piu' l'iconcina per trascinare: si prende la
+   piastrella e la si sposta. Cosi' al centro c'e' solo il nome, che era il
+   punto. Il testo non si seleziona, altrimenti trascinando si evidenzia. */
+.scelta-tile {
+  user-select: none;
+}
+
+/* L'etichetta "campo" in basso al centro, fuori dalla riga del nome: da li'
+   non lo sposta piu' di lato. */
+.pillola-in-basso {
   position: absolute;
-  left: 4px;
-  top: 4px;
-  display: flex;
-}
-
-.maniglia-tile button {
-  padding: 4px;
-  border: none;
-  background: none;
-  color: var(--text-dim);
-}
-
-.maniglia-tile button:hover {
-  color: var(--accent);
-  background: none;
+  left: 50%;
+  bottom: 6px;
+  transform: translateX(-50%);
+  margin-left: 0;
 }
 
 /* Un titolo di sezione con il suo pulsante in fondo alla riga. */
