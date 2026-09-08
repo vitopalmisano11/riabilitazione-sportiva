@@ -749,6 +749,29 @@ export function registerIpc(): void {
   handle('categorie:setRir', (id: number, attivo: boolean) => {
     getDb().prepare('UPDATE categorie SET dosaggio_rir = ? WHERE id = ?').run(attivo ? 1 : 0, id)
   })
+  // Un solo livello: una categoria che ha gia' dei distretti dentro non puo'
+  // finire dentro a un'altra, e non ci si puo' mettere dentro a se stessa.
+  handle('categorie:setPadre', (id: number, padreId: number | null) => {
+    const db = getDb()
+    if (padreId != null) {
+      if (padreId === id) throw new Error('Una categoria non puo\' stare dentro a se stessa.')
+      const figlie = db
+        .prepare('SELECT COUNT(*) AS n FROM categorie WHERE padre_id = ?')
+        .get(id) as { n: number }
+      if (figlie.n > 0) {
+        throw new Error(
+          'Questa categoria ha gia\' dei distretti dentro: prima spostali, poi potrai metterla dentro a un\'altra.'
+        )
+      }
+      const padre = db.prepare('SELECT padre_id FROM categorie WHERE id = ?').get(padreId) as
+        | { padre_id: number | null }
+        | undefined
+      if (padre?.padre_id != null) {
+        throw new Error('Si puo\' scendere di un livello solo: quella categoria e\' gia\' dentro a un\'altra.')
+      }
+    }
+    db.prepare('UPDATE categorie SET padre_id = ? WHERE id = ?').run(padreId, id)
+  })
   handle('categorie:delete', (id: number) => {
     eliminaConCestino('categorie', id, 'Categoria di esercizi', nomeDi('categorie', id))
   })

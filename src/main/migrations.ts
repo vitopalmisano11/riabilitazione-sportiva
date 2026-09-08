@@ -984,6 +984,24 @@ const MIGRATIONS: string[] = [
   -- 0 = migliora quando sale (funzione, qualita' della vita).
   ALTER TABLE questionari ADD COLUMN mcid_migliora_calando INTEGER NOT NULL DEFAULT 1;
   ALTER TABLE questionari ADD COLUMN mcid_nota TEXT;
+  `,
+
+  // 39 - i distretti dentro alle categorie degli esercizi.
+  //
+  //      Scrivere "Rinforzo quadricipite", "Rinforzo ischiocrurali", "Rinforzo
+  //      spalla" una accanto all'altra fa venti categorie in fila, e trovarne
+  //      una diventa un lavoro. Con un livello in mezzo "Rinforzo" si scrive
+  //      una volta sola e dentro ci stanno i distretti.
+  //
+  //      Un solo livello di profondita': una categoria puo' stare dentro a una
+  //      categoria che non sta dentro a nessuno. Piu' giu' non serve, e un
+  //      albero senza fondo sarebbe solo piu' difficile da leggere.
+  //
+  //      Le categorie di adesso restano com'erano, senza padre: le fasi gia'
+  //      configurate continuano a proporre esattamente gli stessi esercizi.
+  `
+  ALTER TABLE categorie ADD COLUMN padre_id INTEGER
+    REFERENCES categorie(id) ON DELETE SET NULL;
   `
 ]
 

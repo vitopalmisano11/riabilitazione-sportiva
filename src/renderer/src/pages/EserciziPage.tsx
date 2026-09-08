@@ -87,6 +87,8 @@ export default function EserciziPage(): React.JSX.Element {
     nome: string
     cluster: boolean
     rir: boolean
+    // Dentro a quale categoria sta ('' = e' lei stessa una categoria).
+    padre: number | ''
   } | null>(null)
   const [ricerca, setRicerca] = useState('')
   // Il riquadro delle categorie si apre e si richiude, e dentro ha la sua
@@ -96,6 +98,39 @@ export default function EserciziPage(): React.JSX.Element {
   const qCat = ricercaCat.trim().toLowerCase()
   const categorieTrovate =
     qCat === '' ? categorie : categorie.filter((c) => c.nome.toLowerCase().includes(qCat))
+
+  const haFiglie = (id: number): boolean => categorie.some((c) => c.padre_id === id)
+
+  // Nelle caselle in cui si sceglie, un distretto si scrive con la sua
+  // categoria davanti: "Quadricipite" da solo non dice di che lavoro si tratta.
+  const vociCategorie = categorie
+    .filter((c) => c.padre_id == null)
+    .flatMap((c) => [
+      c,
+      ...categorie
+        .filter((f) => f.padre_id === c.id)
+        .map((f) => ({ ...f, nome: `${c.nome} › ${f.nome}` }))
+    ])
+
+  // Nell'elenco i distretti stanno sotto alla loro categoria, rientrati: cosi'
+  // si legge cosa contiene cosa senza aprire niente. Cercando invece si vede
+  // l'elenco piatto, con il nome della categoria scritto accanto.
+  const nomeCategoria = (id: number | null): string =>
+    id == null ? '' : (categorie.find((c) => c.id === id)?.nome ?? '')
+
+  const categorieInElenco =
+    qCat === ''
+      ? categorie
+          .filter((c) => c.padre_id == null)
+          .flatMap((c) => [
+            c,
+            ...categorie
+              .filter((f) => f.padre_id === c.id)
+              .map((f) => ({ ...f, nome: `— ${f.nome}` }))
+          ])
+      : categorieTrovate.map((c) =>
+          c.padre_id == null ? c : { ...c, nome: `${nomeCategoria(c.padre_id)} › ${c.nome}` }
+        )
   const [filtroCategoria, setFiltroCategoria] = useState<number | ''>('')
   const [form, setForm] = useState<FormState | null>(null)
   const [immagineAperta, setImmagineAperta] = useState<EsercizioConCategoria | null>(null)
@@ -128,7 +163,11 @@ export default function EserciziPage(): React.JSX.Element {
     const filtrati = esercizi.filter(
       (e) =>
         (q === '' || e.nome.toLowerCase().includes(q)) &&
-        (filtroCategoria === '' || e.categoria_id === filtroCategoria)
+        (filtroCategoria === '' ||
+          e.categoria_id === filtroCategoria ||
+          // Filtrando per "Rinforzo" si vedono anche quelli dei distretti che
+          // ci stanno dentro.
+          categorie.find((c) => c.id === e.categoria_id)?.padre_id === filtroCategoria)
     )
     if (ordine === 'usati') {
       return [...filtrati].sort((a, b) => b.usi - a.usi || a.nome.localeCompare(b.nome))
@@ -195,6 +234,7 @@ export default function EserciziPage(): React.JSX.Element {
           : (await window.api.categorie.update(formCat.id, nome), formCat.id)
       await window.api.categorie.setCluster(id, formCat.cluster)
       await window.api.categorie.setRir(id, formCat.rir)
+      await window.api.categorie.setPadre(id, formCat.padre === '' ? null : formCat.padre)
       setFormCat(null)
       await loadCategorie()
       await load()
@@ -321,15 +361,18 @@ export default function EserciziPage(): React.JSX.Element {
         />
         <CrudList
           title="Categorie"
-          items={categorieTrovate}
-          onNuovo={() => setFormCat({ id: null, nome: '', cluster: false, rir: false })}
+          items={categorieInElenco}
+          onNuovo={() =>
+            setFormCat({ id: null, nome: '', cluster: false, rir: false, padre: '' })
+          }
           onModifica={(item) => {
             const c = categorie.find((x) => x.id === item.id)
             setFormCat({
               id: item.id,
               nome: item.nome,
               cluster: c?.dosaggio_cluster === 1,
-              rir: c?.dosaggio_rir === 1
+              rir: c?.dosaggio_rir === 1,
+              padre: c?.padre_id ?? ''
             })
           }}
           onDelete={async (id) => {
@@ -373,7 +416,7 @@ export default function EserciziPage(): React.JSX.Element {
         />
         <div className="filtro-categorie">
           <SceltaConRicerca
-            voci={categorie}
+            voci={vociCategorie}
             valore={filtroCategoria}
             segnaposto="Tutte le categorie"
             vuoto="Tutte le categorie"
@@ -553,6 +596,21 @@ export default function EserciziPage(): React.JSX.Element {
                 }}
               />
             </label>
+            {/* Un livello solo: qui si scelgono le categorie che non stanno
+                gia' dentro a un'altra, e non se stessa. */}
+            <label>
+              Dentro a
+              <SceltaConRicerca
+                voci={categorie.filter(
+                  (c) => c.padre_id == null && c.id !== formCat.id && !haFiglie(c.id)
+                )}
+                valore={formCat.padre}
+                segnaposto="— e' una categoria a sé —"
+                vuoto="— e' una categoria a sé —"
+                onCambia={(id) => setFormCat({ ...formCat, padre: id })}
+              />
+            </label>
+
             <label className="checkbox-inline riga-staccata">
               <input
                 type="checkbox"
@@ -600,7 +658,7 @@ export default function EserciziPage(): React.JSX.Element {
               {/* Si scrive invece di scorrere: con trenta categorie la tendina
                   di Windows si apriva lunga mezza schermata. */}
               <SceltaConRicerca
-                voci={categorie}
+                voci={vociCategorie}
                 valore={form.categoria_id}
                 segnaposto="Scrivi o scegli la categoria…"
                 onCambia={(id) => setForm({ ...form, categoria_id: id })}

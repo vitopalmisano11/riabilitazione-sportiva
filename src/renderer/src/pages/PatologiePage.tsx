@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import {
-  Trees, ChevronRight, GripVertical, Pencil, Plus, X } from 'lucide-react'
+import { ChevronRight, GripVertical, Pencil, Plus, Trees, X } from 'lucide-react'
 import type {
   Categoria,
   Distretto,
@@ -571,11 +570,32 @@ function StrutturaTab({ faseId }: { faseId: number }): React.JSX.Element {
     void salvaCategorie(ids)
   }
 
-  const nomeCategoria = (cid: number): string => categorie.find((c) => c.id === cid)?.nome ?? '?'
+  // Un distretto si scrive con la sua categoria davanti: "Quadricipite" da solo
+  // non dice di che lavoro si tratta.
+  const nomeCategoria = (cid: number): string => {
+    const c = categorie.find((x) => x.id === cid)
+    if (!c) return '?'
+    const padre = c.padre_id == null ? null : categorie.find((x) => x.id === c.padre_id)
+    return padre ? `${padre.nome} › ${c.nome}` : c.nome
+  }
+
+  // In elenco i distretti vengono subito dopo la loro categoria.
+  const inOrdine = (elenco: Categoria[]): Categoria[] =>
+    elenco
+      .filter((c) => c.padre_id == null)
+      .flatMap((c) => [c, ...elenco.filter((f) => f.padre_id === c.id)])
+      .concat(
+        // quelli il cui padre non e' nell'elenco (perche' filtrato dalla
+        // ricerca) restano comunque visibili
+        elenco.filter(
+          (c) => c.padre_id != null && !elenco.some((x) => x.id === c.padre_id)
+        )
+      )
   const nonAssociate = categorie.filter((c) => !sez?.categoria_ids.includes(c.id))
   const qCat = ricercaCat.trim().toLowerCase()
-  const daAggiungere =
+  const daAggiungere = inOrdine(
     qCat === '' ? nonAssociate : nonAssociate.filter((c) => c.nome.toLowerCase().includes(qCat))
+  )
 
   return (
     <div className="struttura-tab">
@@ -606,7 +626,10 @@ function StrutturaTab({ faseId }: { faseId: number }): React.JSX.Element {
         emptyHint="Es. Riscaldamento, Mobilità, Rinforzo, Pliometria"
       />
       <section className="crud-list">
-        <h3>Categorie della sezione</h3>
+        <h3>
+          Categorie della sezione
+          <Aiuto testo="Spuntando una categoria la sezione propone anche gli esercizi dei distretti che ci stanno dentro: «Rinforzo» porta con sé quadricipite, spalla e polpaccio. Se per questa fase ne vuoi solo alcuni, spunta i singoli distretti invece della categoria." />
+        </h3>
         {sez == null ? (
           <p className="hint">Seleziona una sezione</p>
         ) : categorie.length === 0 ? (

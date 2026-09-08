@@ -28,6 +28,9 @@ export interface Obiettivo {
 export interface Categoria {
   id: number
   nome: string
+  // La categoria che la contiene ("Rinforzo" per "Quadricipite"), se c'e'.
+  // Un solo livello: una categoria con un padre non puo' averne figlie.
+  padre_id: number | null
   ordine: number
   // Gli esercizi di questa categoria si dosano a cluster (pliometria estensiva).
   dosaggio_cluster: 0 | 1
@@ -1033,6 +1036,8 @@ export interface Api {
     // Accende o spegne il dosaggio a cluster per gli esercizi di questa categoria.
     setCluster(id: number, attivo: boolean): Promise<void>
     setRir(id: number, attivo: boolean): Promise<void>
+    // Sposta una categoria dentro a un'altra, o la riporta al primo livello.
+    setPadre(id: number, padreId: number | null): Promise<void>
     remove(id: number): Promise<void>
     reorder(ids: number[]): Promise<void>
   }

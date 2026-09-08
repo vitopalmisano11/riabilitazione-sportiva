@@ -242,11 +242,21 @@ export default function SedutaBuilder({
     (r.rir ?? '') !== '' ||
     categorie.some((c) => c.nome === r.categoria_nome && c.dosaggio_rir === 1)
 
-  // Esercizi proposti per una sezione: quelli delle sue categorie (nell'ordine configurato)
+  // Esercizi proposti per una sezione: quelli delle sue categorie, nell'ordine
+  // configurato. Agganciare una categoria vuol dire prendere anche i distretti
+  // che ci stanno dentro: la sezione "Rinforzo" propone quadricipite e spalla
+  // senza che siano stati spuntati uno per uno.
   const proposte = (s: SezioneBuilder): EsercizioConCategoria[] => {
     if (s.sezione_id == null) return []
     const cats = templateCats[s.sezione_id] ?? []
-    return cats.flatMap((cid) => libreria.filter((e) => e.categoria_id === cid))
+    const conDentro: number[] = []
+    for (const cid of cats) {
+      if (!conDentro.includes(cid)) conDentro.push(cid)
+      for (const c of categorie) {
+        if (c.padre_id === cid && !conDentro.includes(c.id)) conDentro.push(c.id)
+      }
+    }
+    return conDentro.flatMap((cid) => libreria.filter((e) => e.categoria_id === cid))
   }
 
   // L'esercizio nuovo si infila subito dopo l'ultimo della sua categoria, non in
