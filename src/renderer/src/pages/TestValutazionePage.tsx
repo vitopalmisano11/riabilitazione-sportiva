@@ -126,7 +126,7 @@ function ElencoTest({
     }
   }
 
-  const { contenitore, maniglia } = useRiordino<number>((da, a) => {
+  const { contenitore, maniglia: presa } = useRiordino<number>((da, a) => {
     const ids = sposta(test, da, a).map((t) => t.id)
     void run(async () => {
       await window.api.testValutazione.reorder(ids)
@@ -191,7 +191,9 @@ function ElencoTest({
             <div
               key={t.id}
               {...dnd}
+              {...presa(idx)}
               className={['scelta-tile', dnd.className].filter(Boolean).join(' ')}
+              title="Apri · trascina per spostare"
               onClick={() => onApri(t.id)}
             >
               {edit && edit.id === t.id ? (
@@ -211,9 +213,6 @@ function ElencoTest({
                 <>
                   <span className="scelta-tile-nome">{t.nome}</span>
                   <span className="item-actions" onClick={(e) => e.stopPropagation()}>
-                    <button {...maniglia(idx)}>
-                      <GripVertical size={16} />
-                    </button>
                     <button title="Rinomina" onClick={() => setEdit({ id: t.id, nome: t.nome })}>
                       <Pencil size={16} />
                     </button>

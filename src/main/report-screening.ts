@@ -78,7 +78,9 @@ const GRIGIO = '#8b93a0'
 // valore, quindi il disegno mostra subito da che parte pende.
 function ciambella(dx: number | null, sx: number | null): string {
   const R = 52
-  const spessore = 22
+  // Striscia un po' piu' larga di prima: il buco al centro non serve a niente,
+  // e con il cerchio piu' pieno il disegno si legge da lontano.
+  const spessore = 26
   const totale = (dx ?? 0) + (sx ?? 0)
   if (totale <= 0) {
     return `<svg viewBox="0 0 140 140" class="ciambella">
@@ -87,9 +89,8 @@ function ciambella(dx: number | null, sx: number | null): string {
   }
   const quota = (sx ?? 0) / totale
   const circonferenza = 2 * Math.PI * R
-  const arco = circonferenza * quota
 
-  // Un lato solo: e' un anello intero, senza tagli da smussare.
+  // Un lato solo: e' un anello intero, senza punte.
   if (quota > 0.995 || quota < 0.005) {
     return `<svg viewBox="0 0 140 140" class="ciambella">
       <circle cx="70" cy="70" r="${R}" fill="none" stroke="${quota > 0.5 ? ROSSO : BLU}"
@@ -97,22 +98,31 @@ function ciambella(dx: number | null, sx: number | null): string {
     </svg>`
   }
 
-  // Le due punte dello spicchio sono arrotondate: i tagli netti facevano
-  // sembrare il disegno spigoloso. Il cappuccio tondo aggiunge mezzo spessore
-  // per parte, quindi l'arco si accorcia di uno spessore e si sposta in avanti
-  // di mezzo: cosi' lo spicchio resta lungo quanto deve.
-  const cappuccio = Math.min(spessore, arco * 0.9)
-  const disegnato = Math.max(arco - cappuccio, 0.1)
+  // I due spicchi si disegnano tutti e due, con le punte arrotondate e un filo
+  // di bianco in mezzo. Prima il rosso stava sopra a un anello blu intero: le
+  // sue punte tonde sbordavano sull'altro colore e il confine non si capiva
+  // dove fosse. Cosi' invece ogni spicchio finisce dove deve, e i due stacchi
+  // sono simmetrici.
+  const stacco = 5
+  // Il cappuccio tondo allunga di mezzo spessore per parte: l'arco disegnato si
+  // accorcia di uno spessore intero e parte mezzo piu' avanti.
+  const arco = (lunghezza: number, inizio: number, colore: string): string => {
+    const visibile = lunghezza - stacco
+    if (visibile <= 1) return ''
+    const disegnato = Math.max(visibile - spessore, 0.1)
+    const avanti = inizio + stacco / 2 + spessore / 2
+    return `<circle cx="70" cy="70" r="${R}" fill="none" stroke="${colore}"
+      stroke-width="${spessore}" stroke-linecap="round"
+      stroke-dasharray="${disegnato.toFixed(2)} ${circonferenza.toFixed(2)}"
+      stroke-dashoffset="${(-avanti).toFixed(2)}"/>`
+  }
+  const rosso = circonferenza * quota
 
-  // Il primo arco parte in alto e gira in senso orario.
+  // Il primo spicchio parte in alto e gira in senso orario.
   return `<svg viewBox="0 0 140 140" class="ciambella">
     <g transform="rotate(-90 70 70)">
-      <circle cx="70" cy="70" r="${R}" fill="none" stroke="${BLU}" stroke-width="${spessore}"
-        stroke-linecap="round"/>
-      <circle cx="70" cy="70" r="${R}" fill="none" stroke="${ROSSO}" stroke-width="${spessore}"
-        stroke-linecap="round"
-        stroke-dasharray="${disegnato.toFixed(2)} ${circonferenza.toFixed(2)}"
-        stroke-dashoffset="${(-cappuccio / 2).toFixed(2)}"/>
+      ${arco(rosso, 0, ROSSO)}
+      ${arco(circonferenza - rosso, rosso, BLU)}
     </g>
   </svg>`
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { GripVertical, Pencil, Plus, X } from 'lucide-react'
+import { Pencil, Plus, X } from 'lucide-react'
 import { toastErrore } from './Toast'
 import { chiedi } from './Conferma'
 import { errMsg } from '../lib'
@@ -49,7 +49,7 @@ export default function ElencoCategorie({
     }
   }
 
-  const { contenitore, maniglia } = useRiordino<number>((da, a) => {
+  const { contenitore, maniglia: presa } = useRiordino<number>((da, a) => {
     const ids = sposta(categorie, da, a).map((c) => c.id)
     void run(async () => {
       await api.reorder(ids)
@@ -101,7 +101,9 @@ export default function ElencoCategorie({
             <div
               key={c.id}
               {...dnd}
+              {...presa(idx)}
               className={['scelta-tile', dnd.className].filter(Boolean).join(' ')}
+              title="Apri · trascina per spostare"
               onClick={() => onApri(c.id)}
             >
               {edit && edit.id === c.id ? (
@@ -121,9 +123,6 @@ export default function ElencoCategorie({
                 <>
                   <span className="scelta-tile-nome">{c.nome}</span>
                   <span className="item-actions" onClick={(e) => e.stopPropagation()}>
-                    <button {...maniglia(idx)}>
-                      <GripVertical size={16} />
-                    </button>
                     <button title="Rinomina" onClick={() => setEdit({ id: c.id, nome: c.nome })}>
                       <Pencil size={16} />
                     </button>

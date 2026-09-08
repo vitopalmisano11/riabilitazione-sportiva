@@ -3103,14 +3103,26 @@ textarea {
 /* La settimana: sette blocchi uno sotto l'altro dentro allo stesso riquadro.
    I giorni vuoti restano al loro posto, con un trattino: una settimana si legge
    come una settimana, non come un elenco di giorni pieni. */
-.giorno-settimana + .giorno-settimana {
-  margin-top: 4px;
+/* Ogni giorno nel suo riquadro, con il nome del giorno come cartellino in
+   cima: sette elenchi uno sotto l'altro si confondevano, e non si vedeva dove
+   finiva il giorno e cominciava quello dopo. */
+.giorno-settimana {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0 12px 10px;
+  margin-bottom: 10px;
+}
+
+.giorno-settimana:last-child {
+  margin-bottom: 0;
 }
 
 .giorno-settimana .sotto-titolo {
   display: flex;
   align-items: center;
   gap: 8px;
+  margin: 0 -12px 8px;
+  border-radius: var(--radius) var(--radius) 0 0;
 }
 
 /* Il "+" del giorno sta in fondo alla sua fascia, scolorito finche' non ci si

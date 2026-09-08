@@ -148,7 +148,7 @@ function ElencoQuestionari({
     }
   }
 
-  const { contenitore, maniglia } = useRiordino<number>((da, a) => {
+  const { contenitore, maniglia: presa } = useRiordino<number>((da, a) => {
     const ids = sposta(questionari, da, a).map((x) => x.id)
     void run(async () => {
       await window.api.questionari.reorder(ids)
@@ -213,7 +213,9 @@ function ElencoQuestionari({
             <div
               key={x.id}
               {...dnd}
+              {...presa(idx)}
               className={['scelta-tile', dnd.className].filter(Boolean).join(' ')}
+              title="Apri · trascina per spostare"
               onClick={() => onApri(x.id)}
             >
               {edit?.id === x.id ? (
@@ -233,9 +235,6 @@ function ElencoQuestionari({
                 <>
               <span className="scelta-tile-nome">{x.nome}</span>
               <span className="item-actions" onClick={(e) => e.stopPropagation()}>
-                <button {...maniglia(idx)}>
-                  <GripVertical size={16} />
-                </button>
                 <button title="Rinomina" onClick={() => setEdit({ id: x.id, nome: x.nome })}>
                   <Pencil size={16} />
                 </button>

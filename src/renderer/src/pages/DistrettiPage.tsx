@@ -98,7 +98,7 @@ function ElencoDistretti({
     }
   }
 
-  const { contenitore, maniglia } = useRiordino<number>((da, a) => {
+  const { contenitore, maniglia: presa } = useRiordino<number>((da, a) => {
     const ids = sposta(distretti, da, a).map((d) => d.id)
     void run(async () => {
       await window.api.distretti.reorder(ids)
@@ -154,7 +154,9 @@ function ElencoDistretti({
             <div
               key={d.id}
               {...dnd}
+              {...presa(idx)}
               className={['scelta-tile', dnd.className].filter(Boolean).join(' ')}
+              title="Apri · trascina per spostare"
               onClick={() => onApri(d.id)}
             >
               {edit && edit.id === d.id ? (
@@ -174,9 +176,6 @@ function ElencoDistretti({
                 <>
                   <span className="scelta-tile-nome">{d.nome}</span>
                   <span className="item-actions" onClick={(e) => e.stopPropagation()}>
-                    <button {...maniglia(idx)}>
-                      <GripVertical size={16} />
-                    </button>
                     <button title="Rinomina" onClick={() => setEdit({ id: d.id, nome: d.nome })}>
                       <Pencil size={16} />
                     </button>
