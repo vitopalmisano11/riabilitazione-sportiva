@@ -1833,25 +1833,6 @@ span.row-actions button {
   background: var(--accent-soft);
 }
 
-/* La maniglia della sezione: a sinistra del titolo, scolorita, perche' non e'
-   un'azione ma un appiglio. */
-.maniglia-sezione {
-  flex: none;
-  display: flex;
-}
-
-.maniglia-sezione button {
-  padding: 4px;
-  border: none;
-  background: none;
-  color: var(--text-dim);
-}
-
-.maniglia-sezione button:hover {
-  color: var(--accent);
-  background: none;
-}
-
 /* Nell'elenco da cui si pesca, il "+" apre la riga: il nome, che puo' essere
    lungo, si prende tutto lo spazio che resta. */
 .btn-aggiungi-riga {
@@ -2477,15 +2458,6 @@ span.row-actions button {
 
 /* ---- Riordino per trascinamento ---- */
 
-.maniglia-riordino {
-  display: inline-flex;
-  align-items: center;
-  /* Il cursore di sistema dei pulsanti, non una sua imitazione: ogni versione
-     disegnata a mano restava diversa dall'originale. Cosi' e' identico per
-     definizione, e nitido perche' lo disegna Windows. */
-  cursor: pointer;
-}
-
 .in-movimento {
   opacity: 0.4;
 }
@@ -2988,9 +2960,6 @@ textarea {
   margin-top: var(--spazio);
 }
 
-/* Nelle piastrelle di scelta la maniglia sta a sinistra, staccata dal nome:
-   e' un appiglio per trascinare, non un'azione come rinomina ed elimina, che
-   stanno tutte a destra. */
 /* Le piastrelle non hanno piu' l'iconcina per trascinare: si prende la
    piastrella e la si sposta. Cosi' al centro c'e' solo il nome, che era il
    punto. Il testo non si seleziona, altrimenti trascinando si evidenzia. */
@@ -5325,14 +5294,6 @@ textarea {
   display: flex;
   align-items: center;
   gap: 6px;
-}
-
-.righe-seduta .maniglia-riga button {
-  border: none;
-  background: none;
-  padding: 4px;
-  color: var(--text-dim);
-  cursor: grab;
 }
 
 .righe-seduta .riga-testata {

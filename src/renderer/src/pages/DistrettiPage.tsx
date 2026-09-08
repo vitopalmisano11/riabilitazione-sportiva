@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ChevronRight, GripVertical, Pencil, Plus, X } from 'lucide-react'
+import { ChevronRight, Pencil, Plus, X } from 'lucide-react'
 import type {
   Distretto,
   DistrettoCompleto,
@@ -98,7 +98,7 @@ function ElencoDistretti({
     }
   }
 
-  const { contenitore, maniglia: presa } = useRiordino<number>((da, a) => {
+  const { contenitore, presa } = useRiordino<number>((da, a) => {
     const ids = sposta(distretti, da, a).map((d) => d.id)
     void run(async () => {
       await window.api.distretti.reorder(ids)
@@ -298,7 +298,7 @@ function Movimenti({
   movimenti: MovimentoDistretto[]
   onChange: (m: MovimentoDistretto[]) => void
 }): React.JSX.Element {
-  const { contenitore, maniglia } = useRiordino<number>((da, a) =>
+  const { contenitore, presa } = useRiordino<number>((da, a) =>
     onChange(sposta(movimenti, da, a))
   )
 
@@ -309,7 +309,7 @@ function Movimenti({
       {movimenti.map((m, i) => {
         const dnd = contenitore(i)
         return (
-          <div key={i} {...dnd} className={['riga-parametro', dnd.className].filter(Boolean).join(' ')}>
+          <div key={i} {...dnd} {...presa(i)} className={['riga-parametro', dnd.className].filter(Boolean).join(' ')}>
             <input
               placeholder="es. Rotazione destra"
               value={m.nome}
@@ -330,9 +330,6 @@ function Movimenti({
               gradi
             </label>
             <span className="item-actions-static">
-              <button {...maniglia(i)}>
-                <GripVertical size={16} />
-              </button>
               <button
                 className="danger"
                 title="Elimina movimento"
@@ -359,7 +356,7 @@ function TestDistrettuali({
   test: TestDistretto[]
   onChange: (t: TestDistretto[]) => void
 }): React.JSX.Element {
-  const { contenitore, maniglia } = useRiordino<number>((da, a) => onChange(sposta(test, da, a)))
+  const { contenitore, presa } = useRiordino<number>((da, a) => onChange(sposta(test, da, a)))
 
   const modifica = (i: number, patch: Partial<TestDistretto>): void =>
     onChange(test.map((t, j) => (i === j ? { ...t, ...patch } : t)))
@@ -371,7 +368,7 @@ function TestDistrettuali({
       {test.map((t, i) => {
         const dnd = contenitore(i)
         return (
-          <div key={i} {...dnd} className={['riga-parametro', dnd.className].filter(Boolean).join(' ')}>
+          <div key={i} {...dnd} {...presa(i)} className={['riga-parametro', dnd.className].filter(Boolean).join(' ')}>
             <input
               placeholder="es. Test di Spurling"
               value={t.nome}
@@ -398,9 +395,6 @@ function TestDistrettuali({
               ))}
             </select>
             <span className="item-actions-static">
-              <button {...maniglia(i)}>
-                <GripVertical size={16} />
-              </button>
               <button
                 className="danger"
                 title="Elimina test"

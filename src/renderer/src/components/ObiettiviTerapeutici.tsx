@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { GripVertical, Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2 } from 'lucide-react'
 import type { ObiettivoTerapeutico, TermineObiettivo } from '../../../shared/types'
 import { toastErrore } from './Toast'
 import { chiedi } from './Conferma'
@@ -80,7 +80,7 @@ export default function ObiettiviTerapeutici({
   // Si trascina solo dentro il proprio gruppo: per cambiare respiro c'e' il
   // menu a tendina, cosi' un trascinamento lungo non cambia per sbaglio il
   // significato dell'obiettivo.
-  const { contenitore, maniglia } = useRiordino<number>((daId, aId) => {
+  const { contenitore, presa } = useRiordino<number>((daId, aId) => {
     const da = lista.findIndex((o) => o.id === daId)
     const a = lista.findIndex((o) => o.id === aId)
     if (da < 0 || a < 0 || lista[da].termine !== lista[a].termine) return
@@ -156,11 +156,8 @@ export default function ObiettiviTerapeutici({
                   .map((o) => {
                     const dnd = contenitore(o.id)
                     return (
-                      <li key={o.id} {...dnd} className={dnd.className}>
-                        {/* La maniglia sta dentro alla casella del testo, a
-                            destra, e compare solo passandoci sopra: a riposo la
-                            riga resta pulita e si legge l'obiettivo. */}
-                        <span className="campo-con-maniglia maniglia-destra obiettivo-testo">
+                      <li key={o.id} {...dnd} {...presa(o.id)} className={dnd.className}>
+                        <span className="obiettivo-testo">
                           <input
                             value={o.testo}
                             onChange={(e) =>
@@ -172,9 +169,6 @@ export default function ObiettiviTerapeutici({
                             }
                             onBlur={() => void salva(o)}
                           />
-                          <button {...maniglia(o.id)} title="Trascina per riordinare">
-                            <GripVertical size={16} />
-                          </button>
                         </span>
                         <select
                           value={o.termine}

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { GripVertical, Pencil, Plus, X } from 'lucide-react'
+import { Pencil, Plus, X } from 'lucide-react'
 import { errMsg } from '../lib'
 import { sposta, useRiordino } from '../riordino'
 import { toastErrore } from './Toast'
@@ -93,7 +93,7 @@ export default function CrudList({
     })
   }
 
-  const { contenitore, maniglia } = useRiordino<number>((da, a) => {
+  const { contenitore, presa } = useRiordino<number>((da, a) => {
     if (!onReorder) return
     const ids = sposta(items, da, a).map((i) => i.id)
     void run(() => onReorder(ids))
@@ -120,6 +120,7 @@ export default function CrudList({
           <li
             key={item.id}
             {...dnd}
+            {...(onReorder ? presa(idx) : {})}
             className={[
               selectedId === item.id ? 'selected' : '',
               onSelect ? 'selectable' : '',
@@ -147,11 +148,6 @@ export default function CrudList({
                 <span className="item-nome">{item.nome}</span>
                 {dopoNome?.(item)}
                 <span className="item-actions" onClick={(e) => e.stopPropagation()}>
-                  {onReorder && (
-                    <button {...maniglia(idx)}>
-                      <GripVertical size={16} />
-                    </button>
-                  )}
                   <button
                     title={onModifica ? 'Modifica' : 'Rinomina'}
                     onClick={() => {

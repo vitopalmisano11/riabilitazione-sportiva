@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { GripVertical, Plus, RotateCcw, Trash2, X } from 'lucide-react'
+import { Plus, RotateCcw, Trash2, X } from 'lucide-react'
 import type {
   AnamnesiProssima as Dati,
   AndamentoSintomo,
@@ -563,7 +563,7 @@ function ListaSintomi({
   sintomi: SintomoAnamnesi[]
   onChange: (s: SintomoAnamnesi[]) => void
 }): React.JSX.Element {
-  const { contenitore, maniglia } = useRiordino<number>((da, a) =>
+  const { contenitore, presa } = useRiordino<number>((da, a) =>
     onChange(sposta(sintomi, da, a))
   )
 
@@ -577,7 +577,7 @@ function ListaSintomi({
       {sintomi.map((s, i) => {
         const dnd = contenitore(i)
         return (
-          <div key={s.id ?? i} {...dnd} className={['domanda-card', dnd.className].filter(Boolean).join(' ')}>
+          <div key={s.id ?? i} {...dnd} {...presa(i)} className={['domanda-card', dnd.className].filter(Boolean).join(' ')}>
             <div className="domanda-testata">
               <span
                 className="domanda-numero"
@@ -592,9 +592,6 @@ function ListaSintomi({
                 onChange={(e) => modifica(i, { descrizione: e.target.value || null })}
               />
               <span className="item-actions-static">
-                <button {...maniglia(i)}>
-                  <GripVertical size={16} />
-                </button>
                 <button
                   className="danger"
                   title="Togli questo sintomo"

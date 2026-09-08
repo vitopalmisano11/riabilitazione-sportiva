@@ -49,7 +49,7 @@ export default function ElencoCategorie({
     }
   }
 
-  const { contenitore, maniglia: presa } = useRiordino<number>((da, a) => {
+  const { contenitore, presa } = useRiordino<number>((da, a) => {
     const ids = sposta(categorie, da, a).map((c) => c.id)
     void run(async () => {
       await api.reorder(ids)

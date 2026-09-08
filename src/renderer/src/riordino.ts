@@ -1,18 +1,20 @@
 // Riordino per trascinamento, condiviso da tutte le liste dell'app.
 //
-// Si trascina solo afferrando la maniglia (l'iconcina a puntini): il resto della
-// riga resta cliccabile e i campi di testo restano selezionabili, cosa che non
-// succederebbe rendendo trascinabile l'intero contenitore.
+// Si trascina la riga stessa: niente iconcina a puntini da cercare. Il
+// trascinamento pero' non parte se il mouse si e' appoggiato su una casella di
+// testo, su un menu o su un pulsante — li' serve a scrivere, a scegliere o a
+// premere, e trascinando si evidenzia il testo come in qualunque altro
+// programma.
 //
 // Uso tipico:
-//   const { contenitore, maniglia } = useRiordino<number>((da, a) =>
+//   const { contenitore, presa } = useRiordino<number>((da, a) =>
 //     salva(sposta(elementi, da, a))
 //   )
-//   <li {...contenitore(idx)}> … <button {...maniglia(idx)}><GripVertical /></button> </li>
+//   <li {...contenitore(idx)} {...presa(idx)}> … </li>
 //
 // Liste annidate: basta un'istanza dell'hook per livello. Quando si trascina al
 // livello interno, quello esterno ha `preso` a null e ignora l'evento da solo.
-import { useState, type DragEvent } from 'react'
+import { useState, type DragEvent, type MouseEvent } from 'react'
 
 // Chiave che identifica una posizione. Per le liste annidate si usa una
 // stringa tipo "2:0" (sezione 2, riga 0), decodificata da chi la riceve.
@@ -28,16 +30,14 @@ export interface PropsContenitore {
   className: string
 }
 
-export interface PropsManiglia {
-  className: string
-  title: string
-  onMouseDown: () => void
+export interface PropsPresa {
+  onMouseDown: (e: MouseEvent<HTMLElement>) => void
   onMouseUp: () => void
 }
 
 export interface Riordino<K extends Chiave> {
   contenitore: (chiave: K) => PropsContenitore
-  maniglia: (chiave: K) => PropsManiglia
+  presa: (chiave: K) => PropsPresa
 }
 
 export function useRiordino<K extends Chiave>(
@@ -88,10 +88,20 @@ export function useRiordino<K extends Chiave>(
         .filter(Boolean)
         .join(' ')
     }),
-    maniglia: (chiave) => ({
-      className: 'maniglia-riordino',
-      title: 'Trascina per spostare',
-      onMouseDown: () => setAbilitato(chiave),
+    presa: (chiave) => ({
+      onMouseDown: (e) => {
+        // Appoggiando il mouse dentro a una casella, a un menu o a un pulsante
+        // non si sta prendendo la riga: si sta scrivendo, scegliendo o
+        // premendo. Senza questo controllo selezionare del testo con il mouse
+        // avvierebbe un trascinamento.
+        const dove = e.target as HTMLElement | null
+        if (dove?.closest('input, textarea, select, button, a, [contenteditable]')) return
+        // Liste annidate: prendendo una riga si prende la riga, non la sezione
+        // che la contiene. Senza questo si abiliterebbero tutti e due e
+        // partirebbe il trascinamento di quella sbagliata.
+        e.stopPropagation()
+        setAbilitato(chiave)
+      },
       onMouseUp: () => setAbilitato(null)
     })
   }

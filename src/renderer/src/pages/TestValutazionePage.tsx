@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ChevronRight, GripVertical, Pencil, Plus, X } from 'lucide-react'
+import { ChevronRight, Pencil, Plus, X } from 'lucide-react'
 import type {
   CalcoloMisura,
   CategoriaTest,
@@ -126,7 +126,7 @@ function ElencoTest({
     }
   }
 
-  const { contenitore, maniglia: presa } = useRiordino<number>((da, a) => {
+  const { contenitore, presa } = useRiordino<number>((da, a) => {
     const ids = sposta(test, da, a).map((t) => t.id)
     void run(async () => {
       await window.api.testValutazione.reorder(ids)
@@ -416,7 +416,7 @@ function Parametri({
   parametri: ParametroTest[]
   onChange: (p: ParametroTest[]) => void
 }): React.JSX.Element {
-  const { contenitore, maniglia } = useRiordino<number>((da, a) =>
+  const { contenitore, presa } = useRiordino<number>((da, a) =>
     onChange(sposta(parametri, da, a))
   )
   const modifica = (i: number, patch: Partial<ParametroTest>): void =>
@@ -432,7 +432,7 @@ function Parametri({
       {parametri.map((p, i) => {
         const dnd = contenitore(i)
         return (
-          <div key={i} {...dnd} className={['riga-parametro', dnd.className].filter(Boolean).join(' ')}>
+          <div key={i} {...dnd} {...presa(i)} className={['riga-parametro', dnd.className].filter(Boolean).join(' ')}>
             <input
               placeholder="Parametro (es. Altezza del box)"
               value={p.nome}
@@ -451,9 +451,6 @@ function Parametri({
               onChange={(e) => modifica(i, { unita: e.target.value || null })}
             />
             <span className="item-actions-static">
-              <button {...maniglia(i)}>
-                <GripVertical size={16} />
-              </button>
               <button
                 className="danger"
                 title="Elimina parametro"
@@ -484,7 +481,7 @@ function Misure({
   prove: number
   onChange: (m: MisuraTest[]) => void
 }): React.JSX.Element {
-  const { contenitore, maniglia } = useRiordino<number>((da, a) => onChange(sposta(misure, da, a)))
+  const { contenitore, presa } = useRiordino<number>((da, a) => onChange(sposta(misure, da, a)))
   const modifica = (i: number, patch: Partial<MisuraTest>): void =>
     onChange(misure.map((m, j) => (i === j ? { ...m, ...patch } : m)))
 
@@ -500,7 +497,7 @@ function Misure({
       {misure.map((m, i) => {
         const dnd = contenitore(i)
         return (
-          <div key={i} {...dnd} className={['domanda-card', dnd.className].filter(Boolean).join(' ')}>
+          <div key={i} {...dnd} {...presa(i)} className={['domanda-card', dnd.className].filter(Boolean).join(' ')}>
             <div className="domanda-testata">
               <span className="domanda-numero">{i + 1}</span>
               <input
@@ -516,9 +513,6 @@ function Misure({
                 onChange={(e) => modifica(i, { unita: e.target.value || null })}
               />
               <span className="item-actions-static">
-                <button {...maniglia(i)}>
-                  <GripVertical size={16} />
-                </button>
                 <button
                   className="danger"
                   title="Elimina misura"

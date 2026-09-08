@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ChevronRight, GripVertical, Pencil, Plus, X } from 'lucide-react'
+import { ChevronRight, Pencil, Plus, X } from 'lucide-react'
 import type {
   CategoriaQuestionario,
   DomandaQuestionario,
@@ -148,7 +148,7 @@ function ElencoQuestionari({
     }
   }
 
-  const { contenitore, maniglia: presa } = useRiordino<number>((da, a) => {
+  const { contenitore, presa } = useRiordino<number>((da, a) => {
     const ids = sposta(questionari, da, a).map((x) => x.id)
     void run(async () => {
       await window.api.questionari.reorder(ids)
@@ -406,7 +406,7 @@ function TabDomande({
   domande: DomandaQuestionario[]
   onChange: (d: DomandaQuestionario[]) => void
 }): React.JSX.Element {
-  const { contenitore, maniglia } = useRiordino<number>((da, a) =>
+  const { contenitore, presa } = useRiordino<number>((da, a) =>
     onChange(sposta(domande, da, a))
   )
 
@@ -424,7 +424,7 @@ function TabDomande({
       {domande.map((d, i) => {
         const dnd = contenitore(i)
         return (
-          <div key={i} {...dnd} className={['domanda-card', dnd.className].filter(Boolean).join(' ')}>
+          <div key={i} {...dnd} {...presa(i)} className={['domanda-card', dnd.className].filter(Boolean).join(' ')}>
             <div className="domanda-testata">
               <span className="domanda-numero">{i + 1}</span>
               <input
@@ -452,9 +452,6 @@ function TabDomande({
                 ))}
               </select>
               <span className="item-actions-static">
-                <button {...maniglia(i)}>
-                  <GripVertical size={16} />
-                </button>
                 <button
                   title="Elimina domanda"
                   className="danger"
@@ -672,7 +669,7 @@ function TabFasce({
   fasce: FasciaQuestionario[]
   onChange: (f: FasciaQuestionario[]) => void
 }): React.JSX.Element {
-  const { contenitore, maniglia } = useRiordino<number>((da, a) => onChange(sposta(fasce, da, a)))
+  const { contenitore, presa } = useRiordino<number>((da, a) => onChange(sposta(fasce, da, a)))
 
   const modifica = (i: number, patch: Partial<FasciaQuestionario>): void =>
     onChange(fasce.map((f, j) => (i === j ? { ...f, ...patch } : f)))
@@ -698,7 +695,7 @@ function TabFasce({
       {fasce.map((f, i) => {
         const dnd = contenitore(i)
         return (
-          <div key={i} {...dnd} className={['domanda-card', dnd.className].filter(Boolean).join(' ')}>
+          <div key={i} {...dnd} {...presa(i)} className={['domanda-card', dnd.className].filter(Boolean).join(' ')}>
             <div className="domanda-testata">
               <span className="domanda-numero">{i + 1}</span>
               <input
@@ -708,9 +705,6 @@ function TabFasce({
                 onChange={(e) => modifica(i, { etichetta: e.target.value })}
               />
               <span className="item-actions-static">
-                <button {...maniglia(i)}>
-                  <GripVertical size={16} />
-                </button>
                 <button
                   title="Elimina fascia"
                   className="danger"

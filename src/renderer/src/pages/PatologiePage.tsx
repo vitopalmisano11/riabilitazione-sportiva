@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ChevronRight, GripVertical, Pencil, Plus, Trees, X } from 'lucide-react'
+import { ChevronRight, Pencil, Plus, Trees, X } from 'lucide-react'
 import type {
   Categoria,
   Distretto,
@@ -154,7 +154,7 @@ function Step1Patologie({
     })
   }
 
-  const { contenitore, maniglia: presa } = useRiordino<number>((da, a) => {
+  const { contenitore, presa } = useRiordino<number>((da, a) => {
     const ids = sposta(patologie, da, a).map((p) => p.id)
     void run(async () => {
       await window.api.patologie.reorder(ids)
@@ -466,7 +466,7 @@ function ElencoFasi({
     })
   }
 
-  const { contenitore, maniglia: presa } = useRiordino<number>((da, a) => {
+  const { contenitore, presa } = useRiordino<number>((da, a) => {
     const ids = sposta(fasi, da, a).map((f) => f.id)
     void run(async () => {
       await window.api.fasi.reorder(ids)

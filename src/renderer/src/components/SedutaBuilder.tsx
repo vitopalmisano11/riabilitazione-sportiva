@@ -13,7 +13,6 @@ import type {
 import {
   AlertTriangle,
   CornerDownLeft,
-  GripVertical,
   ImageIcon,
   Pencil,
   Plus,
@@ -358,12 +357,12 @@ export default function SedutaBuilder({
     )
   }
 
-  const { contenitore: contSez, maniglia: manSez } = useRiordino<number>((da, a) =>
+  const { contenitore: contSez, presa: presaSez } = useRiordino<number>((da, a) =>
     setSezioni(sposta(sezioni, da, a))
   )
 
   // Le righe si riordinano solo dentro la propria sezione: la chiave e' "sezione:riga".
-  const { contenitore: contRiga, maniglia: manRiga } = useRiordino<string>((da, a) => {
+  const { contenitore: contRiga, presa: presaRiga } = useRiordino<string>((da, a) => {
     const [sezDa, rigaDa] = da.split(':').map(Number)
     const [sezA, rigaA] = a.split(':').map(Number)
     if (sezDa !== sezA) return
@@ -635,17 +634,10 @@ export default function SedutaBuilder({
           <section
             key={idxSez}
             {...dndSez}
+            {...presaSez(idxSez)}
             className={['card sezione-card', dndSez.className].filter(Boolean).join(' ')}
           >
             <div className="sezione-testata">
-              {/* La maniglia sta a sinistra del titolo, come nelle righe degli
-                  esercizi: in mezzo agli altri due pulsanti sembrava un'azione
-                  come loro, e si cliccava per sbaglio. */}
-              <span className="maniglia-sezione">
-                <button {...manSez(idxSez)}>
-                  <GripVertical size={16} />
-                </button>
-              </span>
               {editSez?.idx === idxSez ? (
                 <span className="edit-row">
                   <input
@@ -708,12 +700,12 @@ export default function SedutaBuilder({
                   // categorie fini ("Rinforzo quadricipite", "Rinforzo
                   // hamstring") le intestazioni erano piu' delle righe.
                   return (
-                  <li key={r.esercizio_id} {...dndRiga} className={dndRiga.className}>
-                    <span className="maniglia-riga">
-                      <button {...manRiga(`${idxSez}:${idxRiga}`)}>
-                        <GripVertical size={16} />
-                      </button>
-                    </span>
+                  <li
+                    key={r.esercizio_id}
+                    {...dndRiga}
+                    {...presaRiga(`${idxSez}:${idxRiga}`)}
+                    className={dndRiga.className}
+                  >
                     <div className="riga-testata">
                       <span className="item-nome">
                         {r.nome}
