@@ -61,14 +61,23 @@ export default function SceltaConRicerca({
   }
 
   return (
-    <div className="scelta-cerca" ref={contenitore}>
+    <div
+      className="scelta-cerca"
+      ref={contenitore}
+      // L'etichetta che avvolge la casella, premuta, rimanda il clic dentro
+      // all'input: qui il clic si ferma, cosi' scegliere una voce sceglie
+      // quella voce e basta.
+      onClick={(e) => e.stopPropagation()}
+    >
       <div className="riga-scelta-cerca">
         <input
           type="text"
           autoFocus={autoFocus}
           // Aperta si scrive per cercare; chiusa mostra la voce scelta.
           value={aperto ? testo : (scelta?.nome ?? '')}
-          placeholder={segnaposto ?? (scelta ? scelta.nome : '— seleziona —')}
+          // Aperta e vuota si legge comunque cosa c'e' scelto adesso, cosi' non
+          // sembra di aver perso la scelta mentre si cerca.
+          placeholder={scelta ? scelta.nome : (segnaposto ?? '— seleziona —')}
           onFocus={() => setAperto(true)}
           onChange={(e) => {
             setTesto(e.target.value)
@@ -101,7 +110,10 @@ export default function SceltaConRicerca({
           type="button"
           className="btn-icona apri-scelta"
           title="Vedi l'elenco"
-          onClick={() => setAperto(!aperto)}
+          onClick={() => {
+            setTesto('')
+            setAperto(!aperto)
+          }}
         >
           <ChevronDown size={16} />
         </button>
@@ -111,7 +123,14 @@ export default function SceltaConRicerca({
         <ul className="elenco-scelta">
           {vuoto != null && (
             <li>
-              <button type="button" className="briciola" onClick={() => scegli('')}>
+              <button
+                type="button"
+                className="briciola"
+                // Senza questo l'input perde il fuoco prima che il clic arrivi,
+                // e su certe combinazioni il clic va perso.
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => scegli('')}
+              >
                 {vuoto}
               </button>
             </li>
@@ -121,6 +140,7 @@ export default function SceltaConRicerca({
               <button
                 type="button"
                 className={v.id === valore ? 'briciola scelta-attiva' : 'briciola'}
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => scegli(v.id)}
               >
                 {v.nome}

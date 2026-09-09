@@ -292,15 +292,17 @@ export function generaHtml(
   tr { page-break-inside: avoid; }
   .cat { color: #777e88; font-size: 10px; }
   .note { margin: 10px 0 0; background: #f5f6f8; padding: 8px 10px; border-radius: 4px; }
-  /* Scheda illustrata: un esercizio per riga, foto a sinistra. Le foto stanno
-     tutte nello stesso riquadro (ritagliate al centro), altrimenti una verticale
-     e una orizzontale sfalserebbero tutta la pagina. */
+  /* Scheda illustrata: un esercizio per riga, foto a sinistra. Il riquadro e'
+     sempre della stessa misura, cosi' le righe non si sfalsano, ma la foto ci
+     sta dentro intera: ritagliata al centro perdeva pezzi di esercizio, e in
+     una foto verticale spariva mezza persona. Lo spazio che avanza resta del
+     colore del fondo. */
   .schede { margin-bottom: 10px; }
   .scheda-es { display: flex; gap: 12px; border: 1px solid #dfe4ea; border-radius: 5px;
                padding: 9px 11px; margin-bottom: 8px; page-break-inside: avoid; }
   .scheda-es .foto { flex: 0 0 150px; height: 110px; background: #f2f3f5; border-radius: 4px;
                      overflow: hidden; }
-  .scheda-es .foto img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .scheda-es .foto img { width: 100%; height: 100%; object-fit: contain; display: block; }
   /* Il numero sta in una colonna sua: dentro la riga del nome, tutto quello che
      segue (dosaggio, spiegazione) partiva dal bordo del pallino e non dal nome. */
   .scheda-es .testo { flex: 1; min-width: 0; display: flex; gap: 7px; }

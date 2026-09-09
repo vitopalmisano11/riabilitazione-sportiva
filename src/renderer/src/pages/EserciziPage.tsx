@@ -111,6 +111,12 @@ export default function EserciziPage(): React.JSX.Element {
         .filter((f) => f.padre_id === c.id)
         .map((f) => ({ ...f, nome: `${c.nome} › ${f.nome}` }))
     ])
+    // Rete di sicurezza: una categoria il cui padre non c'e' piu' resta
+    // comunque scegliibile. Sparire da questo elenco vorrebbe dire non poterla
+    // piu' usare, e nemmeno capire perche'.
+    .concat(
+      categorie.filter((c) => c.padre_id != null && !categorie.some((x) => x.id === c.padre_id))
+    )
 
   // Nell'elenco i distretti stanno sotto alla loro categoria, rientrati: cosi'
   // si legge cosa contiene cosa senza aprire niente. Cercando invece si vede
