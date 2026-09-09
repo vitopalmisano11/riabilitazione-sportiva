@@ -290,7 +290,12 @@ const STILE_FIGURA = `
   .s-rigidita line { stroke: #d64545; stroke-width: 3.4; stroke-linecap: round; }
   .s-scossa { fill: #d64545; }
   .s-parestesie { fill: #d64545; opacity: 0.28; }
+  /* Il numero si legge anche sopra alle linee della sagoma: gli si disegna
+     intorno un contorno bianco, che sta sotto al numero e copre quello che
+     c'e' dietro. */
   .intensita { font-size: 20px; font-weight: 700; fill: #b03030;
+               paint-order: stroke; stroke: #fff; stroke-width: 4px;
+               stroke-linejoin: round;
                font-family: 'Segoe UI', system-ui, sans-serif; }
 `
 
@@ -902,14 +907,40 @@ export function oggiIso(): string {
 
 // ---- resa in HTML (da cui nasce il PDF) ----
 
+// Le voci una accanto all'altra: si raggruppano quelle consecutive, cosi' la
+// griglia le affianca a due a due e il resto (tabelle, riquadri, grafici) resta
+// a tutta larghezza dov'era.
+function blocchiHtml(blocchi: Blocco[]): string {
+  let out = ''
+  let gruppo: string[] = []
+  const chiudi = (): void => {
+    if (gruppo.length === 0) return
+    out += `<div class="griglia-voci">${gruppo.join('')}</div>`
+    gruppo = []
+  }
+  for (const b of blocchi) {
+    if (b.tipo === 'testo') gruppo.push(bloccoHtml(b))
+    else {
+      chiudi()
+      out += bloccoHtml(b)
+    }
+  }
+  chiudi()
+  return out
+}
+
 function bloccoHtml(b: Blocco): string {
   switch (b.tipo) {
     case 'sottotitolo':
       return `<h3>${esc(b.testo)}</h3>`
-    case 'testo':
-      return `${b.titolo ? `<h3>${esc(b.titolo)}</h3>` : ''}<p class="testo">${esc(
-        b.corpo
-      ).replace(/\n/g, '<br>')}</p>`
+    case 'testo': {
+      // Una risposta di due parole non deve prendersi una riga intera del
+      // foglio: le corte stanno affiancate, le lunghe si allargano.
+      const lunga = b.corpo.length > 90 || b.corpo.includes('\n')
+      return `<div class="voce${lunga ? ' voce-larga' : ''}">${
+        b.titolo ? `<h3>${esc(b.titolo)}</h3>` : ''
+      }<p class="testo">${esc(b.corpo).replace(/\n/g, '<br>')}</p></div>`
+    }
     case 'coppie':
       return `<dl class="dati">${b.voci
         .map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`)
@@ -925,7 +956,7 @@ function bloccoHtml(b: Blocco): string {
     case 'riquadro':
       return `<div class="riquadro"${
         b.colore ? ` style="border-left-color:${b.colore}"` : ''
-      }><h3>${esc(b.titolo)}</h3>${b.blocchi.map(bloccoHtml).join('')}</div>`
+      }><h3>${esc(b.titolo)}</h3>${blocchiHtml(b.blocchi)}</div>`
     case 'grafici':
       // Grafici e legenda in un contenitore solo: separati, la stampa
       // potrebbe lasciare la legenda sulla pagina dopo.
@@ -954,7 +985,7 @@ export function generaCartella(pazienteId: number, sezioni: SezioneCartella[]): 
   const c = componiCartella(pazienteId, sezioni)
   const corpo = c.sezioni
     .map(
-      (s) => `<section><h2>${esc(s.titolo)}</h2>${s.blocchi.map(bloccoHtml).join('')}</section>`
+      (s) => `<section><h2>${esc(s.titolo)}</h2>${blocchiHtml(s.blocchi)}</section>`
     )
     .join('')
 
@@ -994,6 +1025,14 @@ export function generaCartella(pazienteId: number, sezioni: SezioneCartella[]): 
   section > h2 { margin: 0 -12px 10px; padding: 6px 12px; border-bottom: 2px solid ${accento};
                  background: ${intestazione}; border-radius: 5px 5px 0 0; }
   .testo { margin: 0 0 6px; }
+  /* Le risposte corte a due a due: prima ognuna prendeva una riga intera e
+     mezzo foglio restava bianco. Una risposta lunga si allarga su tutte e due
+     le colonne, perche' spezzata in mezza pagina si leggerebbe peggio. */
+  .griglia-voci { display: grid; grid-template-columns: 1fr 1fr; gap: 0 22px;
+                  align-items: start; margin-bottom: 4px; }
+  .griglia-voci .voce { page-break-inside: avoid; }
+  .griglia-voci .voce-larga { grid-column: 1 / -1; }
+  .griglia-voci .voce > h3 { margin-top: 8px; }
   dl.dati { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 20px; margin: 0 0 8px; }
   dl.dati div { display: flex; gap: 6px; }
   dl.dati dt { color: #6b7280; margin: 0; }

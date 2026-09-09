@@ -4877,10 +4877,23 @@ textarea {
   margin-bottom: var(--spazio);
 }
 
+/* Le stesse proporzioni della tabella: una colonna vuota larga quanto il nome
+   del movimento, e poi le due meta'. Cosi' la nota dell'attivo sta sotto
+   all'attivo e quella del passivo sotto al passivo. */
 .note-movimenti {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: 18% 1fr 1fr;
   gap: var(--spazio);
+}
+
+@media (max-width: 760px) {
+  .note-movimenti {
+    grid-template-columns: 1fr;
+  }
+
+  .note-movimenti .spazio-nome {
+    display: none;
+  }
 }
 
 /* La riga verticale che separa l'attivo dal passivo. Il margine a sinistra

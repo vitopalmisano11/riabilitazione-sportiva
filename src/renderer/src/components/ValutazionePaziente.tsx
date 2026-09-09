@@ -612,10 +612,11 @@ function TabellaMovimenti({
     <div className="movimenti riquadro-test">
       <table className="tabella-movimenti">
         <thead>
+          {/* Sopra i due lati, sotto i titoli delle colonne: "Movimento" sta
+              in fila con "Intensita'" e "Dolore", non a cavallo delle due
+              righe. */}
           <tr>
-            <th className="col-nome" rowSpan={2}>
-              Movimento
-            </th>
+            <th className="col-nome" />
             <th className="lato-attivo stacco-lato" colSpan={conGradi ? 3 : 2}>
               Attivo
             </th>
@@ -624,6 +625,7 @@ function TabellaMovimenti({
             </th>
           </tr>
           <tr>
+            <th className="col-nome">Movimento</th>
             {intestazioneLato(true)}
             {intestazioneLato(true)}
           </tr>
@@ -645,7 +647,11 @@ function TabellaMovimenti({
       {/* Una nota per lato: quello che si annota ("in inclinazione a destra
           tira a sinistra") riguarda l'insieme dei movimenti provati in quel
           modo, non il singolo movimento. */}
+      {/* La prima colonna e' vuota: tiene il posto del nome del movimento,
+          cosi' ogni nota cade sotto alla meta' della tabella a cui si
+          riferisce. */}
       <div className="note-movimenti">
+        <span className="spazio-nome" />
         {(['attivo', 'passivo'] as const).map((lato) => (
           <label key={lato} className="nota-movimenti">
             Note del movimento {lato}
