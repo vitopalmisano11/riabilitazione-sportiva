@@ -5019,18 +5019,15 @@ textarea {
   margin-top: 0;
 }
 
-/* Maniglia e cestino compaiono passando sopra alla riga: sono azioni rare, e
-   sempre in vista riempivano l'elenco di icone. Restano al loro posto anche da
-   invisibili, cosi' la riga non si sposta quando compaiono. */
-.righe-seduta li .maniglia-riga button,
+/* Il cestino compare passando sopra alla riga: e' un'azione rara, e sempre in
+   vista riempiva l'elenco di icone. Resta al suo posto anche da invisibile,
+   cosi' la riga non si sposta quando compare. */
 .righe-seduta li .btn-togli {
   opacity: 0;
   transition: opacity 0.12s ease;
 }
 
-.righe-seduta li:hover .maniglia-riga button,
 .righe-seduta li:hover .btn-togli,
-.righe-seduta li:focus-within .maniglia-riga button,
 .righe-seduta li:focus-within .btn-togli {
   opacity: 1;
 }

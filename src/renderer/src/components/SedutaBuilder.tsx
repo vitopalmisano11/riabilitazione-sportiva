@@ -72,6 +72,9 @@ export default function SedutaBuilder({
   const [sforzo, setSforzo] = useState('')
   // Cosa aveva fatto l'ultima volta, esercizio per esercizio.
   const [ultime, setUltime] = useState<Record<number, UltimaVolta>>({})
+  // Le righe in cui i numeri dell'ultima volta sono gia' stati ricopiati: la
+  // scritta sparisce, quei numeri stanno gia' nelle caselle sopra.
+  const [ricopiate, setRicopiate] = useState<string[]>([])
   // I segni di riferimento di questo paziente e la misura di oggi.
   const [segni, setSegni] = useState<Segno[]>([])
   const [misure, setMisure] = useState<Record<number, string>>({})
@@ -798,27 +801,10 @@ export default function SedutaBuilder({
                         onChange={(e) => updateRiga(idxSez, idxRiga, 'nota', e.target.value)}
                       />
                     </div>
-                    {/* Cosa aveva fatto l'ultima volta con questo esercizio.
-                        Sta sotto ai numeri di oggi, dove serve: la progressione
-                        si decide guardando il dato, non a memoria. Il pulsante
-                        li rimette in riga tutti insieme, poi si ritocca. */}
-                    {ultime[r.esercizio_id] && testoUltima(r, ultime[r.esercizio_id]) !== '' && (
-                      <div className="ultima-volta">
-                        <span className="ultima-quando">
-                          l&apos;ultima volta, {formatData(ultime[r.esercizio_id].data)}:
-                        </span>
-                        <span className="ultima-dose">
-                          {testoUltima(r, ultime[r.esercizio_id])}
-                        </span>
-                        <button
-                          className="btn-piccolo"
-                          title="Rimetti questi numeri nella riga"
-                          onClick={() => ricopiaUltima(idxSez, idxRiga, ultime[r.esercizio_id])}
-                        >
-                          <CornerDownLeft size={14} /> Ricopia
-                        </button>
-                      </div>
-                    )}
+                    {/* Il pulsante che toglie la riga sta in fondo alla riga
+                        del nome, sempre nello stesso posto: messo dopo la
+                        riga dell'ultima volta finiva a capo, in basso a
+                        sinistra. */}
                     <button
                       title="Rimuovi"
                       className="danger btn-togli"
@@ -826,6 +812,34 @@ export default function SedutaBuilder({
                     >
                       <X size={16} />
                     </button>
+                    {/* Cosa aveva fatto l'ultima volta con questo esercizio.
+                        Sta sotto ai numeri di oggi, dove serve: la progressione
+                        si decide guardando il dato, non a memoria. Il pulsante
+                        li rimette in riga tutti insieme, poi si ritocca — e da
+                        quel momento la riga sparisce, perche' quei numeri sono
+                        gia' li' sopra. */}
+                    {ultime[r.esercizio_id] &&
+                      !ricopiate.includes(`${idxSez}:${r.esercizio_id}`) &&
+                      testoUltima(r, ultime[r.esercizio_id]) !== '' && (
+                        <div className="ultima-volta">
+                          <span className="ultima-quando">
+                            l&apos;ultima volta, {formatData(ultime[r.esercizio_id].data)}:
+                          </span>
+                          <span className="ultima-dose">
+                            {testoUltima(r, ultime[r.esercizio_id])}
+                          </span>
+                          <button
+                            className="btn-piccolo"
+                            title="Rimetti questi numeri nella riga"
+                            onClick={() => {
+                              ricopiaUltima(idxSez, idxRiga, ultime[r.esercizio_id])
+                              setRicopiate([...ricopiate, `${idxSez}:${r.esercizio_id}`])
+                            }}
+                          >
+                            <CornerDownLeft size={14} /> Ricopia
+                          </button>
+                        </div>
+                      )}
                   </li>
                   )
                 })}

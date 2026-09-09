@@ -4,8 +4,6 @@ import {
   ArchiveRestore,
   ArrowDownAZ,
   ArrowDownWideNarrow,
-  ChevronDown,
-  ChevronRight,
   HelpCircle,
   ImageIcon,
   Pencil,
@@ -15,7 +13,6 @@ import {
 import type { Categoria, EsercizioConCategoria, EsercizioInput } from '../../../shared/types'
 import { toastErrore } from '../components/Toast'
 import { chiedi } from '../components/Conferma'
-import CategorieEsercizi from '../components/CategorieEsercizi'
 import Aiuto from '../components/Aiuto'
 import SceltaConRicerca from '../components/SceltaConRicerca'
 import ImmagineEsercizio from '../components/ImmagineEsercizio'
@@ -80,24 +77,7 @@ export default function EserciziPage(): React.JSX.Element {
   const [categorie, setCategorie] = useState<Categoria[]>([])
   const [mostraArchiviati, setMostraArchiviati] = useState(false)
   const [ordine, setOrdine] = useState<'alfabetico' | 'usati'>('alfabetico')
-  // La categoria aperta in modifica (o una nuova, con id null): nome e
-  // dosaggio si decidono insieme, in una finestra sola.
-  const [formCat, setFormCat] = useState<{
-    id: number | null
-    nome: string
-    cluster: boolean
-    rir: boolean
-    // Dentro a quale categoria sta ('' = e' lei stessa una categoria).
-    padre: number | ''
-  } | null>(null)
   const [ricerca, setRicerca] = useState('')
-  // Il riquadro delle categorie si apre e si richiude, e dentro ha la sua
-  // ricerca: con trenta categorie l'elenco aperto copriva tutta la pagina.
-  const [categorieAperte, setCategorieAperte] = useState(false)
-  const [ricercaCat, setRicercaCat] = useState('')
-  const qCat = ricercaCat.trim().toLowerCase()
-  const haFiglie = (id: number): boolean => categorie.some((c) => c.padre_id === id)
-
   // Nelle caselle in cui si sceglie, un distretto si scrive con la sua
   // categoria davanti: "Quadricipite" da solo non dice di che lavoro si tratta.
   const vociCategorie = categorie
@@ -204,29 +184,6 @@ export default function EserciziPage(): React.JSX.Element {
   }
 
   // Nome e dosaggio si salvano insieme: sono due domande sulla stessa cosa.
-  const salvaCategoria = async (): Promise<void> => {
-    if (!formCat) return
-    const nome = formCat.nome.trim()
-    if (nome === '') {
-      toastErrore('Il nome è obbligatorio.')
-      return
-    }
-    try {
-      const id =
-        formCat.id == null
-          ? await window.api.categorie.create(nome)
-          : (await window.api.categorie.update(formCat.id, nome), formCat.id)
-      await window.api.categorie.setCluster(id, formCat.cluster)
-      await window.api.categorie.setRir(id, formCat.rir)
-      await window.api.categorie.setPadre(id, formCat.padre === '' ? null : formCat.padre)
-      setFormCat(null)
-      await loadCategorie()
-      await load()
-    } catch (e) {
-      toastErrore(errMsg(e))
-    }
-  }
-
   // Il dosaggio di un esercizio della libreria, nella forma che sanno leggere
   // le funzioni condivise.
   const dosaggioDi = (e: EsercizioConCategoria): Dosaggio => ({
@@ -327,46 +284,9 @@ export default function EserciziPage(): React.JSX.Element {
         <h2>Libreria esercizi</h2>
       </header>
 
-      <div className="blocco-apribile">
-        {/* Un pulsante vero e proprio, con la freccetta che gira: si vede che
-            si puo' richiudere, cosa che con il solo titolo non si capiva. */}
-        <button className="riga-apribile" onClick={() => setCategorieAperte(!categorieAperte)}>
-          {categorieAperte ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-          Categorie esercizi ({categorie.length})
-        </button>
-        {categorieAperte && (
-        <div className="contenuto-apribile contenuto-categorie">
-        <input
-          type="search"
-          className="cerca-categoria"
-          placeholder="Cerca categoria…"
-          value={ricercaCat}
-          onChange={(e) => setRicercaCat(e.target.value)}
-        />
-        <CategorieEsercizi
-          categorie={categorie}
-          ricerca={ricercaCat}
-          onNuova={() =>
-            setFormCat({ id: null, nome: '', cluster: false, rir: false, padre: '' })
-          }
-          onModifica={(c) =>
-            setFormCat({
-              id: c.id,
-              nome: c.nome,
-              cluster: c.dosaggio_cluster === 1,
-              rir: c.dosaggio_rir === 1,
-              padre: c.padre_id ?? ''
-            })
-          }
-          onCambiato={async () => {
-            await loadCategorie()
-            await load()
-          }}
-        />
-        </div>
-        )}
-      </div>
-
+      {/* Le categorie si gestiscono nella sezione loro, qui accanto: in un
+          riquadro stretto due elenchi non ci stavano, e non si capiva quale
+          categoria contenesse quale. */}
       <div className="toolbar">
         <input
           type="search"
@@ -540,69 +460,6 @@ export default function EserciziPage(): React.JSX.Element {
           </tbody>
         </table>
       </div>
-
-      {formCat && (
-        <div className="modal-overlay" onClick={() => setFormCat(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3>{formCat.id == null ? 'Nuova categoria' : 'Modifica categoria'}</h3>
-            <label>
-              Nome
-              <input
-                autoFocus
-                value={formCat.nome}
-                onChange={(e) => setFormCat({ ...formCat, nome: e.target.value })}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') void salvaCategoria()
-                }}
-              />
-            </label>
-            {/* Dove sta questa categoria. Non compare per quelle che hanno
-                gia' dei distretti dentro: si scende di un livello solo, e
-                spostarle vorrebbe dire portarsi dietro i figli. Il posto
-                normale per aggiungere un distretto e' il "+" della sua
-                categoria, non questa casella. */}
-            {(formCat.id == null || !haFiglie(formCat.id)) && (
-              <label>
-                Dentro a
-                <SceltaConRicerca
-                  voci={categorie.filter((c) => c.padre_id == null && c.id !== formCat.id)}
-                  valore={formCat.padre}
-                  segnaposto="— è una categoria a sé —"
-                  vuoto="— è una categoria a sé —"
-                  onCambia={(id) => setFormCat({ ...formCat, padre: id })}
-                />
-              </label>
-            )}
-
-            <label className="checkbox-inline riga-staccata">
-              <input
-                type="checkbox"
-                checked={formCat.cluster}
-                onChange={(e) => setFormCat({ ...formCat, cluster: e.target.checked })}
-              />
-              Dosaggio a cluster
-              <Aiuto testo="Gli esercizi di questa categoria si dosano spezzando la serie in blocchi con una pausa breve dentro: 4 serie da 3 cluster da 2 ripetizioni, 15 secondi tra i cluster e 2 minuti tra le serie. Nel loro form compaiono i campi in più; le altre categorie restano come sono." />
-            </label>
-            {/* Come il cluster: la spunta sta sulla categoria, cosi' la
-                casellina in piu' la vedono solo gli esercizi a cui serve. */}
-            <label className="checkbox-inline">
-              <input
-                type="checkbox"
-                checked={formCat.rir}
-                onChange={(e) => setFormCat({ ...formCat, rir: e.target.checked })}
-              />
-              Ripetizioni di riserva (RIR)
-              <Aiuto testo="Quante ripetizioni restano in canna a fine serie: RIR 2 vuol dire fermarsi due prima del cedimento. Dice quanto è pesante la serie meglio del carico da solo, e serve nella forza più che nella mobilità. Spuntandola, gli esercizi di questa categoria hanno una casellina in più nella seduta." />
-            </label>
-            <div className="modal-actions">
-              <button onClick={() => setFormCat(null)}>Annulla</button>
-              <button className="primary" onClick={() => void salvaCategoria()}>
-                Salva
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {form && (
         <div className="modal-overlay" onClick={() => setForm(null)}>
