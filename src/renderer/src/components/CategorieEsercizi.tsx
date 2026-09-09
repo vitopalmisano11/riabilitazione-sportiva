@@ -1,20 +1,20 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Check, ChevronRight, CornerLeftUp, Pencil, Plus, X } from 'lucide-react'
 import type { Categoria } from '../../../shared/types'
-import Aiuto from '../components/Aiuto'
-import SceltaConRicerca from '../components/SceltaConRicerca'
-import { toastErrore } from '../components/Toast'
-import { chiedi } from '../components/Conferma'
+import Aiuto from './Aiuto'
+import SceltaConRicerca from './SceltaConRicerca'
+import { toastErrore } from './Toast'
+import { chiedi } from './Conferma'
 import { errMsg } from '../lib'
 import { sposta, useRiordino } from '../riordino'
 
-// Le categorie degli esercizi, in una sezione tutta loro.
+// Le categorie degli esercizi: la seconda linguetta della libreria.
 //
-// Prima stavano in un riquadro dentro alla libreria: uno spazio stretto in cui
-// due elenchi non ci stavano, e in cui non si capiva quale categoria contenesse
-// quale. Qui hanno la pagina intera e lo stesso passo delle patologie: prima si
-// sceglie il tipo di lavoro fra le piastrelle, poi si lavora sui suoi
-// distretti. Un livello solo di profondita': rinforzo → quadricipite, e basta.
+// Prima stavano in un riquadro stretto in fondo alla libreria, dove due elenchi
+// non ci stavano e non si capiva quale categoria contenesse quale. Qui hanno
+// tutta la larghezza e lo stesso passo delle patologie: prima si sceglie il
+// tipo di lavoro fra le piastrelle, poi si lavora sui suoi distretti. Un
+// livello solo di profondita': rinforzo → quadricipite, e basta.
 
 // La finestra del nome e delle spunte, uguale per una categoria e per un
 // distretto.
@@ -27,10 +27,14 @@ interface FormCat {
   padre: number | null
 }
 
-export default function CategorieEserciziPage({
-  tornaAllInizio
+export default function CategorieEsercizi({
+  tornaAllInizio,
+  onCambiato
 }: {
   tornaAllInizio: number
+  // La libreria ricarica i suoi esercizi: cambiando una categoria cambia
+  // quello che si legge nelle righe.
+  onCambiato: () => Promise<void> | void
 }): React.JSX.Element {
   const [categorie, setCategorie] = useState<Categoria[]>([])
   const [selId, setSelId] = useState<number | null>(null)
@@ -71,6 +75,7 @@ export default function CategorieEserciziPage({
     try {
       await fn()
       await carica()
+      await onCambiato()
     } catch (e) {
       toastErrore(errMsg(e))
     }
@@ -165,11 +170,7 @@ export default function CategorieEserciziPage({
   const spostabili = macro.filter((m) => m.id !== sel?.id && figliDi(m.id).length === 0)
 
   return (
-    <div className="page step-flow">
-      <header className="page-header">
-        <h2>Categorie esercizi</h2>
-      </header>
-
+    <div className="step-flow">
       {sel && (
         <div className="briciole">
           <button className="briciola" onClick={() => setSelId(null)}>

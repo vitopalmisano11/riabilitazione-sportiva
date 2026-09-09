@@ -14,6 +14,7 @@ import type { Categoria, EsercizioConCategoria, EsercizioInput } from '../../../
 import { toastErrore } from '../components/Toast'
 import { chiedi } from '../components/Conferma'
 import Aiuto from '../components/Aiuto'
+import CategorieEsercizi from '../components/CategorieEsercizi'
 import SceltaConRicerca from '../components/SceltaConRicerca'
 import ImmagineEsercizio from '../components/ImmagineEsercizio'
 import { errMsg } from '../lib'
@@ -78,6 +79,8 @@ export default function EserciziPage(): React.JSX.Element {
   const [mostraArchiviati, setMostraArchiviati] = useState(false)
   const [ordine, setOrdine] = useState<'alfabetico' | 'usati'>('alfabetico')
   const [ricerca, setRicerca] = useState('')
+  // Le due linguette della libreria: gli esercizi e le loro categorie.
+  const [vista, setVista] = useState<'esercizi' | 'categorie'>('esercizi')
   // Nelle caselle in cui si sceglie, un distretto si scrive con la sua
   // categoria davanti: "Quadricipite" da solo non dice di che lavoro si tratta.
   const vociCategorie = categorie
@@ -284,9 +287,34 @@ export default function EserciziPage(): React.JSX.Element {
         <h2>Libreria esercizi</h2>
       </header>
 
-      {/* Le categorie si gestiscono nella sezione loro, qui accanto: in un
-          riquadro stretto due elenchi non ci stavano, e non si capiva quale
-          categoria contenesse quale. */}
+      {/* Gli esercizi e le loro categorie stanno nella stessa voce di menu, su
+          due linguette: sono la stessa cosa vista da due parti, e le categorie
+          in un riquadro stretto non ci stavano. */}
+      <div className="config-tabs">
+        <button
+          className={vista === 'esercizi' ? 'active' : ''}
+          onClick={() => setVista('esercizi')}
+        >
+          Esercizi
+        </button>
+        <button
+          className={vista === 'categorie' ? 'active' : ''}
+          onClick={() => setVista('categorie')}
+        >
+          Categorie ({categorie.length})
+        </button>
+      </div>
+
+      {vista === 'categorie' ? (
+        <CategorieEsercizi
+          tornaAllInizio={0}
+          onCambiato={async () => {
+            await loadCategorie()
+            await load()
+          }}
+        />
+      ) : (
+      <>
       <div className="toolbar">
         <input
           type="search"
@@ -460,6 +488,8 @@ export default function EserciziPage(): React.JSX.Element {
           </tbody>
         </table>
       </div>
+      </>
+      )}
 
       {form && (
         <div className="modal-overlay" onClick={() => setForm(null)}>

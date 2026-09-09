@@ -9,7 +9,6 @@ import {
   Users
 } from 'lucide-react'
 import PatologiePage from './pages/PatologiePage'
-import CategorieEserciziPage from './pages/CategorieEserciziPage'
 import EserciziPage from './pages/EserciziPage'
 import QuestionariPage from './pages/QuestionariPage'
 import TestValutazionePage from './pages/TestValutazionePage'
@@ -39,7 +38,6 @@ type TabConfig =
   | 'patologie'
   | 'distretti'
   | 'esercizi'
-  | 'categorieEsercizi'
   | 'questionari'
   | 'testValutazione'
   | 'screening'
@@ -48,7 +46,6 @@ const TAB_CONFIG: { key: TabConfig; label: string }[] = [
   { key: 'patologie', label: 'Patologie e fasi' },
   { key: 'distretti', label: 'Distretti' },
   { key: 'esercizi', label: 'Libreria esercizi' },
-  { key: 'categorieEsercizi', label: 'Categorie esercizi' },
   { key: 'questionari', label: 'Questionari' },
   { key: 'testValutazione', label: 'Test di valutazione' },
   { key: 'screening', label: 'Screening' }
@@ -317,7 +314,6 @@ function ConfigurazionePage({
       {tab === 'patologie' && <PatologiePage />}
       {tab === 'distretti' && <DistrettiPage />}
       {tab === 'esercizi' && <EserciziPage />}
-      {tab === 'categorieEsercizi' && <CategorieEserciziPage tornaAllInizio={tornaAllInizio} />}
       {tab === 'questionari' && <QuestionariPage />}
       {tab === 'testValutazione' && <TestValutazionePage />}
       {tab === 'screening' && <ProtocolliScreeningPage tornaAllElenco={tornaAllInizio} />}
