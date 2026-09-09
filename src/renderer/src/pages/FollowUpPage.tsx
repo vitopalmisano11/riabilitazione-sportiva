@@ -126,7 +126,11 @@ export default function FollowUpPage({
                       ? `ultima seduta ${formatData(p.ultima_seduta)}`
                       : 'nessuna seduta ancora'}
                   </span>
-                  <button title="Il ciclo è finito" onClick={() => void concludi(p)}>
+                  <button
+                    className="btn-stato"
+                    title="Il ciclo è finito"
+                    onClick={() => void concludi(p)}
+                  >
                     <CheckCircle2 size={18} /> Concludi
                   </button>
                 </li>
@@ -219,10 +223,11 @@ export default function FollowUpPage({
                         </td>
                         <td>
                           <button
+                            className="btn-stato"
                             title="Riportalo fra i pazienti in trattamento"
                             onClick={() => void riprendi(p)}
                           >
-                            <RotateCcw size={16} /> Riprendi
+                            <RotateCcw size={18} /> Riprendi
                           </button>
                         </td>
                       </tr>

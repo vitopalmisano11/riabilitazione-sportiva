@@ -3341,6 +3341,16 @@ textarea {
   padding: 4px;
 }
 
+/* I due pulsanti che spostano il paziente da un elenco all'altro — "Concludi"
+   e "Riprendi" — sono la stessa cosa in due versi: stessa misura, e la scritta
+   non va mai a capo lasciando la freccia da sola. */
+.btn-stato {
+  min-width: 136px;
+  justify-content: center;
+  white-space: nowrap;
+  flex-wrap: nowrap;
+}
+
 /* Gli elenchi del follow-up si comportano allo stesso modo: chi e' in
    trattamento e chi ha concluso possono essere tanti, e la pagina non deve
    crescere all'infinito. */
@@ -3866,22 +3876,18 @@ textarea {
   white-space: nowrap;
 }
 
-/* Lo spazio che avanza se lo dividono le sei colonne dei rilievi, non il nome
-   del movimento: prima restava un vuoto largo fra il nome e i pulsanti, e i
-   pulsanti finivano appiccicati alla riga di separazione. */
-.tabella-movimenti .col-restrizione {
-  width: auto;
-  min-width: 118px;
-}
-
-.tabella-movimenti .col-dolore {
-  width: 8%;
-  min-width: 54px;
-}
-
+/* Le colonne dei rilievi non vanno mai a capo: tre pulsanti, una spunta e una
+   casella da tre cifre stanno su una riga, con i gradi accesi o spenti. */
+.tabella-movimenti .col-restrizione,
+.tabella-movimenti .col-dolore,
 .tabella-movimenti .col-gradi {
-  width: 11%;
-  min-width: 66px;
+  white-space: nowrap;
+}
+
+.tabella-movimenti .campo-gradi {
+  width: 72px;
+  padding-left: 4px;
+  padding-right: 4px;
 }
 
 .campo-gradi {
@@ -4953,10 +4959,11 @@ textarea {
   border-collapse: collapse;
 }
 
-/* Larghezze fisse: senza, la colonna dei gradi si allargava sul contenuto e la
-   casella usciva dal riquadro. */
+/* Ogni colonna si prende quello che le serve e il nome del movimento si tiene
+   il resto: con le larghezze in percentuale, accendendo i gradi le sette
+   colonne non tornavano piu' e la tabella si sfasava. */
 .tabella-movimenti {
-  table-layout: fixed;
+  table-layout: auto;
 }
 
 .tabella-movimenti th,
@@ -4987,7 +4994,9 @@ textarea {
    quanto basta: lo spazio serve ai rilievi, che sono sei. */
 .tabella-movimenti td.col-nome,
 .tabella-movimenti th.col-nome {
-  width: 18%;
+  /* Nessuna larghezza imposta: lo spazio che avanza si divide fra tutte le
+     colonne in proporzione a quello che contengono, senza il vuoto largo che
+     restava dando tutto al nome. */
   min-width: 110px;
 }
 

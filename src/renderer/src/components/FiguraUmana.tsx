@@ -197,15 +197,22 @@ function Simbolo({ tipo, r }: { tipo: TipoSegno; r: number }): React.JSX.Element
 // Il disegno arriva quasi ai bordi del riquadro e ha il tratto della stessa
 // grossezza delle icone che gli stanno accanto: piu' stretto e sottile sembrava
 // piu' piccolo degli altri pulsanti, pur essendo alto uguale.
+// L'omino della body chart: una figura in movimento, disegnata di tratto come
+// le altre icone. Un braccio alzato e uno sul fianco — sta in piedi e si tocca
+// dove gli fa male, che e' esattamente quello che si va a segnare.
 export function SagomaIcona({ size = 26 }: { size?: number }): React.JSX.Element {
   return (
     <svg className="icona-sagoma" width={size} height={size} viewBox="0 0 100 100">
-      <circle cx="50" cy="18" r="10.5" />
-      <path
-        d="M17,38 L83,38 A6.5,6.5 0 0 1 83,51 L67,51 L67,85 A7.5,7.5 0 0 1 52,85
-           L52,69 A2,2 0 0 0 48,69 L48,85 A7.5,7.5 0 0 1 33,85 L33,51 L17,51
-           A6.5,6.5 0 0 1 17,38 Z"
-      />
+      <circle cx="57" cy="22" r="13" />
+      {/* busto, leggermente inclinato come chi si sporge */}
+      <path d="M53,36 L45,64" />
+      {/* braccio alzato: spalla, gomito, mano in alto */}
+      <path d="M48,42 L28,32 L22,14" />
+      {/* braccio piegato con la mano sul fianco */}
+      <path d="M62,44 L74,56 L57,60" />
+      {/* le gambe aperte a V */}
+      <path d="M45,64 L34,92" />
+      <path d="M45,64 L58,92" />
     </svg>
   )
 }
