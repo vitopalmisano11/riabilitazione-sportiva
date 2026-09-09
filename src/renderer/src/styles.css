@@ -4681,8 +4681,23 @@ textarea {
   min-width: 0;
 }
 
-/* Spostare qui una categoria che esiste gia': sta in fondo alla colonna, dopo
-   i distretti, perche' e' la cosa che si fa una volta sola riorganizzando. */
+/* Spostare qui una categoria che esiste gia': sta in fondo, dopo i distretti,
+   perche' e' la cosa che si fa una volta ogni tanto. A riposo e' solo una
+   scritta piccola. */
+.link-sposta {
+  margin-top: 12px;
+  padding: 4px 0;
+  font-size: 13px;
+  color: var(--text-dim);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.link-sposta:hover:not(:disabled) {
+  color: var(--accent);
+  background: none;
+}
+
 .sposta-dentro {
   margin-top: 12px;
   padding-top: 10px;

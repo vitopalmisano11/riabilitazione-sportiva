@@ -41,6 +41,7 @@ export default function CategorieEsercizi({
   const [ricerca, setRicerca] = useState('')
   const [form, setForm] = useState<FormCat | null>(null)
   const [nuovoDistretto, setNuovoDistretto] = useState<string | null>(null)
+  const [spostaAperto, setSpostaAperto] = useState(false)
 
   const carica = useCallback(
     (): Promise<void> => window.api.categorie.list().then(setCategorie),
@@ -55,6 +56,11 @@ export default function CategorieEsercizi({
     if (tornaAllInizio === 0) return
     setSelId(null)
   }, [tornaAllInizio])
+
+  useEffect(() => {
+    setSpostaAperto(false)
+    setNuovoDistretto(null)
+  }, [selId])
 
   const figliDi = (id: number): Categoria[] => categorie.filter((c) => c.padre_id === id)
   const macro = categorie.filter((c) => c.padre_id == null)
@@ -312,22 +318,30 @@ export default function CategorieEsercizi({
             </ul>
           )}
 
-          {/* Riorganizzare quello che c'e' gia': si sceglie una categoria e
-              diventa un distretto di questa, senza aprire nessuna finestra. */}
-          {spostabili.length > 0 && (
-            <label className="field sposta-dentro">
-              Sposta qui una categoria che hai già
-              <SceltaConRicerca
-                voci={spostabili}
-                valore=""
-                segnaposto="Scrivi o scegli…"
-                onCambia={(id) => {
-                  if (id === '') return
-                  void esegui(() => window.api.categorie.setPadre(id, sel.id))
-                }}
-              />
-            </label>
-          )}
+          {/* Riorganizzare quello che c'e' gia'. Sta in fondo, scritto in
+              piccolo e chiuso: si fa una volta ogni tanto, e a riposo non deve
+              contendere lo spazio a quello che si usa tutti i giorni. */}
+          {spostabili.length > 0 &&
+            (spostaAperto ? (
+              <label className="field sposta-dentro">
+                Quale categoria diventa un distretto di &ldquo;{sel.nome}&rdquo;?
+                <SceltaConRicerca
+                  autoFocus
+                  voci={spostabili}
+                  valore=""
+                  segnaposto="Scrivi o scegli…"
+                  onCambia={(id) => {
+                    if (id === '') return
+                    setSpostaAperto(false)
+                    void esegui(() => window.api.categorie.setPadre(id, sel.id))
+                  }}
+                />
+              </label>
+            ) : (
+              <button className="briciola link-sposta" onClick={() => setSpostaAperto(true)}>
+                Sposta qui una categoria che hai già
+              </button>
+            ))}
         </section>
       )}
 
