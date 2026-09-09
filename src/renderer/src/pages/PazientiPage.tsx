@@ -122,13 +122,9 @@ export default function PazientiPage({
       (filtroPatologia === '' || p.patologia_id === filtroPatologia) &&
       (filtroStato === '' || p.stato === filtroStato)
   )
-  // L'elenco arriva gia' ordinato per seduta piu' recente. Se ne mostrano dieci
-  // e il resto va sotto, richiudibile: cercando invece si vede tutto, cosi'
-  // nessun paziente diventa difficile da raggiungere.
-  const IN_VISTA = 10
-  const tutti = q !== '' || filtriAttivi
-  const inVista = tutti ? trovati : trovati.slice(0, IN_VISTA)
-  const altri = tutti ? [] : trovati.slice(IN_VISTA)
+  // L'elenco arriva gia' ordinato per seduta piu' recente e si vede tutto: e'
+  // il riquadro a scorrere. Prima se ne mostravano dieci e il resto stava in un
+  // blocco chiuso a parte, che voleva dire due posti in cui cercare.
   const sel = pazienti.find((p) => p.id === selId) ?? null
 
   // Il nome del paziente aperto finisce nel titolo della finestra: con piu'
@@ -283,52 +279,30 @@ export default function PazientiPage({
             </div>
           )}
 
-          <div className="elenco-verticale">
-            {inVista.map((p) => (
-              <div key={p.id} className="scelta-tile" onClick={() => setSelId(p.id)}>
-                <span className="scelta-tile-nome">
-                  {p.cognome} {p.nome}
-                </span>
-                <button
-                  className="primary btn-icona"
-                  title="Nuova seduta per questo paziente"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    nuovaSedutaPer(p.id)
-                  }}
-                >
-                  <Plus size={17} />
-                </button>
-              </div>
-            ))}
-          </div>
-
-          {altri.length > 0 && (
-            <details className="blocco-apribile blocco-archivio">
-              <summary>Meno recenti ({altri.length})</summary>
-              <div className="contenuto-apribile">
-                <div className="elenco-verticale">
-                  {altri.map((p) => (
-                    <div key={p.id} className="scelta-tile" onClick={() => setSelId(p.id)}>
-                      <span className="scelta-tile-nome">
-                        {p.cognome} {p.nome}
-                      </span>
-                      <button
-                        className="primary btn-icona"
-                        title="Nuova seduta per questo paziente"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          nuovaSedutaPer(p.id)
-                        }}
-                      >
-                        <Plus size={17} />
-                      </button>
-                    </div>
-                  ))}
+          {/* Un riquadro solo che scorre, come nel follow-up: prima erano dieci
+              pazienti e il resto chiuso in un blocco a parte, che con
+              l'archivio grande voleva dire due posti in cui cercare. */}
+          <div className="riquadro-scorrevole">
+            <div className="elenco-verticale">
+              {trovati.map((p) => (
+                <div key={p.id} className="scelta-tile" onClick={() => setSelId(p.id)}>
+                  <span className="scelta-tile-nome">
+                    {p.cognome} {p.nome}
+                  </span>
+                  <button
+                    className="primary btn-icona"
+                    title="Nuova seduta per questo paziente"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      nuovaSedutaPer(p.id)
+                    }}
+                  >
+                    <Plus size={17} />
+                  </button>
                 </div>
-              </div>
-            </details>
-          )}
+              ))}
+            </div>
+          </div>
 
           {trovati.length === 0 && (
             <p className="hint">

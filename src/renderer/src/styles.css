@@ -42,6 +42,9 @@
   /* Un riquadro dentro un riquadro bianco e' grigio chiaro: il beige, che e' il
      colore del fondo pagina, li' dentro sembrerebbe un buco. */
   --pannello: #f3f3f2;
+  /* Il fondo della riga pari negli elenchi: appena piu' scuro del bianco, non
+     un colore. */
+  --riga-alterna: #f6f6f5;
   /* Le caselle in cui si scrive sono bianche sempre, non solo quando ci si
      clicca dentro. */
   --campo: #ffffff;
@@ -90,6 +93,7 @@
   --intestazione-testo: #6f5f52;
   --intestazione-testo-forte: #33251b;
   --pannello: #f4f1ee;
+  --riga-alterna: #faf7f4;
   --login: linear-gradient(160deg, #f0e2d5 0%, #e2cdb8 55%, #eee0d2 100%);
 }
 
@@ -119,6 +123,7 @@
   --intestazione-testo: #64748b;
   --intestazione-testo-forte: #17222f;
   --pannello: #f7f9fc;
+  --riga-alterna: #fafbfd;
   --login: linear-gradient(160deg, #101724 0%, #17233a 55%, #101724 100%);
   --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
   --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
@@ -151,6 +156,7 @@
   --intestazione-testo: #6b6178;
   --intestazione-testo-forte: #2b2135;
   --pannello: #f6f4f9;
+  --riga-alterna: #faf9fc;
   --login: linear-gradient(160deg, #ebe3f2 0%, #dccfe9 55%, #eae2f1 100%);
 }
 
@@ -180,6 +186,7 @@
   --intestazione-testo: #63707a;
   --intestazione-testo-forte: #1c242b;
   --pannello: #f6f8f9;
+  --riga-alterna: #fafbfc;
   --login: linear-gradient(160deg, #e8eef2 0%, #d6dfe6 55%, #e8eef2 100%);
 }
 
@@ -209,6 +216,7 @@
   --intestazione-testo: #776168;
   --intestazione-testo-forte: #2a1c21;
   --pannello: #f9f5f6;
+  --riga-alterna: #fcfafb;
   --login: linear-gradient(160deg, #f0e0e5 0%, #e2c8d0 55%, #eedfe4 100%);
 }
 
@@ -317,6 +325,7 @@
   --text: #eae7e3;
   --text-dim: #a49d96;
   --pannello: #26262c;
+  --riga-alterna: #212127;
   --campo: #1a1a1f;
   --intestazione: #2c2c33;
   --intestazione-hover: #35353d;
@@ -3304,11 +3313,32 @@ textarea {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  /* Oltre una decina di righe l'elenco scorre dentro al suo riquadro invece di
-     allungare la pagina: la barra di ricerca e i filtri restano dov'erano. */
-  max-height: 420px;
+}
+
+/* Una riga sì e una no con il fondo appena piu' scuro: l'occhio segue la riga
+   fino in fondo senza saltare a quella sopra o sotto. Vale per tutti gli
+   elenchi lunghi dell'app. La prima resta chiara, cosi' un elenco di due righe
+   non sembra colorato a caso. */
+.sedute-list li:nth-child(even),
+.esercizi-proposti li:nth-child(even),
+.crud-list > ul > li:nth-child(even),
+.lista-segni li:nth-child(even),
+.lista-indicazioni li:nth-child(even),
+.lista-massimali > li:nth-child(even),
+.elenco-categorie li:nth-child(even),
+.checkbox-list li:nth-child(even),
+.data-table tbody tr:nth-child(even),
+.elenco-verticale > .scelta-tile:nth-child(even) {
+  background: var(--riga-alterna);
+}
+
+/* Il riquadro che contiene l'elenco dei pazienti: scorre lui, come quello del
+   follow-up, invece di far crescere la pagina. Il margine interno c'e' perche'
+   le righe hanno un'ombra, e senza verrebbe tagliata dal bordo. */
+.riquadro-scorrevole {
+  max-height: 440px;
   overflow-y: auto;
-  padding: 2px;
+  padding: 4px;
 }
 
 /* Gli elenchi del follow-up si comportano allo stesso modo: chi e' in
@@ -3836,19 +3866,22 @@ textarea {
   white-space: nowrap;
 }
 
-/* Le sei colonne dei rilievi sono strette e a misura del loro contenuto: tre
-   pulsanti, una spunta, una casella da tre cifre. Lo spazio che avanza va al
-   nome del movimento. */
+/* Lo spazio che avanza se lo dividono le sei colonne dei rilievi, non il nome
+   del movimento: prima restava un vuoto largo fra il nome e i pulsanti, e i
+   pulsanti finivano appiccicati alla riga di separazione. */
 .tabella-movimenti .col-restrizione {
-  width: 120px;
+  width: auto;
+  min-width: 118px;
 }
 
 .tabella-movimenti .col-dolore {
-  width: 54px;
+  width: 8%;
+  min-width: 54px;
 }
 
 .tabella-movimenti .col-gradi {
-  width: 66px;
+  width: 11%;
+  min-width: 66px;
 }
 
 .campo-gradi {
@@ -4850,18 +4883,33 @@ textarea {
   gap: var(--spazio);
 }
 
-/* La riga verticale che separa l'attivo dal passivo, e il nome del lato sopra
-   alle sue tre colonne. */
+/* La riga verticale che separa l'attivo dal passivo. Il margine a sinistra
+   tiene i pulsanti staccati dalla riga: attaccati sembravano sbordare
+   dall'altra meta'. */
 .tabella-movimenti .stacco-lato {
   border-left: 1px solid var(--border);
+  padding-left: 14px;
 }
 
+/* Il nome del lato sta sopra alle sue tre colonne, su una fascia sua: senza,
+   "attivo" e "passivo" sembravano l'intestazione di una colonna qualsiasi. */
 .tabella-movimenti .lato-attivo,
 .tabella-movimenti .lato-passivo {
-  color: var(--text);
+  background: var(--intestazione);
+  color: var(--intestazione-testo-forte);
   font-size: 13px;
   letter-spacing: 0.04em;
-  padding-bottom: 2px;
+  padding: 5px 8px;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+
+/* Una riga di respiro fra la fascia del lato e i titoli delle colonne. */
+.tabella-movimenti thead tr:first-child th {
+  padding-bottom: 6px;
+}
+
+.tabella-movimenti thead tr:nth-child(2) th {
+  padding-top: 8px;
 }
 
 /* La casella delle note sta dentro al riquadro del suo lato, sotto la tabella:
@@ -4926,7 +4974,7 @@ textarea {
    quanto basta: lo spazio serve ai rilievi, che sono sei. */
 .tabella-movimenti td.col-nome,
 .tabella-movimenti th.col-nome {
-  width: 22%;
+  width: 18%;
   min-width: 110px;
 }
 

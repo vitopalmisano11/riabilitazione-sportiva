@@ -601,7 +601,7 @@ function TabellaMovimenti({
   const intestazioneLato = (primaColonna: boolean): React.JSX.Element => (
     <>
       <th className={primaColonna ? 'col-restrizione stacco-lato' : 'col-restrizione'}>
-        Restrizione
+        Intensità
       </th>
       <th className="col-dolore">Dolore</th>
       {conGradi && <th className="col-gradi">Gradi</th>}
