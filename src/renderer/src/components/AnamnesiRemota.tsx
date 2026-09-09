@@ -143,10 +143,10 @@ export default function AnamnesiRemota({
         {/* Prima di tutto il resto: quello che il paziente si porta dietro da
             prima, e che cambia come lo si tratta. */}
         <label>
-          Altre patologie
+          Altre patologie e farmaci
           <textarea
-            rows={2}
-            placeholder="Diabete, ipertensione, tiroide, artrite reumatoide…"
+            rows={3}
+            placeholder="Diabete, ipertensione, tiroide, artrite reumatoide… e i farmaci che prende"
             value={dati.patologie ?? ''}
             onChange={testo('patologie')}
           />

@@ -152,8 +152,10 @@ export default function AnamnesiProssima({
 
         <label>
           Motivo del consulto, con le parole del paziente
+          {/* Piu' alta delle altre: qui si trascrive quello che dice il
+              paziente, e sono righe intere, non due parole. */}
           <textarea
-            rows={2}
+            rows={5}
             autoFocus
             placeholder="Che cosa la porta qui? — trascrivi come lo dice lui"
             value={dati.motivo_consulto ?? ''}

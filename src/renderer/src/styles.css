@@ -3304,6 +3304,23 @@ textarea {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  /* Oltre una decina di righe l'elenco scorre dentro al suo riquadro invece di
+     allungare la pagina: la barra di ricerca e i filtri restano dov'erano. */
+  max-height: 420px;
+  overflow-y: auto;
+  padding: 2px;
+}
+
+/* Gli elenchi del follow-up si comportano allo stesso modo: chi e' in
+   trattamento e chi ha concluso possono essere tanti, e la pagina non deve
+   crescere all'infinito. */
+.elenco-followup {
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.tabella-followup-scorre {
+  max-height: 420px;
 }
 
 /* Riga dell'elenco pazienti: il nome a sinistra, e a destra il pulsante che

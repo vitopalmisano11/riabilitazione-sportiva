@@ -107,7 +107,7 @@ export default function FollowUpPage({
           {trattamento.length === 0 ? (
             <p className="hint">Nessun paziente in trattamento.</p>
           ) : (
-            <ul className="sedute-list">
+            <ul className="sedute-list elenco-followup">
               {trattamento.map((p) => (
                 // Nome a sinistra, patologia a destra e il pulsante in fondo:
                 // tutto su una riga sola. L'ultima seduta resta perché è quella
@@ -151,7 +151,7 @@ export default function FollowUpPage({
               Nessun paziente ha ancora concluso il trattamento. Quando ne concludi uno finisce qui.
             </p>
           ) : (
-            <div className="tabella-scorre">
+            <div className="tabella-scorre tabella-followup-scorre">
               <table className="data-table tabella-followup">
                 <thead>
                   <tr>
