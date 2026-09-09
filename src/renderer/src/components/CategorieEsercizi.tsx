@@ -6,7 +6,6 @@ import SceltaConRicerca from './SceltaConRicerca'
 import { toastErrore } from './Toast'
 import { chiedi } from './Conferma'
 import { errMsg } from '../lib'
-import { sposta, useRiordino } from '../riordino'
 
 // Le categorie degli esercizi: la seconda linguetta della libreria.
 //
@@ -62,8 +61,12 @@ export default function CategorieEsercizi({
     setNuovoDistretto(null)
   }, [selId])
 
-  const figliDi = (id: number): Categoria[] => categorie.filter((c) => c.padre_id === id)
-  const macro = categorie.filter((c) => c.padre_id == null)
+  // In ordine alfabetico, con le regole dell'italiano: "à" viene dopo "a", non
+  // in fondo a tutto come farebbe un confronto fra codici.
+  const alfabetico = (a: Categoria, b: Categoria): number => a.nome.localeCompare(b.nome, 'it')
+  const figliDi = (id: number): Categoria[] =>
+    categorie.filter((c) => c.padre_id === id).sort(alfabetico)
+  const macro = categorie.filter((c) => c.padre_id == null).sort(alfabetico)
   const sel = macro.find((m) => m.id === selId) ?? null
   const distretti = sel ? figliDi(sel.id) : []
 
@@ -86,24 +89,6 @@ export default function CategorieEsercizi({
       toastErrore(errMsg(e))
     }
   }
-
-  // L'ordine si salva per intero: i tipi di lavoro in fila, e dopo ognuno i
-  // suoi distretti.
-  const ordine = (elenco: Categoria[], padre?: Categoria, figli?: Categoria[]): number[] =>
-    elenco.flatMap((m) => [
-      m.id,
-      ...(padre && m.id === padre.id ? (figli ?? []) : figliDi(m.id)).map((f) => f.id)
-    ])
-
-  const { contenitore: contMacro, presa: presaMacro } = useRiordino<number>((da, a) =>
-    void esegui(() => window.api.categorie.reorder(ordine(sposta(macro, da, a))))
-  )
-  const { contenitore: contFiglio, presa: presaFiglio } = useRiordino<number>((da, a) => {
-    if (!sel) return
-    void esegui(() =>
-      window.api.categorie.reorder(ordine(macro, sel, sposta(distretti, da, a)))
-    )
-  })
 
   const salva = async (): Promise<void> => {
     if (!form) return
@@ -212,16 +197,12 @@ export default function CategorieEsercizi({
           </p>
 
           <div className="scelta-tiles">
-            {trovate.map((m, idx) => {
-              const dnd = contMacro(idx)
+            {trovate.map((m) => {
               const quanti = figliDi(m.id).length
               return (
                 <div
                   key={m.id}
-                  {...dnd}
-                  {...presaMacro(idx)}
-                  className={['scelta-tile', dnd.className].filter(Boolean).join(' ')}
-                  title="Apri · trascina per spostare"
+                  className="scelta-tile"
                   onClick={() => setSelId(m.id)}
                 >
                   <span className="scelta-tile-nome">{m.nome}</span>
@@ -292,10 +273,9 @@ export default function CategorieEsercizi({
             </p>
           ) : (
             <ul className="elenco-categorie">
-              {distretti.map((f, idx) => {
-                const dnd = contFiglio(idx)
+              {distretti.map((f) => {
                 return (
-                  <li key={f.id} {...dnd} {...presaFiglio(idx)} className={dnd.className}>
+                  <li key={f.id}>
                     <span className="nome-categoria">{f.nome}</span>
                     {etichette(f)}
                     <span className="row-actions">

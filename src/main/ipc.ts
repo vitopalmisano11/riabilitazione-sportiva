@@ -716,8 +716,10 @@ export function registerIpc(): void {
   })
 
   // ---- Categorie ----
+  // In ordine alfabetico: le categorie sono tante e si cercano per nome, e un
+  // ordine deciso a mano andava tenuto aggiornato a ogni aggiunta.
   handle('categorie:list', () =>
-    getDb().prepare('SELECT * FROM categorie ORDER BY ordine, nome').all()
+    getDb().prepare('SELECT * FROM categorie ORDER BY nome COLLATE NOCASE').all()
   )
   handle('categorie:create', (nome: string) => {
     const db = getDb()
