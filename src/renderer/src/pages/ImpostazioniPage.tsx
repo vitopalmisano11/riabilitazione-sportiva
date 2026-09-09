@@ -92,12 +92,12 @@ export default function ImpostazioniPage({
         {scheda === 'dati' && <SchedaDati />}
         {scheda === 'profilo' && <SchedaProfilo />}
         {scheda === 'app' && (
-          <div className="griglia-impostazioni">
-            <SchedaPassword />
-            {/* Colore e blocco automatico incolonnati: il blocco e' una riga
-                sola, e da solo in fondo alla griglia finiva sotto la password,
-                lontano da tutto. */}
-            <div className="colonna-schede">
+          <>
+            {/* L'aspetto a sinistra e la password a destra, alti uguale: sono
+                le due cose che si vengono a cercare qui, e due riquadri
+                affiancati di altezza diversa sembrano uno sbaglio. Il blocco e
+                la dimensione dei caratteri stanno sotto, a tutta larghezza. */}
+            <div className="griglia-impostazioni griglia-pari">
               <SchedaAspetto
                 tema={tema}
                 onTema={onTema}
@@ -106,9 +106,12 @@ export default function ImpostazioniPage({
                 barraScura={barraScura}
                 onBarraScura={onBarraScura}
               />
+              <SchedaPassword />
+            </div>
+            <div className="stacco-blocco">
               <SchedaBlocco ingrandimento={ingrandimento} onIngrandimento={onIngrandimento} />
             </div>
-          </div>
+          </>
         )}
       </div>
     </div>

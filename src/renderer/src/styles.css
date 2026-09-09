@@ -2935,6 +2935,12 @@ textarea {
   align-items: start;
 }
 
+/* Due riquadri affiancati alti uguale: il piu' corto si allunga fino al piu'
+   lungo, cosi' la coppia si legge come una cosa sola. */
+.griglia-pari {
+  align-items: stretch;
+}
+
 /* Due riquadri uno sotto l'altro dentro a una colonna della griglia. */
 .colonna-schede {
   display: flex;
@@ -2946,7 +2952,8 @@ textarea {
 /* Dentro alla griglia i riquadri restano riquadri: la regola generale guarda
    solo i figli diretti della scheda, e qui c'e' la griglia in mezzo. */
 .griglia-impostazioni > .card,
-.colonna-schede > .card {
+.colonna-schede > .card,
+.stacco-blocco > .card {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
