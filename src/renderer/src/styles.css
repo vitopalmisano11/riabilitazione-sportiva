@@ -4600,6 +4600,72 @@ textarea {
   border-bottom: none;
 }
 
+/* Le categorie degli esercizi a due livelli: il tipo di lavoro in grande, i
+   distretti rientrati sotto di lui. In un elenco piatto erano tutte righe
+   uguali e non si capiva quale contenesse quale. */
+.albero-categorie {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 340px;
+  overflow-y: auto;
+  padding: 2px;
+}
+
+.ramo-categoria {
+  margin-bottom: 6px;
+}
+
+.riga-categoria {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+}
+
+/* Il tipo di lavoro: fondo chiaro e nome in grande, si legge come un titolo. */
+.categoria-macro {
+  background: var(--intestazione);
+  color: var(--intestazione-testo-forte);
+}
+
+.categoria-macro .nome-categoria {
+  font-weight: 600;
+  font-size: 15.5px;
+}
+
+/* I distretti: rientrati, con una riga verticale che li lega alla loro
+   categoria. */
+.categoria-micro {
+  margin-left: 18px;
+  border-left: 2px solid var(--border);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding-left: 12px;
+}
+
+.categoria-micro:hover {
+  background: var(--pannello);
+}
+
+.nome-categoria {
+  flex: 1;
+  min-width: 0;
+}
+
+/* La casella per il distretto nuovo si apre sotto alla sua categoria, allineata
+   con i distretti che ci sono gia'. */
+.riga-nuovo-distretto {
+  display: flex;
+  gap: 6px;
+  margin: 4px 0 4px 30px;
+}
+
+.riga-nuovo-distretto input {
+  flex: 1;
+  min-width: 0;
+}
+
 /* La casella in cui si sceglie scrivendo, al posto del menu a tendina: la
    tendina di Windows con trenta voci si apre lunga mezza schermata e da dentro
    l'app non si puo' accorciare. */

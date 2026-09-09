@@ -15,7 +15,7 @@ import {
 import type { Categoria, EsercizioConCategoria, EsercizioInput } from '../../../shared/types'
 import { toastErrore } from '../components/Toast'
 import { chiedi } from '../components/Conferma'
-import CrudList from '../components/CrudList'
+import CategorieEsercizi from '../components/CategorieEsercizi'
 import Aiuto from '../components/Aiuto'
 import SceltaConRicerca from '../components/SceltaConRicerca'
 import ImmagineEsercizio from '../components/ImmagineEsercizio'
@@ -96,9 +96,6 @@ export default function EserciziPage(): React.JSX.Element {
   const [categorieAperte, setCategorieAperte] = useState(false)
   const [ricercaCat, setRicercaCat] = useState('')
   const qCat = ricercaCat.trim().toLowerCase()
-  const categorieTrovate =
-    qCat === '' ? categorie : categorie.filter((c) => c.nome.toLowerCase().includes(qCat))
-
   const haFiglie = (id: number): boolean => categorie.some((c) => c.padre_id === id)
 
   // Nelle caselle in cui si sceglie, un distretto si scrive con la sua
@@ -118,25 +115,6 @@ export default function EserciziPage(): React.JSX.Element {
       categorie.filter((c) => c.padre_id != null && !categorie.some((x) => x.id === c.padre_id))
     )
 
-  // Nell'elenco i distretti stanno sotto alla loro categoria, rientrati: cosi'
-  // si legge cosa contiene cosa senza aprire niente. Cercando invece si vede
-  // l'elenco piatto, con il nome della categoria scritto accanto.
-  const nomeCategoria = (id: number | null): string =>
-    id == null ? '' : (categorie.find((c) => c.id === id)?.nome ?? '')
-
-  const categorieInElenco =
-    qCat === ''
-      ? categorie
-          .filter((c) => c.padre_id == null)
-          .flatMap((c) => [
-            c,
-            ...categorie
-              .filter((f) => f.padre_id === c.id)
-              .map((f) => ({ ...f, nome: `— ${f.nome}` }))
-          ])
-      : categorieTrovate.map((c) =>
-          c.padre_id == null ? c : { ...c, nome: `${nomeCategoria(c.padre_id)} › ${c.nome}` }
-        )
   const [filtroCategoria, setFiltroCategoria] = useState<number | ''>('')
   const [form, setForm] = useState<FormState | null>(null)
   const [immagineAperta, setImmagineAperta] = useState<EsercizioConCategoria | null>(null)
@@ -365,48 +343,24 @@ export default function EserciziPage(): React.JSX.Element {
           value={ricercaCat}
           onChange={(e) => setRicercaCat(e.target.value)}
         />
-        <CrudList
-          title="Categorie"
-          items={categorieInElenco}
-          onNuovo={() =>
+        <CategorieEsercizi
+          categorie={categorie}
+          ricerca={ricercaCat}
+          onNuova={() =>
             setFormCat({ id: null, nome: '', cluster: false, rir: false, padre: '' })
           }
-          onModifica={(item) => {
-            const c = categorie.find((x) => x.id === item.id)
+          onModifica={(c) =>
             setFormCat({
-              id: item.id,
-              nome: item.nome,
-              cluster: c?.dosaggio_cluster === 1,
-              rir: c?.dosaggio_rir === 1,
-              padre: c?.padre_id ?? ''
+              id: c.id,
+              nome: c.nome,
+              cluster: c.dosaggio_cluster === 1,
+              rir: c.dosaggio_rir === 1,
+              padre: c.padre_id ?? ''
             })
-          }}
-          onDelete={async (id) => {
-            await window.api.categorie.remove(id)
-            await loadCategorie()
-          }}
-          // Cercando si vede solo una parte dell'elenco: riordinarla
-          // sposterebbe anche quelle che non si vedono, quindi la maniglia
-          // sparisce finche' la ricerca e' attiva.
-          onReorder={
-            qCat === ''
-              ? async (ids) => {
-                  await window.api.categorie.reorder(ids)
-                  await loadCategorie()
-                }
-              : undefined
           }
-          etichettaAggiungi="Nuova categoria"
-          emptyHint="Nessuna categoria: creane una qui sotto."
-          aiuto="Ogni categoria può essere segnata come «a cluster»: gli esercizi che le appartengono si dosano spezzando la serie in blocchi con una pausa breve dentro, come nella pliometria estensiva. L'opzione si mette aprendo la categoria."
-          dopoNome={(item) => {
-            const c = categorie.find((x) => x.id === item.id)
-            return (
-              <>
-                {c?.dosaggio_cluster === 1 && <span className="badge">cluster</span>}
-                {c?.dosaggio_rir === 1 && <span className="badge">RIR</span>}
-              </>
-            )
+          onCambiato={async () => {
+            await loadCategorie()
+            await load()
           }}
         />
         </div>
@@ -602,20 +556,23 @@ export default function EserciziPage(): React.JSX.Element {
                 }}
               />
             </label>
-            {/* Un livello solo: qui si scelgono le categorie che non stanno
-                gia' dentro a un'altra, e non se stessa. */}
-            <label>
-              Dentro a
-              <SceltaConRicerca
-                voci={categorie.filter(
-                  (c) => c.padre_id == null && c.id !== formCat.id && !haFiglie(c.id)
-                )}
-                valore={formCat.padre}
-                segnaposto="— e' una categoria a sé —"
-                vuoto="— e' una categoria a sé —"
-                onCambia={(id) => setFormCat({ ...formCat, padre: id })}
-              />
-            </label>
+            {/* Dove sta questa categoria. Non compare per quelle che hanno
+                gia' dei distretti dentro: si scende di un livello solo, e
+                spostarle vorrebbe dire portarsi dietro i figli. Il posto
+                normale per aggiungere un distretto e' il "+" della sua
+                categoria, non questa casella. */}
+            {(formCat.id == null || !haFiglie(formCat.id)) && (
+              <label>
+                Dentro a
+                <SceltaConRicerca
+                  voci={categorie.filter((c) => c.padre_id == null && c.id !== formCat.id)}
+                  valore={formCat.padre}
+                  segnaposto="— è una categoria a sé —"
+                  vuoto="— è una categoria a sé —"
+                  onCambia={(id) => setFormCat({ ...formCat, padre: id })}
+                />
+              </label>
+            )}
 
             <label className="checkbox-inline riga-staccata">
               <input
