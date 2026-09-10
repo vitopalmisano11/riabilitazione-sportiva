@@ -17,7 +17,10 @@ export default function IconaObiettivi({ size = 26 }: { size?: number }): React.
   )
 
   return (
-    <svg className="icona-obiettivi" width={size} height={size} viewBox="0 0 104 104">
+    // Il riquadro e' stretto intorno al disegno: cosi' a parita' di misura
+    // l'icona si vede grande come le altre della riga, invece di restare
+    // piccola in mezzo ai suoi margini.
+    <svg className="icona-obiettivi" width={size} height={size} viewBox="6 3 96 96">
       {/* il foglio, con la spirale a sinistra */}
       <rect className="io-foglio" x="20" y="8" width="60" height="70" rx="7" />
       <g className="io-spirale">

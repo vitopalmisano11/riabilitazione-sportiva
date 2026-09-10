@@ -109,7 +109,7 @@ export default function AnamnesiPaziente({
           title="Obiettivi terapeutici"
           onClick={() => setObiettivi(true)}
         >
-          <IconaObiettivi size={24} />
+          <IconaObiettivi size={26} />
         </button>
       </div>
       {charts.length === 0 ? (
