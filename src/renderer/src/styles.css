@@ -3673,6 +3673,30 @@ textarea {
 }
 
 /* stesso colore delle icone lucide degli altri pulsanti della sezione */
+/* L'icona degli obiettivi: quaderno e bersaglio, tutto di tratto. L'alone del
+   colore del fondo sta sotto al bersaglio e nasconde le righe del foglio che ci
+   passerebbero attraverso. */
+.icona-obiettivi {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 6;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.icona-obiettivi .io-righe {
+  stroke-width: 5.5;
+}
+
+.icona-obiettivi .io-alone {
+  stroke: var(--surface);
+  stroke-width: 13;
+}
+
+.primary .icona-obiettivi .io-alone {
+  stroke: var(--accent);
+}
+
 /* L'omino della body chart: contorno del colore del testo e bianco dentro,
    come un disegno fatto a penna. Il pieno si ottiene disegnando due volte la
    stessa figura, la seconda piu' sottile e del colore del fondo. */
