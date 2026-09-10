@@ -3673,13 +3673,39 @@ textarea {
 }
 
 /* stesso colore delle icone lucide degli altri pulsanti della sezione */
+/* L'omino della body chart: contorno del colore del testo e bianco dentro,
+   come un disegno fatto a penna. Il pieno si ottiene disegnando due volte la
+   stessa figura, la seconda piu' sottile e del colore del fondo. */
 .icona-sagoma {
   fill: none;
-  stroke: currentColor;
-  /* come il tratto delle icone vicine, che su 24 punti ne usano 2 */
-  stroke-width: 7;
   stroke-linejoin: round;
   stroke-linecap: round;
+}
+
+.icona-sagoma .sagoma-fuori {
+  stroke: currentColor;
+  stroke-width: 20;
+}
+
+.icona-sagoma .sagoma-dentro {
+  stroke: var(--surface);
+  stroke-width: 10;
+}
+
+.icona-sagoma .sagoma-testa {
+  fill: var(--surface);
+  stroke: currentColor;
+  stroke-width: 7;
+}
+
+/* Dentro a un pulsante pieno il fondo e' quello del pulsante, non il bianco
+   della pagina. */
+.primary .icona-sagoma .sagoma-dentro {
+  stroke: var(--accent);
+}
+
+.primary .icona-sagoma .sagoma-testa {
+  fill: var(--accent);
 }
 
 /* ---- Anamnesi prossima ---- */
@@ -3830,22 +3856,7 @@ textarea {
 
 .campo-errato {
   border-color: var(--danger);
-}
-
-/* ---- Valutazione obiettiva ---- */
-
-.tabella-movimenti select {
-  width: 100%;
-  padding: 6px 8px;
-  font-size: 15px;
-}
-
-.tabella-movimenti th {
-  font-size: 13px;
-  line-height: 1.3;
-}
-
-.campo-nota-test {
+}.campo-nota-test {
   flex: 1;
   min-width: 0;
 }
@@ -3874,23 +3885,7 @@ textarea {
   text-align: center;
   /* senza questo il simbolo dei gradi andava a capo da solo */
   white-space: nowrap;
-}
-
-/* Le colonne dei rilievi non vanno mai a capo: tre pulsanti, una spunta e una
-   casella da tre cifre stanno su una riga, con i gradi accesi o spenti. */
-.tabella-movimenti .col-restrizione,
-.tabella-movimenti .col-dolore,
-.tabella-movimenti .col-gradi {
-  white-space: nowrap;
-}
-
-.tabella-movimenti .campo-gradi {
-  width: 72px;
-  padding-left: 4px;
-  padding-right: 4px;
-}
-
-.campo-gradi {
+}.campo-gradi {
   width: 100%;
   padding: 6px 6px;
   font-size: 15px;
@@ -4883,170 +4878,119 @@ textarea {
   margin-bottom: var(--spazio);
 }
 
-/* Le stesse proporzioni della tabella: una colonna vuota larga quanto il nome
-   del movimento, e poi le due meta'. Cosi' la nota dell'attivo sta sotto
-   all'attivo e quella del passivo sotto al passivo. */
-.note-movimenti {
+/* I movimenti su una griglia a tre colonne: il nome, l'attivo, il passivo.
+   Le due meta' sono larghe uguali per costruzione — non si allargano sul
+   contenuto come facevano le colonne di una tabella — e le note in fondo
+   usano la stessa griglia, quindi cadono esattamente sotto alla loro meta'. */
+.griglia-movimenti {
   display: grid;
-  grid-template-columns: 18% 1fr 1fr;
-  gap: var(--spazio);
+  grid-template-columns: minmax(104px, 180px) 1fr 1fr;
+  align-items: stretch;
+  column-gap: 8px;
 }
 
-@media (max-width: 760px) {
-  .note-movimenti {
-    grid-template-columns: 1fr;
-  }
-
-  .note-movimenti .spazio-nome {
-    display: none;
-  }
+/* La riga di un movimento e' tre celle della griglia, non un riquadro suo:
+   cosi' resta incolonnata con le altre. */
+.gm-riga {
+  display: contents;
 }
 
-/* La riga verticale che separa l'attivo dal passivo. Il margine a sinistra
-   tiene i pulsanti staccati dalla riga: attaccati sembravano sbordare
-   dall'altra meta'. */
-.tabella-movimenti .stacco-lato {
-  border-left: 1px solid var(--border);
-  padding-left: 14px;
+.gm-riga.pari > * {
+  background: var(--riga-alterna);
 }
 
-/* Il nome del lato sta sopra alle sue tre colonne, su una fascia sua: senza,
-   "attivo" e "passivo" sembravano l'intestazione di una colonna qualsiasi. */
-.tabella-movimenti .lato-attivo,
-.tabella-movimenti .lato-passivo {
+/* Il nome del lato: una fascia sopra alle sue colonne. */
+.gm-lato {
   background: var(--intestazione);
   color: var(--intestazione-testo-forte);
-  font-size: 13px;
-  letter-spacing: 0.04em;
-  padding: 5px 8px;
   border-radius: var(--radius-sm) var(--radius-sm) 0 0;
-}
-
-/* Una riga di respiro fra la fascia del lato e i titoli delle colonne. */
-.tabella-movimenti thead tr:first-child th {
-  padding-bottom: 6px;
-}
-
-.tabella-movimenti thead tr:nth-child(2) th {
-  padding-top: 8px;
-}
-
-/* La casella delle note sta dentro al riquadro del suo lato, sotto la tabella:
-   quello che si annota riguarda l'insieme dei movimenti provati in quel modo. */
-.nota-movimenti {
-  margin-top: 10px;
-  font-size: 14px;
-}
-
-.nota-movimenti textarea {
-  font-size: 14px;
-  padding: 6px 8px;
-}
-
-.blocco-movimento {
-  background: var(--pannello);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 12px var(--spazio-interno) var(--spazio-interno);
-}
-
-.blocco-movimento .sotto-titolo {
-  margin-top: 0;
-}
-
-.tabella-movimenti {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-/* Ogni colonna si prende quello che le serve e il nome del movimento si tiene
-   il resto: con le larghezze in percentuale, accendendo i gradi le sette
-   colonne non tornavano piu' e la tabella si sfasava. */
-.tabella-movimenti {
-  table-layout: auto;
-}
-
-.tabella-movimenti th,
-.tabella-movimenti td {
-  padding: 6px 4px;
+  padding: 5px 8px;
   text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
-/* Tutte le righe della stessa altezza: le celle con la casella dei gradi erano
-   piu' alte di quelle col trattino, e le due tabelle affiancate non si
-   corrispondevano riga per riga. */
-.tabella-movimenti tbody td {
-  height: 50px;
-}
-
-.tabella-movimenti thead th {
+.gm-titolo {
+  display: flex;
+  align-items: flex-end;
+  padding: 8px 4px 6px;
   font-size: 12px;
   font-weight: 600;
   color: var(--text-dim);
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  white-space: nowrap;
 }
 
-/* Il nome del movimento va a capo se e' lungo: con le colonne a larghezza
-   fissa, tenerlo su una riga sola lo faceva uscire e finire sotto ai pulsanti
-   della restrizione ("Rotazione interna" era il caso). La colonna e' stretta
-   quanto basta: lo spazio serve ai rilievi, che sono sei. */
-.tabella-movimenti td.col-nome,
-.tabella-movimenti th.col-nome {
-  /* Nessuna larghezza imposta: lo spazio che avanza si divide fra tutte le
-     colonne in proporzione a quello che contengono, senza il vuoto largo che
-     restava dando tutto al nome. */
-  min-width: 110px;
+/* I titoli delle colonne e i rilievi hanno la stessa griglia interna: i numeri
+   cadono esattamente sotto al loro titolo. */
+.gm-sotto,
+.gm-rilievi {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  align-items: center;
+  justify-items: center;
 }
 
-.tabella-movimenti td.col-nome {
-  text-align: left;
-  white-space: normal;
-  overflow-wrap: anywhere;
-  line-height: 1.25;
-  padding-right: 10px;
+.con-gradi .gm-sotto,
+.con-gradi .gm-rilievi {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.gm-sotto {
+  padding: 8px 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.gm-rilievi {
+  padding: 7px 0;
+}
+
+.gm-nome {
+  display: flex;
+  align-items: center;
+  padding: 7px 4px;
   font-size: 14px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 
-.tabella-movimenti th.col-nome {
-  text-align: left;
-  white-space: nowrap;
+.gm-gradi .campo-gradi {
+  width: 72px;
+  padding: 6px 4px;
+  font-size: 15px;
+  text-align: center;
 }
 
-/* Niente righe orizzontali: due tabelle affiancate con le stesse righe
-   sembravano una griglia sola che attraversa lo spazio fra i due riquadri. Le
-   righe si distinguono con un fondo alternato, che non esce dal riquadro. */
-.tabella-movimenti tbody tr:nth-child(odd) {
-  background: var(--surface);
+/* Le note stanno sotto alla meta' a cui appartengono, e la prima colonna
+   resta vuota come nella griglia sopra. */
+.gm-nota {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 10px;
+  font-size: 14px;
+  color: var(--text-dim);
 }
 
-.tabella-movimenti tbody tr td:first-child {
-  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+.gm-nota textarea {
+  font-size: 14px;
+  padding: 6px 8px;
 }
 
-.tabella-movimenti tbody tr td:last-child {
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-}
+@media (max-width: 760px) {
+  .griglia-movimenti {
+    grid-template-columns: 1fr;
+  }
 
-/* Restrizione e dolore stanno vicine e strette quanto basta ai tre segni e alla
-   spunta: sono i due dati che si guardano insieme, e lo spazio risparmiato va al
-   nome del movimento, che e' quello che si legge. */
-.tabella-movimenti th.col-restrizione,
-.tabella-movimenti td.col-restrizione {
-  width: 106px;
-  padding-right: 0;
-}
-
-.tabella-movimenti th.col-dolore,
-.tabella-movimenti td.col-dolore {
-  width: 48px;
-  padding-left: 2px;
-}
-
-.tabella-movimenti th.col-gradi,
-.tabella-movimenti td.col-gradi {
-  width: 78px;
+  .gm-angolo {
+    display: none;
+  }
 }
 
 /* I tre segni della restrizione: uno accanto all'altro, senza spazi in mezzo,
@@ -5069,16 +5013,7 @@ textarea {
   background: var(--accent);
   border-color: var(--accent);
   color: #fff;
-}
-
-.tabella-movimenti .campo-gradi {
-  width: 100%;
-  max-width: 70px;
-  padding: 5px 6px;
-  text-align: right;
-}
-
-/* Il punteggio di un questionario e' il risultato: si legge senza cercarlo. */
+}/* Il punteggio di un questionario e' il risultato: si legge senza cercarlo. */
 .punteggi-compilazione {
   display: flex;
   align-items: center;

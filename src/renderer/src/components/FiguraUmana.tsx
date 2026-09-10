@@ -203,16 +203,27 @@ function Simbolo({ tipo, r }: { tipo: TipoSegno; r: number }): React.JSX.Element
 export function SagomaIcona({ size = 26 }: { size?: number }): React.JSX.Element {
   return (
     <svg className="icona-sagoma" width={size} height={size} viewBox="0 0 100 100">
-      <circle cx="57" cy="22" r="13" />
-      {/* busto, leggermente inclinato come chi si sporge */}
-      <path d="M53,36 L45,64" />
-      {/* braccio alzato: spalla, gomito, mano in alto */}
-      <path d="M48,42 L28,32 L22,14" />
-      {/* braccio piegato con la mano sul fianco */}
-      <path d="M62,44 L74,56 L57,60" />
-      {/* le gambe aperte a V */}
-      <path d="M45,64 L34,92" />
-      <path d="M45,64 L58,92" />
+      {/* Il contorno nero e il bianco dentro si ottengono disegnando la stessa
+          figura due volte: prima con un tratto spesso del colore del testo,
+          poi con uno piu' sottile del colore del fondo. Cosi' resta una sagoma
+          vuota, come un disegno fatto a penna. */}
+      <g className="sagoma-fuori">
+        <path d="M53,36 L45,64" />
+        <path d="M48,42 L28,32 L22,14" />
+        <path d="M62,44 L74,56 L57,60" />
+        <path d="M45,64 L34,92" />
+        <path d="M45,64 L58,92" />
+      </g>
+      <g className="sagoma-dentro">
+        <path d="M53,36 L45,64" />
+        <path d="M48,42 L28,32 L22,14" />
+        <path d="M62,44 L74,56 L57,60" />
+        <path d="M45,64 L34,92" />
+        <path d="M45,64 L58,92" />
+      </g>
+      {/* La testa sta sopra a tutto: cosi' copre l'attacco delle braccia,
+          come nel disegno. */}
+      <circle className="sagoma-testa" cx="57" cy="20" r="14" />
     </svg>
   )
 }

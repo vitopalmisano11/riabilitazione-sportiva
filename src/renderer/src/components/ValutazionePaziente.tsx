@@ -527,44 +527,52 @@ function TabellaMovimenti({
 }): React.JSX.Element {
   const conGradi = movimenti.some((m) => m.gradi === 1)
 
-  // Una riga per movimento: il nome, poi i rilievi dell'attivo e quelli del
-  // passivo. Le due meta' si distinguono con una riga verticale.
-  const celle = (
+  // Niente tabella: una griglia a tre colonne — il nome, l'attivo, il passivo.
+  // Le due meta' sono larghe uguali per costruzione, dentro ognuna i rilievi si
+  // dividono lo spazio in parti uguali, e le note in fondo usano la stessa
+  // griglia, quindi cadono esattamente sotto alla loro meta'. Con la tabella
+  // le colonne si allargavano sul contenuto: il nome si prendeva il vuoto e i
+  // titoli non stavano piu' sopra ai numeri.
+  const titoliLato = (): React.JSX.Element => (
+    <>
+      <span>Intensità</span>
+      <span>Dolore</span>
+      {conGradi && <span>Gradi</span>}
+    </>
+  )
+
+  const rilieviLato = (
     id: number,
     m: MovimentoDistretto,
     campoRestrizione: 'attivo_restrizione' | 'passivo_restrizione',
     campoDolore: 'attivo_dolore' | 'passivo_dolore',
-    campoGradi: 'attivo_gradi' | 'passivo_gradi',
-    primaColonna: boolean
+    campoGradi: 'attivo_gradi' | 'passivo_gradi'
   ): React.JSX.Element => {
     const r = rilievo(id)
     const restrizione = r[campoRestrizione]
-    const stacco = primaColonna ? ' stacco-lato' : ''
     return (
       <>
-        <td className={`col-restrizione${stacco}`}>
-          <span className="scala-segni">
-            {SEGNI.map((g) => (
-              <button
-                key={g.valore}
-                type="button"
-                title={g.titolo}
-                disabled={soloLettura}
-                className={restrizione === g.valore ? 'scelta-attiva' : ''}
-                // ripremendo lo stesso segno si toglie: e' il modo piu' veloce
-                // per correggere un clic sbagliato
-                onClick={() =>
-                  onCambia(id, {
-                    [campoRestrizione]: restrizione === g.valore ? null : g.valore
-                  })
-                }
-              >
-                {g.segno}
-              </button>
-            ))}
-          </span>
-        </td>
-        <td className="col-dolore">
+        <span className="scala-segni">
+          {SEGNI.map((g) => (
+            <button
+              key={g.valore}
+              type="button"
+              title={g.titolo}
+              disabled={soloLettura}
+              className={restrizione === g.valore ? 'scelta-attiva' : ''}
+              // ripremendo lo stesso segno si toglie: e' il modo piu' veloce
+              // per correggere un clic sbagliato
+              onClick={() =>
+                onCambia(id, {
+                  [campoRestrizione]: restrizione === g.valore ? null : g.valore
+                })
+              }
+            >
+              {g.segno}
+            </button>
+          ))}
+        </span>
+        <span className="gm-dolore">
           <input
             type="checkbox"
             title="Dolore durante il movimento"
@@ -574,9 +582,9 @@ function TabellaMovimenti({
             checked={(r[campoDolore] ?? 0) > 0}
             onChange={(e) => onCambia(id, { [campoDolore]: e.target.checked ? 1 : null })}
           />
-        </td>
+        </span>
         {conGradi && (
-          <td className="col-gradi">
+          <span className="gm-gradi">
             {m.gradi === 1 ? (
               <input
                 type="number"
@@ -592,68 +600,46 @@ function TabellaMovimenti({
             ) : (
               <span className="hint">&mdash;</span>
             )}
-          </td>
+          </span>
         )}
       </>
     )
   }
 
-  const intestazioneLato = (primaColonna: boolean): React.JSX.Element => (
-    <>
-      <th className={primaColonna ? 'col-restrizione stacco-lato' : 'col-restrizione'}>
-        Intensità
-      </th>
-      <th className="col-dolore">Dolore</th>
-      {conGradi && <th className="col-gradi">Gradi</th>}
-    </>
-  )
-
   return (
-    <div className="movimenti riquadro-test">
-      <table className="tabella-movimenti">
-        <thead>
-          {/* Sopra i due lati, sotto i titoli delle colonne: "Movimento" sta
-              in fila con "Intensita'" e "Dolore", non a cavallo delle due
-              righe. */}
-          <tr>
-            <th className="col-nome" />
-            <th className="lato-attivo stacco-lato" colSpan={conGradi ? 3 : 2}>
-              Attivo
-            </th>
-            <th className="lato-passivo stacco-lato" colSpan={conGradi ? 3 : 2}>
-              Passivo
-            </th>
-          </tr>
-          <tr>
-            <th className="col-nome">Movimento</th>
-            {intestazioneLato(true)}
-            {intestazioneLato(true)}
-          </tr>
-        </thead>
-        <tbody>
-          {movimenti.map((m) => {
-            const id = m.id as number
-            return (
-              <tr key={id}>
-                <td className="col-nome">{m.nome}</td>
-                {celle(id, m, 'attivo_restrizione', 'attivo_dolore', 'attivo_gradi', true)}
-                {celle(id, m, 'passivo_restrizione', 'passivo_dolore', 'passivo_gradi', true)}
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
+    <div className="movimenti">
+      <div className={conGradi ? 'griglia-movimenti con-gradi' : 'griglia-movimenti'}>
+        <span className="gm-angolo" />
+        <div className="gm-lato">Attivo</div>
+        <div className="gm-lato">Passivo</div>
 
-      {/* Una nota per lato: quello che si annota ("in inclinazione a destra
-          tira a sinistra") riguarda l'insieme dei movimenti provati in quel
-          modo, non il singolo movimento. */}
-      {/* La prima colonna e' vuota: tiene il posto del nome del movimento,
-          cosi' ogni nota cade sotto alla meta' della tabella a cui si
-          riferisce. */}
-      <div className="note-movimenti">
-        <span className="spazio-nome" />
+        <div className="gm-titolo">Movimento</div>
+        <div className="gm-sotto">{titoliLato()}</div>
+        <div className="gm-sotto">{titoliLato()}</div>
+
+        {movimenti.map((m, i) => {
+          const id = m.id as number
+          const pari = i % 2 === 1 ? ' pari' : ''
+          return (
+            <div key={id} className={`gm-riga${pari}`}>
+              <div className="gm-nome">{m.nome}</div>
+              <div className="gm-rilievi">
+                {rilieviLato(id, m, 'attivo_restrizione', 'attivo_dolore', 'attivo_gradi')}
+              </div>
+              <div className="gm-rilievi">
+                {rilieviLato(id, m, 'passivo_restrizione', 'passivo_dolore', 'passivo_gradi')}
+              </div>
+            </div>
+          )
+        })}
+
+        {/* Una nota per lato: quello che si annota ("in inclinazione a destra
+            tira a sinistra") riguarda l'insieme dei movimenti provati in quel
+            modo, non il singolo movimento. La colonna vuota tiene il posto del
+            nome, cosi' ogni nota sta sotto alla sua meta'. */}
+        <span className="gm-angolo" />
         {(['attivo', 'passivo'] as const).map((lato) => (
-          <label key={lato} className="nota-movimenti">
+          <label key={lato} className="gm-nota">
             Note del movimento {lato}
             <textarea
               rows={2}
