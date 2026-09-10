@@ -4886,7 +4886,15 @@ textarea {
   display: grid;
   grid-template-columns: minmax(104px, 180px) 1fr 1fr;
   align-items: stretch;
-  column-gap: 8px;
+}
+
+/* Una riga verticale fra l'attivo e il passivo, per tutta l'altezza: sono due
+   colonne di dati, e senza niente in mezzo l'occhio le legge come una sola. */
+.griglia-movimenti .gm-lato + .gm-lato,
+.griglia-movimenti .gm-sotto + .gm-sotto,
+.griglia-movimenti .gm-rilievi + .gm-rilievi,
+.griglia-movimenti .gm-nota + .gm-nota {
+  border-left: 1px solid var(--border);
 }
 
 /* La riga di un movimento e' tre celle della griglia, non un riquadro suo:
@@ -4947,17 +4955,48 @@ textarea {
   letter-spacing: 0.03em;
 }
 
+/* La riga dei titoli si chiude con una linea: sotto comincia quello che si
+   compila. */
+.gm-titolo,
+.gm-sotto {
+  border-bottom: 1.5px solid var(--border-forte);
+}
+
 .gm-rilievi {
-  padding: 7px 0;
+  padding: 8px 0;
+}
+
+/* Un filo fra una riga e l'altra, oltre al fondo alternato: due segnali deboli
+   messi insieme si leggono meglio di uno forte. */
+.gm-nome,
+.gm-rilievi {
+  border-bottom: 1px solid var(--bg);
+}
+
+/* Gli angoli del fondo alternato seguono la riga, che comincia dal nome e
+   finisce con l'ultimo rilievo. */
+.gm-riga > *:first-child {
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+}
+
+.gm-riga > *:last-child {
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
 }
 
 .gm-nome {
   display: flex;
   align-items: center;
-  padding: 7px 4px;
+  padding: 8px 10px 8px 6px;
   font-size: 14px;
   line-height: 1.25;
   overflow-wrap: anywhere;
+}
+
+/* La spunta del dolore un filo piu' grande: e' il bersaglio piu' piccolo della
+   riga e si preme decine di volte. */
+.gm-dolore input[type='checkbox'] {
+  width: 20px;
+  height: 20px;
 }
 
 .gm-gradi .campo-gradi {
@@ -4973,7 +5012,7 @@ textarea {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  margin-top: 10px;
+  padding: 10px 10px 0;
   font-size: 14px;
   color: var(--text-dim);
 }
