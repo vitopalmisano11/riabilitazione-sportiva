@@ -13,6 +13,7 @@ import type {
 import { toast, toastErrore } from '../components/Toast'
 import { chiedi } from '../components/Conferma'
 import ElencoCategorie from '../components/ElencoCategorie'
+import Aiuto from '../components/Aiuto'
 import { errMsg } from '../lib'
 import { sposta, useRiordino } from '../riordino'
 
@@ -275,6 +276,21 @@ function ElencoTest({
   )
 }
 
+// Le qualita' proposte nella casella "Cosa valuta": se ne puo' scrivere
+// un'altra, ma partire da queste tiene le parole uguali fra un test e l'altro,
+// e il riassunto del report raggruppa per parola.
+const QUALITA = [
+  'forza',
+  'potenza',
+  'reattività',
+  'equilibrio',
+  'controllo motorio',
+  'mobilità',
+  'velocità',
+  'agilità',
+  'resistenza'
+]
+
 function EditorTest({
   id,
   onChanged
@@ -336,6 +352,23 @@ function EditorTest({
 
       <div className="form-row-2">
         <label>
+          <span>
+            Cosa valuta
+            <Aiuto testo="La qualità che misura il test: forza, reattività, potenza, equilibrio. Nel report dello screening i risultati si riassumono per qualità, per esempio deficit di forza sul lato operato. Scrivi sempre la stessa parola per i test che valutano la stessa cosa." />
+          </span>
+          <input
+            list="qualita-test"
+            placeholder="es. forza"
+            value={dati.test.qualita ?? ''}
+            onChange={(e) => aggiornaTest({ qualita: e.target.value || null })}
+          />
+          <datalist id="qualita-test">
+            {QUALITA.map((q) => (
+              <option key={q} value={q} />
+            ))}
+          </datalist>
+        </label>
+        <label>
           Link all&apos;esecuzione (facoltativo)
           <input
             placeholder="es. video che mostra come si esegue"
@@ -343,6 +376,8 @@ function EditorTest({
             onChange={(e) => aggiornaTest({ link: e.target.value || null })}
           />
         </label>
+      </div>
+      <div className="form-row-2">
         <label>
           Numero di prove
           <input

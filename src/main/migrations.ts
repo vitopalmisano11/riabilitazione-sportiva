@@ -1002,6 +1002,16 @@ const MIGRATIONS: string[] = [
   `
   ALTER TABLE categorie ADD COLUMN padre_id INTEGER
     REFERENCES categorie(id) ON DELETE SET NULL;
+  `,
+
+  // 40 - cosa valuta un test: forza, reattivita', equilibrio...
+  //
+  //      Serve al riassunto scritto del report dello screening, che raggruppa
+  //      i risultati per qualita' ("deficit di forza sul lato operato") invece
+  //      di elencarli test per test. E' testo libero: chi non lo scrive vede
+  //      il test raggruppato sotto al suo nome.
+  `
+  ALTER TABLE test_valutazione ADD COLUMN qualita TEXT;
   `
 ]
 

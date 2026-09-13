@@ -471,6 +471,9 @@ export interface TestValutazione {
   // video o pagina che mostra come si esegue il test
   link: string | null
   prove: number
+  // Cosa valuta (forza, reattivita'...): raggruppa i risultati nel riassunto
+  // del report. Testo libero, facoltativo.
+  qualita: string | null
   // Soglia sul rapporto fra i due arti (90, 95...). E' cosa diversa dal cutoff
   // della misura, che si confronta col valore misurato.
   lsi_cutoff: number | null

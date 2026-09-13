@@ -48,6 +48,7 @@ import {
   salvaQuestionario
 } from '../src/main/questionari'
 import { spostaFileDati } from '../src/main/file-dati'
+import { generaReportScreening } from '../src/main/report-screening'
 import { copyFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { daQuando } from '../src/renderer/src/lib'
 import {
@@ -67,7 +68,7 @@ db.pragma('foreign_keys = ON')
 
 runMigrations(db)
 runMigrations(db) // idempotente
-assert.equal(db.pragma('user_version', { simple: true }), 39)
+assert.equal(db.pragma('user_version', { simple: true }), 40)
 
 const count = (table: string): number =>
   (db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n
@@ -1272,6 +1273,75 @@ assert.equal(
       'INSERT INTO screening_voci (sezione_id, test_id, questionario_id) VALUES (?, NULL, NULL)'
     ).run(dupl.sezioni[0].id)
   )
+}
+
+// --- Il riassunto scritto del report dello screening ---
+// Due screening a confronto: la forza e' sotto la soglia di simmetria sul lato
+// operato, la reattivita' supera la sua soglia ed e' migliorata.
+{
+  const db = getDb()
+  const paz = Number(
+    db.prepare("INSERT INTO pazienti (nome, cognome, arto_operato) VALUES ('Luca', 'Prova', 'dx')")
+      .run().lastInsertRowid
+  )
+  const tForza = Number(
+    db.prepare(
+      "INSERT INTO test_valutazione (nome, prove, per_lato, lsi_cutoff, qualita) VALUES ('Dinamometro', 1, 1, 90, 'forza')"
+    ).run().lastInsertRowid
+  )
+  const mForza = Number(
+    db.prepare("INSERT INTO test_misure (test_id, nome, unita) VALUES (?, 'Picco', 'kg')")
+      .run(tForza).lastInsertRowid
+  )
+  const tSalto = Number(
+    db.prepare(
+      "INSERT INTO test_valutazione (nome, prove, qualita) VALUES ('Drop jump prova', 1, 'Reattività')"
+    ).run().lastInsertRowid
+  )
+  const mSalto = Number(
+    db.prepare(
+      "INSERT INTO test_misure (test_id, nome, unita, cutoff, cutoff_direzione) VALUES (?, 'Altezza', 'cm', 30, 'min')"
+    ).run(tSalto).lastInsertRowid
+  )
+  const prot = Number(
+    db.prepare("INSERT INTO screening_protocolli (nome, sport) VALUES ('RTP', 'Calcio')").run()
+      .lastInsertRowid
+  )
+  const sez = Number(
+    db.prepare("INSERT INTO screening_sezioni (protocollo_id, nome) VALUES (?, 'Ambulatorio')")
+      .run(prot).lastInsertRowid
+  )
+  db.prepare('INSERT INTO screening_voci (sezione_id, test_id, ordine) VALUES (?, ?, 0)').run(sez, tForza)
+  db.prepare('INSERT INTO screening_voci (sezione_id, test_id, ordine) VALUES (?, ?, 1)').run(sez, tSalto)
+  const sessione = (data: string): number =>
+    Number(
+      db.prepare(
+        "INSERT INTO screening_sessioni (paziente_id, protocollo_id, protocollo_nome, sport, data) VALUES (?, ?, 'RTP', 'Calcio', ?)"
+      ).run(paz, prot, data).lastInsertRowid
+    )
+  const valore = db.prepare(
+    'INSERT INTO screening_valori (sessione_id, misura_id, lato, prova, valore) VALUES (?, ?, ?, 1, ?)'
+  )
+  const t0 = sessione('2026-05-07')
+  valore.run(t0, mForza, 'dx', 30)
+  valore.run(t0, mForza, 'sx', 45)
+  valore.run(t0, mSalto, null, 28)
+  const t1 = sessione('2026-07-16')
+  valore.run(t1, mForza, 'dx', 30)
+  valore.run(t1, mForza, 'sx', 45)
+  valore.run(t1, mSalto, null, 33)
+
+  const { html } = generaReportScreening([t0, t1])
+  if (process.env['RIASSUNTO_HTML']) writeFileSync(process.env['RIASSUNTO_HTML'], html)
+  const riassunto = html.slice(html.indexOf('class="riassunto"'), html.indexOf('</ul></div>'))
+  assert.ok(riassunto.length > 0, 'il riassunto manca')
+  assert.ok(riassunto.includes('<b>Forza</b>'), 'raggruppato per qualità')
+  assert.ok(riassunto.includes('sul lato operato in Dinamometro'), 'deficit sul lato operato')
+  assert.ok(riassunto.includes('LSI 67%'))
+  assert.ok(riassunto.includes('<b>Reattività</b>: <span class="ok">nella norma</span>'))
+  assert.ok(riassunto.includes('In miglioramento</span>: Drop jump prova – Altezza +18%'), 'miglioramento dal primo screening')
+  // la variazione nella tabella sta tra parentesi, accanto al numero
+  assert.ok(html.includes('(+18%)'))
 }
 
 getDb().close()

@@ -1,42 +1,26 @@
-// L'icona degli obiettivi terapeutici: il quaderno a spirale con gli obiettivi
-// scritti, e il bersaglio con la freccia che ci si appoggia sopra.
+// L'icona degli obiettivi terapeutici: il bersaglio con la freccia piantata al
+// centro.
 //
-// Disegnata di tratto come le altre icone dell'app. Il bersaglio si stacca dal
-// quaderno perche' sotto ha un contorno del colore del fondo: senza, le righe
-// del foglio gli passavano attraverso.
-export default function IconaObiettivi({ size = 26 }: { size?: number }): React.JSX.Element {
-  const bersaglio = (
-    <>
-      <circle cx="66" cy="70" r="24" />
-      <circle cx="66" cy="70" r="14" />
-      <circle cx="66" cy="70" r="5" />
-      {/* la freccia arriva dall'alto a destra, con la cocca in fondo */}
-      <path d="M66,70 L97,46" />
-      <path d="M86,42 L97,46 L93,57" />
-    </>
+// Disegnata sulla stessa griglia di 24 delle icone lucide che le stanno accanto
+// (anamnesi prossima, remota, body chart), con lo stesso spessore di tratto:
+// cosi' a parita' di misura si vede grande uguale. Le penne della freccia
+// stanno appena fuori dal cerchio esterno e sotto hanno un contorno del colore
+// del fondo, che le stacca dal cerchio invece di farle toccare.
+export default function IconaObiettivi({ size = 24 }: { size?: number }): React.JSX.Element {
+  const penne = (
+    <path d="M16.36 7.64 L18.98 8.13 L21.46 5.66 L18.84 5.16 L18.34 2.55 L15.87 5.02 Z" />
   )
 
   return (
-    // Il riquadro e' stretto intorno al disegno: cosi' a parita' di misura
-    // l'icona si vede grande come le altre della riga, invece di restare
-    // piccola in mezzo ai suoi margini.
-    <svg className="icona-obiettivi" width={size} height={size} viewBox="6 3 96 96">
-      {/* il foglio, con la spirale a sinistra */}
-      <rect className="io-foglio" x="20" y="8" width="60" height="70" rx="7" />
-      <g className="io-spirale">
-        <path d="M24,20 A7,7 0 1 0 12,20" />
-        <path d="M24,36 A7,7 0 1 0 12,36" />
-        <path d="M24,52 A7,7 0 1 0 12,52" />
-        <path d="M24,68 A7,7 0 1 0 12,68" />
-      </g>
-      <g className="io-righe">
-        <path d="M34,24 L68,24" />
-        <path d="M34,38 L68,38" />
-        <path d="M34,52 L56,52" />
-      </g>
-      {/* prima il contorno del colore del fondo, poi il bersaglio vero */}
-      <g className="io-alone">{bersaglio}</g>
-      <g className="io-bersaglio">{bersaglio}</g>
+    <svg className="icona-obiettivi" width={size} height={size} viewBox="0 0 24 24">
+      <circle cx="10" cy="14" r="8" />
+      <circle cx="10" cy="14" r="4.5" />
+      <circle cx="10" cy="14" r="1.2" />
+      {/* prima il contorno del fondo, poi l'asta, cosi' l'asta non si
+          interrompe, e per ultime le penne */}
+      <g className="io-alone">{penne}</g>
+      <path d="M10 14 L17.1 6.9" />
+      {penne}
     </svg>
   )
 }

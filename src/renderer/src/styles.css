@@ -3692,18 +3692,14 @@ textarea {
 .icona-obiettivi {
   fill: none;
   stroke: currentColor;
-  stroke-width: 6;
+  stroke-width: 2;
   stroke-linejoin: round;
   stroke-linecap: round;
 }
 
-.icona-obiettivi .io-righe {
-  stroke-width: 5.5;
-}
-
 .icona-obiettivi .io-alone {
   stroke: var(--surface);
-  stroke-width: 13;
+  stroke-width: 4;
 }
 
 .primary .icona-obiettivi .io-alone {

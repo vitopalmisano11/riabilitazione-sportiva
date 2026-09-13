@@ -15,7 +15,7 @@ export function leggiTest(id: number): TestValutazioneCompleto {
   const test = db
     .prepare(
       `SELECT id, categoria_id, nome, descrizione, protocollo, link, prove, per_lato,
-              lsi_cutoff, ordine, archiviato
+              lsi_cutoff, qualita, ordine, archiviato
        FROM test_valutazione WHERE id = ?`
     )
     .get(id) as TestValutazione | undefined
@@ -43,7 +43,7 @@ export function salvaTest(dati: TestValutazioneCompleto): void {
     db.prepare(
       `UPDATE test_valutazione
        SET nome = ?, descrizione = ?, protocollo = ?, link = ?, prove = ?, per_lato = ?,
-           lsi_cutoff = ?
+           lsi_cutoff = ?, qualita = ?
        WHERE id = ?`
     ).run(
       dati.test.nome.trim(),
@@ -53,6 +53,7 @@ export function salvaTest(dati: TestValutazioneCompleto): void {
       Math.max(1, dati.test.prove),
       dati.test.per_lato,
       dati.test.per_lato === 1 ? dati.test.lsi_cutoff : null,
+      dati.test.qualita?.trim() || null,
       id
     )
 

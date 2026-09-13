@@ -68,6 +68,84 @@ function variazione(
   return `<span class="variazione ${classe}">(${segno}${Math.abs(delta).toFixed(0)}%)</span>`
 }
 
+// ---- il riassunto scritto ----
+//
+// In cima al report, al posto di un elenco di numeri: per ogni qualita' valutata
+// (forza, reattivita'...) una riga che dice se c'e' un deficit, se e' tutto
+// nella norma e cosa e' cambiato dal primo screening del confronto.
+//
+// Sono frasi fisse scelte dalle regole che il fisioterapista ha gia' scritto in
+// libreria (la soglia sulla simmetria, la soglia della misura): il programma non
+// inventa giudizi, rilegge i suoi. Un test senza "cosa valuta" si raggruppa
+// sotto al suo nome.
+
+// Da quanto in su un cambiamento vale la pena di dirlo: sotto il 10% e' spesso
+// la variabilita' fra una prova e l'altra.
+const CAMBIAMENTO_DA_DIRE = 10
+
+interface GruppoRiassunto {
+  titolo: string
+  deficit: string[]
+  giudicati: number
+  meglio: string[]
+  peggio: string[]
+  esiti: string[]
+}
+
+class Riassunto {
+  private gruppi = new Map<string, GruppoRiassunto>()
+
+  gruppo(titolo: string): GruppoRiassunto {
+    const chiave = titolo.trim().toLowerCase()
+    let g = this.gruppi.get(chiave)
+    if (!g) {
+      g = { titolo: titolo.trim(), deficit: [], giudicati: 0, meglio: [], peggio: [], esiti: [] }
+      this.gruppi.set(chiave, g)
+    }
+    return g
+  }
+
+  html(): string {
+    const righe = [...this.gruppi.values()]
+      .map((g) => {
+        // Ogni pezzo e' una frase: dopo il primo, che segue i due punti del
+        // titolo, comincia con la maiuscola.
+        const parti: string[] = []
+        const frase = (classe: string, parola: string, resto: string): void => {
+          const p = parti.length === 0 ? parola : parola.charAt(0).toUpperCase() + parola.slice(1)
+          parti.push(`<span class="${classe}">${p}</span>${resto}`)
+        }
+        if (g.deficit.length > 0) {
+          frase('ko', 'deficit', ` ${g.deficit.map(esc).join('; ')}`)
+        } else if (g.giudicati > 0) {
+          frase('ok', 'nella norma', ', test superati')
+        }
+        if (g.meglio.length > 0) {
+          frase('ok', 'in miglioramento', `: ${g.meglio.map(esc).join('; ')}`)
+        }
+        if (g.peggio.length > 0) {
+          frase('ko', 'in peggioramento', `: ${g.peggio.map(esc).join('; ')}`)
+        }
+        parti.push(...g.esiti.map(esc))
+        if (parti.length === 0) return ''
+        const titolo = g.titolo.charAt(0).toUpperCase() + g.titolo.slice(1)
+        return `<li><b>${esc(titolo)}</b>: ${parti.join('. ')}.</li>`
+      })
+      .filter(Boolean)
+    return righe.length === 0
+      ? ''
+      : `<div class="riassunto"><h2>Riassunto</h2><ul>${righe.join('')}</ul></div>`
+  }
+}
+
+// Di quanto e' cambiato un valore rispetto al primo screening, in percentuale:
+// null se non c'e' niente da confrontare.
+function cambioPercentuale(adesso: number | null, prima: number | null): number | null {
+  if (adesso == null || prima == null || prima === 0) return null
+  const delta = ((adesso - prima) / Math.abs(prima)) * 100
+  return Number.isFinite(delta) ? delta : null
+}
+
 // ---- disegni ----
 
 const ROSSO = '#d64545'
@@ -256,7 +334,7 @@ export function generaReportScreening(sessioneIds: number[]): DatiReport {
 
   const vociStmt = db.prepare(
     `SELECT v.test_id, v.questionario_id, COALESCE(t.nome, q.nome) AS nome,
-            t.prove, t.per_lato, t.lsi_cutoff
+            t.prove, t.per_lato, t.lsi_cutoff, t.qualita
      FROM screening_voci v
      LEFT JOIN test_valutazione t ON t.id = v.test_id
      LEFT JOIN questionari q ON q.id = v.questionario_id
@@ -276,7 +354,7 @@ export function generaReportScreening(sessioneIds: number[]): DatiReport {
     'SELECT nome, valore FROM compilazione_punteggi WHERE compilazione_id = ? ORDER BY ordine'
   )
 
-  const daGuardare: string[] = []
+  const riassunto = new Riassunto()
 
   const blocchi = sezioni
     .map((sez) => {
@@ -292,7 +370,7 @@ export function generaReportScreening(sessioneIds: number[]): DatiReport {
                 <p class="vuoto-test">Questionario non compilato in questo screening.</p></div>`
             }
             const punteggi = punteggiStmt.all(c.id) as { nome: string; valore: number }[]
-            if (c.fascia) daGuardare.push(`${v.nome}: ${c.fascia}`)
+            if (c.fascia) riassunto.gruppo(String(v.nome)).esiti.push(c.fascia)
             return `<div class="test"><h4>${esc(v.nome)}</h4>
               <p class="riga-questionario">
                 ${esc(data(c.data))} · ${esc(
@@ -329,10 +407,55 @@ export function generaReportScreening(sessioneIds: number[]): DatiReport {
               const valLsi = perLato ? lsi(dx, sx, latoInteressato) : null
               const valAsim = perLato ? asimmetria(dx, sx) : null
               const superato = esito(valLsi, soglia)
-              if (superato === false) {
-                daGuardare.push(
-                  `${v.nome} — ${m.nome}: ${numero(valLsi)}% (soglia ${soglia}%)`
+
+              // Il riassunto: sotto la qualita' del test, o sotto al suo nome.
+              const g = riassunto.gruppo(String(v.qualita ?? '').trim() || String(v.nome))
+              const etichetta = `${v.nome} – ${m.nome}`
+              const nomeLato = (l: 'dx' | 'sx'): string =>
+                latoInteressato === l ? 'sul lato operato' : l === 'dx' ? 'a destra' : 'a sinistra'
+
+              // La simmetria: il lato in difetto e' l'operato, se lo si sa;
+              // altrimenti quello col valore peggiore.
+              if (superato != null) g.giudicati++
+              if (superato === false && dx != null && sx != null) {
+                const debole: 'dx' | 'sx' =
+                  latoInteressato ?? ((menoEMeglio ? dx > sx : dx < sx) ? 'dx' : 'sx')
+                g.deficit.push(
+                  `${nomeLato(debole)} in ${etichetta} (${latoInteressato ? 'LSI' : 'simmetria'} ${numero(valLsi, 0)}%, soglia ${soglia}%)`
                 )
+              }
+
+              // La soglia della misura, lato per lato.
+              if (m.cutoff != null) {
+                const lati: ['dx' | 'sx' | null, number | null][] = perLato
+                  ? [['dx', dx], ['sx', sx]]
+                  : [[null, dx]]
+                for (const [l, val] of lati) {
+                  if (val == null) continue
+                  g.giudicati++
+                  const passa = menoEMeglio ? val <= m.cutoff : val >= m.cutoff
+                  if (passa) continue
+                  g.deficit.push(
+                    `${l ? `${nomeLato(l)} ` : ''}in ${etichetta} (${numero(val)}${m.unita ? ` ${m.unita}` : ''}, soglia ${menoEMeglio ? 'al massimo' : 'almeno'} ${m.cutoff})`
+                  )
+                }
+              }
+
+              // Cosa e' cambiato dal primo screening del confronto. Con il lato
+              // operato noto conta quello; altrimenti si guardano tutti e due.
+              if (iniziale) {
+                const lati: ['dx' | 'sx' | null, number | null, number | null][] = !perLato
+                  ? [[null, dx, iniziale.dx]]
+                  : latoInteressato
+                    ? [[latoInteressato, latoInteressato === 'dx' ? dx : sx, iniziale[latoInteressato]]]
+                    : [['dx', dx, iniziale.dx], ['sx', sx, iniziale.sx]]
+                for (const [l, adesso, prima] of lati) {
+                  const delta = cambioPercentuale(adesso, prima)
+                  if (delta == null || Math.abs(delta) < CAMBIAMENTO_DA_DIRE) continue
+                  const testo = `${etichetta}${l && !latoInteressato ? (l === 'dx' ? ' destra' : ' sinistra') : ''} ${delta >= 0 ? '+' : '−'}${Math.abs(delta).toFixed(0)}%`
+                  const migliorato = menoEMeglio ? delta < 0 : delta > 0
+                  ;(migliorato ? g.meglio : g.peggio).push(testo)
+                }
               }
 
               // Le singole prove, come nel foglio di carta.
@@ -564,10 +687,13 @@ export function generaReportScreening(sessioneIds: number[]): DatiReport {
   .riga-questionario { margin: 2px 0 0; }
   .fascia { margin-left: 6px; padding: 1px 7px; border-radius: 999px; background: ${intestazione}; color: ${accentoScuro}; }
   .vuoto-test { color: #8b93a0; margin: 2px 0; }
-  .attenzione { border: 1px solid #f0c6c6; background: #fdf3f3; border-radius: 4px;
-                padding: 8px 10px; margin: 0 0 12px; }
-  .attenzione h2 { font-size: 12px; margin: 0 0 4px; color: #d64545; }
-  .attenzione ul { margin: 0; padding-left: 16px; }
+  .riassunto { border: 1px solid #dfe4ea; background: #f7f9fb; border-radius: 4px;
+               padding: 8px 10px; margin: 0 0 12px; page-break-inside: avoid; }
+  .riassunto h2 { font-size: 12px; margin: 0 0 4px; color: ${accentoScuro}; }
+  .riassunto ul { margin: 0; padding-left: 16px; }
+  .riassunto li { margin: 2px 0; line-height: 1.4; }
+  .riassunto .ok { color: #1f9d61; font-weight: 700; }
+  .riassunto .ko { color: #d64545; font-weight: 700; }
   .note { margin-top: 14px; }
   .pie { margin-top: 14px; color: #8b93a0; font-size: 9px; }
   .variazione { display: inline-block; margin-left: 6px; font-size: 10px; font-weight: 700; }
@@ -617,13 +743,7 @@ export function generaReportScreening(sessioneIds: number[]): DatiReport {
     .map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`)
     .join('')}</dl>
 
-  ${
-    daGuardare.length > 0
-      ? `<div class="attenzione"><h2>Da guardare</h2><ul>${daGuardare
-          .map((r) => `<li>${esc(r)}</li>`)
-          .join('')}</ul></div>`
-      : ''
-  }
+  ${riassunto.html()}
 
   ${blocchi || '<p class="vuoto-test">Nessun valore registrato in questo screening.</p>'}
 
