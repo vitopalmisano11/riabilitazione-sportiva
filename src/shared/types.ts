@@ -922,7 +922,6 @@ export interface EsitoControllo {
 // Le parti della cartella del paziente che si possono stampare.
 export type SezioneCartella =
   | 'anagrafica'
-  | 'relazione'
   | 'anamnesi'
   | 'remota'
   | 'bodychart'
@@ -1142,6 +1141,10 @@ export interface Api {
     // Cartella completa: si scelgono le sezioni da includere.
     // L'anteprima si apre in una finestra a parte, il PDF si salva su file.
     anteprimaCartella(pazienteId: number, sezioni: SezioneCartella[]): Promise<void>
+    // La relazione scritta dell'anamnesi: un documento a parte, non una
+    // sezione della cartella.
+    anteprimaRelazione(pazienteId: number): Promise<void>
+    relazione(pazienteId: number): Promise<string | null>
     cartella(pazienteId: number, sezioni: SezioneCartella[]): Promise<string | null>
     // Ritornano il percorso del file salvato, o null se l'utente annulla.
     seduta(

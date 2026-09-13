@@ -52,9 +52,6 @@ import { relazioneAnamnesi } from './relazione-anamnesi'
 
 export const SEZIONI: { chiave: SezioneCartella; titolo: string }[] = [
   { chiave: 'anagrafica', titolo: 'Dati del paziente' },
-  // La relazione scritta sta prima dei riquadri: si legge di seguito, e chi
-  // vuole il dettaglio lo trova subito sotto.
-  { chiave: 'relazione', titolo: 'Relazione dell’anamnesi' },
   { chiave: 'anamnesi', titolo: 'Anamnesi prossima' },
   // La body chart sta fra le due anamnesi: e' il disegno di quello che il
   // paziente ha appena raccontato, e leggerlo dopo l'anamnesi remota vorrebbe
@@ -74,6 +71,8 @@ export type Blocco =
   | { tipo: 'testo'; titolo?: string; corpo: string }
   | { tipo: 'coppie'; voci: [string, string][] }
   | { tipo: 'elenco'; voci: string[] }
+  // testo di seguito, un paragrafo dopo l'altro: la relazione dell'anamnesi
+  | { tipo: 'paragrafi'; voci: string[] }
   | { tipo: 'tabella'; intestazioni: string[]; righe: string[][] }
   | { tipo: 'figure'; viste: { didascalia: string; svg: string }[] }
   | { tipo: 'riquadro'; titolo: string; colore?: string; blocchi: Blocco[] }
@@ -425,21 +424,6 @@ function sezAnagrafica(p: Record<string, unknown>): Blocco[] {
     ['Patologia', p.patologia_nome],
     ['Fase corrente', p.fase_nome]
   ])
-}
-
-// La relazione: due paragrafi lunghi, uno per anamnesi, ognuno a tutta
-// larghezza. Le frasi le compone relazione-anamnesi.ts.
-function sezRelazione(pazienteId: number): Blocco[] {
-  const { prossima, remota } = relazioneAnamnesi(pazienteId)
-  const blocchi: Blocco[] = []
-  // l'a capo separa i paragrafi, e rende il riquadro largo quanto il foglio
-  if (prossima.length > 0) {
-    blocchi.push({ tipo: 'testo', titolo: 'Anamnesi prossima', corpo: prossima.join('\n') })
-  }
-  if (remota.length > 0) {
-    blocchi.push({ tipo: 'testo', titolo: 'Anamnesi remota', corpo: remota.join('\n') })
-  }
-  return blocchi
 }
 
 function sezAnamnesi(pazienteId: number): Blocco[] {
@@ -900,7 +884,6 @@ export function componiCartella(pazienteId: number, sezioni: SezioneCartella[]):
 
   const contenuto: Record<SezioneCartella, () => Blocco[]> = {
     anagrafica: () => sezAnagrafica(p),
-    relazione: () => sezRelazione(pazienteId),
     anamnesi: () => sezAnamnesi(pazienteId),
     remota: () => sezRemota(pazienteId),
     bodychart: () => sezBodyChart(pazienteId),
@@ -968,6 +951,8 @@ function bloccoHtml(b: Blocco): string {
         .join('')}</dl>`
     case 'elenco':
       return `<ul class="voci">${b.voci.map((v) => `<li>${esc(v)}</li>`).join('')}</ul>`
+    case 'paragrafi':
+      return `<div class="paragrafi">${b.voci.map((v) => `<p>${esc(v)}</p>`).join('')}</div>`
     case 'tabella':
       return `<table><thead><tr>${b.intestazioni
         .map((h) => `<th>${esc(h)}</th>`)
@@ -1003,7 +988,33 @@ function bloccoHtml(b: Blocco): string {
 }
 
 export function generaCartella(pazienteId: number, sezioni: SezioneCartella[]): string {
-  const c = componiCartella(pazienteId, sezioni)
+  return documento(componiCartella(pazienteId, sezioni), 'Cartella fisioterapica')
+}
+
+// La relazione scritta dell'anamnesi: un documento suo, con la stessa veste
+// della cartella — intestazione, nome del paziente, data — e dentro solo il
+// testo. Le frasi le compone relazione-anamnesi.ts.
+export function componiRelazione(pazienteId: number): Cartella {
+  const p = getDb().prepare('SELECT nome, cognome FROM pazienti WHERE id = ?').get(pazienteId) as
+    | { nome: string; cognome: string }
+    | undefined
+  if (!p) throw new Error('Paziente non trovato.')
+  const { prossima, remota } = relazioneAnamnesi(pazienteId)
+  const sezioni: SezioneComposta[] = []
+  if (prossima.length > 0) {
+    sezioni.push({ titolo: 'Anamnesi prossima', blocchi: [{ tipo: 'paragrafi', voci: prossima }] })
+  }
+  if (remota.length > 0) {
+    sezioni.push({ titolo: 'Anamnesi remota', blocchi: [{ tipo: 'paragrafi', voci: remota }] })
+  }
+  return { nome: String(p.nome), cognome: String(p.cognome), sezioni }
+}
+
+export function generaRelazione(pazienteId: number): string {
+  return documento(componiRelazione(pazienteId), 'Relazione dell’anamnesi')
+}
+
+function documento(c: Cartella, cheCosa: string): string {
   const corpo = c.sezioni
     .map(
       (s) => `<section><h2>${esc(s.titolo)}</h2>${blocchiHtml(s.blocchi)}</section>`
@@ -1053,6 +1064,7 @@ export function generaCartella(pazienteId: number, sezioni: SezioneCartella[]): 
                   align-items: start; margin-bottom: 4px; }
   .griglia-voci .voce { page-break-inside: avoid; }
   .griglia-voci .voce-larga { grid-column: 1 / -1; }
+  .paragrafi p { margin: 4px 0 8px; line-height: 1.55; }
   .griglia-voci .voce > h3 { margin-top: 8px; }
   dl.dati { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 20px; margin: 0 0 8px; }
   dl.dati div { display: flex; gap: 6px; }
@@ -1099,8 +1111,8 @@ export function generaCartella(pazienteId: number, sezioni: SezioneCartella[]): 
 <div class="foglio">
   ${intestazioneHtml(accento)}
   <h1>${esc(c.cognome)} ${esc(c.nome)}</h1>
-  <p class="info">Cartella fisioterapica · stampata il ${data(oggiIso())}</p>
-  ${corpo || '<p class="testo">Nessun contenuto nelle sezioni scelte.</p>'}
+  <p class="info">${esc(cheCosa)} · stampata il ${data(oggiIso())}</p>
+  ${corpo || '<p class="testo">Nessun contenuto da stampare.</p>'}
   <p class="pie">Documento generato da Riabilitazione Sportiva. Contiene dati sanitari: trattare con riservatezza.</p>
 </div>
 </body>

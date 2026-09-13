@@ -23,7 +23,7 @@ import {
 import { seduteDellaSettimana } from '../src/main/settimana'
 import { ultimaVoltaPerPaziente } from '../src/main/ultima-volta'
 import { leggiProfilo, righeProfilo, salvaProfilo } from '../src/main/profilo'
-import { generaCartella, SEZIONI } from '../src/main/export-cartella'
+import { generaCartella, generaRelazione, SEZIONI } from '../src/main/export-cartella'
 import { esportaArchivio } from '../src/main/esporta-archivio'
 import {
   elencoCestino,
@@ -1597,10 +1597,12 @@ initDb(join(dirCartella, 'cartella.db'), dekHex)
   assert.ok(rel.remota[0].startsWith('Altre patologie e farmaci: ipertensione.'))
   assert.ok(rel.remota[0].includes('Nega traumi precedenti, interventi chirurgici e precedenti riabilitativi.'))
   assert.ok(rel.remota.some((p) => p.startsWith('Riferisce fumo. Nega variazioni di peso')))
-  // nella cartella c'e' solo se la si chiede
-  const conRelazione = generaCartella(Number(pz), ['relazione'])
-  if (process.env['RELAZIONE_HTML']) writeFileSync(process.env['RELAZIONE_HTML'], generaCartella(Number(pz), ['anagrafica', 'relazione', 'anamnesi']))
-  assert.ok(conRelazione.includes('Relazione dell’anamnesi') && conRelazione.includes('Si rivolge per dolore lombare.'))
+  // e' un documento a parte, non una sezione della cartella
+  const documentoRelazione = generaRelazione(Number(pz))
+  if (process.env['RELAZIONE_HTML']) writeFileSync(process.env['RELAZIONE_HTML'], documentoRelazione)
+  assert.ok(documentoRelazione.includes('Relazione dell’anamnesi · stampata il'))
+  assert.ok(documentoRelazione.includes('<p>Si rivolge per dolore lombare.</p>'))
+  assert.ok(!generaCartella(Number(pz), SEZIONI.map((x) => x.chiave)).includes('Si rivolge per'))
 
   const tutte = SEZIONI.map((x) => x.chiave)
   const doc = generaCartella(Number(pz), tutte)

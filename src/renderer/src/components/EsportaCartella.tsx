@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Download, Eye } from 'lucide-react'
+import Aiuto from './Aiuto'
 import type { PazienteDettaglio, SezioneCartella } from '../../../shared/types'
 import { toast, toastErrore } from './Toast'
 import { errMsg } from '../lib'
@@ -14,7 +15,6 @@ import { errMsg } from '../lib'
 
 const SEZIONI: { chiave: SezioneCartella; etichetta: string }[] = [
   { chiave: 'anagrafica', etichetta: 'Dati del paziente' },
-  { chiave: 'relazione', etichetta: 'Relazione scritta dell’anamnesi' },
   { chiave: 'anamnesi', etichetta: 'Anamnesi prossima' },
   { chiave: 'remota', etichetta: 'Anamnesi remota' },
   { chiave: 'bodychart', etichetta: 'Body chart' },
@@ -33,9 +33,7 @@ export default function EsportaCartella({
   paziente: PazienteDettaglio
   onChiudi: () => void
 }): React.JSX.Element {
-  // La relazione scritta non parte spuntata: serve ogni tanto, e quando serve
-  // la si aggiunge. Le altre parti ci sono tutte.
-  const [scelte, setScelte] = useState<SezioneCartella[]>(TUTTE.filter((c) => c !== 'relazione'))
+  const [scelte, setScelte] = useState<SezioneCartella[]>(TUTTE)
   const [occupato, setOccupato] = useState(false)
 
   const cambia = (chiave: SezioneCartella, dentro: boolean): void => {
@@ -50,6 +48,31 @@ export default function EsportaCartella({
     setOccupato(true)
     try {
       await window.api.esporta.anteprimaCartella(paziente.id, scelte)
+    } catch (e) {
+      toastErrore(errMsg(e))
+    } finally {
+      setOccupato(false)
+    }
+  }
+
+  // La relazione dell'anamnesi e' un altro documento: stessi due gesti,
+  // guardarla o salvarla, ma per conto suo.
+  const anteprimaRelazione = async (): Promise<void> => {
+    setOccupato(true)
+    try {
+      await window.api.esporta.anteprimaRelazione(paziente.id)
+    } catch (e) {
+      toastErrore(errMsg(e))
+    } finally {
+      setOccupato(false)
+    }
+  }
+
+  const scaricaRelazione = async (): Promise<void> => {
+    setOccupato(true)
+    try {
+      const path = await window.api.esporta.relazione(paziente.id)
+      if (path) toast('Relazione esportata in PDF.')
     } catch (e) {
       toastErrore(errMsg(e))
     } finally {
@@ -117,6 +140,30 @@ export default function EsportaCartella({
             <Download size={18} />
           </button>
           <button onClick={onChiudi}>Chiudi</button>
+        </div>
+
+        {/* Un documento diverso dalla cartella, con i suoi pulsanti: non una
+            spunta in piu' fra le sezioni. */}
+        <div className="altro-documento">
+          <span className="nome-documento">
+            Relazione scritta dell&apos;anamnesi
+            <Aiuto testo="Un documento a parte: l'anamnesi prossima e remota raccontate in frasi, con quello che hai scritto e selezionato, nell'ordine del colloquio. Non usa nessuna intelligenza artificiale e i dati non escono dal computer." />
+          </span>
+          <span className="spacer" />
+          <button
+            title="Anteprima della relazione"
+            disabled={occupato}
+            onClick={() => void anteprimaRelazione()}
+          >
+            <Eye size={18} />
+          </button>
+          <button
+            title="Scarica la relazione in PDF"
+            disabled={occupato}
+            onClick={() => void scaricaRelazione()}
+          >
+            <Download size={18} />
+          </button>
         </div>
       </div>
     </div>

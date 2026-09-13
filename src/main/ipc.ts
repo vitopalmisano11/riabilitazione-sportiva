@@ -61,10 +61,12 @@ import {
 } from './auth'
 import {
   apriAnteprimaCartella,
+  apriAnteprimaRelazione,
   apriAnteprimaReport,
   esportaReport,
   anteprimaSchedaIllustrata,
   esportaCartella,
+  esportaRelazione,
   esportaSeduta,
   esportaStorico,
   type FormatoExport
@@ -1965,6 +1967,8 @@ export function registerIpc(): void {
   handle('esporta:cartella', (pazienteId: number, sezioni: SezioneCartella[]) =>
     esportaCartella(pazienteId, sezioni)
   )
+  handle('esporta:anteprimaRelazione', (pazienteId: number) => apriAnteprimaRelazione(pazienteId))
+  handle('esporta:relazione', (pazienteId: number) => esportaRelazione(pazienteId))
   handle('esporta:seduta', (sedutaId: number, formato: FormatoExport, illustrata?: boolean) =>
     esportaSeduta(sedutaId, formato, illustrata === true)
   )

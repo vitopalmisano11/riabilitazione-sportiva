@@ -5411,6 +5411,23 @@ textarea {
 
 /* Chiusi, ma dello stesso colore degli altri riquadri della scheda: col fondo
    del pannello sembravano spenti, come una cosa disattivata. */
+/* Nella finestra della cartella, sotto: un altro documento che si puo'
+   stampare, staccato dalle spunte della cartella. */
+.altro-documento {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.altro-documento .nome-documento {
+  font-weight: 600;
+  color: var(--text);
+}
+
 .blocco-segni,
 .blocco-indicazioni {
   background: var(--surface);
