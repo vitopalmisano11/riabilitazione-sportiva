@@ -8,6 +8,7 @@
 // ("riferisce", "nega"), che non ha bisogno di sapere se il paziente e' un
 // uomo o una donna.
 import { getDb } from './db'
+import { durataTesto, faseDurata, type UnitaDurata } from '../shared/sintomi'
 
 type Riga = Record<string, unknown>
 
@@ -88,10 +89,24 @@ export function relazioneAnamnesi(pazienteId: number): RelazioneAnamnesi {
     if (s.andamento === 'intermittente') tratti.push('intermittente')
     if (s.episodio === 'primo') tratti.push('al primo episodio')
     if (s.episodio === 'recidiva') tratti.push('recidivante')
+    // La durata col numero, con la fase; il testo libero accanto, o da solo.
+    const numero = s.durata_numero == null ? null : Number(s.durata_numero)
+    const unita = (s.durata_unita as UnitaDurata | null) ?? null
+    const durata = durataTesto(numero, unita)
+    const fase = faseDurata(numero, unita)
     const daQuanto = pezzo(s.da_quanto)
-    if (daQuanto) tratti.push(/^da\s/i.test(daQuanto) ? `presente ${daQuanto}` : `presente da ${daQuanto}`)
-    if (s.traumatico === 1) tratti.push('a esordio traumatico')
-    if (s.traumatico === 0) tratti.push('a esordio non traumatico')
+    if (durata) {
+      tratti.push(`presente da ${durata}${fase ? ` (fase ${fase})` : ''}${daQuanto ? `, ${daQuanto}` : ''}`)
+    } else if (daQuanto) {
+      tratti.push(/^da\s/i.test(daQuanto) ? `presente ${daQuanto}` : `presente da ${daQuanto}`)
+    }
+    // L'esordio in una parola sola: "a esordio improvviso e traumatico".
+    const esordioParole: string[] = []
+    if (s.esordio_modo === 'improvviso') esordioParole.push('improvviso')
+    if (s.esordio_modo === 'graduale') esordioParole.push('graduale')
+    if (s.traumatico === 1) esordioParole.push('traumatico')
+    if (s.traumatico === 0) esordioParole.push('non traumatico')
+    if (esordioParole.length > 0) tratti.push(`a esordio ${esordioParole.join(' e ')}`)
 
     const cosa = descrizione ?? (sintomi.length > 1 ? `un ${i === 0 ? 'primo' : 'altro'} sintomo` : 'un sintomo')
     if (descrizione || tratti.length > 0) {
@@ -102,6 +117,17 @@ export function relazioneAnamnesi(pazienteId: number): RelazioneAnamnesi {
 
     const esordio = pezzo(s.esordio)
     if (esordio) frasi.push(frase(`All'insorgenza: ${esordio}`))
+
+    const intensita = (
+      [
+        ['attuale', s.nprs_attuale],
+        ['peggiore', s.nprs_peggiore],
+        ['migliore', s.nprs_migliore]
+      ] as [string, unknown][]
+    )
+      .filter(([, v]) => v != null)
+      .map(([nome, v]) => `${nome} ${v}/10`)
+    if (intensita.length > 0) frasi.push(frase(`Intensità del dolore (NPRS): ${intensita.join(', ')}`))
 
     const aggrava = pezzo(s.aggrava)
     const allevia = pezzo(s.allevia)
@@ -126,15 +152,27 @@ export function relazioneAnamnesi(pazienteId: number): RelazioneAnamnesi {
   if (andamento.length > 0) prossima.push(andamento.join(' '))
 
   // Il quadro generale: i si' insieme, i no insieme, il resto com'e' scritto.
-  const quadro: [string, unknown][] = [
-    ['dolore o sintomi notturni', a?.dolore_notturno],
-    ['disturbi del sonno', a?.disturbi_sonno],
-    ['peggioramento con tosse o starnuto', a?.tosse_starnuto],
-    ['sintomi neurologici', a?.sintomi_neurologici]
-  ]
   const riferisce: string[] = []
   const nega: string[] = []
   const altro: string[] = []
+  // Le domande col si'/no: il pulsante decide, il dettaglio va tra parentesi.
+  // Le schede compilate prima dei pulsanti hanno solo il testo, e si leggono
+  // come le altre qui sotto.
+  const conPulsanti: [string, unknown, unknown][] = [
+    ['dolore o sintomi notturni', a?.notturno_sn, a?.dolore_notturno],
+    ['disturbi del sonno', a?.sonno_sn, a?.disturbi_sonno]
+  ]
+  const quadro: [string, unknown][] = []
+  for (const [nome, sn, dettaglio] of conPulsanti) {
+    const d = pezzo(dettaglio)
+    if (sn === 1) riferisce.push(d ? `${nome} (${d})` : nome)
+    else if (sn === 0) nega.push(d ? `${nome} (${d})` : nome)
+    else quadro.push([nome, dettaglio])
+  }
+  quadro.push(
+    ['peggioramento con tosse o starnuto', a?.tosse_starnuto],
+    ['sintomi neurologici', a?.sintomi_neurologici]
+  )
   for (const [nome, valore] of quadro) {
     const v = siNo(valore)
     if (v == null) continue

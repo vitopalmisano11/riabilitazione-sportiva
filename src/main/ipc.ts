@@ -1562,8 +1562,9 @@ export function registerIpc(): void {
       .get(pazienteId) as Record<string, unknown> | undefined
     const sintomi = db
       .prepare(
-        `SELECT id, descrizione, andamento, da_quanto, episodio, esordio, traumatico,
-                comportamento, aggrava, allevia
+        `SELECT id, descrizione, andamento, durata_numero, durata_unita, da_quanto, episodio,
+                esordio, esordio_modo, traumatico, comportamento, aggrava, allevia,
+                nprs_attuale, nprs_peggiore, nprs_migliore
          FROM anamnesi_sintomi WHERE paziente_id = ? ORDER BY ordine, id`
       )
       .all(pazienteId) as { id: number }[]
@@ -1574,7 +1575,9 @@ export function registerIpc(): void {
     const conPunti = sintomi.map((x) => ({ ...x, punti: puntiStmt.all(x.id) }))
     return {
       motivo_consulto: null,
+      notturno_sn: null,
       dolore_notturno: null,
+      sonno_sn: null,
       disturbi_sonno: null,
       tosse_starnuto: null,
       sintomi_neurologici: null,
@@ -1592,14 +1595,16 @@ export function registerIpc(): void {
     db.transaction(() => {
       db.prepare(
         `INSERT INTO anamnesi_prossima
-           (paziente_id, motivo_consulto, dolore_notturno, disturbi_sonno, tosse_starnuto,
-            sintomi_neurologici, relazione_sintomi, note, note_giorno, note_esordio)
-         VALUES (@paziente_id, @motivo_consulto, @dolore_notturno, @disturbi_sonno,
-                 @tosse_starnuto, @sintomi_neurologici, @relazione_sintomi, @note,
+           (paziente_id, motivo_consulto, notturno_sn, dolore_notturno, sonno_sn, disturbi_sonno,
+            tosse_starnuto, sintomi_neurologici, relazione_sintomi, note, note_giorno, note_esordio)
+         VALUES (@paziente_id, @motivo_consulto, @notturno_sn, @dolore_notturno, @sonno_sn,
+                 @disturbi_sonno, @tosse_starnuto, @sintomi_neurologici, @relazione_sintomi, @note,
                  @note_giorno, @note_esordio)
          ON CONFLICT(paziente_id) DO UPDATE SET
            motivo_consulto = excluded.motivo_consulto,
+           notturno_sn = excluded.notturno_sn,
            dolore_notturno = excluded.dolore_notturno,
+           sonno_sn = excluded.sonno_sn,
            disturbi_sonno = excluded.disturbi_sonno,
            tosse_starnuto = excluded.tosse_starnuto,
            sintomi_neurologici = excluded.sintomi_neurologici,
@@ -1610,7 +1615,9 @@ export function registerIpc(): void {
       ).run({
         paziente_id: pazienteId,
         motivo_consulto: dati.motivo_consulto,
+        notturno_sn: dati.notturno_sn ?? null,
         dolore_notturno: dati.dolore_notturno,
+        sonno_sn: dati.sonno_sn ?? null,
         disturbi_sonno: dati.disturbi_sonno,
         tosse_starnuto: dati.tosse_starnuto,
         sintomi_neurologici: dati.sintomi_neurologici,
@@ -1633,16 +1640,21 @@ export function registerIpc(): void {
 
       const ins = db.prepare(
         `INSERT INTO anamnesi_sintomi
-           (paziente_id, descrizione, andamento, da_quanto, episodio, esordio, traumatico,
-            comportamento, aggrava, allevia, ordine)
-         VALUES (@paziente_id, @descrizione, @andamento, @da_quanto, @episodio, @esordio,
-                 @traumatico, @comportamento, @aggrava, @allevia, @ordine)`
+           (paziente_id, descrizione, andamento, durata_numero, durata_unita, da_quanto, episodio,
+            esordio, esordio_modo, traumatico, comportamento, aggrava, allevia,
+            nprs_attuale, nprs_peggiore, nprs_migliore, ordine)
+         VALUES (@paziente_id, @descrizione, @andamento, @durata_numero, @durata_unita, @da_quanto,
+                 @episodio, @esordio, @esordio_modo, @traumatico, @comportamento, @aggrava,
+                 @allevia, @nprs_attuale, @nprs_peggiore, @nprs_migliore, @ordine)`
       )
       const upd = db.prepare(
         `UPDATE anamnesi_sintomi SET descrizione = @descrizione, andamento = @andamento,
+           durata_numero = @durata_numero, durata_unita = @durata_unita,
            da_quanto = @da_quanto, episodio = @episodio, esordio = @esordio,
-           traumatico = @traumatico, comportamento = @comportamento, aggrava = @aggrava,
-           allevia = @allevia, ordine = @ordine
+           esordio_modo = @esordio_modo, traumatico = @traumatico,
+           comportamento = @comportamento, aggrava = @aggrava, allevia = @allevia,
+           nprs_attuale = @nprs_attuale, nprs_peggiore = @nprs_peggiore,
+           nprs_migliore = @nprs_migliore, ordine = @ordine
          WHERE id = @id`
       )
       const insPunto = db.prepare(
@@ -1651,7 +1663,18 @@ export function registerIpc(): void {
       )
       dati.sintomi.forEach((x, i) => {
         const { punti, ...resto } = x
-        const campi = { ...resto, paziente_id: pazienteId, ordine: i }
+        // i campi nuovi possono mancare in una bozza scritta prima
+        const campi = {
+          ...resto,
+          durata_numero: resto.durata_numero ?? null,
+          durata_unita: resto.durata_unita ?? null,
+          esordio_modo: resto.esordio_modo ?? null,
+          nprs_attuale: resto.nprs_attuale ?? null,
+          nprs_peggiore: resto.nprs_peggiore ?? null,
+          nprs_migliore: resto.nprs_migliore ?? null,
+          paziente_id: pazienteId,
+          ordine: i
+        }
         let sid: number
         if (x.id == null || x.id < 0) {
           sid = Number(ins.run({ ...campi, id: null }).lastInsertRowid)

@@ -1012,6 +1012,28 @@ const MIGRATIONS: string[] = [
   //      il test raggruppato sotto al suo nome.
   `
   ALTER TABLE test_valutazione ADD COLUMN qualita TEXT;
+  `,
+
+  // 41 - anamnesi prossima con piu' scelte e meno testo libero, perche' la
+  //      relazione scritta possa dire le cose giuste.
+  //
+  //      Dolore notturno e disturbi del sonno diventano si'/no: la casella di
+  //      testo che c'era resta, per il dettaglio. La durata si segna con un
+  //      numero e un'unita' (da li' si ricava acuto, subacuto o cronico), e il
+  //      testo libero resta per quello che non sta in un numero. L'esordio
+  //      improvviso o graduale si aggiunge a traumatico o no, e l'intensita' del
+  //      dolore si segna sulla scala da 0 a 10: attuale, peggiore, migliore.
+  //
+  //      I dati gia' scritti non si toccano: le colonne nuove partono vuote.
+  `
+  ALTER TABLE anamnesi_prossima ADD COLUMN notturno_sn INTEGER;
+  ALTER TABLE anamnesi_prossima ADD COLUMN sonno_sn INTEGER;
+  ALTER TABLE anamnesi_sintomi ADD COLUMN durata_numero REAL;
+  ALTER TABLE anamnesi_sintomi ADD COLUMN durata_unita TEXT;
+  ALTER TABLE anamnesi_sintomi ADD COLUMN esordio_modo TEXT;
+  ALTER TABLE anamnesi_sintomi ADD COLUMN nprs_attuale INTEGER;
+  ALTER TABLE anamnesi_sintomi ADD COLUMN nprs_peggiore INTEGER;
+  ALTER TABLE anamnesi_sintomi ADD COLUMN nprs_migliore INTEGER;
   `
 ]
 

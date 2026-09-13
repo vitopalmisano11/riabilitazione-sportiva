@@ -70,7 +70,7 @@ db.pragma('foreign_keys = ON')
 
 runMigrations(db)
 runMigrations(db) // idempotente
-assert.equal(db.pragma('user_version', { simple: true }), 40)
+assert.equal(db.pragma('user_version', { simple: true }), 41)
 
 const count = (table: string): number =>
   (db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n
@@ -1597,6 +1597,31 @@ initDb(join(dirCartella, 'cartella.db'), dekHex)
   assert.ok(rel.remota[0].startsWith('Altre patologie e farmaci: ipertensione.'))
   assert.ok(rel.remota[0].includes('Nega traumi precedenti, interventi chirurgici e precedenti riabilitativi.'))
   assert.ok(rel.remota.some((p) => p.startsWith('Riferisce fumo. Nega variazioni di peso')))
+  // I campi a pulsanti: si'/no col dettaglio, durata con la fase, esordio in
+  // una parola, intensita' del dolore.
+  const pzNuovo = ins("INSERT INTO pazienti (nome, cognome) VALUES ('Nuovi', 'Campi')")
+  ins(
+    `INSERT INTO anamnesi_prossima (paziente_id, notturno_sn, dolore_notturno, sonno_sn)
+     VALUES (?, 1, 'si sveglia verso le 4', 0)`,
+    pzNuovo
+  )
+  ins(
+    `INSERT INTO anamnesi_sintomi (paziente_id, descrizione, durata_numero, durata_unita, da_quanto,
+       esordio_modo, traumatico, nprs_attuale, nprs_peggiore, ordine)
+     VALUES (?, 'dolore al ginocchio destro', 3, 'settimane', 'dopo la partita', 'improvviso', 1, 4, 7, 0)`,
+    pzNuovo
+  )
+  const relNuova = relazioneAnamnesi(Number(pzNuovo))
+  assert.equal(
+    relNuova.prossima[0],
+    'Riferisce dolore al ginocchio destro, presente da 3 settimane (fase acuta), dopo la partita, a esordio improvviso e traumatico. Intensità del dolore (NPRS): attuale 4/10, peggiore 7/10.'
+  )
+  assert.ok(relNuova.prossima[1].startsWith('Riferisce dolore o sintomi notturni (si sveglia verso le 4). Nega disturbi del sonno.'))
+  const cartellaNuova = generaCartella(Number(pzNuovo), ['anamnesi'])
+  assert.ok(cartellaNuova.includes('3 settimane (fase acuta), dopo la partita'))
+  assert.ok(cartellaNuova.includes('sì — si sveglia verso le 4'))
+  assert.ok(cartellaNuova.includes('attuale 4/10 · peggiore 7/10'))
+
   // e' un documento a parte, non una sezione della cartella
   const documentoRelazione = generaRelazione(Number(pz))
   if (process.env['RELAZIONE_HTML']) writeFileSync(process.env['RELAZIONE_HTML'], documentoRelazione)

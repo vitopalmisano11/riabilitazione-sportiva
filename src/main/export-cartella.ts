@@ -49,6 +49,7 @@ import {
 } from '../shared/figure'
 import type { SezioneCartella } from '../shared/types'
 import { relazioneAnamnesi } from './relazione-anamnesi'
+import { durataTesto, faseDurata, type UnitaDurata } from '../shared/sintomi'
 
 export const SEZIONI: { chiave: SezioneCartella; titolo: string }[] = [
   { chiave: 'anagrafica', titolo: 'Dati del paziente' },
@@ -426,6 +427,41 @@ function sezAnagrafica(p: Record<string, unknown>): Blocco[] {
   ])
 }
 
+// "3 settimane (fase acuta), da dopo la partita": il numero con la fase e il
+// testo libero, quello che c'e'.
+function daQuantoTempo(x: Record<string, unknown>): string | null {
+  const numero = x.durata_numero == null ? null : Number(x.durata_numero)
+  const unita = (x.durata_unita as UnitaDurata | null) ?? null
+  const durata = durataTesto(numero, unita)
+  const fase = faseDurata(numero, unita)
+  const parti = [
+    durata ? `${durata}${fase ? ` (fase ${fase})` : ''}` : null,
+    pieno(x.da_quanto) ? String(x.da_quanto) : null
+  ].filter((p): p is string => p != null)
+  return parti.length > 0 ? parti.join(', ') : null
+}
+
+function intensitaNprs(x: Record<string, unknown>): string | null {
+  const parti = (
+    [
+      ['attuale', x.nprs_attuale],
+      ['peggiore', x.nprs_peggiore],
+      ['migliore', x.nprs_migliore]
+    ] as [string, unknown][]
+  )
+    .filter(([, v]) => v != null)
+    .map(([nome, v]) => `${nome} ${v}/10`)
+  return parti.length > 0 ? parti.join(' · ') : null
+}
+
+// Il si'/no col dettaglio accanto: "sì — si sveglia verso le 4".
+function siNoDettaglio(sn: unknown, dettaglio: unknown): string | null {
+  const risposta = sn === 1 ? 'sì' : sn === 0 ? 'no' : null
+  const d = pieno(dettaglio) ? String(dettaglio) : null
+  if (risposta && d) return `${risposta} — ${d}`
+  return risposta ?? d
+}
+
 function sezAnamnesi(pazienteId: number): Blocco[] {
   const db = getDb()
   const a = db
@@ -455,11 +491,13 @@ function sezAnamnesi(pazienteId: number): Blocco[] {
       colore: colore(i),
       blocchi: coppie([
         ['Andamento', x.andamento],
-        ['Da quanto tempo', x.da_quanto],
+        ['Da quanto tempo', daQuantoTempo(x)],
         // si registra "primo" o "recidiva": sul foglio va la parola intera
         ['Episodio', x.episodio === 'primo' ? 'primo episodio' : x.episodio],
-        ['Esordio', x.esordio],
+        ['Esordio', x.esordio_modo],
         ['Traumatico', x.traumatico == null ? null : x.traumatico ? 'sì' : 'no'],
+        ['Come è iniziato', x.esordio],
+        ['Intensità del dolore (NPRS)', intensitaNprs(x)],
         ['Comportamento messo in atto', x.comportamento],
         ['Cosa lo aggrava', x.aggrava],
         ['Cosa lo allevia', x.allevia]
@@ -549,8 +587,8 @@ function sezAnamnesi(pazienteId: number): Blocco[] {
     ...testo('Note sull’andamento nelle 24 ore', a?.note_giorno),
     ...testo('Note sull’andamento dall’esordio', a?.note_esordio),
     ...coppie([
-      ['Dolore o sintomi notturni', a?.dolore_notturno],
-      ['Disturbi del sonno', a?.disturbi_sonno],
+      ['Dolore o sintomi notturni', siNoDettaglio(a?.notturno_sn, a?.dolore_notturno)],
+      ['Disturbi del sonno', siNoDettaglio(a?.sonno_sn, a?.disturbi_sonno)],
       ['Tosse o starnuto', a?.tosse_starnuto],
       ['Sintomi neurologici', a?.sintomi_neurologici]
     ]),

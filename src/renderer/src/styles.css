@@ -3745,6 +3745,73 @@ textarea {
   font-size: 15px;
 }
 
+/* Una domanda si'/no con il dettaglio accanto: il nome sopra, i due pulsanti
+   e la casella sulla stessa riga. */
+.domanda-sino {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 4px 8px;
+}
+
+.domanda-sino .nome-domanda {
+  grid-column: 1 / -1;
+}
+
+.nome-domanda {
+  font-size: 15px;
+  color: var(--text-dim);
+}
+
+/* La durata di un sintomo: numero, unita', fase e testo libero in una riga
+   che va a capo se non ci sta. */
+.riga-durata {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.riga-durata .nome-domanda {
+  flex-basis: 100%;
+}
+
+.riga-durata .campo-stretto {
+  width: 72px;
+}
+
+.riga-durata .campo-altro {
+  flex: 1 1 220px;
+}
+
+.badge-fase-durata {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Le tre intensita' del dolore, una scala per riga col nome a sinistra. */
+.intensita-sintomo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.riga-nprs {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.nome-nprs {
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
 .scelta-coppia button.scelta-attiva {
   background: var(--accent);
   border-color: var(--accent);

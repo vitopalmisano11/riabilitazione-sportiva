@@ -98,7 +98,8 @@ export function esportaArchivio(cartella: string): string {
 
   scriviCsv(
     join(dest, 'anamnesi.csv'),
-    q(`SELECT p.cognome, p.nome, a.motivo_consulto, a.dolore_notturno, a.disturbi_sonno,
+    q(`SELECT p.cognome, p.nome, a.motivo_consulto, a.notturno_sn, a.dolore_notturno,
+              a.sonno_sn, a.disturbi_sonno,
               a.tosse_starnuto, a.sintomi_neurologici, a.relazione_sintomi, a.note,
               att.attivita, att.partecipazione, att.fattori_interni,
               r.traumi, r.interventi, r.riabilitazioni, r.bioimmagini_note
@@ -111,7 +112,9 @@ export function esportaArchivio(cartella: string): string {
       'cognome',
       'nome',
       'motivo_consulto',
+      'notturno_sn',
       'dolore_notturno',
+      'sonno_sn',
       'disturbi_sonno',
       'tosse_starnuto',
       'sintomi_neurologici',
@@ -129,8 +132,9 @@ export function esportaArchivio(cartella: string): string {
 
   scriviCsv(
     join(dest, 'sintomi.csv'),
-    q(`SELECT p.cognome, p.nome, s.descrizione, s.andamento, s.da_quanto, s.episodio,
-              s.esordio, s.traumatico, s.comportamento, s.aggrava, s.allevia
+    q(`SELECT p.cognome, p.nome, s.descrizione, s.andamento, s.durata_numero, s.durata_unita,
+              s.da_quanto, s.episodio, s.esordio, s.esordio_modo, s.traumatico, s.comportamento,
+              s.aggrava, s.allevia, s.nprs_attuale, s.nprs_peggiore, s.nprs_migliore
        FROM anamnesi_sintomi s JOIN pazienti p ON p.id = s.paziente_id
        ORDER BY p.cognome, p.nome, s.ordine, s.id`),
     [
@@ -138,13 +142,19 @@ export function esportaArchivio(cartella: string): string {
       'nome',
       'descrizione',
       'andamento',
+      'durata_numero',
+      'durata_unita',
       'da_quanto',
       'episodio',
       'esordio',
+      'esordio_modo',
       'traumatico',
       'comportamento',
       'aggrava',
-      'allevia'
+      'allevia',
+      'nprs_attuale',
+      'nprs_peggiore',
+      'nprs_migliore'
     ]
   )
 

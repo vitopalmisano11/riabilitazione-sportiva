@@ -13,6 +13,8 @@ import { chiedi } from './Conferma'
 import { errMsg } from '../lib'
 import { sposta, useRiordino } from '../riordino'
 import GraficoAndamento, { COLORI, type Selezione } from './GraficoAndamento'
+import ScalaPallini from './ScalaPallini'
+import { UNITA_DURATA, faseDurata, type UnitaDurata } from '../../../shared/sintomi'
 
 // Colloquio con il paziente: nessun campo obbligatorio e nessun ordine da
 // seguire. Tutto sta in una schermata sola, cosi' se il paziente anticipa una
@@ -22,7 +24,9 @@ const ATTESA_SALVATAGGIO = 1500
 
 const VUOTO: Dati = {
   motivo_consulto: null,
+  notturno_sn: null,
   dolore_notturno: null,
+  sonno_sn: null,
   disturbi_sonno: null,
   tosse_starnuto: null,
   sintomi_neurologici: null,
@@ -40,13 +44,19 @@ const SINTOMO_NUOVO = (): SintomoAnamnesi => ({
   id: nuovaChiave(),
   descrizione: null,
   andamento: null,
+  durata_numero: null,
+  durata_unita: null,
   da_quanto: null,
   episodio: null,
   esordio: null,
+  esordio_modo: null,
   traumatico: null,
   comportamento: null,
   aggrava: null,
   allevia: null,
+  nprs_attuale: null,
+  nprs_peggiore: null,
+  nprs_migliore: null,
   punti: []
 })
 
@@ -178,15 +188,41 @@ export default function AnamnesiProssima({
         )}
 
         <div className="sotto-titolo">Il quadro nel suo insieme</div>
+        {/* Si' o no con un clic, e accanto il dettaglio se serve: la relazione
+            scritta cosi' dice "riferisce" o "nega" senza indovinare. */}
         <div className="form-row-2">
-          <label>
-            Dolore o sintomi notturni
-            <input value={dati.dolore_notturno ?? ''} onChange={campo('dolore_notturno')} />
-          </label>
-          <label>
-            Disturbi del sonno
-            <input value={dati.disturbi_sonno ?? ''} onChange={campo('disturbi_sonno')} />
-          </label>
+          <div className="domanda-sino">
+            <span className="nome-domanda">Dolore o sintomi notturni</span>
+            <Scelta
+              etichette={[
+                ['1', 'Sì'],
+                ['0', 'No']
+              ]}
+              valore={dati.notturno_sn == null ? null : String(dati.notturno_sn)}
+              onScegli={(v) => aggiorna({ notturno_sn: v == null ? null : (Number(v) as 0 | 1) })}
+            />
+            <input
+              placeholder="Dettagli (facoltativo)"
+              value={dati.dolore_notturno ?? ''}
+              onChange={campo('dolore_notturno')}
+            />
+          </div>
+          <div className="domanda-sino">
+            <span className="nome-domanda">Disturbi del sonno</span>
+            <Scelta
+              etichette={[
+                ['1', 'Sì'],
+                ['0', 'No']
+              ]}
+              valore={dati.sonno_sn == null ? null : String(dati.sonno_sn)}
+              onScegli={(v) => aggiorna({ sonno_sn: v == null ? null : (Number(v) as 0 | 1) })}
+            />
+            <input
+              placeholder="Dettagli (facoltativo)"
+              value={dati.disturbi_sonno ?? ''}
+              onChange={campo('disturbi_sonno')}
+            />
+          </div>
         </div>
         <div className="form-row-2">
           <label>
@@ -623,7 +659,17 @@ function ListaSintomi({
               />
               <Scelta
                 etichette={[
-                  ['1', 'Esordio traumatico'],
+                  ['improvviso', 'Esordio improvviso'],
+                  ['graduale', 'Graduale']
+                ]}
+                valore={s.esordio_modo}
+                onScegli={(v) =>
+                  modifica(i, { esordio_modo: v as SintomoAnamnesi['esordio_modo'] })
+                }
+              />
+              <Scelta
+                etichette={[
+                  ['1', 'Traumatico'],
                   ['0', 'Non traumatico']
                 ]}
                 valore={s.traumatico == null ? null : String(s.traumatico)}
@@ -631,12 +677,46 @@ function ListaSintomi({
               />
             </div>
 
+            {/* La durata: un numero e l'unita' con un clic, e da li' la fase.
+                La casella accanto e' per quello che non sta in un numero. */}
+            <div className="riga-durata">
+              <span className="nome-domanda">Da quanto tempo</span>
+              <input
+                type="number"
+                min={0}
+                className="campo-stretto"
+                value={s.durata_numero ?? ''}
+                onChange={(e) =>
+                  modifica(i, {
+                    durata_numero: e.target.value === '' ? null : Number(e.target.value)
+                  })
+                }
+              />
+              <Scelta
+                etichette={UNITA_DURATA.map((u) => [u.valore, u.tanti] as [string, string])}
+                valore={s.durata_unita}
+                onScegli={(v) => modifica(i, { durata_unita: v as UnitaDurata | null })}
+              />
+              {faseDurata(s.durata_numero, s.durata_unita) && (
+                <span className="badge-fase-durata">
+                  fase {faseDurata(s.durata_numero, s.durata_unita)}
+                </span>
+              )}
+              <input
+                className="campo-altro"
+                placeholder="Oppure scrivilo (es. da dopo la partita)"
+                value={s.da_quanto ?? ''}
+                onChange={(e) => modifica(i, { da_quanto: e.target.value || null })}
+              />
+            </div>
+
             <div className="form-row-2">
               <label>
-                Da quanto tempo
+                Come è iniziato
                 <input
-                  value={s.da_quanto ?? ''}
-                  onChange={(e) => modifica(i, { da_quanto: e.target.value || null })}
+                  placeholder="Caratteristiche del disturbo all'insorgenza"
+                  value={s.esordio ?? ''}
+                  onChange={(e) => modifica(i, { esordio: e.target.value || null })}
                 />
               </label>
               <label>
@@ -648,15 +728,6 @@ function ListaSintomi({
                 />
               </label>
             </div>
-
-            <label>
-              Come è iniziato
-              <input
-                placeholder="Caratteristiche del disturbo all'insorgenza"
-                value={s.esordio ?? ''}
-                onChange={(e) => modifica(i, { esordio: e.target.value || null })}
-              />
-            </label>
 
             <div className="form-row-2">
               <label>
@@ -673,6 +744,29 @@ function ListaSintomi({
                   onChange={(e) => modifica(i, { allevia: e.target.value || null })}
                 />
               </label>
+            </div>
+
+            {/* L'intensita' del dolore sulla scala da 0 a 10. Si riclicca il
+                pallino scelto per toglierlo. */}
+            <div className="intensita-sintomo">
+              <span className="nome-domanda">Intensità del dolore (NPRS)</span>
+              {(
+                [
+                  ['nprs_attuale', 'Attuale'],
+                  ['nprs_peggiore', 'Peggiore'],
+                  ['nprs_migliore', 'Migliore']
+                ] as const
+              ).map(([chiave, nome]) => (
+                <div key={chiave} className="riga-nprs">
+                  <span className="nome-nprs">{nome}</span>
+                  <ScalaPallini
+                    min={0}
+                    max={10}
+                    valore={s[chiave]}
+                    onCambia={(v) => modifica(i, { [chiave]: s[chiave] === v ? null : v })}
+                  />
+                </div>
+              ))}
             </div>
           </div>
         )

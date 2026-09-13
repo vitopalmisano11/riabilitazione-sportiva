@@ -687,7 +687,14 @@ export interface SintomoAnamnesi {
   id: number | null
   descrizione: string | null
   andamento: AndamentoSintomo | null
+  // la durata con un numero e un'unita'; da_quanto resta per il testo libero
+  durata_numero: number | null
+  durata_unita: 'giorni' | 'settimane' | 'mesi' | 'anni' | null
   da_quanto: string | null
+  esordio_modo: 'improvviso' | 'graduale' | null
+  nprs_attuale: number | null
+  nprs_peggiore: number | null
+  nprs_migliore: number | null
   episodio: EpisodioSintomo | null
   esordio: string | null
   traumatico: 0 | 1 | null
@@ -699,7 +706,10 @@ export interface SintomoAnamnesi {
 
 export interface AnamnesiProssima {
   motivo_consulto: string | null
+  // si'/no, con accanto la casella di testo per il dettaglio
+  notturno_sn: 0 | 1 | null
   dolore_notturno: string | null
+  sonno_sn: 0 | 1 | null
   disturbi_sonno: string | null
   tosse_starnuto: string | null
   sintomi_neurologici: string | null
