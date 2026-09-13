@@ -3763,6 +3763,39 @@ textarea {
   color: var(--text-dim);
 }
 
+/* I sintomi neurologici: si'/no, i tipi quando c'e' il si', e il dettaglio. */
+.domanda-neuro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.domanda-neuro .nome-domanda {
+  flex-basis: 100%;
+}
+
+.domanda-neuro > input {
+  flex: 1 1 220px;
+}
+
+.scelte-multiple {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.scelte-multiple button {
+  padding: 6px 12px;
+  font-size: 15px;
+}
+
+.scelte-multiple button.scelta-attiva {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
 /* La durata di un sintomo: numero, unita', fase e testo libero in una riga
    che va a capo se non ci sta. */
 .riga-durata {
@@ -5151,6 +5184,75 @@ textarea {
 .gm-dolore input[type='checkbox'] {
   width: 20px;
   height: 20px;
+}
+
+/* Il nome del movimento, il lato e la spunta "nella norma" nella prima
+   colonna: il nome a sinistra, il resto in fondo a destra. */
+.gm-mov {
+  flex: 1;
+  min-width: 0;
+}
+
+.etichetta-lato {
+  flex: none;
+  margin-right: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--intestazione);
+  color: var(--text-dim);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.etichetta-lato.interessato {
+  background: var(--accent);
+  color: #fff;
+}
+
+.btn-norma {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  justify-content: center;
+  color: var(--text-dim);
+}
+
+.btn-norma.scelta-attiva {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* Un movimento nella norma: i rilievi si fanno da parte. */
+.gm-riga.in-norma .scala-segni,
+.gm-riga.in-norma .gm-dolore {
+  opacity: 0.35;
+}
+
+/* Con i due lati, la linea fra un movimento e l'altro e' piu' marcata di
+   quella fra destra e sinistra dello stesso movimento. */
+.gm-riga.ultimo-lato > .gm-nome,
+.gm-riga.ultimo-lato > .gm-rilievi {
+  border-bottom: 1.5px solid var(--border);
+}
+
+.azioni-norma {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.riga-test .item-nome {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.spunta-bilaterale {
+  margin-bottom: 12px;
 }
 
 .gm-gradi .campo-gradi {

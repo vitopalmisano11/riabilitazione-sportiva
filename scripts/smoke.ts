@@ -31,7 +31,7 @@ import {
   ripristina,
   svuotaCestino
 } from '../src/main/cestino'
-import { duplicaValutazione, leggiValutazione } from '../src/main/valutazione'
+import { duplicaValutazione, leggiValutazione, salvaValutazione } from '../src/main/valutazione'
 import { coloriTema, impostaTemaCorrente, temaValido } from '../src/shared/temi'
 import { datiScheda } from '../src/main/scheda-dati'
 import {
@@ -70,7 +70,7 @@ db.pragma('foreign_keys = ON')
 
 runMigrations(db)
 runMigrations(db) // idempotente
-assert.equal(db.pragma('user_version', { simple: true }), 41)
+assert.equal(db.pragma('user_version', { simple: true }), 42)
 
 const count = (table: string): number =>
   (db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n
@@ -765,6 +765,50 @@ assert.equal(
   assert.equal(copia.valutazione.note, null)
   // e l'originale resta com'era
   assert.equal(leggiValutazione(primaId).valutazione.ispezione, 'spalla in antepulsione')
+
+  // Un distretto con il lato: destra e sinistra si salvano separati, il sano
+  // puo' essere "nella norma", e la cartella mette a confronto i gradi.
+  const pzL = ins("INSERT INTO pazienti (nome, cognome, arto_operato) VALUES ('Lati', 'Due', 'dx')")
+  const ginocchio = ins("INSERT INTO distretti (nome, bilaterale) VALUES ('Ginocchio', 1)")
+  const flessione = ins(
+    "INSERT INTO distretto_movimenti (distretto_id, nome, gradi, ordine) VALUES (?, 'Flessione', 1, 0)",
+    ginocchio
+  )
+  const lachman = ins(
+    "INSERT INTO distretto_test (distretto_id, nome, gruppo, risposta, ordine) VALUES (?, 'Lachman', 'ortopedici', 'posneg', 0)",
+    ginocchio
+  )
+  const valL = ins("INSERT INTO valutazioni (paziente_id, data) VALUES (?, '2026-09-10')", pzL)
+  const vuotoRilievo = {
+    attivo_restrizione: null,
+    attivo_dolore: null,
+    attivo_gradi: null,
+    passivo_restrizione: null,
+    passivo_dolore: null,
+    passivo_gradi: null,
+    nota: null,
+    norma: null
+  }
+  salvaValutazione({
+    ...leggiValutazione(valL),
+    distretto_ids: [ginocchio],
+    movimenti: [
+      { ...vuotoRilievo, movimento_id: flessione, lato: 'dx', attivo_restrizione: 2, attivo_dolore: 1, attivo_gradi: 110 },
+      { ...vuotoRilievo, movimento_id: flessione, lato: 'sx', attivo_gradi: 140, norma: 1 }
+    ],
+    test: [
+      { test_id: lachman, lato: 'dx', valore: 'positivo', nota: null },
+      { test_id: lachman, lato: 'sx', valore: 'negativo', nota: null }
+    ]
+  })
+  const lettaL = leggiValutazione(valL)
+  assert.equal(lettaL.movimenti.length, 2)
+  assert.equal(lettaL.movimenti.find((m) => m.lato === 'sx')?.norma, 1)
+  assert.equal(lettaL.test.length, 2)
+  const cartellaL = generaCartella(pzL, ['valutazioni'])
+  assert.ok(cartellaL.includes('Flessione attivo: destra 110° (interessato), sinistra 140° — lato interessato −21%'))
+  assert.ok(cartellaL.includes('Flessione (nella norma)'))
+  assert.ok(cartellaL.includes('Lachman destra: positivo') && cartellaL.includes('Lachman sinistra: negativo'))
 }
 
 // --- Bozza della seduta: una per paziente, e si sostituisce ---
@@ -1590,7 +1634,7 @@ initDb(join(dirCartella, 'cartella.db'), dekHex)
   assert.ok(rel.prossima[2].startsWith('Riferisce inoltre rigidità mattutina, costante.'))
   assert.ok(
     rel.prossima.some((p) =>
-      p.includes('Nega dolore o sintomi notturni, disturbi del sonno, peggioramento con tosse o starnuto e sintomi neurologici.')
+      p.includes('Nega dolore o sintomi notturni, disturbi del sonno, sintomi neurologici e peggioramento con tosse o starnuto.')
     )
   )
   assert.ok(!rel.prossima.some((p) => p.includes('Note: nessuna')))
@@ -1601,8 +1645,9 @@ initDb(join(dirCartella, 'cartella.db'), dekHex)
   // una parola, intensita' del dolore.
   const pzNuovo = ins("INSERT INTO pazienti (nome, cognome) VALUES ('Nuovi', 'Campi')")
   ins(
-    `INSERT INTO anamnesi_prossima (paziente_id, notturno_sn, dolore_notturno, sonno_sn)
-     VALUES (?, 1, 'si sveglia verso le 4', 0)`,
+    `INSERT INTO anamnesi_prossima (paziente_id, notturno_sn, dolore_notturno, sonno_sn, neuro_sn,
+       neuro_tipi, sintomi_neurologici)
+     VALUES (?, 1, 'si sveglia verso le 4', 0, 1, 'formicolio,forza', 'gamba sinistra')`,
     pzNuovo
   )
   ins(
@@ -1616,11 +1661,15 @@ initDb(join(dirCartella, 'cartella.db'), dekHex)
     relNuova.prossima[0],
     'Riferisce dolore al ginocchio destro, presente da 3 settimane (fase acuta), dopo la partita, a esordio improvviso e traumatico. Intensità del dolore (NPRS): attuale 4/10, peggiore 7/10.'
   )
-  assert.ok(relNuova.prossima[1].startsWith('Riferisce dolore o sintomi notturni (si sveglia verso le 4). Nega disturbi del sonno.'))
+  assert.equal(
+    relNuova.prossima[1],
+    'Riferisce dolore o sintomi notturni (si sveglia verso le 4) e sintomi neurologici (formicolio o parestesie e perdita di forza, gamba sinistra). Nega disturbi del sonno.'
+  )
   const cartellaNuova = generaCartella(Number(pzNuovo), ['anamnesi'])
   assert.ok(cartellaNuova.includes('3 settimane (fase acuta), dopo la partita'))
   assert.ok(cartellaNuova.includes('sì — si sveglia verso le 4'))
   assert.ok(cartellaNuova.includes('attuale 4/10 · peggiore 7/10'))
+  assert.ok(cartellaNuova.includes('sì — formicolio o parestesie, perdita di forza — gamba sinistra'))
 
   // e' un documento a parte, non una sezione della cartella
   const documentoRelazione = generaRelazione(Number(pz))

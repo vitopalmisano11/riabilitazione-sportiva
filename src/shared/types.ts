@@ -711,6 +711,10 @@ export interface AnamnesiProssima {
   dolore_notturno: string | null
   sonno_sn: 0 | 1 | null
   disturbi_sonno: string | null
+  // si'/no e i tipi scelti (separati da virgola); sintomi_neurologici resta
+  // per la sede e il dettaglio
+  neuro_sn: 0 | 1 | null
+  neuro_tipi: string | null
   tosse_starnuto: string | null
   sintomi_neurologici: string | null
   relazione_sintomi: string | null
@@ -821,7 +825,13 @@ export interface Distretto {
   id: number
   nome: string
   ordine: number
+  // 1 = ha un lato (ginocchio, spalla...): si valuta a destra e a sinistra
+  bilaterale: 0 | 1
 }
+
+// Il lato di un rilievo: '' per i distretti senza lato, e per tutto quello
+// scritto prima che i lati ci fossero.
+export type LatoRilievo = '' | 'dx' | 'sx'
 
 export interface MovimentoDistretto {
   id: number | null
@@ -845,6 +855,9 @@ export interface DistrettoCompleto {
 
 export interface RilievoMovimento {
   movimento_id: number
+  lato: LatoRilievo
+  // 1 = valutato e nella norma
+  norma: 0 | 1 | null
   attivo_restrizione: Grado
   attivo_dolore: Grado
   attivo_gradi: number | null
@@ -856,6 +869,7 @@ export interface RilievoMovimento {
 
 export interface RilievoTest {
   test_id: number
+  lato: LatoRilievo
   valore: string | null
   nota: string | null
 }

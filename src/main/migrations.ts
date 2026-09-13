@@ -1034,6 +1034,64 @@ const MIGRATIONS: string[] = [
   ALTER TABLE anamnesi_sintomi ADD COLUMN nprs_attuale INTEGER;
   ALTER TABLE anamnesi_sintomi ADD COLUMN nprs_peggiore INTEGER;
   ALTER TABLE anamnesi_sintomi ADD COLUMN nprs_migliore INTEGER;
+  `,
+
+  // 42 - destra e sinistra nella valutazione, e "nella norma".
+  //
+  //      I distretti che hanno un lato (ginocchio, spalla, anca...) si segnano
+  //      nella libreria, e in valutazione ogni movimento e ogni test si rileva a
+  //      destra e a sinistra: e' dal confronto con il lato sano che si capisce
+  //      quanto manca. Per questo i rilievi prendono una colonna "lato": ''
+  //      per i distretti senza lato e per tutto quello scritto finora, 'dx' e
+  //      'sx' per gli altri. Il lato entra nella chiave, quindi le due tabelle
+  //      si ricostruiscono copiando i dati come sono.
+  //
+  //      "norma" sul movimento: 1 = valutato e nella norma. Senza, un
+  //      movimento lasciato vuoto non dice se era normale o non provato.
+  //
+  //      I sintomi neurologici diventano si'/no con il tipo (formicolio,
+  //      intorpidimento, perdita di forza, dolore irradiato); la casella di
+  //      testo resta per la sede e il dettaglio.
+  `
+  ALTER TABLE distretti ADD COLUMN bilaterale INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE anamnesi_prossima ADD COLUMN neuro_sn INTEGER;
+  ALTER TABLE anamnesi_prossima ADD COLUMN neuro_tipi TEXT;
+
+  CREATE TABLE valutazione_movimenti_nuova (
+    valutazione_id INTEGER NOT NULL REFERENCES valutazioni(id) ON DELETE CASCADE,
+    movimento_id INTEGER NOT NULL REFERENCES distretto_movimenti(id) ON DELETE CASCADE,
+    lato TEXT NOT NULL DEFAULT '',
+    attivo_restrizione INTEGER,
+    attivo_dolore INTEGER,
+    passivo_restrizione INTEGER,
+    passivo_dolore INTEGER,
+    nota TEXT,
+    attivo_gradi REAL,
+    passivo_gradi REAL,
+    norma INTEGER,
+    PRIMARY KEY (valutazione_id, movimento_id, lato)
+  );
+  INSERT INTO valutazione_movimenti_nuova
+    (valutazione_id, movimento_id, lato, attivo_restrizione, attivo_dolore,
+     passivo_restrizione, passivo_dolore, nota, attivo_gradi, passivo_gradi)
+    SELECT valutazione_id, movimento_id, '', attivo_restrizione, attivo_dolore,
+           passivo_restrizione, passivo_dolore, nota, attivo_gradi, passivo_gradi
+    FROM valutazione_movimenti;
+  DROP TABLE valutazione_movimenti;
+  ALTER TABLE valutazione_movimenti_nuova RENAME TO valutazione_movimenti;
+
+  CREATE TABLE valutazione_test_nuova (
+    valutazione_id INTEGER NOT NULL REFERENCES valutazioni(id) ON DELETE CASCADE,
+    test_id INTEGER NOT NULL REFERENCES distretto_test(id) ON DELETE CASCADE,
+    lato TEXT NOT NULL DEFAULT '',
+    valore TEXT,
+    nota TEXT,
+    PRIMARY KEY (valutazione_id, test_id, lato)
+  );
+  INSERT INTO valutazione_test_nuova (valutazione_id, test_id, lato, valore, nota)
+    SELECT valutazione_id, test_id, '', valore, nota FROM valutazione_test;
+  DROP TABLE valutazione_test;
+  ALTER TABLE valutazione_test_nuova RENAME TO valutazione_test;
   `
 ]
 

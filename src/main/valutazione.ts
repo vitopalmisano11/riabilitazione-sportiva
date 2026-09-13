@@ -46,7 +46,11 @@ export function salvaDistretto(dati: DistrettoCompleto): void {
   const id = dati.distretto.id
 
   db.transaction(() => {
-    db.prepare('UPDATE distretti SET nome = ? WHERE id = ?').run(dati.distretto.nome.trim(), id)
+    db.prepare('UPDATE distretti SET nome = ?, bilaterale = ? WHERE id = ?').run(
+      dati.distretto.nome.trim(),
+      dati.distretto.bilaterale === 1 ? 1 : 0,
+      id
+    )
 
     eliminaMancanti(
       db,
@@ -103,13 +107,13 @@ export function leggiValutazione(id: number): ValutazioneCompleta {
   }))
   const movimenti = db
     .prepare(
-      `SELECT movimento_id, attivo_restrizione, attivo_dolore, attivo_gradi,
+      `SELECT movimento_id, lato, norma, attivo_restrizione, attivo_dolore, attivo_gradi,
               passivo_restrizione, passivo_dolore, passivo_gradi, nota
        FROM valutazione_movimenti WHERE valutazione_id = ?`
     )
     .all(id) as ValutazioneCompleta['movimenti']
   const test = db
-    .prepare('SELECT test_id, valore, nota FROM valutazione_test WHERE valutazione_id = ?')
+    .prepare('SELECT test_id, lato, valore, nota FROM valutazione_test WHERE valutazione_id = ?')
     .all(id) as ValutazioneCompleta['test']
   return { valutazione, distretto_ids, movimenti, note_movimenti, test }
 }
@@ -174,10 +178,11 @@ export function salvaValutazione(dati: ValutazioneCompleta): void {
     db.prepare('DELETE FROM valutazione_movimenti WHERE valutazione_id = ?').run(id)
     const insM = db.prepare(
       `INSERT INTO valutazione_movimenti
-         (valutazione_id, movimento_id, attivo_restrizione, attivo_dolore, attivo_gradi,
-          passivo_restrizione, passivo_dolore, passivo_gradi, nota)
-       VALUES (@valutazione_id, @movimento_id, @attivo_restrizione, @attivo_dolore,
-          @attivo_gradi, @passivo_restrizione, @passivo_dolore, @passivo_gradi, @nota)`
+         (valutazione_id, movimento_id, lato, norma, attivo_restrizione, attivo_dolore,
+          attivo_gradi, passivo_restrizione, passivo_dolore, passivo_gradi, nota)
+       VALUES (@valutazione_id, @movimento_id, @lato, @norma, @attivo_restrizione,
+          @attivo_dolore, @attivo_gradi, @passivo_restrizione, @passivo_dolore,
+          @passivo_gradi, @nota)`
     )
     for (const m of dati.movimenti) {
       // niente da memorizzare per un movimento non ancora valutato
@@ -188,16 +193,19 @@ export function salvaValutazione(dati: ValutazioneCompleta): void {
         m.passivo_restrizione == null &&
         m.passivo_dolore == null &&
         m.passivo_gradi == null &&
+        m.norma == null &&
         !m.nota
-      if (!vuoto) insM.run({ ...m, valutazione_id: id })
+      if (!vuoto) {
+        insM.run({ ...m, lato: m.lato ?? '', norma: m.norma ?? null, valutazione_id: id })
+      }
     }
 
     db.prepare('DELETE FROM valutazione_test WHERE valutazione_id = ?').run(id)
     const insT = db.prepare(
-      'INSERT INTO valutazione_test (valutazione_id, test_id, valore, nota) VALUES (?, ?, ?, ?)'
+      'INSERT INTO valutazione_test (valutazione_id, test_id, lato, valore, nota) VALUES (?, ?, ?, ?, ?)'
     )
     for (const t of dati.test) {
-      if (t.valore || t.nota) insT.run(id, t.test_id, t.valore, t.nota)
+      if (t.valore || t.nota) insT.run(id, t.test_id, t.lato ?? '', t.valore, t.nota)
     }
   })()
 }

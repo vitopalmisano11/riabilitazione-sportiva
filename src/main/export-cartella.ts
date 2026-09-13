@@ -49,7 +49,7 @@ import {
 } from '../shared/figure'
 import type { SezioneCartella } from '../shared/types'
 import { relazioneAnamnesi } from './relazione-anamnesi'
-import { durataTesto, faseDurata, type UnitaDurata } from '../shared/sintomi'
+import { TIPI_NEURO, durataTesto, faseDurata, tipiNeuro, type UnitaDurata } from '../shared/sintomi'
 
 export const SEZIONI: { chiave: SezioneCartella; titolo: string }[] = [
   { chiave: 'anagrafica', titolo: 'Dati del paziente' },
@@ -454,6 +454,17 @@ function intensitaNprs(x: Record<string, unknown>): string | null {
   return parti.length > 0 ? parti.join(' · ') : null
 }
 
+// "sì — formicolio o parestesie, perdita di forza — gamba sinistra"
+function neurologici(a: Record<string, unknown> | undefined): string | null {
+  const tipi = tipiNeuro(a?.neuro_tipi as string | null)
+    .map((t) => TIPI_NEURO.find((x) => x.valore === t)?.frase)
+    .filter((x): x is string => x != null)
+  const risposta = siNoDettaglio(a?.neuro_sn, tipi.length ? tipi.join(', ') : null)
+  const dettaglio = pieno(a?.sintomi_neurologici) ? String(a?.sintomi_neurologici) : null
+  if (risposta && dettaglio) return `${risposta} — ${dettaglio}`
+  return risposta ?? dettaglio
+}
+
 // Il si'/no col dettaglio accanto: "sì — si sveglia verso le 4".
 function siNoDettaglio(sn: unknown, dettaglio: unknown): string | null {
   const risposta = sn === 1 ? 'sì' : sn === 0 ? 'no' : null
@@ -590,7 +601,7 @@ function sezAnamnesi(pazienteId: number): Blocco[] {
       ['Dolore o sintomi notturni', siNoDettaglio(a?.notturno_sn, a?.dolore_notturno)],
       ['Disturbi del sonno', siNoDettaglio(a?.sonno_sn, a?.disturbi_sonno)],
       ['Tosse o starnuto', a?.tosse_starnuto],
-      ['Sintomi neurologici', a?.sintomi_neurologici]
+      ['Sintomi neurologici', neurologici(a)]
     ]),
     ...testo('Relazione fra i sintomi', a?.relazione_sintomi),
     ...testo('Attività', att?.attivita),
@@ -700,6 +711,12 @@ function sezValutazioni(pazienteId: number): Blocco[] {
   const dol = (x: unknown): string => (x == null ? '' : Number(x) > 0 ? 'sì' : 'no')
   const num = (x: unknown): string => (x == null ? '' : `${x}°`)
 
+  const paziente = db.prepare('SELECT arto_operato FROM pazienti WHERE id = ?').get(pazienteId) as
+    | { arto_operato: 'dx' | 'sx' | null }
+    | undefined
+  const interessato = paziente?.arto_operato ?? null
+  const nomeLato = (l: unknown): string => (l === 'dx' ? 'destra' : l === 'sx' ? 'sinistra' : '')
+
   return righe.flatMap((v): Blocco[] => {
     const distretti = db
       .prepare(
@@ -717,12 +734,13 @@ function sezValutazioni(pazienteId: number): Blocco[] {
     const perDistretto = distretti.flatMap((d): Blocco[] => {
       const movimenti = db
         .prepare(
-          `SELECT m.nome, m.gradi, vm.attivo_restrizione, vm.attivo_dolore, vm.attivo_gradi,
-                  vm.passivo_restrizione, vm.passivo_dolore, vm.passivo_gradi
+          `SELECT m.id, m.nome, m.gradi, vm.lato, vm.norma, vm.attivo_restrizione,
+                  vm.attivo_dolore, vm.attivo_gradi, vm.passivo_restrizione, vm.passivo_dolore,
+                  vm.passivo_gradi
            FROM distretto_movimenti m
-           LEFT JOIN valutazione_movimenti vm
+           JOIN valutazione_movimenti vm
              ON vm.movimento_id = m.id AND vm.valutazione_id = ?
-           WHERE m.distretto_id = ? ORDER BY m.ordine, m.id`
+           WHERE m.distretto_id = ? ORDER BY m.ordine, m.id, vm.lato`
         )
         .all(v.id, d.id) as Record<string, unknown>[]
       const compilati = movimenti.filter(
@@ -732,14 +750,15 @@ function sezValutazioni(pazienteId: number): Blocco[] {
           m.passivo_restrizione != null ||
           m.passivo_dolore != null ||
           m.attivo_gradi != null ||
-          m.passivo_gradi != null
+          m.passivo_gradi != null ||
+          m.norma === 1
       )
       const test = db
         .prepare(
-          `SELECT t.nome, t.gruppo, vt.valore, vt.nota
+          `SELECT t.nome, t.gruppo, vt.lato, vt.valore, vt.nota
            FROM distretto_test t
            JOIN valutazione_test vt ON vt.test_id = t.id AND vt.valutazione_id = ?
-           WHERE t.distretto_id = ? ORDER BY t.ordine, t.id`
+           WHERE t.distretto_id = ? ORDER BY t.ordine, t.id, vt.lato`
         )
         .all(v.id, d.id) as Record<string, unknown>[]
       if (compilati.length === 0 && test.length === 0) return []
@@ -749,6 +768,45 @@ function sezValutazioni(pazienteId: number): Blocco[] {
       // riferisce. Le colonne dei gradi compaiono solo se in questo distretto
       // c'e' almeno un movimento che si misura.
       const conGradi = compilati.some((m) => Number(m.gradi) === 1)
+      const conLati = compilati.some((m) => m.lato === 'dx' || m.lato === 'sx')
+
+      // Il confronto fra i due lati, dove ci sono i gradi di tutti e due: il
+      // lato interessato rispetto al sano, oppure — se non si sa quale sia —
+      // quanto sono diversi.
+      const confronti: string[] = []
+      const perMovimento = new Map<number, Record<string, unknown>[]>()
+      for (const m of compilati) {
+        const lista = perMovimento.get(Number(m.id)) ?? []
+        lista.push(m)
+        perMovimento.set(Number(m.id), lista)
+      }
+      for (const lista of perMovimento.values()) {
+        const dx = lista.find((m) => m.lato === 'dx')
+        const sx = lista.find((m) => m.lato === 'sx')
+        if (!dx || !sx) continue
+        for (const [campo, tipo] of [
+          ['attivo_gradi', 'attivo'],
+          ['passivo_gradi', 'passivo']
+        ] as const) {
+          const a = dx[campo] == null ? null : Number(dx[campo])
+          const b = sx[campo] == null ? null : Number(sx[campo])
+          if (a == null || b == null) continue
+          let esito = ''
+          if (interessato) {
+            const int = interessato === 'dx' ? a : b
+            const sano = interessato === 'dx' ? b : a
+            if (sano !== 0) {
+              const d = Math.round(((int - sano) / Math.abs(sano)) * 100)
+              esito = ` — lato interessato ${d > 0 ? '+' : d < 0 ? '−' : ''}${Math.abs(d)}%`
+            }
+          } else if (Math.max(a, b) !== 0) {
+            esito = ` — differenza ${Math.round((Math.abs(a - b) / Math.max(a, b)) * 100)}%`
+          }
+          confronti.push(
+            `${String(dx.nome)} ${tipo}: destra ${a}°${interessato === 'dx' ? ' (interessato)' : ''}, sinistra ${b}°${interessato === 'sx' ? ' (interessato)' : ''}${esito}`
+          )
+        }
+      }
       const tabella: Blocco[] =
         compilati.length === 0
           ? []
@@ -757,6 +815,7 @@ function sezValutazioni(pazienteId: number): Blocco[] {
                 tipo: 'tabella',
                 intestazioni: [
                   'Movimento',
+                  ...(conLati ? ['Lato'] : []),
                   'Attivo · restrizione',
                   'Attivo · dolore',
                   ...(conGradi ? ['Attivo °'] : []),
@@ -765,7 +824,8 @@ function sezValutazioni(pazienteId: number): Blocco[] {
                   ...(conGradi ? ['Passivo °'] : [])
                 ],
                 righe: compilati.map((m) => [
-                  String(m.nome),
+                  m.norma === 1 ? `${String(m.nome)} (nella norma)` : String(m.nome),
+                  ...(conLati ? [nomeLato(m.lato)] : []),
                   g(m.attivo_restrizione),
                   dol(m.attivo_dolore),
                   ...(conGradi ? [num(m.attivo_gradi)] : []),
@@ -782,13 +842,17 @@ function sezValutazioni(pazienteId: number): Blocco[] {
               {
                 tipo: 'elenco',
                 voci: test.map(
-                  (t) => `${t.nome}: ${t.valore ?? '—'}${t.nota ? ` (${t.nota})` : ''}`
+                  (t) =>
+                    `${t.nome}${t.lato ? ` ${nomeLato(t.lato)}` : ''}: ${t.valore ?? '—'}${
+                      t.nota ? ` (${t.nota})` : ''
+                    }`
                 )
               }
             ]
       return [
         { tipo: 'sottotitolo', testo: d.nome },
         ...tabella,
+        ...(confronti.length > 0 ? testo('Confronto fra i due lati', confronti.join('\n')) : []),
         // Le note dei due lati, se ci sono: stanno sotto alla tabella come
         // nella schermata, una per il movimento attivo e una per il passivo.
         ...testo('Note sul movimento attivo', d.nota_attivo),

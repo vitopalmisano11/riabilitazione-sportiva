@@ -100,7 +100,8 @@ export function esportaArchivio(cartella: string): string {
     join(dest, 'anamnesi.csv'),
     q(`SELECT p.cognome, p.nome, a.motivo_consulto, a.notturno_sn, a.dolore_notturno,
               a.sonno_sn, a.disturbi_sonno,
-              a.tosse_starnuto, a.sintomi_neurologici, a.relazione_sintomi, a.note,
+              a.tosse_starnuto, a.neuro_sn, a.neuro_tipi, a.sintomi_neurologici,
+              a.relazione_sintomi, a.note,
               att.attivita, att.partecipazione, att.fattori_interni,
               r.traumi, r.interventi, r.riabilitazioni, r.bioimmagini_note
        FROM pazienti p
@@ -117,6 +118,8 @@ export function esportaArchivio(cartella: string): string {
       'sonno_sn',
       'disturbi_sonno',
       'tosse_starnuto',
+      'neuro_sn',
+      'neuro_tipi',
       'sintomi_neurologici',
       'relazione_sintomi',
       'note',
@@ -200,8 +203,8 @@ export function esportaArchivio(cartella: string): string {
 
   scriviCsv(
     join(dest, 'valutazioni.csv'),
-    q(`SELECT p.cognome, p.nome, v.data, d.nome AS distretto, m.nome AS movimento,
-              vm.attivo_restrizione, vm.attivo_dolore, vm.attivo_gradi,
+    q(`SELECT p.cognome, p.nome, v.data, d.nome AS distretto, m.nome AS movimento, vm.lato,
+              vm.norma, vm.attivo_restrizione, vm.attivo_dolore, vm.attivo_gradi,
               vm.passivo_restrizione, vm.passivo_dolore, vm.passivo_gradi,
               vd.nota_attivo, vd.nota_passivo, v.ispezione, v.note
        FROM valutazione_movimenti vm
@@ -218,6 +221,8 @@ export function esportaArchivio(cartella: string): string {
       'data',
       'distretto',
       'movimento',
+      'lato',
+      'norma',
       'attivo_restrizione',
       'attivo_dolore',
       'attivo_gradi',

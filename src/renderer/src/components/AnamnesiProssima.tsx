@@ -14,7 +14,13 @@ import { errMsg } from '../lib'
 import { sposta, useRiordino } from '../riordino'
 import GraficoAndamento, { COLORI, type Selezione } from './GraficoAndamento'
 import ScalaPallini from './ScalaPallini'
-import { UNITA_DURATA, faseDurata, type UnitaDurata } from '../../../shared/sintomi'
+import {
+  TIPI_NEURO,
+  UNITA_DURATA,
+  faseDurata,
+  tipiNeuro,
+  type UnitaDurata
+} from '../../../shared/sintomi'
 
 // Colloquio con il paziente: nessun campo obbligatorio e nessun ordine da
 // seguire. Tutto sta in una schermata sola, cosi' se il paziente anticipa una
@@ -28,6 +34,8 @@ const VUOTO: Dati = {
   dolore_notturno: null,
   sonno_sn: null,
   disturbi_sonno: null,
+  neuro_sn: null,
+  neuro_tipi: null,
   tosse_starnuto: null,
   sintomi_neurologici: null,
   relazione_sintomi: null,
@@ -224,24 +232,56 @@ export default function AnamnesiProssima({
             />
           </div>
         </div>
-        <div className="form-row-2">
+        {/* Si' o no; con il si' compaiono i tipi, che si possono scegliere
+            anche insieme. Con il no la domanda resta di una riga. */}
+        <div className="domanda-neuro">
+          <span className="nome-domanda">Sintomi neurologici</span>
+          <Scelta
+            etichette={[
+              ['1', 'Sì'],
+              ['0', 'No']
+            ]}
+            valore={dati.neuro_sn == null ? null : String(dati.neuro_sn)}
+            onScegli={(v) => aggiorna({ neuro_sn: v == null ? null : (Number(v) as 0 | 1) })}
+          />
+          {dati.neuro_sn === 1 && (
+            <span className="scelte-multiple">
+              {TIPI_NEURO.map((t) => {
+                const scelti = tipiNeuro(dati.neuro_tipi)
+                const dentro = scelti.includes(t.valore)
+                return (
+                  <button
+                    key={t.valore}
+                    type="button"
+                    className={dentro ? 'scelta-attiva' : ''}
+                    onClick={() => {
+                      const nuovi = dentro
+                        ? scelti.filter((x) => x !== t.valore)
+                        : [...scelti, t.valore]
+                      aggiorna({ neuro_tipi: nuovi.length > 0 ? nuovi.join(',') : null })
+                    }}
+                  >
+                    {t.pulsante}
+                  </button>
+                )
+              })}
+            </span>
+          )}
+          <input
+            placeholder="Sede o dettagli (facoltativo)"
+            value={dati.sintomi_neurologici ?? ''}
+            onChange={campo('sintomi_neurologici')}
+          />
+        </div>
+
+        {/* Tosse e starnuto non si chiedono piu' qui: se servono, stanno in
+            "Cosa lo aggrava". Chi li aveva gia' scritti continua a vederli. */}
+        {dati.tosse_starnuto && (
           <label>
             Tosse o starnuto
-            <input
-              placeholder="Peggiorano il sintomo?"
-              value={dati.tosse_starnuto ?? ''}
-              onChange={campo('tosse_starnuto')}
-            />
+            <input value={dati.tosse_starnuto ?? ''} onChange={campo('tosse_starnuto')} />
           </label>
-          <label>
-            Sintomi neurologici
-            <input
-              placeholder="Formicolii, perdita di forza…"
-              value={dati.sintomi_neurologici ?? ''}
-              onChange={campo('sintomi_neurologici')}
-            />
-          </label>
-        </div>
+        )}
         <label>
           Relazione fra i sintomi
           <textarea
@@ -733,6 +773,7 @@ function ListaSintomi({
               <label>
                 Cosa lo aggrava
                 <input
+                  placeholder="es. scale, stare seduto, tosse o starnuto"
                   value={s.aggrava ?? ''}
                   onChange={(e) => modifica(i, { aggrava: e.target.value || null })}
                 />

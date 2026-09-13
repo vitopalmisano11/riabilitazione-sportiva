@@ -8,7 +8,7 @@
 // ("riferisce", "nega"), che non ha bisogno di sapere se il paziente e' un
 // uomo o una donna.
 import { getDb } from './db'
-import { durataTesto, faseDurata, type UnitaDurata } from '../shared/sintomi'
+import { TIPI_NEURO, durataTesto, faseDurata, tipiNeuro, type UnitaDurata } from '../shared/sintomi'
 
 type Riga = Record<string, unknown>
 
@@ -169,10 +169,22 @@ export function relazioneAnamnesi(pazienteId: number): RelazioneAnamnesi {
     else if (sn === 0) nega.push(d ? `${nome} (${d})` : nome)
     else quadro.push([nome, dettaglio])
   }
-  quadro.push(
-    ['peggioramento con tosse o starnuto', a?.tosse_starnuto],
-    ['sintomi neurologici', a?.sintomi_neurologici]
-  )
+  // I sintomi neurologici col si'/no: i tipi scelti e il dettaglio fra
+  // parentesi, "sintomi neurologici (formicolio e perdita di forza, gamba sinistra)".
+  const dettaglioNeuro = pezzo(a?.sintomi_neurologici)
+  if (a?.neuro_sn === 1) {
+    const tipi = tipiNeuro(a?.neuro_tipi as string | null)
+      .map((t) => TIPI_NEURO.find((x) => x.valore === t)?.frase)
+      .filter((x): x is string => x != null)
+    const dentro = [tipi.length ? elenco(tipi) : null, dettaglioNeuro].filter(Boolean).join(', ')
+    riferisce.push(dentro ? `sintomi neurologici (${dentro})` : 'sintomi neurologici')
+  } else if (a?.neuro_sn === 0) {
+    nega.push('sintomi neurologici')
+  } else {
+    quadro.push(['sintomi neurologici', a?.sintomi_neurologici])
+  }
+  // tosse e starnuto: solo nelle schede in cui erano stati scritti
+  quadro.push(['peggioramento con tosse o starnuto', a?.tosse_starnuto])
   for (const [nome, valore] of quadro) {
     const v = siNo(valore)
     if (v == null) continue

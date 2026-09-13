@@ -1579,6 +1579,8 @@ export function registerIpc(): void {
       dolore_notturno: null,
       sonno_sn: null,
       disturbi_sonno: null,
+      neuro_sn: null,
+      neuro_tipi: null,
       tosse_starnuto: null,
       sintomi_neurologici: null,
       relazione_sintomi: null,
@@ -1596,10 +1598,11 @@ export function registerIpc(): void {
       db.prepare(
         `INSERT INTO anamnesi_prossima
            (paziente_id, motivo_consulto, notturno_sn, dolore_notturno, sonno_sn, disturbi_sonno,
-            tosse_starnuto, sintomi_neurologici, relazione_sintomi, note, note_giorno, note_esordio)
+            tosse_starnuto, neuro_sn, neuro_tipi, sintomi_neurologici, relazione_sintomi, note,
+            note_giorno, note_esordio)
          VALUES (@paziente_id, @motivo_consulto, @notturno_sn, @dolore_notturno, @sonno_sn,
-                 @disturbi_sonno, @tosse_starnuto, @sintomi_neurologici, @relazione_sintomi, @note,
-                 @note_giorno, @note_esordio)
+                 @disturbi_sonno, @tosse_starnuto, @neuro_sn, @neuro_tipi, @sintomi_neurologici,
+                 @relazione_sintomi, @note, @note_giorno, @note_esordio)
          ON CONFLICT(paziente_id) DO UPDATE SET
            motivo_consulto = excluded.motivo_consulto,
            notturno_sn = excluded.notturno_sn,
@@ -1607,6 +1610,8 @@ export function registerIpc(): void {
            sonno_sn = excluded.sonno_sn,
            disturbi_sonno = excluded.disturbi_sonno,
            tosse_starnuto = excluded.tosse_starnuto,
+           neuro_sn = excluded.neuro_sn,
+           neuro_tipi = excluded.neuro_tipi,
            sintomi_neurologici = excluded.sintomi_neurologici,
            relazione_sintomi = excluded.relazione_sintomi,
            note = excluded.note,
@@ -1620,6 +1625,8 @@ export function registerIpc(): void {
         sonno_sn: dati.sonno_sn ?? null,
         disturbi_sonno: dati.disturbi_sonno,
         tosse_starnuto: dati.tosse_starnuto,
+        neuro_sn: dati.neuro_sn ?? null,
+        neuro_tipi: dati.neuro_tipi ?? null,
         sintomi_neurologici: dati.sintomi_neurologici,
         relazione_sintomi: dati.relazione_sintomi,
         note: dati.note,

@@ -9,6 +9,7 @@ import type {
   TestDistretto
 } from '../../../shared/types'
 import { toast, toastErrore } from '../components/Toast'
+import Aiuto from '../components/Aiuto'
 import { chiedi } from '../components/Conferma'
 import { errMsg } from '../lib'
 import { sposta, useRiordino } from '../riordino'
@@ -278,6 +279,20 @@ function EditorDistretto({
 
   return (
     <section className="card">
+      {/* Una spunta sola per i due lati: il resto della configurazione non
+          cambia, i movimenti e i test si scrivono una volta. */}
+      <label className="checkbox-inline spunta-bilaterale">
+        <input
+          type="checkbox"
+          checked={dati.distretto.bilaterale === 1}
+          onChange={(e) =>
+            aggiorna({ distretto: { ...dati.distretto, bilaterale: e.target.checked ? 1 : 0 } })
+          }
+        />
+        Ha un lato: si valuta a destra e a sinistra
+        <Aiuto testo="Da spuntare per ginocchio, spalla, anca, caviglia e le altre articolazioni che hanno un lato; il rachide no. Movimenti e test li scrivi una volta sola, come adesso: in valutazione ognuno compare due volte, a destra e a sinistra, e il lato operato o infortunato scritto nei dati del paziente si riconosce dal colore. Nella cartella stampata il programma mette a confronto i gradi dei due lati. Le valutazioni già fatte restano come le avevi scritte." />
+      </label>
+
       <Movimenti movimenti={dati.movimenti} onChange={(movimenti) => aggiorna({ movimenti })} />
       <TestDistrettuali test={dati.test} onChange={(test) => aggiorna({ test })} />
 

@@ -7,6 +7,19 @@
 
 export const COLORI_SINTOMI = ['#2563eb', '#d64545', '#1f9d61', '#b45309', '#7c3aed']
 
+// I sintomi neurologici che si distinguono con un pulsante: la chiave che si
+// salva, la scritta del pulsante e come si dice dentro a una frase.
+export const TIPI_NEURO: { valore: string; pulsante: string; frase: string }[] = [
+  { valore: 'formicolio', pulsante: 'Formicolio / parestesie', frase: 'formicolio o parestesie' },
+  { valore: 'intorpidimento', pulsante: 'Intorpidimento', frase: 'intorpidimento' },
+  { valore: 'forza', pulsante: 'Perdita di forza', frase: 'perdita di forza' },
+  { valore: 'irradiato', pulsante: 'Dolore irradiato', frase: 'dolore irradiato' }
+]
+
+export function tipiNeuro(salvati: string | null | undefined): string[] {
+  return (salvati ?? '').split(',').map((x) => x.trim()).filter(Boolean)
+}
+
 // Da quanto dura un sintomo, detto con un numero e un'unita'.
 export type UnitaDurata = 'giorni' | 'settimane' | 'mesi' | 'anni'
 
