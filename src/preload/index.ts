@@ -60,6 +60,8 @@ const invoke = (channel: string, ...args: unknown[]): Promise<never> =>
 
 const api: Api = {
   apriLink: (url: string) => invoke('apriLink', url),
+  coloriBarra: (sfondo: string, simboli: string) =>
+    invoke('finestra:coloriBarra', sfondo, simboli),
   scegliImmagine: () => invoke('scegliImmagine'),
   auth: {
     status: () => invoke('auth:status'),
@@ -341,8 +343,7 @@ const api: Api = {
   },
   scheda: {
     apri: (sedutaId: number) => invoke('scheda:apri', sedutaId),
-    dati: (sedutaId: number) => invoke('scheda:dati', sedutaId),
-    coloriBarra: (sfondo: string, simboli: string) => invoke('scheda:coloriBarra', sfondo, simboli)
+    dati: (sedutaId: number) => invoke('scheda:dati', sedutaId)
   },
   obiettiviTerapeutici: {
     list: (pazienteId: number) => invoke('obiettiviTerapeutici:list', pazienteId),

@@ -1742,7 +1742,7 @@ export function registerIpc(): void {
   handle('scheda:dati', (sedutaId: number) => datiScheda(sedutaId))
   // Non passa dal solito aiutante perche' serve sapere da quale finestra
   // arriva: e' la sua barra che cambia colore.
-  ipcMain.handle('scheda:coloriBarra', (evento, sfondo: string, simboli: string) => {
+  ipcMain.handle('finestra:coloriBarra', (evento, sfondo: string, simboli: string) => {
     const finestra = BrowserWindow.fromWebContents(evento.sender)
     if (!finestra || finestra.isDestroyed()) return
     try {

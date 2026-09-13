@@ -49,6 +49,7 @@ import {
 } from '../src/main/questionari'
 import { spostaFileDati } from '../src/main/file-dati'
 import { generaReportScreening } from '../src/main/report-screening'
+import { conBarra } from '../src/main/finestre'
 import { copyFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { daQuando } from '../src/renderer/src/lib'
 import {
@@ -1342,6 +1343,12 @@ assert.equal(
   assert.ok(riassunto.includes('In miglioramento</span>: Drop jump prova – Altezza +18%'), 'miglioramento dal primo screening')
   // la variazione nella tabella sta tra parentesi, accanto al numero
   assert.ok(html.includes('(+18%)'))
+
+  // la barra in cima alla finestra entra subito dopo <body>, col titolo
+  // protetto, e in stampa non c'e'
+  const conTitolo = conBarra(html, 'Report — Prova <Luca>')
+  assert.ok(/<body[^>]*><div class="barra-finestra">Report — Prova &lt;Luca&gt;<\/div>/.test(conTitolo))
+  assert.ok(conTitolo.includes('@media print { .barra-finestra, .spazio-barra { display: none; } }'))
 }
 
 getDb().close()

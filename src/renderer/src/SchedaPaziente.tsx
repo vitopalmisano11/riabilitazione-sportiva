@@ -3,6 +3,7 @@ import { RotateCw } from 'lucide-react'
 import type { SchedaPaziente as Dati } from '../../shared/types'
 import { errMsg, formatData } from './lib'
 import { caricoTesto, intensitaTesto, recuperoTesto, volumeTesto } from '../../shared/dosaggio'
+import BarraFinestra from './components/BarraFinestra'
 
 // Quello che vede il paziente mentre si allena: solo il suo programma. Ne
 // stanno aperte piu' d'una insieme, una per paziente.
@@ -26,21 +27,8 @@ export default function SchedaPaziente({ sedutaId }: { sedutaId: number }): Reac
 
   useEffect(carica, [carica])
 
-  // I pulsanti di Windows in cima prendono i colori della barra, cosi' la
-  // striscia e' tutta uguale anche col tema scuro.
-  useEffect(() => {
-    const stile = getComputedStyle(document.documentElement)
-    const sfondo = stile.getPropertyValue('--surface').trim()
-    const testo = stile.getPropertyValue('--text').trim()
-    if (sfondo && testo) void window.api.scheda.coloriBarra(sfondo, testo).catch(() => undefined)
-  }, [])
-
   // La barra in cima alla finestra: il titolo, e la presa per spostarla.
-  const barra = (
-    <div className="barra-finestra">
-      <span>{dati ? `Scheda — ${dati.paziente}` : 'Scheda'}</span>
-    </div>
-  )
+  const barra = <BarraFinestra titolo={dati ? `Scheda — ${dati.paziente}` : 'Scheda'} />
 
   if (errore)
     return (

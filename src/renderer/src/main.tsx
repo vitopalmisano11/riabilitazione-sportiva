@@ -6,6 +6,7 @@ import '@fontsource/inter/600.css'
 import '@fontsource/inter/700.css'
 import App from './App'
 import SchedaPaziente from './SchedaPaziente'
+import BarraFinestra from './components/BarraFinestra'
 import './styles.css'
 
 // La finestra aperta con #scheda=<id> mostra solo il programma di quel
@@ -15,6 +16,13 @@ const scheda = /^#scheda=(\d+)$/.exec(window.location.hash)
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    {scheda ? <SchedaPaziente sedutaId={Number(scheda[1])} /> : <App />}
+    {scheda ? (
+      <SchedaPaziente sedutaId={Number(scheda[1])} />
+    ) : (
+      <>
+        <BarraFinestra />
+        <App />
+      </>
+    )}
   </React.StrictMode>
 )

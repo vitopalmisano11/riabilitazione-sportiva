@@ -8,7 +8,48 @@
 // Il tasto si intercetta prima che arrivi alla pagina (before-input-event):
 // cosi' funziona anche dove la pagina e' un HTML generato, senza codice suo e
 // senza preload.
-import type { BrowserWindow } from 'electron'
+import type { BrowserWindow, BrowserWindowConstructorOptions } from 'electron'
+
+// La barra in cima a tutte le finestre del programma.
+//
+// Quella di Windows e' alta circa 32 e non si puo' cambiare: per averla piu'
+// alta la finestra nasce senza, Windows ci mette sopra solo riduci, ingrandisci
+// e chiudi, e il titolo con la striscia da trascinare li disegna la pagina.
+// I colori di partenza sono quelli chiari: la pagina, appena carica, chiede i
+// suoi.
+export const ALTEZZA_BARRA = 38
+
+export function barraAlta(): Pick<BrowserWindowConstructorOptions, 'titleBarStyle' | 'titleBarOverlay'> {
+  return {
+    titleBarStyle: 'hidden',
+    titleBarOverlay: { color: '#ffffff', symbolColor: '#1c242b', height: ALTEZZA_BARRA }
+  }
+}
+
+// La stessa barra per le pagine generate (l'anteprima della cartella, il report
+// dello screening), che non hanno React: un titolo fisso in cima e uno spazio
+// della stessa altezza prima del contenuto. Le misure vengono da env(), che
+// vale zero dove la barra non c'e' — cioe' nella finestra nascosta da cui nasce
+// il PDF: li' non compare niente.
+export function conBarra(html: string, titolo: string): string {
+  const esc = titolo.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  const stile = `<style>
+  .barra-finestra { position: fixed; z-index: 1000; top: 0; left: 0; right: 0;
+    height: env(titlebar-area-height, 0px); overflow: hidden;
+    display: flex; align-items: center; padding: 0 16px;
+    padding-right: calc(100% - env(titlebar-area-width, 100%) + 16px);
+    background: #ffffff; box-shadow: 0 1px 0 #e2e6ea; color: #1c242b;
+    font: 600 calc(env(titlebar-area-height, 0px) * 0.37) 'Segoe UI', system-ui, sans-serif;
+    white-space: nowrap; user-select: none; -webkit-app-region: drag; }
+  .spazio-barra { height: env(titlebar-area-height, 0px); }
+  @media print { .barra-finestra, .spazio-barra { display: none; } }
+</style>`
+  const barra = `<div class="barra-finestra">${esc}</div><div class="spazio-barra"></div>`
+  const conStile = html.includes('</head>') ? html.replace('</head>', `${stile}</head>`) : stile + html
+  return /<body[^>]*>/.test(conStile)
+    ? conStile.replace(/<body[^>]*>/, (b) => b + barra)
+    : barra + conStile
+}
 
 // La sessione tutta sua di una finestra secondaria.
 //

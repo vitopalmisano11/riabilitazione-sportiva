@@ -200,32 +200,17 @@ function Simbolo({ tipo, r }: { tipo: TipoSegno; r: number }): React.JSX.Element
 // L'omino della body chart: una figura in movimento, disegnata di tratto come
 // le altre icone. Un braccio alzato e uno sul fianco — sta in piedi e si tocca
 // dove gli fa male, che e' esattamente quello che si va a segnare.
-export function SagomaIcona({ size = 26 }: { size?: number }): React.JSX.Element {
+export function SagomaIcona({ size = 24 }: { size?: number }): React.JSX.Element {
+  // L'omino dei cartelli: in piedi, di fronte, le braccia lungo i fianchi e
+  // staccate dal busto, le gambe separate. Pieno del colore del fondo con il
+  // contorno del colore del testo. Sta sulla griglia di 24 delle icone lucide
+  // che ha accanto, cosi' a parita' di misura e' grande come loro.
   return (
-    <svg className="icona-sagoma" width={size} height={size} viewBox="0 0 100 100">
-      {/* Il contorno nero e il bianco dentro si ottengono disegnando la stessa
-          figura due volte: prima con un tratto spesso del colore del testo,
-          poi con uno piu' sottile del colore del fondo. Cosi' resta una sagoma
-          vuota, come un disegno fatto a penna. */}
-      {/* In piedi, di fronte, con braccia e gambe un po' aperte: le braccia a
-          meta' fra lungo i fianchi e a 45 gradi, cosi' si staccano dal busto
-          senza sembrare un salto. Il busto e' piu' largo degli arti. */}
-      <g className="sagoma-fuori">
-        <path d="M40,40 L23,67" />
-        <path d="M60,40 L77,67" />
-        <path d="M45,60 L31,88" />
-        <path d="M55,60 L69,88" />
-        <path className="sagoma-busto" d="M50,38 L50,58" />
-      </g>
-      <g className="sagoma-dentro">
-        <path d="M40,40 L23,67" />
-        <path d="M60,40 L77,67" />
-        <path d="M45,60 L31,88" />
-        <path d="M55,60 L69,88" />
-        <path className="sagoma-busto" d="M50,38 L50,58" />
-      </g>
-      {/* La testa sta sopra a tutto: cosi' copre l'attacco del busto. */}
-      <circle className="sagoma-testa" cx="50" cy="15" r="11.5" />
+    <svg className="icona-sagoma" width={size} height={size} viewBox="0 0 24 24">
+      <circle cx="12" cy="3.9" r="2.6" />
+      <path d="M10.1 8 H13.9 Q15.4 8 15.4 9.5 V22 Q15.4 22.8 14.6 22.8 H13.2 Q12.4 22.8 12.4 22 V15.6 H11.6 V22 Q11.6 22.8 10.8 22.8 H9.4 Q8.6 22.8 8.6 22 V9.5 Q8.6 8 10.1 8 Z" />
+      <rect x="5.2" y="8.3" width="2.6" height="8.2" rx="1.3" />
+      <rect x="16.2" y="8.3" width="2.6" height="8.2" rx="1.3" />
     </svg>
   )
 }

@@ -18,7 +18,7 @@ import {
 export type FormatoExport = 'pdf' | 'docx'
 
 import type { AnteprimaScheda } from '../shared/types'
-import { chiudiConEsc, sessioneSeparata, zoomabile } from './finestre'
+import { barraAlta, chiudiConEsc, conBarra, sessioneSeparata, zoomabile } from './finestre'
 
 function leggiPaziente(id: number): DatiPazienteExport {
   const p = getDb()
@@ -216,7 +216,7 @@ export async function apriAnteprimaCartella(
   const html = generaCartella(pazienteId, sezioni)
   const { cognome, nome } = componiCartella(pazienteId, sezioni)
   const tmp = join(app.getPath('temp'), `riab-anteprima-${pazienteId}-${Date.now()}.html`)
-  await writeFile(tmp, html, 'utf-8')
+  await writeFile(tmp, conBarra(html, `Anteprima — ${cognome} ${nome}`), 'utf-8')
 
   const gia = anteprimeAperte.get(pazienteId)
   if (gia && !gia.isDestroyed()) {
@@ -233,6 +233,7 @@ export async function apriAnteprimaCartella(
     height: 1000,
     title: `Anteprima — ${cognome} ${nome}`,
     autoHideMenuBar: true,
+    ...barraAlta(),
     icon: icona,
     webPreferences: { sandbox: true, partition: sessioneSeparata(`cartella-${pazienteId}`) }
   })
@@ -272,7 +273,7 @@ export async function apriAnteprimaReport(sessioneIds: number[]): Promise<void> 
   const r = generaReportScreening(sessioneIds)
   const sessioneId = sessioneIds[sessioneIds.length - 1]
   const tmp = join(app.getPath('temp'), `riab-report-${sessioneId}-${Date.now()}.html`)
-  await writeFile(tmp, r.html, 'utf-8')
+  await writeFile(tmp, conBarra(r.html, `Report — ${r.cognome} ${r.nome}`), 'utf-8')
 
   const gia = reportAperti.get(sessioneId)
   if (gia && !gia.isDestroyed()) {
@@ -286,6 +287,7 @@ export async function apriAnteprimaReport(sessioneIds: number[]): Promise<void> 
     height: 1000,
     title: `Report — ${r.cognome} ${r.nome}`,
     autoHideMenuBar: true,
+    ...barraAlta(),
     icon: icona,
     webPreferences: { sandbox: true, partition: sessioneSeparata(`report-${sessioneId}`) }
   })

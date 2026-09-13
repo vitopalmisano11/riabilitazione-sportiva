@@ -8,6 +8,7 @@ import {
   posizioneFinestra
 } from './impostazioni'
 import { backupDiChiusura } from './backup'
+import { barraAlta } from './finestre'
 import icona from '../../resources/icon.png?asset'
 
 // In sviluppo l'app tiene dati e cache propri: le prove — comprese le migrazioni,
@@ -25,6 +26,7 @@ function createWindow(): void {
     y: salvata?.y,
     show: false,
     autoHideMenuBar: true,
+    ...barraAlta(),
     icon: icona,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),

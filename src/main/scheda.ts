@@ -7,11 +7,7 @@
 import { BrowserWindow } from 'electron'
 import { join } from 'path'
 import { datiScheda } from './scheda-dati'
-import { chiudiConEsc, sessioneSeparata, zoomabile } from './finestre'
-
-// Quanto e' alta la barra in cima alla finestra della scheda. Quella di
-// Windows e' circa 32.
-const ALTEZZA_BARRA = 44
+import { barraAlta, chiudiConEsc, sessioneSeparata, zoomabile } from './finestre'
 import icona from '../../resources/icon.png?asset'
 
 // Una finestra per seduta: riaprendo la stessa scheda si porta in primo piano
@@ -33,12 +29,7 @@ export function apriScheda(sedutaId: number): void {
     // un lampo del colore di sistema
     backgroundColor: '#ffffff',
     title: `Scheda — ${dati.paziente}`,
-    // La barra in cima la disegna la pagina, piu' alta di quella di Windows:
-    // la finestra sta spesso lontana, girata verso il paziente, e i pulsanti
-    // piccoli si prendevano male. Windows ci mette sopra solo riduci,
-    // ingrandisci e chiudi, dei colori che poi chiede la pagina.
-    titleBarStyle: 'hidden',
-    titleBarOverlay: { color: '#ffffff', symbolColor: '#1c242b', height: ALTEZZA_BARRA },
+    ...barraAlta(),
     autoHideMenuBar: true,
     icon: icona,
     webPreferences: {

@@ -400,6 +400,11 @@
   box-sizing: border-box;
 }
 
+/* Quanto e' alta la barra disegnata in cima alla finestra: zero dove non c'e'. */
+:root {
+  --alto-barra: env(titlebar-area-height, 0px);
+}
+
 body {
   margin: 0;
   background: var(--bg);
@@ -577,7 +582,8 @@ button.danger:hover:not(:disabled) {
 
 .app {
   display: flex;
-  height: 100vh;
+  height: calc(100vh - var(--alto-barra));
+  margin-top: var(--alto-barra);
 }
 
 /* Colori dal tema: chiara col verde, scura col blu. Le scritte, il passaggio
@@ -1586,7 +1592,7 @@ span.row-actions button {
 
 .modal-overlay {
   position: fixed;
-  inset: 0;
+  inset: var(--alto-barra) 0 0 0;
   background: rgba(15, 23, 42, 0.45);
   backdrop-filter: blur(2px);
   display: flex;
@@ -1602,7 +1608,7 @@ span.row-actions button {
   padding: 26px;
   width: 620px;
   max-width: calc(100vw - 48px);
-  max-height: calc(100vh - 48px);
+  max-height: calc(100vh - 48px - var(--alto-barra));
   overflow: auto;
   display: flex;
   flex-direction: column;
@@ -2249,7 +2255,7 @@ span.row-actions button {
 
 .auth-screen {
   position: fixed;
-  inset: 0;
+  inset: var(--alto-barra) 0 0 0;
   /* Beige caldo con due aloni verde salvia appena accennati. */
   background:
     radial-gradient(700px 500px at 15% -10%, rgba(85, 128, 106, 0.18), transparent 60%),
@@ -3692,14 +3698,14 @@ textarea {
 .icona-obiettivi {
   fill: none;
   stroke: currentColor;
-  stroke-width: 2;
+  stroke-width: 1.5;
   stroke-linejoin: round;
   stroke-linecap: round;
 }
 
 .icona-obiettivi .io-alone {
   stroke: var(--surface);
-  stroke-width: 4;
+  stroke-width: 3.5;
 }
 
 .primary .icona-obiettivi .io-alone {
@@ -3710,43 +3716,13 @@ textarea {
    come un disegno fatto a penna. Il pieno si ottiene disegnando due volte la
    stessa figura, la seconda piu' sottile e del colore del fondo. */
 .icona-sagoma {
-  fill: none;
-  stroke-linejoin: round;
-  stroke-linecap: round;
-}
-
-.icona-sagoma .sagoma-fuori {
-  stroke: currentColor;
-  stroke-width: 19;
-}
-
-.icona-sagoma .sagoma-dentro {
-  stroke: var(--surface);
-  stroke-width: 9;
-}
-
-/* il busto e' piu' largo di braccia e gambe, con lo stesso bordo */
-.icona-sagoma .sagoma-fuori .sagoma-busto {
-  stroke-width: 30;
-}
-
-.icona-sagoma .sagoma-dentro .sagoma-busto {
-  stroke-width: 20;
-}
-
-.icona-sagoma .sagoma-testa {
   fill: var(--surface);
   stroke: currentColor;
-  stroke-width: 7;
+  stroke-width: 1.75;
+  stroke-linejoin: round;
 }
 
-/* Dentro a un pulsante pieno il fondo e' quello del pulsante, non il bianco
-   della pagina. */
-.primary .icona-sagoma .sagoma-dentro {
-  stroke: var(--accent);
-}
-
-.primary .icona-sagoma .sagoma-testa {
+.primary .icona-sagoma {
   fill: var(--accent);
 }
 
@@ -4020,22 +3996,23 @@ textarea {
 /* Il programma del paziente e' un foglio: staccato dai bordi della finestra,
    come il PDF della cartella quando lo si guarda. Prima era una colonna bianca
    attaccata sopra e sotto, e non si capiva dove finiva. */
-/* La finestra della scheda disegna da se' la barra in cima, piu' alta di
-   quella di Windows: il titolo a sinistra, e tutta la striscia serve a
-   trascinare la finestra. A destra Windows ci mette riduci, ingrandisci e
-   chiudi. Le misure vengono da env(): restano giuste anche ingrandendo la
-   pagina con Ctrl +. */
+/* La finestra della scheda: il contenuto parte sotto alla barra. */
 .finestra-scheda {
-  padding-top: env(titlebar-area-height, 0px);
+  padding-top: var(--alto-barra);
 }
 
+/* Le finestre disegnano da se' la barra in cima, piu' alta di quella di
+   Windows: il titolo a sinistra, e tutta la striscia serve a trascinare la
+   finestra. A destra Windows ci mette riduci, ingrandisci e chiudi. Le misure
+   vengono da env(): restano giuste anche ingrandendo la pagina con Ctrl +. */
 .barra-finestra {
   position: fixed;
   z-index: 50;
   top: 0;
   left: 0;
   right: 0;
-  height: env(titlebar-area-height, 44px);
+  height: var(--alto-barra);
+  overflow: hidden;
   display: flex;
   align-items: center;
   padding-left: 16px;
@@ -4043,7 +4020,7 @@ textarea {
   background: var(--surface);
   box-shadow: 0 1px 0 var(--border);
   color: var(--text);
-  font-size: calc(env(titlebar-area-height, 44px) * 0.34);
+  font-size: calc(var(--alto-barra) * 0.37);
   font-weight: 600;
   user-select: none;
   -webkit-app-region: drag;

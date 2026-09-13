@@ -933,6 +933,9 @@ export type SezioneCartella =
 export interface Api {
   // apre un URL http/https nel browser predefinito
   apriLink(url: string): Promise<void>
+  // I colori dei pulsanti di Windows (riduci, ingrandisci, chiudi) in cima
+  // alla finestra: la pagina li chiede uguali a quelli della sua barra.
+  coloriBarra(sfondo: string, simboli: string): Promise<void>
   // Apre il dialogo file e ritorna l'immagine gia' ridimensionata, o null.
   scegliImmagine(): Promise<string | null>
   auth: {
@@ -1254,9 +1257,6 @@ export interface Api {
     // Apre (o riporta in primo piano) la finestra con la scheda della seduta.
     apri(sedutaId: number): Promise<void>
     dati(sedutaId: number): Promise<SchedaPaziente>
-    // I colori dei pulsanti di Windows (riduci, ingrandisci, chiudi) in cima
-    // alla finestra: la pagina li chiede uguali a quelli della sua barra.
-    coloriBarra(sfondo: string, simboli: string): Promise<void>
   }
   obiettiviTerapeutici: {
     list(pazienteId: number): Promise<ObiettivoTerapeutico[]>
