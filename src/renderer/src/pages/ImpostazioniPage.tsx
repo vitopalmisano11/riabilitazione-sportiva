@@ -96,8 +96,9 @@ export default function ImpostazioniPage({
             {/* L'aspetto a sinistra e la password a destra, alti uguale: sono
                 le due cose che si vengono a cercare qui, e due riquadri
                 affiancati di altezza diversa sembrano uno sbaglio. Il blocco e
-                la dimensione dei caratteri stanno sotto, a tutta larghezza. */}
-            <div className="griglia-impostazioni griglia-pari">
+                la dimensione dei caratteri stanno sotto, nella stessa griglia:
+                cosi' il riquadro e' largo esattamente come gli altri due. */}
+            <div className="griglia-impostazioni griglia-pari griglia-due">
               <SchedaAspetto
                 tema={tema}
                 onTema={onTema}
@@ -107,8 +108,6 @@ export default function ImpostazioniPage({
                 onBarraScura={onBarraScura}
               />
               <SchedaPassword />
-            </div>
-            <div className="stacco-blocco">
               <SchedaBlocco ingrandimento={ingrandimento} onIngrandimento={onIngrandimento} />
             </div>
           </>

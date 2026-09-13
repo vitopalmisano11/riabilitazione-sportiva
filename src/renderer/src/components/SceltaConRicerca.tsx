@@ -11,6 +11,10 @@ import { ChevronDown, X } from 'lucide-react'
 export interface VoceScelta {
   id: number
   nome: string
+  // Una voce che sta dentro a un'altra (un distretto nella sua categoria): in
+  // elenco si scrive rientrata sotto di lei, e cercando il nome del gruppo
+  // escono anche le sue voci.
+  gruppo?: string
 }
 
 export default function SceltaConRicerca({
@@ -52,7 +56,12 @@ export default function SceltaConRicerca({
   }, [aperto])
 
   const q = testo.trim().toLowerCase()
-  const trovate = q === '' ? voci : voci.filter((v) => v.nome.toLowerCase().includes(q))
+  const trovate =
+    q === ''
+      ? voci
+      : voci.filter(
+          (v) => v.nome.toLowerCase().includes(q) || (v.gruppo ?? '').toLowerCase().includes(q)
+        )
 
   const scegli = (id: number | ''): void => {
     onCambia(id)
@@ -139,7 +148,9 @@ export default function SceltaConRicerca({
             <li key={v.id}>
               <button
                 type="button"
-                className={v.id === valore ? 'briciola scelta-attiva' : 'briciola'}
+                className={['briciola', v.gruppo != null && 'voce-rientrata', v.id === valore && 'scelta-attiva']
+                  .filter(Boolean)
+                  .join(' ')}
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => scegli(v.id)}
               >

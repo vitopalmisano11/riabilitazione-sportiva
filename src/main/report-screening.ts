@@ -65,7 +65,7 @@ function variazione(
   const segno = delta >= 0 ? '+' : '−'
   const migliorato = menoEMeglio ? delta < 0 : delta > 0
   const classe = delta === 0 ? 'pari' : migliorato ? 'su' : 'giu'
-  return `<span class="variazione ${classe}">${segno}${Math.abs(delta).toFixed(0)}%</span>`
+  return `<span class="variazione ${classe}">(${segno}${Math.abs(delta).toFixed(0)}%)</span>`
 }
 
 // ---- disegni ----
@@ -533,9 +533,8 @@ export function generaReportScreening(sessioneIds: number[]): DatiReport {
                                    text-align: center; white-space: nowrap; }
   table.prove thead th { background: ${intestazione}; font-size: 10px; }
   table.prove tbody th { text-align: left; font-weight: 400; color: #555b66; white-space: nowrap; }
-  /* La variazione va sotto al numero: di fianco allargava la colonna e i
-     valori non erano piu' incolonnati. */
-  td.sintesi .variazione { display: block; margin: 1px 0 0; }
+  /* La variazione sta di fianco al numero, tra parentesi: "5,0 (+67%)". */
+  td.sintesi .variazione { margin-left: 4px; }
   table.prove td.sintesi { font-weight: 700; }
   /* Solo un'annotazione su quale dei due lati e' quello interessato: il rosso
      lo faceva sembrare un allarme. */
@@ -543,9 +542,9 @@ export function generaReportScreening(sessioneIds: number[]): DatiReport {
   .grafico-lati { display: flex; align-items: center; justify-content: center; gap: 8px; }
   .ciambella { width: 96px; height: 96px; }
   .ciambella .vuoto { font-size: 11px; fill: #8b93a0; text-anchor: middle; }
-  .lato { text-align: center; min-width: 62px; }
+  .lato { text-align: center; min-width: 62px; white-space: nowrap; }
   .lato .etichetta { display: block; font-size: 10px; color: #6b7280; }
-  .lato .numero { display: block; font-size: 15px; font-weight: 700; }
+  .lato .numero { font-size: 15px; font-weight: 700; }
   .lato.sinistra .numero { color: #d64545; }
   .lato.destra .numero { color: #2563eb; }
   .asimmetria { text-align: center; margin: 4px 0 0; font-size: 11px; color: #555b66; }
@@ -576,7 +575,7 @@ export function generaReportScreening(sessioneIds: number[]): DatiReport {
   .variazione.su { color: #1f9d61; }
   .variazione.giu { color: #d64545; }
   .variazione.pari { color: #8b93a0; }
-  .lato .variazione { display: block; margin: 1px 0 0; }
+  .lato .variazione { margin-left: 3px; }
 
   /* La barra dei comandi vive solo a schermo: in stampa non deve esserci. */
   .comandi { display: none; }

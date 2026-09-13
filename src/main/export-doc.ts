@@ -111,7 +111,7 @@ function indicazioniHtml(p: DatiPazienteExport): string {
   const quando = (p.frequenza_casa ?? '').trim()
   if (voci.length === 0 && quando === '') return ''
   return `<div class="per-casa">
-    <div class="pc-titolo">Da fare a casa</div>
+    <div class="pc-titolo">Indicazioni</div>
     ${quando ? `<div class="pc-quando">${esc(quando)}</div>` : ''}
     ${voci.length ? `<ul>${voci.map((v) => `<li>${esc(v)}</li>`).join('')}</ul>` : ''}
   </div>`
@@ -448,7 +448,7 @@ export async function generaDocx(
   if (perCasa.length > 0 || quandoCasa !== '') {
     children.push(
       new Paragraph({
-        text: 'Da fare a casa',
+        text: 'Indicazioni',
         heading: HeadingLevel.HEADING_2,
         spacing: { before: 300 }
       })

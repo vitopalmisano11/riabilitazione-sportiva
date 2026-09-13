@@ -10,6 +10,17 @@
 // senza preload.
 import type { BrowserWindow } from 'electron'
 
+// La sessione tutta sua di una finestra secondaria.
+//
+// Chromium ricorda l'ingrandimento per indirizzo, e tutte le finestre del
+// programma hanno lo stesso: Ctrl + sulla scheda degli esercizi ingrandiva
+// anche il gestionale dietro, e viceversa. Con una sessione separata ogni
+// finestra ha la sua misura. Il nome dice di chi e': riaprendo la stessa scheda
+// si riusa la stessa, invece di crearne una nuova ogni volta.
+export function sessioneSeparata(nome: string): string {
+  return `finestra-${nome}`
+}
+
 // Ingrandire e rimpicciolire quello che si sta guardando: un report fitto si
 // legge meglio ingrandito, e una scheda che non ci sta tutta si rimpicciolisce
 // invece di scorrerla. Funziona con Ctrl+rotella e con il pizzico sul trackpad

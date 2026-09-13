@@ -91,6 +91,7 @@ export default function PazientiPage({
     const esci = (): void => {
       setBuilder(null)
       setSelId(null)
+      void load()
     }
     if (aperto?.sedutaId != null) {
       void chiedi('Stai modificando una seduta. Esci senza salvare?').then((ok) => {
@@ -188,7 +189,15 @@ export default function PazientiPage({
 
       {sel && (
         <div className="briciole">
-          <button className="briciola" onClick={() => setSelId(null)}>
+          {/* Tornando all'elenco lo si rilegge: l'ordine e' per ultima seduta,
+              e nel frattempo puo' essere cambiato. */}
+          <button
+            className="briciola"
+            onClick={() => {
+              setSelId(null)
+              void load()
+            }}
+          >
             Pazienti
           </button>
           <ChevronRight size={16} />

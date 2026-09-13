@@ -845,7 +845,7 @@ assert.equal(
     },
     seduteExport
   )
-  assert.ok(conCasa.includes('Da fare a casa'), 'blocco delle indicazioni')
+  assert.ok(conCasa.includes('>Indicazioni<'), 'blocco delle indicazioni')
   assert.ok(conCasa.includes('3 volte a settimana'))
   assert.ok(conCasa.includes('Fermati alla comparsa del dolore.'))
 }

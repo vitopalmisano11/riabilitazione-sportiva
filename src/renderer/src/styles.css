@@ -2950,6 +2950,19 @@ textarea {
   align-items: stretch;
 }
 
+/* Sempre due colonne, anche con tre riquadri: il terzo va a capo sotto al
+   primo, largo come lui, invece di stringere tutti e tre su una riga. Su una
+   finestra stretta si torna a uno sotto l'altro. */
+.griglia-due {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 900px) {
+  .griglia-due {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 /* Due riquadri uno sotto l'altro dentro a una colonna della griglia. */
 .colonna-schede {
   display: flex;
@@ -4842,6 +4855,11 @@ textarea {
   color: var(--intestazione-testo-forte);
 }
 
+/* Un distretto sta sotto alla sua categoria, spostato un po' a destra. */
+.elenco-scelta .briciola.voce-rientrata {
+  padding-left: 26px;
+}
+
 .elenco-scelta .briciola.scelta-attiva {
   background: var(--accent);
   border-color: var(--accent);
@@ -5344,6 +5362,14 @@ textarea {
 .blocco-segni .contenuto-segni,
 .blocco-indicazioni .contenuto-indicazioni {
   max-width: none;
+}
+
+/* Chiusi, ma dello stesso colore degli altri riquadri della scheda: col fondo
+   del pannello sembravano spenti, come una cosa disattivata. */
+.blocco-segni,
+.blocco-indicazioni {
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
 }
 
 .riga-titolo-segni {

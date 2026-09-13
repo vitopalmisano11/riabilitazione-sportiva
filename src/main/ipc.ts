@@ -897,11 +897,15 @@ export function registerIpc(): void {
     }
   }
 
+  // L'ultima seduta e' l'ultima fatta, non l'ultima in calendario: una seduta
+  // gia' fissata per la settimana prossima portava il paziente in cima
+  // all'elenco prima ancora di vederlo.
   handle('pazienti:list', () =>
     getDb()
       .prepare(
         `SELECT p.*, pat.nome AS patologia_nome, f.nome AS fase_nome,
-                (SELECT MAX(s.data) FROM sedute s WHERE s.paziente_id = p.id) AS ultima_seduta
+                (SELECT MAX(s.data) FROM sedute s
+                 WHERE s.paziente_id = p.id AND s.data <= date('now', 'localtime')) AS ultima_seduta
          FROM pazienti p
          LEFT JOIN patologie pat ON pat.id = p.patologia_id
          LEFT JOIN fasi f ON f.id = p.fase_corrente_id
@@ -1041,7 +1045,8 @@ export function registerIpc(): void {
     const righe = getDb()
       .prepare(
         `SELECT p.*, pat.nome AS patologia_nome, f.nome AS fase_nome,
-                (SELECT MAX(s.data) FROM sedute s WHERE s.paziente_id = p.id) AS ultima_seduta
+                (SELECT MAX(s.data) FROM sedute s
+                 WHERE s.paziente_id = p.id AND s.data <= date('now', 'localtime')) AS ultima_seduta
          FROM pazienti p
          LEFT JOIN patologie pat ON pat.id = p.patologia_id
          LEFT JOIN fasi f ON f.id = p.fase_corrente_id

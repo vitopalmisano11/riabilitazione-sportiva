@@ -81,15 +81,16 @@ export default function EserciziPage(): React.JSX.Element {
   const [ricerca, setRicerca] = useState('')
   // Le due linguette della libreria: gli esercizi e le loro categorie.
   const [vista, setVista] = useState<'esercizi' | 'categorie'>('esercizi')
-  // Nelle caselle in cui si sceglie, un distretto si scrive con la sua
-  // categoria davanti: "Quadricipite" da solo non dice di che lavoro si tratta.
+  // Nelle caselle in cui si sceglie, un distretto si scrive col suo nome e
+  // basta, rientrato sotto alla sua categoria: che lavoro sia lo dice la riga
+  // sopra, senza ripeterlo su ogni voce.
   const vociCategorie = categorie
     .filter((c) => c.padre_id == null)
     .flatMap((c) => [
       c,
       ...categorie
         .filter((f) => f.padre_id === c.id)
-        .map((f) => ({ ...f, nome: `${c.nome} › ${f.nome}` }))
+        .map((f) => ({ ...f, gruppo: c.nome }))
     ])
     // Rete di sicurezza: una categoria il cui padre non c'e' piu' resta
     // comunque scegliibile. Sparire da questo elenco vorrebbe dire non poterla

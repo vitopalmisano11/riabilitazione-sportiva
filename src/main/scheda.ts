@@ -7,7 +7,7 @@
 import { BrowserWindow } from 'electron'
 import { join } from 'path'
 import { datiScheda } from './scheda-dati'
-import { chiudiConEsc, zoomabile } from './finestre'
+import { chiudiConEsc, sessioneSeparata, zoomabile } from './finestre'
 import icona from '../../resources/icon.png?asset'
 
 // Una finestra per seduta: riaprendo la stessa scheda si porta in primo piano
@@ -33,7 +33,8 @@ export function apriScheda(sedutaId: number): void {
     icon: icona,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
+      sandbox: false,
+      partition: sessioneSeparata(`scheda-${sedutaId}`)
     }
   })
   // il titolo lo decidiamo noi: la pagina non deve poterlo cambiare
