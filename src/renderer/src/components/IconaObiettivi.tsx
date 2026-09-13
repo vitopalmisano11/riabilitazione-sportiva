@@ -8,18 +8,18 @@
 // del fondo, che le stacca dal cerchio invece di farle toccare.
 export default function IconaObiettivi({ size = 24 }: { size?: number }): React.JSX.Element {
   const penne = (
-    <path d="M16.36 7.64 L18.98 8.13 L21.46 5.66 L18.84 5.16 L18.34 2.55 L15.87 5.02 Z" />
+    <path d="M17.43 6.57 L19.83 6.99 L21.81 5.02 L19.41 4.59 L18.99 2.19 L17.01 4.17 Z" />
   )
 
   return (
     <svg className="icona-obiettivi" width={size} height={size} viewBox="0 0 24 24">
-      <circle cx="10" cy="14" r="8" />
-      <circle cx="10" cy="14" r="4.5" />
-      <circle cx="10" cy="14" r="1.2" />
+      <circle cx="10.5" cy="13.5" r="9" />
+      <circle cx="10.5" cy="13.5" r="5.5" />
+      <circle cx="10.5" cy="13.5" r="2" />
       {/* prima il contorno del fondo, poi l'asta, cosi' l'asta non si
           interrompe, e per ultime le penne */}
       <g className="io-alone">{penne}</g>
-      <path d="M10 14 L17.1 6.9" />
+      <path d="M10.5 13.5 L18.42 5.58" />
       {penne}
     </svg>
   )

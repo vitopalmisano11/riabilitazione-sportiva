@@ -3717,12 +3717,21 @@ textarea {
 
 .icona-sagoma .sagoma-fuori {
   stroke: currentColor;
-  stroke-width: 20;
+  stroke-width: 19;
 }
 
 .icona-sagoma .sagoma-dentro {
   stroke: var(--surface);
-  stroke-width: 10;
+  stroke-width: 9;
+}
+
+/* il busto e' piu' largo di braccia e gambe, con lo stesso bordo */
+.icona-sagoma .sagoma-fuori .sagoma-busto {
+  stroke-width: 30;
+}
+
+.icona-sagoma .sagoma-dentro .sagoma-busto {
+  stroke-width: 20;
 }
 
 .icona-sagoma .sagoma-testa {
@@ -4011,6 +4020,41 @@ textarea {
 /* Il programma del paziente e' un foglio: staccato dai bordi della finestra,
    come il PDF della cartella quando lo si guarda. Prima era una colonna bianca
    attaccata sopra e sotto, e non si capiva dove finiva. */
+/* La finestra della scheda disegna da se' la barra in cima, piu' alta di
+   quella di Windows: il titolo a sinistra, e tutta la striscia serve a
+   trascinare la finestra. A destra Windows ci mette riduci, ingrandisci e
+   chiudi. Le misure vengono da env(): restano giuste anche ingrandendo la
+   pagina con Ctrl +. */
+.finestra-scheda {
+  padding-top: env(titlebar-area-height, 0px);
+}
+
+.barra-finestra {
+  position: fixed;
+  z-index: 50;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: env(titlebar-area-height, 44px);
+  display: flex;
+  align-items: center;
+  padding-left: 16px;
+  padding-right: calc(100% - env(titlebar-area-width, 100%) + 16px);
+  background: var(--surface);
+  box-shadow: 0 1px 0 var(--border);
+  color: var(--text);
+  font-size: calc(env(titlebar-area-height, 44px) * 0.34);
+  font-weight: 600;
+  user-select: none;
+  -webkit-app-region: drag;
+}
+
+.barra-finestra span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 .scheda-paziente {
   max-width: 760px;
   margin: 22px auto;
@@ -4851,9 +4895,37 @@ textarea {
   color: var(--intestazione-testo-forte);
 }
 
-/* Un distretto sta sotto alla sua categoria, spostato un po' a destra. */
-.elenco-scelta .briciola.voce-rientrata {
-  padding-left: 26px;
+/* Le righe dell'elenco a due livelli: la categoria che si apre ha la freccetta
+   in fondo a destra, la riga per tornare indietro la freccetta a sinistra. */
+.elenco-scelta .briciola.voce-apribile,
+.elenco-scelta .briciola.voce-indietro {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-start;
+}
+
+.elenco-scelta .briciola.voce-apribile span {
+  flex: 1;
+}
+
+.elenco-scelta .briciola.voce-indietro {
+  font-weight: 600;
+  color: var(--text-dim);
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  margin-bottom: 2px;
+}
+
+/* Cercando, accanto al distretto la sua categoria, in piccolo. */
+.elenco-scelta .voce-gruppo {
+  margin-left: 8px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.elenco-scelta .briciola.scelta-attiva .voce-gruppo {
+  color: inherit;
 }
 
 .elenco-scelta .briciola.scelta-attiva {

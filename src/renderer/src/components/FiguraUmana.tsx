@@ -207,23 +207,25 @@ export function SagomaIcona({ size = 26 }: { size?: number }): React.JSX.Element
           figura due volte: prima con un tratto spesso del colore del testo,
           poi con uno piu' sottile del colore del fondo. Cosi' resta una sagoma
           vuota, come un disegno fatto a penna. */}
+      {/* In piedi, di fronte, con braccia e gambe un po' aperte: le braccia a
+          meta' fra lungo i fianchi e a 45 gradi, cosi' si staccano dal busto
+          senza sembrare un salto. Il busto e' piu' largo degli arti. */}
       <g className="sagoma-fuori">
-        <path d="M53,36 L45,64" />
-        <path d="M48,42 L28,32 L22,14" />
-        <path d="M62,44 L74,56 L57,60" />
-        <path d="M45,64 L34,92" />
-        <path d="M45,64 L58,92" />
+        <path d="M40,40 L23,67" />
+        <path d="M60,40 L77,67" />
+        <path d="M45,60 L31,88" />
+        <path d="M55,60 L69,88" />
+        <path className="sagoma-busto" d="M50,38 L50,58" />
       </g>
       <g className="sagoma-dentro">
-        <path d="M53,36 L45,64" />
-        <path d="M48,42 L28,32 L22,14" />
-        <path d="M62,44 L74,56 L57,60" />
-        <path d="M45,64 L34,92" />
-        <path d="M45,64 L58,92" />
+        <path d="M40,40 L23,67" />
+        <path d="M60,40 L77,67" />
+        <path d="M45,60 L31,88" />
+        <path d="M55,60 L69,88" />
+        <path className="sagoma-busto" d="M50,38 L50,58" />
       </g>
-      {/* La testa sta sopra a tutto: cosi' copre l'attacco delle braccia,
-          come nel disegno. */}
-      <circle className="sagoma-testa" cx="57" cy="20" r="14" />
+      {/* La testa sta sopra a tutto: cosi' copre l'attacco del busto. */}
+      <circle className="sagoma-testa" cx="50" cy="15" r="11.5" />
     </svg>
   )
 }

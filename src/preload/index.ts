@@ -341,7 +341,8 @@ const api: Api = {
   },
   scheda: {
     apri: (sedutaId: number) => invoke('scheda:apri', sedutaId),
-    dati: (sedutaId: number) => invoke('scheda:dati', sedutaId)
+    dati: (sedutaId: number) => invoke('scheda:dati', sedutaId),
+    coloriBarra: (sfondo: string, simboli: string) => invoke('scheda:coloriBarra', sfondo, simboli)
   },
   obiettiviTerapeutici: {
     list: (pazienteId: number) => invoke('obiettiviTerapeutici:list', pazienteId),

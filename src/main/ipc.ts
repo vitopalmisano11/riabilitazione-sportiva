@@ -1740,6 +1740,17 @@ export function registerIpc(): void {
   // ---- Scheda mostrata al paziente ----
   handle('scheda:apri', (sedutaId: number) => apriScheda(sedutaId))
   handle('scheda:dati', (sedutaId: number) => datiScheda(sedutaId))
+  // Non passa dal solito aiutante perche' serve sapere da quale finestra
+  // arriva: e' la sua barra che cambia colore.
+  ipcMain.handle('scheda:coloriBarra', (evento, sfondo: string, simboli: string) => {
+    const finestra = BrowserWindow.fromWebContents(evento.sender)
+    if (!finestra || finestra.isDestroyed()) return
+    try {
+      finestra.setTitleBarOverlay({ color: sfondo, symbolColor: simboli })
+    } catch {
+      // una finestra senza barra disegnata da noi: niente da colorare
+    }
+  })
 
   // ---- Obiettivi terapeutici ----
   // Le aspettative stanno sul paziente ma si scrivono qui, dove si parla di

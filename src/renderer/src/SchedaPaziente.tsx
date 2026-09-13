@@ -26,10 +26,40 @@ export default function SchedaPaziente({ sedutaId }: { sedutaId: number }): Reac
 
   useEffect(carica, [carica])
 
-  if (errore) return <p className="auth-error">{errore}</p>
-  if (!dati) return <p className="hint">Caricamento…</p>
+  // I pulsanti di Windows in cima prendono i colori della barra, cosi' la
+  // striscia e' tutta uguale anche col tema scuro.
+  useEffect(() => {
+    const stile = getComputedStyle(document.documentElement)
+    const sfondo = stile.getPropertyValue('--surface').trim()
+    const testo = stile.getPropertyValue('--text').trim()
+    if (sfondo && testo) void window.api.scheda.coloriBarra(sfondo, testo).catch(() => undefined)
+  }, [])
+
+  // La barra in cima alla finestra: il titolo, e la presa per spostarla.
+  const barra = (
+    <div className="barra-finestra">
+      <span>{dati ? `Scheda — ${dati.paziente}` : 'Scheda'}</span>
+    </div>
+  )
+
+  if (errore)
+    return (
+      <div className="finestra-scheda">
+        {barra}
+        <p className="auth-error">{errore}</p>
+      </div>
+    )
+  if (!dati)
+    return (
+      <div className="finestra-scheda">
+        {barra}
+        <p className="hint">Caricamento…</p>
+      </div>
+    )
 
   return (
+    <div className="finestra-scheda">
+    {barra}
     <div className="scheda-paziente">
       <header>
         <div>
@@ -88,6 +118,7 @@ export default function SchedaPaziente({ sedutaId }: { sedutaId: number }): Reac
           <p className="nota-seduta">{dati.note}</p>
         </section>
       )}
+    </div>
     </div>
   )
 }
