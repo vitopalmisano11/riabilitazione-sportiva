@@ -922,6 +922,7 @@ export interface EsitoControllo {
 // Le parti della cartella del paziente che si possono stampare.
 export type SezioneCartella =
   | 'anagrafica'
+  | 'relazione'
   | 'anamnesi'
   | 'remota'
   | 'bodychart'

@@ -50,6 +50,7 @@ import {
 import { spostaFileDati } from '../src/main/file-dati'
 import { generaReportScreening } from '../src/main/report-screening'
 import { conBarra } from '../src/main/finestre'
+import { relazioneAnamnesi } from '../src/main/relazione-anamnesi'
 import { copyFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { daQuando } from '../src/renderer/src/lib'
 import {
@@ -1575,6 +1576,31 @@ initDb(join(dirCartella, 'cartella.db'), dekHex)
     'Vorrei tornare in piscina prima dell estate',
     pz
   )
+
+  // La relazione scritta: frasi fisse riempite con quello che c'e', i "no"
+  // detti con "nega", niente di inventato.
+  const rel = relazioneAnamnesi(Number(pz))
+  assert.equal(rel.prossima[0], 'Si rivolge per dolore lombare.')
+  assert.ok(
+    rel.prossima[1].startsWith(
+      'Riferisce lombare destro, intermittente, al primo episodio, presente da 3 settimane, a esordio non traumatico.'
+    )
+  )
+  assert.ok(rel.prossima[1].includes('Peggiora con stare seduta e migliora con camminare.'))
+  assert.ok(rel.prossima[2].startsWith('Riferisce inoltre rigidità mattutina, costante.'))
+  assert.ok(
+    rel.prossima.some((p) =>
+      p.includes('Nega dolore o sintomi notturni, disturbi del sonno, peggioramento con tosse o starnuto e sintomi neurologici.')
+    )
+  )
+  assert.ok(!rel.prossima.some((p) => p.includes('Note: nessuna')))
+  assert.ok(rel.remota[0].startsWith('Altre patologie e farmaci: ipertensione.'))
+  assert.ok(rel.remota[0].includes('Nega traumi precedenti, interventi chirurgici e precedenti riabilitativi.'))
+  assert.ok(rel.remota.some((p) => p.startsWith('Riferisce fumo. Nega variazioni di peso')))
+  // nella cartella c'e' solo se la si chiede
+  const conRelazione = generaCartella(Number(pz), ['relazione'])
+  if (process.env['RELAZIONE_HTML']) writeFileSync(process.env['RELAZIONE_HTML'], generaCartella(Number(pz), ['anagrafica', 'relazione', 'anamnesi']))
+  assert.ok(conRelazione.includes('Relazione dell’anamnesi') && conRelazione.includes('Si rivolge per dolore lombare.'))
 
   const tutte = SEZIONI.map((x) => x.chiave)
   const doc = generaCartella(Number(pz), tutte)

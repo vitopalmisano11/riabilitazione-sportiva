@@ -14,6 +14,7 @@ import { errMsg } from '../lib'
 
 const SEZIONI: { chiave: SezioneCartella; etichetta: string }[] = [
   { chiave: 'anagrafica', etichetta: 'Dati del paziente' },
+  { chiave: 'relazione', etichetta: 'Relazione scritta dell’anamnesi' },
   { chiave: 'anamnesi', etichetta: 'Anamnesi prossima' },
   { chiave: 'remota', etichetta: 'Anamnesi remota' },
   { chiave: 'bodychart', etichetta: 'Body chart' },
@@ -32,7 +33,9 @@ export default function EsportaCartella({
   paziente: PazienteDettaglio
   onChiudi: () => void
 }): React.JSX.Element {
-  const [scelte, setScelte] = useState<SezioneCartella[]>(TUTTE)
+  // La relazione scritta non parte spuntata: serve ogni tanto, e quando serve
+  // la si aggiunge. Le altre parti ci sono tutte.
+  const [scelte, setScelte] = useState<SezioneCartella[]>(TUTTE.filter((c) => c !== 'relazione'))
   const [occupato, setOccupato] = useState(false)
 
   const cambia = (chiave: SezioneCartella, dentro: boolean): void => {

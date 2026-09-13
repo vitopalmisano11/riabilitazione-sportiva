@@ -48,9 +48,13 @@ import {
   type Linea
 } from '../shared/figure'
 import type { SezioneCartella } from '../shared/types'
+import { relazioneAnamnesi } from './relazione-anamnesi'
 
 export const SEZIONI: { chiave: SezioneCartella; titolo: string }[] = [
   { chiave: 'anagrafica', titolo: 'Dati del paziente' },
+  // La relazione scritta sta prima dei riquadri: si legge di seguito, e chi
+  // vuole il dettaglio lo trova subito sotto.
+  { chiave: 'relazione', titolo: 'Relazione dell’anamnesi' },
   { chiave: 'anamnesi', titolo: 'Anamnesi prossima' },
   // La body chart sta fra le due anamnesi: e' il disegno di quello che il
   // paziente ha appena raccontato, e leggerlo dopo l'anamnesi remota vorrebbe
@@ -423,6 +427,21 @@ function sezAnagrafica(p: Record<string, unknown>): Blocco[] {
   ])
 }
 
+// La relazione: due paragrafi lunghi, uno per anamnesi, ognuno a tutta
+// larghezza. Le frasi le compone relazione-anamnesi.ts.
+function sezRelazione(pazienteId: number): Blocco[] {
+  const { prossima, remota } = relazioneAnamnesi(pazienteId)
+  const blocchi: Blocco[] = []
+  // l'a capo separa i paragrafi, e rende il riquadro largo quanto il foglio
+  if (prossima.length > 0) {
+    blocchi.push({ tipo: 'testo', titolo: 'Anamnesi prossima', corpo: prossima.join('\n') })
+  }
+  if (remota.length > 0) {
+    blocchi.push({ tipo: 'testo', titolo: 'Anamnesi remota', corpo: remota.join('\n') })
+  }
+  return blocchi
+}
+
 function sezAnamnesi(pazienteId: number): Blocco[] {
   const db = getDb()
   const a = db
@@ -453,7 +472,8 @@ function sezAnamnesi(pazienteId: number): Blocco[] {
       blocchi: coppie([
         ['Andamento', x.andamento],
         ['Da quanto tempo', x.da_quanto],
-        ['Episodio', x.episodio],
+        // si registra "primo" o "recidiva": sul foglio va la parola intera
+        ['Episodio', x.episodio === 'primo' ? 'primo episodio' : x.episodio],
         ['Esordio', x.esordio],
         ['Traumatico', x.traumatico == null ? null : x.traumatico ? 'sì' : 'no'],
         ['Comportamento messo in atto', x.comportamento],
@@ -880,6 +900,7 @@ export function componiCartella(pazienteId: number, sezioni: SezioneCartella[]):
 
   const contenuto: Record<SezioneCartella, () => Blocco[]> = {
     anagrafica: () => sezAnagrafica(p),
+    relazione: () => sezRelazione(pazienteId),
     anamnesi: () => sezAnamnesi(pazienteId),
     remota: () => sezRemota(pazienteId),
     bodychart: () => sezBodyChart(pazienteId),
