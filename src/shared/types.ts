@@ -943,6 +943,9 @@ export interface EsitoControllo {
   ultimaSeduta?: string | null
 }
 
+// Le relazioni scritte: dell'anamnesi o della valutazione obiettiva.
+export type TipoRelazione = 'anamnesi' | 'valutazione'
+
 // Le parti della cartella del paziente che si possono stampare.
 export type SezioneCartella =
   | 'anagrafica'
@@ -1167,8 +1170,8 @@ export interface Api {
     anteprimaCartella(pazienteId: number, sezioni: SezioneCartella[]): Promise<void>
     // La relazione scritta dell'anamnesi: un documento a parte, non una
     // sezione della cartella.
-    anteprimaRelazione(pazienteId: number): Promise<void>
-    relazione(pazienteId: number): Promise<string | null>
+    anteprimaRelazione(pazienteId: number, tipo: TipoRelazione): Promise<void>
+    relazione(pazienteId: number, tipo: TipoRelazione): Promise<string | null>
     cartella(pazienteId: number, sezioni: SezioneCartella[]): Promise<string | null>
     // Ritornano il percorso del file salvato, o null se l'utente annulla.
     seduta(

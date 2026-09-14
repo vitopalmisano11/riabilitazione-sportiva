@@ -117,6 +117,7 @@ import type {
   ProtocolloScreeningCompleto,
   ValoreScreening,
   SezioneCartella,
+  TipoRelazione,
   StatoPaziente,
   TermineObiettivo,
   TestValutazioneCompleto,
@@ -1997,8 +1998,12 @@ export function registerIpc(): void {
   handle('esporta:cartella', (pazienteId: number, sezioni: SezioneCartella[]) =>
     esportaCartella(pazienteId, sezioni)
   )
-  handle('esporta:anteprimaRelazione', (pazienteId: number) => apriAnteprimaRelazione(pazienteId))
-  handle('esporta:relazione', (pazienteId: number) => esportaRelazione(pazienteId))
+  handle('esporta:anteprimaRelazione', (pazienteId: number, tipo: TipoRelazione) =>
+    apriAnteprimaRelazione(pazienteId, tipo)
+  )
+  handle('esporta:relazione', (pazienteId: number, tipo: TipoRelazione) =>
+    esportaRelazione(pazienteId, tipo)
+  )
   handle('esporta:seduta', (sedutaId: number, formato: FormatoExport, illustrata?: boolean) =>
     esportaSeduta(sedutaId, formato, illustrata === true)
   )

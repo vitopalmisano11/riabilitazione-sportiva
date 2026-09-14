@@ -8,6 +8,7 @@ import { cartellaExport, impostaCartellaExport } from './impostazioni'
 import {
   componiCartella,
   componiRelazione,
+  componiRelazioneValutazione,
   generaCartella,
   generaRelazione,
   oggiIso
@@ -23,7 +24,7 @@ import {
 
 export type FormatoExport = 'pdf' | 'docx'
 
-import type { AnteprimaScheda } from '../shared/types'
+import type { AnteprimaScheda, TipoRelazione } from '../shared/types'
 import { barraAlta, chiudiConEsc, conBarra, sessioneSeparata, zoomabile } from './finestre'
 
 function leggiPaziente(id: number): DatiPazienteExport {
@@ -272,15 +273,30 @@ export async function esportaCartella(
 
 // ---- Relazione scritta dell'anamnesi ----
 // Stessa coppia di funzioni della cartella, per un documento a parte.
-const relazioniAperte = new Map<number, BrowserWindow>()
+// Una finestra per paziente e per tipo: la relazione dell'anamnesi e quella
+// della valutazione si possono guardare insieme.
+const relazioniAperte = new Map<string, BrowserWindow>()
 
-export async function apriAnteprimaRelazione(pazienteId: number): Promise<void> {
-  const { cognome, nome } = componiRelazione(pazienteId)
-  const titolo = `Relazione — ${cognome} ${nome}`
-  const tmp = join(app.getPath('temp'), `riab-relazione-${pazienteId}-${Date.now()}.html`)
-  await writeFile(tmp, conBarra(generaRelazione(pazienteId), titolo), 'utf-8')
+const NOME_RELAZIONE: Record<TipoRelazione, { titolo: string; file: string }> = {
+  anamnesi: { titolo: 'Relazione anamnesi', file: 'relazione_anamnesi' },
+  valutazione: { titolo: 'Relazione valutazione', file: 'relazione_valutazione' }
+}
 
-  const gia = relazioniAperte.get(pazienteId)
+function nomiPaziente(pazienteId: number, tipo: TipoRelazione): { cognome: string; nome: string } {
+  return tipo === 'valutazione' ? componiRelazioneValutazione(pazienteId) : componiRelazione(pazienteId)
+}
+
+export async function apriAnteprimaRelazione(
+  pazienteId: number,
+  tipo: TipoRelazione = 'anamnesi'
+): Promise<void> {
+  const { cognome, nome } = nomiPaziente(pazienteId, tipo)
+  const titolo = `${NOME_RELAZIONE[tipo].titolo} — ${cognome} ${nome}`
+  const chiave = `${tipo}-${pazienteId}`
+  const tmp = join(app.getPath('temp'), `riab-relazione-${chiave}-${Date.now()}.html`)
+  await writeFile(tmp, conBarra(generaRelazione(pazienteId, tipo), titolo), 'utf-8')
+
+  const gia = relazioniAperte.get(chiave)
   if (gia && !gia.isDestroyed()) {
     await gia.loadFile(tmp)
     gia.focus()
@@ -294,29 +310,35 @@ export async function apriAnteprimaRelazione(pazienteId: number): Promise<void> 
     autoHideMenuBar: true,
     ...barraAlta(),
     icon: icona,
-    webPreferences: { sandbox: true, partition: sessioneSeparata(`relazione-${pazienteId}`) }
+    webPreferences: { sandbox: true, partition: sessioneSeparata(`relazione-${chiave}`) }
   })
   win.on('page-title-updated', (e) => e.preventDefault())
   chiudiConEsc(win)
   zoomabile(win)
-  win.on('closed', () => relazioniAperte.delete(pazienteId))
-  relazioniAperte.set(pazienteId, win)
+  win.on('closed', () => relazioniAperte.delete(chiave))
+  relazioniAperte.set(chiave, win)
   await win.loadFile(tmp)
   void unlink(tmp).catch(() => undefined)
 }
 
-export async function esportaRelazione(pazienteId: number): Promise<string | null> {
-  const { cognome, nome } = componiRelazione(pazienteId)
+export async function esportaRelazione(
+  pazienteId: number,
+  tipo: TipoRelazione = 'anamnesi'
+): Promise<string | null> {
+  const { cognome, nome } = nomiPaziente(pazienteId, tipo)
   const { canceled, filePath } = await dialog.showSaveDialog({
-    title: 'Esporta la relazione dell’anamnesi',
+    title:
+      tipo === 'valutazione'
+        ? 'Esporta la relazione della valutazione obiettiva'
+        : 'Esporta la relazione dell’anamnesi',
     defaultPath: join(
       cartellaExport(),
-      `${slug(cognome)}_${slug(nome)}_relazione_${oggiIso()}.pdf`
+      `${slug(cognome)}_${slug(nome)}_${NOME_RELAZIONE[tipo].file}_${oggiIso()}.pdf`
     ),
     filters: [{ name: 'PDF', extensions: ['pdf'] }]
   })
   if (canceled || !filePath) return null
-  await htmlToPdf(generaRelazione(pazienteId), filePath)
+  await htmlToPdf(generaRelazione(pazienteId, tipo), filePath)
   impostaCartellaExport(dirname(filePath))
   shell.showItemInFolder(filePath)
   return filePath

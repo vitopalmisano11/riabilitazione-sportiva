@@ -13,21 +13,15 @@ import Aiuto from '../components/Aiuto'
 import { chiedi } from '../components/Conferma'
 import { errMsg } from '../lib'
 import { sposta, useRiordino } from '../riordino'
+import { GRUPPI } from '../../../shared/distretti'
 
 // I movimenti e i test appartengono al distretto, non alla patologia: il rachide
 // cervicale ruota comunque, qualunque sia la diagnosi. Cosi' si scrivono una
 // volta sola e si riusano su tutte le patologie di quella zona.
 
-// L'ordine e' quello in cui i gruppi compaiono nella valutazione: si scende dal
-// dolore alla struttura, poi il neurologico, e in fondo quello che resta.
-export const GRUPPI: { valore: GruppoTest; etichetta: string }[] = [
-  { valore: 'provocazione', etichetta: 'Provocazione del dolore' },
-  { valore: 'forza', etichetta: 'Forza muscolare' },
-  { valore: 'legamentosa', etichetta: 'Stabilità legamentosa' },
-  { valore: 'flessibilita', etichetta: 'Test di flessibilità' },
-  { valore: 'neurologico', etichetta: 'Esame neurologico' },
-  { valore: 'altri', etichetta: 'Altri test' }
-]
+// I gruppi dei test stanno in shared/distretti.ts: li usa anche la relazione
+// scritta della valutazione.
+export { GRUPPI }
 
 const RISPOSTE: { valore: RispostaTest; etichetta: string }[] = [
   { valore: 'posneg', etichetta: 'positivo / negativo' },

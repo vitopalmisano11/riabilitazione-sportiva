@@ -18,6 +18,7 @@ import type {
   ProtocolloScreeningCompleto,
   ValoreScreening,
   SezioneCartella,
+  TipoRelazione,
   StatoPaziente,
   TermineObiettivo,
   TestValutazioneCompleto,
@@ -250,8 +251,10 @@ const api: Api = {
     schedaIllustrata: (sedutaId: number) => invoke('esporta:schedaIllustrata', sedutaId),
     anteprimaCartella: (pazienteId: number, sezioni: SezioneCartella[]) =>
       invoke('esporta:anteprimaCartella', pazienteId, sezioni),
-    anteprimaRelazione: (pazienteId: number) => invoke('esporta:anteprimaRelazione', pazienteId),
-    relazione: (pazienteId: number) => invoke('esporta:relazione', pazienteId),
+    anteprimaRelazione: (pazienteId: number, tipo: TipoRelazione) =>
+      invoke('esporta:anteprimaRelazione', pazienteId, tipo),
+    relazione: (pazienteId: number, tipo: TipoRelazione) =>
+      invoke('esporta:relazione', pazienteId, tipo),
     cartella: (pazienteId: number, sezioni: SezioneCartella[]) =>
       invoke('esporta:cartella', pazienteId, sezioni),
     seduta: (sedutaId: number, formato: 'pdf' | 'docx', illustrata?: boolean) =>

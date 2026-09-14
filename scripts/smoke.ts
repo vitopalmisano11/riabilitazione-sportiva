@@ -51,6 +51,7 @@ import { spostaFileDati } from '../src/main/file-dati'
 import { generaReportScreening } from '../src/main/report-screening'
 import { conBarra } from '../src/main/finestre'
 import { relazioneAnamnesi } from '../src/main/relazione-anamnesi'
+import { relazioneValutazione } from '../src/main/relazione-valutazione'
 import { copyFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { daQuando } from '../src/renderer/src/lib'
 import {
@@ -809,6 +810,20 @@ assert.equal(
   assert.ok(cartellaL.includes('Flessione attivo: destra 110° (interessato), sinistra 140° — lato interessato −21%'))
   assert.ok(cartellaL.includes('Flessione (nella norma)'))
   assert.ok(cartellaL.includes('Lachman destra: positivo') && cartellaL.includes('Lachman sinistra: negativo'))
+
+  // La relazione scritta della valutazione: le stesse cose in frasi.
+  c.prepare("UPDATE valutazioni SET ispezione = 'tumefazione al ginocchio', carico_locale = 'diminuito', capacita_generale = 'aumentato' WHERE id = ?").run(valL)
+  const relV = relazioneValutazione(pzL)
+  assert.equal(relV[0].titolo, 'Valutazione del 10/09/2026')
+  const testoV = relV[0].paragrafi.join(' ')
+  assert.ok(testoV.includes("All'ispezione, osservazione e palpazione: tumefazione al ginocchio."))
+  assert.ok(testoV.includes('Movimenti attivi a destra (lato interessato): flessione moderatamente limitata e dolorosa (110°).'))
+  assert.ok(testoV.includes('Movimenti attivi a sinistra: flessione nella norma (140°).'))
+  assert.ok(testoV.includes('Confronto fra i lati: flessione attiva 110° a destra e 140° a sinistra, −21% sul lato interessato.'))
+  assert.ok(testoV.includes('Lachman positivo a destra (lato interessato) e negativo a sinistra'))
+  assert.ok(testoV.includes('Carico locale diminuito, capacità di carico generale aumentata.'))
+  const documentoV = generaRelazione(pzL, 'valutazione')
+  assert.ok(documentoV.includes('Relazione della valutazione obiettiva · stampata il'))
 }
 
 // --- Bozza della seduta: una per paziente, e si sostituisce ---

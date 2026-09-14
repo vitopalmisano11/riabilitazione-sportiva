@@ -47,8 +47,9 @@ import {
   type Forma,
   type Linea
 } from '../shared/figure'
-import type { SezioneCartella } from '../shared/types'
+import type { SezioneCartella, TipoRelazione } from '../shared/types'
 import { relazioneAnamnesi } from './relazione-anamnesi'
+import { relazioneValutazione } from './relazione-valutazione'
 import { TIPI_NEURO, durataTesto, faseDurata, tipiNeuro, type UnitaDurata } from '../shared/sintomi'
 
 export const SEZIONI: { chiave: SezioneCartella; titolo: string }[] = [
@@ -1112,8 +1113,23 @@ export function componiRelazione(pazienteId: number): Cartella {
   return { nome: String(p.nome), cognome: String(p.cognome), sezioni }
 }
 
-export function generaRelazione(pazienteId: number): string {
-  return documento(componiRelazione(pazienteId), 'Relazione dell’anamnesi')
+// La relazione della valutazione obiettiva: una sezione per valutazione, dalla
+// piu' recente.
+export function componiRelazioneValutazione(pazienteId: number): Cartella {
+  const p = getDb().prepare('SELECT nome, cognome FROM pazienti WHERE id = ?').get(pazienteId) as
+    | { nome: string; cognome: string }
+    | undefined
+  if (!p) throw new Error('Paziente non trovato.')
+  const sezioni: SezioneComposta[] = relazioneValutazione(pazienteId)
+    .filter((v) => v.paragrafi.length > 0)
+    .map((v) => ({ titolo: v.titolo, blocchi: [{ tipo: 'paragrafi', voci: v.paragrafi }] }))
+  return { nome: String(p.nome), cognome: String(p.cognome), sezioni }
+}
+
+export function generaRelazione(pazienteId: number, tipo: TipoRelazione = 'anamnesi'): string {
+  return tipo === 'valutazione'
+    ? documento(componiRelazioneValutazione(pazienteId), 'Relazione della valutazione obiettiva')
+    : documento(componiRelazione(pazienteId), 'Relazione dell’anamnesi')
 }
 
 function documento(c: Cartella, cheCosa: string): string {

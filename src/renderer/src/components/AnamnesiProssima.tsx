@@ -755,6 +755,7 @@ function ListaSintomi({
                 }
               />
               <Scelta
+                segmentata
                 etichette={UNITA_DURATA.map((u) => [u.valore, u.tanti] as [string, string])}
                 valore={s.durata_unita}
                 onScegli={(v) => modifica(i, { durata_unita: v as UnitaDurata | null })}

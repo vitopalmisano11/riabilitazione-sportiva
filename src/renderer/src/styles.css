@@ -3912,6 +3912,24 @@ input[type='checkbox'].interruttore:focus-visible {
   flex: 1 1 220px;
 }
 
+/* Tutto alla stessa altezza: le due caselle e le unita' misurano quanto un
+   pulsante, invece di essere le caselle piu' alte. */
+.riga-durata > input,
+.riga-durata .scelta-coppia.segmentata {
+  height: 38px;
+}
+
+.riga-durata > input {
+  padding-top: 0;
+  padding-bottom: 0;
+  font-size: 15px;
+}
+
+.riga-durata .scelta-coppia.segmentata button {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
 .badge-fase-durata {
   padding: 3px 10px;
   border-radius: 999px;
@@ -5685,6 +5703,12 @@ input[type='checkbox'].interruttore:focus-visible {
   margin-top: 4px;
   padding-top: 14px;
   border-top: 1px solid var(--border);
+}
+
+.altro-documento.senza-linea {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
 }
 
 .altro-documento .nome-documento {
