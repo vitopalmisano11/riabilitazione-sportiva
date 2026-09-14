@@ -6,7 +6,17 @@ export default defineConfig({
     plugins: [externalizeDepsPlugin()]
   },
   preload: {
-    plugins: [externalizeDepsPlugin()]
+    plugins: [externalizeDepsPlugin()],
+    // due ponti: quello dell'app, e quello piccolissimo delle finestre dei
+    // documenti, che serve solo ai pulsanti della barra in cima
+    build: {
+      rollupOptions: {
+        input: {
+          index: 'src/preload/index.ts',
+          finestra: 'src/preload/finestra.ts'
+        }
+      }
+    }
   },
   renderer: {
     plugins: [react()]

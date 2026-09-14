@@ -7,7 +7,7 @@
 import { BrowserWindow } from 'electron'
 import { join } from 'path'
 import { datiScheda } from './scheda-dati'
-import { barraAlta, chiudiConEsc, sessioneSeparata, zoomabile } from './finestre'
+import { barraDisegnata, chiudiConEsc, sessioneSeparata, zoomabile } from './finestre'
 import icona from '../../resources/icon.png?asset'
 
 // Una finestra per seduta: riaprendo la stessa scheda si porta in primo piano
@@ -29,7 +29,7 @@ export function apriScheda(sedutaId: number): void {
     // un lampo del colore di sistema
     backgroundColor: '#ffffff',
     title: `Scheda — ${dati.paziente}`,
-    ...barraAlta(),
+    ...barraDisegnata(),
     autoHideMenuBar: true,
     icon: icona,
     webPreferences: {

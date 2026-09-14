@@ -1775,16 +1775,21 @@ export function registerIpc(): void {
   // ---- Scheda mostrata al paziente ----
   handle('scheda:apri', (sedutaId: number) => apriScheda(sedutaId))
   handle('scheda:dati', (sedutaId: number) => datiScheda(sedutaId))
-  // Non passa dal solito aiutante perche' serve sapere da quale finestra
-  // arriva: e' la sua barra che cambia colore.
-  ipcMain.handle('finestra:coloriBarra', (evento, sfondo: string, simboli: string) => {
+  // I pulsanti della barra disegnata in cima: comandano la finestra da cui
+  // arriva la richiesta. Non passano dal solito aiutante perche' serve sapere
+  // quale finestra e'.
+  ipcMain.handle('finestra:comando', (evento, comando: 'riduci' | 'ingrandisci' | 'chiudi') => {
     const finestra = BrowserWindow.fromWebContents(evento.sender)
     if (!finestra || finestra.isDestroyed()) return
-    try {
-      finestra.setTitleBarOverlay({ color: sfondo, symbolColor: simboli })
-    } catch {
-      // una finestra senza barra disegnata da noi: niente da colorare
-    }
+    if (comando === 'riduci') finestra.minimize()
+    else if (comando === 'ingrandisci') {
+      if (finestra.isMaximized()) finestra.unmaximize()
+      else finestra.maximize()
+    } else if (comando === 'chiudi') finestra.close()
+  })
+  ipcMain.handle('finestra:ingrandita', (evento) => {
+    const finestra = BrowserWindow.fromWebContents(evento.sender)
+    return finestra != null && !finestra.isDestroyed() && finestra.isMaximized()
   })
 
   // ---- Obiettivi terapeutici ----

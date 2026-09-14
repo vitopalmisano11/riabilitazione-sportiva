@@ -3,6 +3,7 @@ import {
   CalendarDays,
   ChevronLeft,
   ChevronRight,
+  Copy,
   Pencil,
   Plus,
   Presentation,
@@ -72,16 +73,22 @@ const dopo = (s: SedutaSettimana, oggi: string): string =>
 export default function SettimanaPage({
   onApriPaziente,
   onApriSeduta,
+  onCopiaSeduta,
   tornaAllElenco
 }: {
   onApriPaziente: (id: number) => void
   onApriSeduta: (pazienteId: number, sedutaId: number) => void
+  // una seduta nuova copiata da questa, nel giorno scelto
+  onCopiaSeduta: (pazienteId: number, sedutaId: number, data: string) => void
   tornaAllElenco: number
 }): React.JSX.Element {
   const [lunedi, setLunedi] = useState<Date>(() => lunediDi(new Date()))
   const [sedute, setSedute] = useState<SedutaSettimana[]>([])
   // Il giorno a cui si sta aggiungendo una seduta, se la finestrella e' aperta.
   const [giornoAperto, setGiornoAperto] = useState<string | null>(null)
+  // La seduta che si sta copiando, mentre si sceglie il giorno.
+  const [daCopiare, setDaCopiare] = useState<SedutaSettimana | null>(null)
+  const [altraData, setAltraData] = useState('')
 
   // Ripremendo la voce del menu si torna alla settimana in corso.
   useEffect(() => {
@@ -216,6 +223,18 @@ Finisce nel cestino: puoi rimetterla a posto da Impostazioni entro un mese.`
                       >
                         <Pencil size={16} />
                       </button>
+                      {/* Copiarla in un altro giorno, per ritoccarla: la seduta
+                          di lunedi' che il venerdi' si ripete con qualche
+                          cambiamento. */}
+                      <button
+                        title="Copia la seduta in un altro giorno"
+                        onClick={() => {
+                          setAltraData('')
+                          setDaCopiare(s)
+                        }}
+                      >
+                        <Copy size={16} />
+                      </button>
                       <button
                         className="danger"
                         title="Elimina la seduta"
@@ -231,6 +250,54 @@ Finisce nel cestino: puoi rimetterla a posto da Impostazioni entro un mese.`
           </div>
         ))}
       </section>
+
+      {daCopiare && (
+        <div className="modal-overlay" onClick={() => setDaCopiare(null)}>
+          <div className="modal modal-sm" onClick={(e) => e.stopPropagation()}>
+            <h3>In che giorno la copi?</h3>
+            <p className="modal-testo">
+              La seduta di {daCopiare.paziente} del {formatData(daCopiare.data)}: si apre una seduta
+              nuova con gli stessi esercizi, da ritoccare prima di salvarla.
+            </p>
+            <div className="giorni-copia">
+              {giorni.map((g) => (
+                <button
+                  key={g.data}
+                  className={g.data === daCopiare.data ? 'giorno-origine' : ''}
+                  onClick={() => {
+                    const s = daCopiare
+                    setDaCopiare(null)
+                    onCopiaSeduta(s.paziente_id, s.id, g.data)
+                  }}
+                >
+                  <span className="nome-giorno">{g.nome}</span>
+                  <span className="numero-giorno">{g.numero}</span>
+                </button>
+              ))}
+            </div>
+            <div className="riga-altra-data">
+              <label className="compila-data">
+                Un altro giorno
+                <input type="date" value={altraData} onChange={(e) => setAltraData(e.target.value)} />
+              </label>
+              <button
+                className="primary"
+                disabled={altraData === ''}
+                onClick={() => {
+                  const s = daCopiare
+                  setDaCopiare(null)
+                  onCopiaSeduta(s.paziente_id, s.id, altraData)
+                }}
+              >
+                Copia
+              </button>
+            </div>
+            <div className="modal-actions">
+              <button onClick={() => setDaCopiare(null)}>Annulla</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {giornoAperto && (
         <AggiungiAlGiorno

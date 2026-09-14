@@ -230,6 +230,9 @@
 
 :root[data-barra='scura'] {
   --barra: linear-gradient(180deg, #15201b 0%, #1a2a23 100%);
+  --barra-alta: #15201b;
+  --barra-alta-testo: var(--barra-testo);
+  --barra-alta-bordo: var(--barra-bordo);
   --barra-testo: #e7efea;
   --barra-voce: #c3d3ca;
   --barra-hover: #26382f;
@@ -242,6 +245,9 @@
 
 :root[data-tema='terracotta'][data-barra='scura'] {
   --barra: linear-gradient(180deg, #241a15 0%, #30231b 100%);
+  --barra-alta: #241a15;
+  --barra-alta-testo: var(--barra-testo);
+  --barra-alta-bordo: var(--barra-bordo);
   --barra-testo: #f2e6dd;
   --barra-voce: #d8c4b5;
   --barra-hover: #3f2e24;
@@ -254,6 +260,9 @@
 
 :root[data-tema='ardesia'][data-barra='scura'] {
   --barra: linear-gradient(180deg, #172026 0%, #1f2b33 100%);
+  --barra-alta: #172026;
+  --barra-alta-testo: var(--barra-testo);
+  --barra-alta-bordo: var(--barra-bordo);
   --barra-testo: #e6ecf0;
   --barra-voce: #c6d1d9;
   --barra-hover: #2b3941;
@@ -266,6 +275,9 @@
 
 :root[data-tema='bordeaux'][data-barra='scura'] {
   --barra: linear-gradient(180deg, #221217 0%, #2f1b22 100%);
+  --barra-alta: #221217;
+  --barra-alta-testo: var(--barra-testo);
+  --barra-alta-bordo: var(--barra-bordo);
   --barra-testo: #f2e4e8;
   --barra-voce: #dcc2ca;
   --barra-hover: #3f272f;
@@ -278,6 +290,9 @@
 
 :root[data-tema='prugna'][data-barra='scura'] {
   --barra: linear-gradient(180deg, #1e1826 0%, #2a2135 100%);
+  --barra-alta: #1e1826;
+  --barra-alta-testo: var(--barra-testo);
+  --barra-alta-bordo: var(--barra-bordo);
   --barra-testo: #ece5f2;
   --barra-voce: #cfc2de;
   --barra-hover: #3a2f49;
@@ -290,6 +305,9 @@
 
 :root[data-tema='blu'][data-barra='scura'] {
   --barra: linear-gradient(180deg, #18202b 0%, #1c2634 100%);
+  --barra-alta: #18202b;
+  --barra-alta-testo: var(--barra-testo);
+  --barra-alta-bordo: var(--barra-bordo);
   --barra-testo: #e6eaf0;
   --barra-voce: #cbd4de;
   --barra-hover: #2a3644;
@@ -400,9 +418,18 @@
   box-sizing: border-box;
 }
 
-/* Quanto e' alta la barra disegnata in cima alla finestra: zero dove non c'e'. */
+/* Quanto e' alta la barra disegnata in cima alla finestra: zero dove non c'e'.
+   I suoi colori seguono la colonna laterale: chiara con la colonna chiara,
+   scura con quella scura (i temi scuri qui sotto la ridefiniscono). */
 :root {
-  --alto-barra: env(titlebar-area-height, 0px);
+  --alto-barra: 0px;
+  --barra-alta: var(--surface);
+  --barra-alta-testo: var(--text);
+  --barra-alta-bordo: var(--border);
+}
+
+:root[data-barra-disegnata='si'] {
+  --alto-barra: 38px;
 }
 
 body {
@@ -4229,20 +4256,57 @@ input[type='checkbox'].interruttore:focus-visible {
   display: flex;
   align-items: center;
   padding-left: 16px;
-  padding-right: calc(100% - env(titlebar-area-width, 100%) + 16px);
-  background: var(--surface);
-  box-shadow: 0 1px 0 var(--border);
-  color: var(--text);
-  font-size: calc(var(--alto-barra) * 0.37);
+  background: var(--barra-alta);
+  box-shadow: 0 1px 0 var(--barra-alta-bordo);
+  color: var(--barra-alta-testo);
+  font-size: 14px;
   font-weight: 600;
   user-select: none;
   -webkit-app-region: drag;
 }
 
-.barra-finestra span {
+.barra-finestra .titolo-barra {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+/* I tre pulsanti della finestra: larghi come quelli di Windows, e al
+   passaggio del mouse si accendono tutti — la X di rosso. */
+.comandi-finestra {
+  display: flex;
+  align-self: stretch;
+  -webkit-app-region: no-drag;
+}
+
+.barra-finestra .comando-finestra {
+  width: 46px;
+  height: 100%;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  cursor: default;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.barra-finestra .comando-finestra:hover:not(:disabled) {
+  background: rgba(128, 128, 128, 0.22);
+  border-color: transparent;
+  color: inherit;
+}
+
+.barra-finestra .comando-finestra.chiudi:hover:not(:disabled) {
+  background: #c42b1c;
+  color: #fff;
 }
 
 .scheda-paziente {
@@ -5753,6 +5817,44 @@ input[type='checkbox'].interruttore:focus-visible {
 .editor-test > .checkbox-inline,
 .editor-test > .regola-fascia {
   margin-bottom: 16px;
+}
+
+/* Copiare una seduta dalla settimana: i sette giorni come pulsanti, quello
+   della seduta di partenza tratteggiato. */
+.giorni-copia {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+  gap: 6px;
+}
+
+.giorni-copia button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 6px;
+}
+
+.giorni-copia .nome-giorno {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.giorni-copia .numero-giorno {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.giorni-copia button.giorno-origine {
+  border-style: dashed;
+}
+
+.riga-altra-data {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+  margin-top: 6px;
 }
 
 .altro-documento.senza-linea {

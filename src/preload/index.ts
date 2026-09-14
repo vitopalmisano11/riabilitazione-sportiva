@@ -48,6 +48,8 @@ try {
     if (!pagina) return
     pagina.documentElement.dataset.tema = salvato.tema
     pagina.documentElement.dataset.barra = salvato.barraScura ? 'scura' : 'chiara'
+    // la barra in cima alla finestra la disegna la pagina: le fa posto
+    pagina.documentElement.dataset.barraDisegnata = 'si'
     if (salvato.scuro) pagina.documentElement.dataset.scuro = 'si'
   }
   if (pagina?.readyState === 'loading') pagina.addEventListener('DOMContentLoaded', applica)
@@ -61,8 +63,10 @@ const invoke = (channel: string, ...args: unknown[]): Promise<never> =>
 
 const api: Api = {
   apriLink: (url: string) => invoke('apriLink', url),
-  coloriBarra: (sfondo: string, simboli: string) =>
-    invoke('finestra:coloriBarra', sfondo, simboli),
+  finestra: {
+    comando: (c: 'riduci' | 'ingrandisci' | 'chiudi') => invoke('finestra:comando', c),
+    ingrandita: () => invoke('finestra:ingrandita')
+  },
   scegliImmagine: () => invoke('scegliImmagine'),
   auth: {
     status: () => invoke('auth:status'),

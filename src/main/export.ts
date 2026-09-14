@@ -25,7 +25,8 @@ import {
 export type FormatoExport = 'pdf' | 'docx'
 
 import type { AnteprimaScheda, TipoRelazione } from '../shared/types'
-import { barraAlta, chiudiConEsc, conBarra, sessioneSeparata, zoomabile } from './finestre'
+import { barraDisegnata, chiudiConEsc, conBarra, sessioneSeparata, zoomabile } from './finestre'
+import { barraScura, scuro } from './impostazioni'
 
 function leggiPaziente(id: number): DatiPazienteExport {
   const p = getDb()
@@ -214,6 +215,10 @@ export function anteprimaCartella(pazienteId: number, sezioni: SezioneCartella[]
 // alla finestra delle spunte si vedrebbe da un buco. E' lo stesso HTML da cui
 // nasce il PDF, quindi non puo' discostarsi dal file salvato. La finestra non
 // ha preload: da li' non si arriva all'archivio.
+// Il ponte delle finestre dei documenti: fa funzionare solo i pulsanti della
+// barra in cima, niente altro.
+const PONTE_FINESTRA = join(__dirname, '../preload/finestra.js')
+
 const anteprimeAperte = new Map<number, BrowserWindow>()
 
 export async function apriAnteprimaCartella(
@@ -223,7 +228,7 @@ export async function apriAnteprimaCartella(
   const html = generaCartella(pazienteId, sezioni)
   const { cognome, nome } = componiCartella(pazienteId, sezioni)
   const tmp = join(app.getPath('temp'), `riab-anteprima-${pazienteId}-${Date.now()}.html`)
-  await writeFile(tmp, conBarra(html, `Anteprima — ${cognome} ${nome}`), 'utf-8')
+  await writeFile(tmp, conBarra(html, `Anteprima — ${cognome} ${nome}`, barraScura() || scuro()), 'utf-8')
 
   const gia = anteprimeAperte.get(pazienteId)
   if (gia && !gia.isDestroyed()) {
@@ -240,9 +245,9 @@ export async function apriAnteprimaCartella(
     height: 1000,
     title: `Anteprima — ${cognome} ${nome}`,
     autoHideMenuBar: true,
-    ...barraAlta(),
+    ...barraDisegnata(),
     icon: icona,
-    webPreferences: { sandbox: true, partition: sessioneSeparata(`cartella-${pazienteId}`) }
+    webPreferences: { sandbox: true, preload: PONTE_FINESTRA, partition: sessioneSeparata(`cartella-${pazienteId}`) }
   })
   win.on('page-title-updated', (e) => e.preventDefault())
   chiudiConEsc(win)
@@ -294,7 +299,7 @@ export async function apriAnteprimaRelazione(
   const titolo = `${NOME_RELAZIONE[tipo].titolo} — ${cognome} ${nome}`
   const chiave = `${tipo}-${pazienteId}`
   const tmp = join(app.getPath('temp'), `riab-relazione-${chiave}-${Date.now()}.html`)
-  await writeFile(tmp, conBarra(generaRelazione(pazienteId, tipo), titolo), 'utf-8')
+  await writeFile(tmp, conBarra(generaRelazione(pazienteId, tipo), titolo, barraScura() || scuro()), 'utf-8')
 
   const gia = relazioniAperte.get(chiave)
   if (gia && !gia.isDestroyed()) {
@@ -308,9 +313,9 @@ export async function apriAnteprimaRelazione(
     height: 1000,
     title: titolo,
     autoHideMenuBar: true,
-    ...barraAlta(),
+    ...barraDisegnata(),
     icon: icona,
-    webPreferences: { sandbox: true, partition: sessioneSeparata(`relazione-${chiave}`) }
+    webPreferences: { sandbox: true, preload: PONTE_FINESTRA, partition: sessioneSeparata(`relazione-${chiave}`) }
   })
   win.on('page-title-updated', (e) => e.preventDefault())
   chiudiConEsc(win)
@@ -353,7 +358,7 @@ export async function apriAnteprimaReport(sessioneIds: number[]): Promise<void> 
   const r = generaReportScreening(sessioneIds)
   const sessioneId = sessioneIds[sessioneIds.length - 1]
   const tmp = join(app.getPath('temp'), `riab-report-${sessioneId}-${Date.now()}.html`)
-  await writeFile(tmp, conBarra(r.html, `Report — ${r.cognome} ${r.nome}`), 'utf-8')
+  await writeFile(tmp, conBarra(r.html, `Report — ${r.cognome} ${r.nome}`, barraScura() || scuro()), 'utf-8')
 
   const gia = reportAperti.get(sessioneId)
   if (gia && !gia.isDestroyed()) {
@@ -367,9 +372,9 @@ export async function apriAnteprimaReport(sessioneIds: number[]): Promise<void> 
     height: 1000,
     title: `Report — ${r.cognome} ${r.nome}`,
     autoHideMenuBar: true,
-    ...barraAlta(),
+    ...barraDisegnata(),
     icon: icona,
-    webPreferences: { sandbox: true, partition: sessioneSeparata(`report-${sessioneId}`) }
+    webPreferences: { sandbox: true, preload: PONTE_FINESTRA, partition: sessioneSeparata(`report-${sessioneId}`) }
   })
   win.on('page-title-updated', (e) => e.preventDefault())
   chiudiConEsc(win)

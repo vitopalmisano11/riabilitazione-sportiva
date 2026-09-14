@@ -159,6 +159,9 @@ export default function App(): React.JSX.Element {
     id: number
     // Se c'e', si apre direttamente quella seduta invece della sola scheda.
     sedutaId?: number
+    // Se c'e', si apre una seduta nuova copiata da questa, nel giorno data.
+    duplicaDa?: number
+    data?: string
     seq: number
   } | null>(null)
 
@@ -174,6 +177,14 @@ export default function App(): React.JSX.Element {
     setTornaA(da)
     setSezione('pazienti')
     setApriPaziente((p) => ({ id, sedutaId, seq: (p?.seq ?? 0) + 1 }))
+  }
+
+  // Una seduta nuova copiata da un'altra, in un altro giorno: salvata o chiusa,
+  // si torna da dove si e' partiti.
+  const copiaSeduta = (id: number, sedutaId: number, data: string, da: Sezione): void => {
+    setTornaA(da)
+    setSezione('pazienti')
+    setApriPaziente((p) => ({ id, duplicaDa: sedutaId, data, seq: (p?.seq ?? 0) + 1 }))
   }
 
   if (!sbloccata) {
@@ -250,6 +261,7 @@ export default function App(): React.JSX.Element {
           <SettimanaPage
             onApriPaziente={vaiAlPaziente}
             onApriSeduta={(id, sedutaId) => vaiAllaSeduta(id, sedutaId, 'settimana')}
+            onCopiaSeduta={(id, sedutaId, data) => copiaSeduta(id, sedutaId, data, 'settimana')}
             tornaAllElenco={tornaAllElenco}
           />
         )}

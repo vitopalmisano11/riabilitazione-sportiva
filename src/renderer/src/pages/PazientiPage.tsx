@@ -46,7 +46,14 @@ export default function PazientiPage({
   tornaAllElenco: number
   // Scheda da aprire, richiesta da un'altra sezione (il follow-up, la
   // settimana). Con sedutaId si apre direttamente quella seduta.
-  apriPaziente: { id: number; sedutaId?: number; seq: number } | null
+  // Con duplicaDa si apre una seduta nuova copiata da quella, nel giorno data.
+  apriPaziente: {
+    id: number
+    sedutaId?: number
+    duplicaDa?: number
+    data?: string
+    seq: number
+  } | null
   // Chiudendo una seduta aperta da un'altra sezione si torna da dove si e'
   // arrivati, non nella scheda del paziente: chi stava preparando la settimana
   // vuole tornare alla settimana.
@@ -65,6 +72,7 @@ export default function PazientiPage({
   const [builder, setBuilder] = useState<{
     sedutaId: number | null
     duplicaDa?: number
+    dataIniziale?: string
     // La seduta e' stata aperta da un'altra sezione: chiudendola si torna li'.
     daFuori?: boolean
   } | null>(null)
@@ -108,9 +116,16 @@ export default function PazientiPage({
   useEffect(() => {
     if (apriPaziente == null) return
     setBuilder(
-      apriPaziente.sedutaId == null
-        ? null
-        : { sedutaId: apriPaziente.sedutaId, daFuori: true }
+      apriPaziente.duplicaDa != null
+        ? {
+            sedutaId: null,
+            duplicaDa: apriPaziente.duplicaDa,
+            dataIniziale: apriPaziente.data,
+            daFuori: true
+          }
+        : apriPaziente.sedutaId == null
+          ? null
+          : { sedutaId: apriPaziente.sedutaId, daFuori: true }
     )
     setSelId(apriPaziente.id)
   }, [apriPaziente])
@@ -171,6 +186,7 @@ export default function PazientiPage({
         paziente={sel}
         sedutaId={builder.sedutaId}
         duplicaDa={builder.duplicaDa}
+        dataIniziale={builder.dataIniziale}
         onClose={(salvata) => {
           const tornaIndietro = builder.daFuori === true
           setBuilder(null)

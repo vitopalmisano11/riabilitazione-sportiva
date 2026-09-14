@@ -35,6 +35,8 @@ interface Props {
   paziente: PazienteDettaglio
   sedutaId: number | null // valorizzato = modifica di una seduta esistente
   duplicaDa?: number // valorizzato (con sedutaId null) = nuova seduta prefillata
+  // il giorno della seduta nuova, se non e' oggi (copiando dalla settimana)
+  dataIniziale?: string
   onClose: (salvata: boolean) => void
 }
 
@@ -57,10 +59,11 @@ export default function SedutaBuilder({
   paziente,
   sedutaId,
   duplicaDa,
+  dataIniziale,
   onClose
 }: Props): React.JSX.Element {
   const [pronto, setPronto] = useState(false)
-  const [data, setData] = useState(oggiIso())
+  const [data, setData] = useState(dataIniziale ?? oggiIso())
   const [faseId, setFaseId] = useState<number | null>(paziente.fase_corrente_id)
   const [faseNome, setFaseNome] = useState<string | null>(paziente.fase_nome)
   // Di cosa e' fatta la giornata. Testo libero, con i suggerimenti di quelli

@@ -1408,7 +1408,9 @@ assert.equal(
   // la barra in cima alla finestra entra subito dopo <body>, col titolo
   // protetto, e in stampa non c'e'
   const conTitolo = conBarra(html, 'Report — Prova <Luca>')
-  assert.ok(/<body[^>]*><div class="barra-finestra">Report — Prova &lt;Luca&gt;<\/div>/.test(conTitolo))
+  assert.ok(/<body[^>]*><div class="barra-finestra"><span class="titolo-barra">Report — Prova &lt;Luca&gt;<\/span>/.test(conTitolo))
+  assert.ok(conTitolo.includes("window.finestra.comando('chiudi')"))
+  assert.ok(conBarra(html, 'x', true).includes('background: #1c222b'))
   assert.ok(conTitolo.includes('@media print { .barra-finestra, .spazio-barra { display: none; } }'))
 }
 

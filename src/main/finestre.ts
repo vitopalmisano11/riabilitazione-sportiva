@@ -12,39 +12,68 @@ import type { BrowserWindow, BrowserWindowConstructorOptions } from 'electron'
 
 // La barra in cima a tutte le finestre del programma.
 //
-// Quella di Windows e' alta circa 32 e non si puo' cambiare: per averla piu'
-// alta la finestra nasce senza, Windows ci mette sopra solo riduci, ingrandisci
-// e chiudi, e il titolo con la striscia da trascinare li disegna la pagina.
-// I colori di partenza sono quelli chiari: la pagina, appena carica, chiede i
-// suoi.
+// Quella di Windows e' alta circa 32 e non si puo' cambiare, e con i colori
+// dell'app i suoi pulsanti riduci e ingrandisci non si illuminavano al
+// passaggio del mouse. La finestra nasce senza barra, e la pagina ne disegna
+// una sua: titolo, striscia da trascinare e i tre pulsanti.
 export const ALTEZZA_BARRA = 38
 
-export function barraAlta(): Pick<BrowserWindowConstructorOptions, 'titleBarStyle' | 'titleBarOverlay'> {
-  return {
-    titleBarStyle: 'hidden',
-    titleBarOverlay: { color: '#ffffff', symbolColor: '#1c242b', height: ALTEZZA_BARRA }
-  }
+export function barraDisegnata(): Pick<BrowserWindowConstructorOptions, 'titleBarStyle'> {
+  return { titleBarStyle: 'hidden' }
 }
 
-// La stessa barra per le pagine generate (l'anteprima della cartella, il report
-// dello screening), che non hanno React: un titolo fisso in cima e uno spazio
-// della stessa altezza prima del contenuto. Le misure vengono da env(), che
-// vale zero dove la barra non c'e' — cioe' nella finestra nascosta da cui nasce
-// il PDF: li' non compare niente.
-export function conBarra(html: string, titolo: string): string {
+const ICONA_INGRANDISCI =
+  '<svg width="12" height="12" viewBox="0 0 12 12"><rect x="1.5" y="1.5" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>'
+const ICONA_RIPRISTINA =
+  '<svg width="12" height="12" viewBox="0 0 12 12"><rect x="1.5" y="3.5" width="7" height="7" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M3.5 3.5V1.5h7v7h-2" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>'
+
+// La stessa barra per le pagine generate (l'anteprima della cartella, le
+// relazioni, il report dello screening), che non hanno React: il titolo, i tre
+// pulsanti — comandati attraverso il piccolo ponte preload/finestra.ts — e uno
+// spazio della stessa altezza prima del contenuto. In stampa non c'e', e nella
+// finestra nascosta da cui nasce il PDF questa funzione non si usa proprio.
+// scura: con la colonna laterale scura o la modalita' scura la barra e' scura.
+export function conBarra(html: string, titolo: string, scura = false): string {
   const esc = titolo.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  const [fondo, testo, bordo] = scura ? ['#1c222b', '#e6eaf0', '#10151c'] : ['#ffffff', '#1c242b', '#e2e6ea']
   const stile = `<style>
   .barra-finestra { position: fixed; z-index: 1000; top: 0; left: 0; right: 0;
-    height: env(titlebar-area-height, 0px); overflow: hidden;
-    display: flex; align-items: center; padding: 0 16px;
-    padding-right: calc(100% - env(titlebar-area-width, 100%) + 16px);
-    background: #ffffff; box-shadow: 0 1px 0 #e2e6ea; color: #1c242b;
-    font: 600 calc(env(titlebar-area-height, 0px) * 0.37) 'Segoe UI', system-ui, sans-serif;
-    white-space: nowrap; user-select: none; -webkit-app-region: drag; }
-  .spazio-barra { height: env(titlebar-area-height, 0px); }
+    height: ${ALTEZZA_BARRA}px; overflow: hidden; display: flex; align-items: center;
+    padding-left: 16px; background: ${fondo}; box-shadow: 0 1px 0 ${bordo}; color: ${testo};
+    font: 600 14px 'Segoe UI', system-ui, sans-serif; user-select: none; -webkit-app-region: drag; }
+  .barra-finestra .titolo-barra { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap;
+    text-overflow: ellipsis; }
+  .barra-finestra .comandi-finestra { display: flex; height: 100%; -webkit-app-region: no-drag; }
+  .barra-finestra .comando-finestra { width: 46px; height: 100%; display: flex; align-items: center;
+    justify-content: center; border: none; border-radius: 0; background: transparent; color: inherit;
+    cursor: default; transition: background-color 0.15s ease, color 0.15s ease; }
+  .barra-finestra .comando-finestra:hover { background: rgba(128, 128, 128, 0.22); }
+  .barra-finestra .comando-finestra.chiudi:hover { background: #c42b1c; color: #fff; }
+  .spazio-barra { height: ${ALTEZZA_BARRA}px; }
   @media print { .barra-finestra, .spazio-barra { display: none; } }
 </style>`
-  const barra = `<div class="barra-finestra">${esc}</div><div class="spazio-barra"></div>`
+  const icona = (d: string): string =>
+    `<svg width="12" height="12" viewBox="0 0 12 12"><path d="${d}" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>`
+  const barra = `<div class="barra-finestra"><span class="titolo-barra">${esc}</span>
+  <div class="comandi-finestra">
+    <button class="comando-finestra" title="Riduci a icona" onclick="window.finestra && window.finestra.comando('riduci')">${icona('M1.5 6h9')}</button>
+    <button class="comando-finestra comando-ingrandisci" title="Ingrandisci" onclick="window.finestra && window.finestra.comando('ingrandisci')">${ICONA_INGRANDISCI}</button>
+    <button class="comando-finestra chiudi" title="Chiudi" onclick="window.finestra && window.finestra.comando('chiudi')">${icona('M2 2l8 8M10 2l-8 8')}</button>
+  </div></div><div class="spazio-barra"></div>
+  <script>
+  (function () {
+    var b = document.querySelector('.comando-ingrandisci');
+    function aggiorna() {
+      if (!window.finestra || !b) return;
+      window.finestra.ingrandita().then(function (m) {
+        b.title = m ? 'Ripristina' : 'Ingrandisci';
+        b.innerHTML = m ? '${ICONA_RIPRISTINA}' : '${ICONA_INGRANDISCI}';
+      });
+    }
+    window.addEventListener('resize', aggiorna);
+    aggiorna();
+  })();
+  </script>`
   const conStile = html.includes('</head>') ? html.replace('</head>', `${stile}</head>`) : stile + html
   return /<body[^>]*>/.test(conStile)
     ? conStile.replace(/<body[^>]*>/, (b) => b + barra)

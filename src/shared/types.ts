@@ -1012,9 +1012,11 @@ export type SezioneCartella =
 export interface Api {
   // apre un URL http/https nel browser predefinito
   apriLink(url: string): Promise<void>
-  // I colori dei pulsanti di Windows (riduci, ingrandisci, chiudi) in cima
-  // alla finestra: la pagina li chiede uguali a quelli della sua barra.
-  coloriBarra(sfondo: string, simboli: string): Promise<void>
+  // I pulsanti della barra disegnata in cima alla finestra.
+  finestra: {
+    comando(c: 'riduci' | 'ingrandisci' | 'chiudi'): Promise<void>
+    ingrandita(): Promise<boolean>
+  }
   // Apre il dialogo file e ritorna l'immagine gia' ridimensionata, o null.
   scegliImmagine(): Promise<string | null>
   auth: {
