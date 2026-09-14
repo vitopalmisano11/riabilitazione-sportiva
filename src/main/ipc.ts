@@ -79,6 +79,7 @@ import {
   elencoCompilazioni
 } from './questionari'
 import { duplicaProtocollo, leggiProtocollo, salvaProtocollo } from './screening'
+import { calcolaPunteggio } from './screening-punteggio'
 import {
   collegaCompilazione,
   creaScreening,
@@ -1026,6 +1027,7 @@ export function registerIpc(): void {
     (id: number, questionarioId: number, compilazioneId: number) =>
       collegaCompilazione(id, questionarioId, compilazioneId)
   )
+  handle('screeningSvolti:punteggio', (id: number) => calcolaPunteggio(id))
   handle('screeningSvolti:anteprimaReport', (ids: number[]) => apriAnteprimaReport(ids))
   handle('screeningSvolti:report', (ids: number[]) => esportaReport(ids))
   handle('screeningSvolti:delete', (id: number) => {

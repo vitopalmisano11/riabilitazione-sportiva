@@ -554,6 +554,58 @@ export interface SezioneScreening {
 export interface ProtocolloScreeningCompleto {
   protocollo: ProtocolloScreening
   sezioni: SezioneScreening[]
+  // Il punteggio del cluster. Se manca nel salvataggio, quello che c'e' resta.
+  punteggio?: PunteggioProtocollo
+}
+
+// ---- Punteggio del cluster ----
+// "da ... a ... → punti": vale la prima soglia che si avvera, limiti compresi.
+export interface SogliaPunteggio {
+  minimo: number | null
+  massimo: number | null
+  punti: number
+}
+
+export interface RegolaPunteggio {
+  id: number | null
+  // da dove si prende il valore: una misura di un test, o il punteggio di un
+  // questionario. Esattamente uno dei due.
+  misura_id: number | null
+  punteggio_id: number | null
+  // per i test a una gamba per volta: il lato interessato o la simmetria (LSI)
+  lato: 'interessato' | 'lsi' | null
+  // come si legge nell'esecuzione e nel report, es. "Side hop – Tempo"
+  nome: string
+  soglie: SogliaPunteggio[]
+}
+
+export interface FasciaPunteggio {
+  etichetta: string
+  minimo: number | null
+  massimo: number | null
+}
+
+export interface PunteggioProtocollo {
+  regole: RegolaPunteggio[]
+  fasce: FasciaPunteggio[]
+}
+
+export interface VoceRisultato {
+  nome: string
+  // null se in questo screening il valore non c'e'
+  valore: number | null
+  unita: string | null
+  punti: number | null
+  massimo: number
+}
+
+export interface RisultatoPunteggio {
+  totale: number
+  massimo: number
+  // solo a punteggio completo
+  fascia: string | null
+  completo: boolean
+  voci: VoceRisultato[]
 }
 
 // ---- Screening eseguito ----
@@ -1261,6 +1313,8 @@ export interface Api {
       questionarioId: number,
       compilazioneId: number
     ): Promise<void>
+    // Il punteggio del cluster sui valori salvati; null se il protocollo non ne ha.
+    punteggio(id: number): Promise<RisultatoPunteggio | null>
     // Il report: gli screening da confrontare, dal piu' vecchio al piu' recente.
     // L'ultimo e' quello che si legge nelle tabelle, gli altri fanno l'andamento.
     anteprimaReport(ids: number[]): Promise<void>

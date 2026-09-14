@@ -14,6 +14,7 @@ import { toast, toastErrore } from '../components/Toast'
 import { chiedi } from '../components/Conferma'
 import { errMsg } from '../lib'
 import { useRileggiDopoSalvataggio, useSalvaUscendo } from '../salvaUscendo'
+import PunteggioCluster from '../components/PunteggioCluster'
 
 // Protocolli di screening, uno per sport: qui si programmano, non si eseguono.
 // L'esecuzione su un paziente sta nella sezione "Return To Play".
@@ -553,6 +554,15 @@ function Editor({
           <Plus size={14} /> Nuova sezione
         </button>
       </div>
+
+      <PunteggioCluster
+        sezioni={dati.sezioni}
+        punteggio={dati.punteggio ?? { regole: [], fasce: [] }}
+        onChange={(punteggio) => {
+          setDati({ ...dati, punteggio })
+          setModificato(true)
+        }}
+      />
     </div>
   )
 }

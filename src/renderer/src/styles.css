@@ -5705,6 +5705,56 @@ input[type='checkbox'].interruttore:focus-visible {
   border-top: 1px solid var(--border);
 }
 
+/* Il punteggio del cluster, sotto alle sezioni del protocollo. */
+.punteggio-cluster {
+  margin-top: var(--spazio);
+}
+
+.punteggio-cluster .lista-domande {
+  margin-bottom: 10px;
+}
+
+.regola-punteggio .regola-fascia {
+  flex-wrap: wrap;
+}
+
+.campo-etichetta-fascia {
+  flex: 1 1 240px;
+}
+
+/* Il risultato durante lo screening: una tabellina con le voci e i punti. */
+.risultato-cluster h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tabella-punteggio {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tabella-punteggio th,
+.tabella-punteggio td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+.tabella-punteggio th {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+/* Nella scheda del test i campi respirano: la casella non deve stare
+   attaccata al titolo di quella sotto. */
+.editor-test > label,
+.editor-test > .form-row-2,
+.editor-test > .checkbox-inline,
+.editor-test > .regola-fascia {
+  margin-bottom: 16px;
+}
+
 .altro-documento.senza-linea {
   margin-top: 0;
   padding-top: 0;

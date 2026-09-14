@@ -52,6 +52,7 @@ import { generaReportScreening } from '../src/main/report-screening'
 import { conBarra } from '../src/main/finestre'
 import { relazioneAnamnesi } from '../src/main/relazione-anamnesi'
 import { relazioneValutazione } from '../src/main/relazione-valutazione'
+import { calcolaPunteggio } from '../src/main/screening-punteggio'
 import { copyFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { daQuando } from '../src/renderer/src/lib'
 import {
@@ -71,7 +72,7 @@ db.pragma('foreign_keys = ON')
 
 runMigrations(db)
 runMigrations(db) // idempotente
-assert.equal(db.pragma('user_version', { simple: true }), 42)
+assert.equal(db.pragma('user_version', { simple: true }), 43)
 
 const count = (table: string): number =>
   (db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n
@@ -1409,6 +1410,127 @@ assert.equal(
   const conTitolo = conBarra(html, 'Report — Prova <Luca>')
   assert.ok(/<body[^>]*><div class="barra-finestra">Report — Prova &lt;Luca&gt;<\/div>/.test(conTitolo))
   assert.ok(conTitolo.includes('@media print { .barra-finestra, .spazio-barra { display: none; } }'))
+}
+
+// --- Il punteggio del cluster ---
+// Un piccolo Ankle-GO: una misura di un test a una gamba per volta, una di un
+// test bilaterale e il punteggio di un questionario, con le soglie dei punti e
+// le fasce del risultato. Un protocollo senza punteggio non ne mostra.
+{
+  const db = getDb()
+  const ins = (sql: string, ...a: unknown[]): number => Number(db.prepare(sql).run(...a).lastInsertRowid)
+  const paz = ins("INSERT INTO pazienti (nome, cognome, arto_operato) VALUES ('Punti', 'Cluster', 'dx')")
+  const tHop = ins("INSERT INTO test_valutazione (nome, prove, per_lato) VALUES ('Side hop prova', 1, 1)")
+  const mHop = ins(
+    "INSERT INTO test_misure (test_id, nome, unita, cutoff, cutoff_direzione) VALUES (?, 'Tempo', 's', 13, 'max')",
+    tHop
+  )
+  const tOtto = ins("INSERT INTO test_valutazione (nome, prove) VALUES ('Figure of 8 prova', 2)")
+  const mOtto = ins(
+    "INSERT INTO test_misure (test_id, nome, unita, per_prova, riassunto) VALUES (?, 'Tempo', 's', 1, 'peggiore')",
+    tOtto
+  )
+  const qFaam = ins("INSERT INTO questionari (nome) VALUES ('FAAM prova')")
+  const pFaam = ins("INSERT INTO questionario_punteggi (questionario_id, nome) VALUES (?, 'Totale')", qFaam)
+
+  const prot = ins("INSERT INTO screening_protocolli (nome, sport) VALUES ('Ankle-GO prova', 'Caviglia')")
+  salvaProtocollo({
+    protocollo: { id: prot, nome: 'Ankle-GO prova', sport: 'Caviglia', note: null, ordine: 0, archiviato: 0 },
+    sezioni: [
+      {
+        id: -1,
+        nome: 'Test',
+        voci: [
+          { id: -2, test_id: tHop, questionario_id: null },
+          { id: -3, test_id: tOtto, questionario_id: null },
+          { id: -4, test_id: null, questionario_id: qFaam }
+        ]
+      }
+    ],
+    punteggio: {
+      regole: [
+        {
+          id: null, misura_id: mHop, punteggio_id: null, lato: 'interessato', nome: 'Side hop – Tempo',
+          soglie: [
+            { minimo: null, massimo: 9.99, punti: 4 },
+            { minimo: 10, massimo: 13, punti: 2 },
+            { minimo: null, massimo: null, punti: 0 }
+          ]
+        },
+        {
+          id: null, misura_id: mOtto, punteggio_id: null, lato: null, nome: 'Figure of 8 – Tempo',
+          soglie: [
+            { minimo: null, massimo: 12.99, punti: 2 },
+            { minimo: 13, massimo: 18, punti: 1 }
+          ]
+        },
+        {
+          id: null, misura_id: null, punteggio_id: pFaam, lato: null, nome: 'FAAM ADL',
+          soglie: [
+            { minimo: 95.01, massimo: null, punti: 2 },
+            { minimo: 90, massimo: 95, punti: 1 }
+          ]
+        }
+      ],
+      fasce: [
+        { etichetta: 'Recupero probabile', minimo: 7, massimo: null },
+        { etichetta: 'Ritorno improbabile', minimo: 0, massimo: 6 }
+      ]
+    }
+  })
+  assert.equal(leggiProtocollo(prot).punteggio?.regole.length, 3)
+  // salvando senza il punteggio, quello che c'e' resta
+  salvaProtocollo({ ...leggiProtocollo(prot), punteggio: undefined })
+  assert.equal(leggiProtocollo(prot).punteggio?.fasce.length, 2)
+  // la copia del protocollo si porta dietro anche il punteggio
+  assert.equal(leggiProtocollo(duplicaProtocollo(prot, 'Ankle-GO copia')).punteggio?.regole.length, 3)
+
+  const sessione = ins(
+    "INSERT INTO screening_sessioni (paziente_id, protocollo_id, protocollo_nome, sport, data) VALUES (?, ?, 'Ankle-GO prova', 'Caviglia', '2026-09-01')",
+    paz, prot
+  )
+  const valore = db.prepare(
+    'INSERT INTO screening_valori (sessione_id, misura_id, lato, prova, valore) VALUES (?, ?, ?, ?, ?)'
+  )
+  valore.run(sessione, mHop, 'dx', 1, 9.5)
+  valore.run(sessione, mHop, 'sx', 1, 8)
+  valore.run(sessione, mOtto, null, 1, 14)
+  valore.run(sessione, mOtto, null, 2, 12.5)
+
+  // senza il questionario il punteggio e' parziale: niente fascia
+  const parziale = calcolaPunteggio(sessione)
+  assert.ok(parziale && !parziale.completo && parziale.fascia == null)
+  assert.equal(parziale?.totale, 6)
+
+  const comp = ins(
+    "INSERT INTO paziente_questionari (paziente_id, questionario_id, data) VALUES (?, ?, '2026-09-01')",
+    paz, qFaam
+  )
+  ins("INSERT INTO compilazione_punteggi (compilazione_id, nome, valore, ordine) VALUES (?, 'Totale', 96, 0)", comp)
+  ins(
+    'INSERT INTO screening_questionari (sessione_id, questionario_id, compilazione_id) VALUES (?, ?, ?)',
+    sessione, qFaam, comp
+  )
+
+  const risultato = calcolaPunteggio(sessione)
+  assert.ok(risultato)
+  // lato interessato destro 9,5 s → 4; la prova migliore del Figure of 8 e'
+  // la piu' bassa, 12,5 s → 2; FAAM 96 → 2
+  assert.deepEqual(risultato?.voci.map((v) => v.punti), [4, 2, 2])
+  assert.equal(risultato?.totale, 8)
+  assert.equal(risultato?.massimo, 8)
+  assert.equal(risultato?.fascia, 'Recupero probabile')
+  const reportPunti = generaReportScreening([sessione]).html
+  assert.ok(reportPunti.includes('Punteggio: 8 / 8') && reportPunti.includes('Recupero probabile'))
+
+  // un protocollo senza punteggio non ne mostra
+  const protSenza = ins("INSERT INTO screening_protocolli (nome, sport) VALUES ('Senza punti', 'Calcio')")
+  const sessioneSenza = ins(
+    "INSERT INTO screening_sessioni (paziente_id, protocollo_id, protocollo_nome, sport, data) VALUES (?, ?, 'Senza punti', 'Calcio', '2026-09-02')",
+    paz, protSenza
+  )
+  assert.equal(calcolaPunteggio(sessioneSenza), null)
+  assert.ok(!generaReportScreening([sessioneSenza]).html.includes('class="punteggio"'))
 }
 
 getDb().close()

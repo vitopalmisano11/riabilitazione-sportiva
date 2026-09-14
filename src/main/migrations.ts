@@ -1092,6 +1092,43 @@ const MIGRATIONS: string[] = [
     SELECT valutazione_id, test_id, '', valore, nota FROM valutazione_test;
   DROP TABLE valutazione_test;
   ALTER TABLE valutazione_test_nuova RENAME TO valutazione_test;
+  `,
+
+  // 43 - il punteggio del cluster.
+  //
+  //      Un protocollo di screening puo' dare un risultato: per ogni voce (una
+  //      misura di un test, o il punteggio di un questionario) le soglie dei
+  //      punti, e sul totale le fasce, come nei questionari (l'Ankle-GO e' il
+  //      caso tipico). Sta sul protocollo e non sul test: lo stesso test puo'
+  //      valere punti diversi in cluster diversi.
+  //
+  //      Le soglie di una voce sono una lista corta che si legge e si scrive
+  //      sempre tutta insieme: stanno in una colonna sola, come testo JSON.
+  //      lato: per i test a una gamba per volta, 'interessato' (il valore del
+  //      lato interessato) o 'lsi' (la simmetria fra i due lati, in %).
+  `
+  CREATE TABLE screening_punteggio_regole (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    protocollo_id INTEGER NOT NULL REFERENCES screening_protocolli(id) ON DELETE CASCADE,
+    misura_id INTEGER REFERENCES test_misure(id) ON DELETE CASCADE,
+    punteggio_id INTEGER REFERENCES questionario_punteggi(id) ON DELETE CASCADE,
+    lato TEXT,
+    nome TEXT NOT NULL,
+    soglie TEXT NOT NULL DEFAULT '[]',
+    ordine INTEGER NOT NULL DEFAULT 0
+  );
+
+  CREATE TABLE screening_punteggio_fasce (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    protocollo_id INTEGER NOT NULL REFERENCES screening_protocolli(id) ON DELETE CASCADE,
+    etichetta TEXT NOT NULL,
+    minimo REAL,
+    massimo REAL,
+    ordine INTEGER NOT NULL DEFAULT 0
+  );
+
+  CREATE INDEX idx_punteggio_regole_protocollo ON screening_punteggio_regole(protocollo_id);
+  CREATE INDEX idx_punteggio_fasce_protocollo ON screening_punteggio_fasce(protocollo_id);
   `
 ]
 

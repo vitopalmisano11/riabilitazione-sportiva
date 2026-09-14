@@ -4,7 +4,7 @@
 // a schermo e il report che si stampa. Tenerle qui e' l'unico modo perche' il
 // numero scritto nel PDF sia lo stesso che il fisioterapista ha visto mentre
 // misurava.
-import type { RiassuntoMisura } from './types'
+import type { MisuraTest, RiassuntoMisura } from './types'
 
 // Il valore che conta fra le prove: la migliore, la media o la peggiore, a
 // seconda di come e' definita la misura in libreria.
@@ -49,6 +49,38 @@ export function asimmetria(dx: number | null, sx: number | null): number | null 
 export function esito(valoreLsi: number | null, soglia: number | null): boolean | null {
   if (valoreLsi == null || soglia == null) return null
   return valoreLsi >= soglia
+}
+
+// Un valore registrato in uno screening.
+export interface RigaValore {
+  misura_id: number
+  lato: 'dx' | 'sx' | null
+  prova: number | null
+  valore: number
+}
+
+// Il valore che conta di una misura in una sessione, per lato: la prova scelta
+// fra quelle registrate, oppure il calcolo dalle altre due misure. Serve al
+// report e al punteggio del cluster, che devono leggere lo stesso numero.
+export function valoreDi(
+  valori: RigaValore[],
+  misura: MisuraTest,
+  tutte: MisuraTest[],
+  lato: 'dx' | 'sx' | null
+): number | null {
+  if (misura.calcolo != null && misura.calcolo_a != null && misura.calcolo_b != null) {
+    const a = tutte.find((m) => m.id === misura.calcolo_a)
+    const b = tutte.find((m) => m.id === misura.calcolo_b)
+    return combina(
+      a ? valoreDi(valori, a, tutte, lato) : null,
+      b ? valoreDi(valori, b, tutte, lato) : null,
+      misura.calcolo
+    )
+  }
+  const prove = valori
+    .filter((v) => v.misura_id === misura.id && v.lato === lato)
+    .map((v) => v.valore)
+  return riassumi(prove, misura.riassunto)
 }
 
 // Una misura calcolata da altre due dello stesso test: 'rapporto' e' A ÷ B

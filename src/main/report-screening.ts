@@ -11,8 +11,9 @@
 import { getDb } from './db'
 import { coloriTema } from '../shared/temi'
 import { intestazioneHtml } from './export-doc'
-import { asimmetria, combina, esito, lsi, riassumi } from '../shared/misure'
-import type { MisuraTest, RiassuntoMisura } from '../shared/types'
+import { asimmetria, esito, lsi, valoreDi, type RigaValore } from '../shared/misure'
+import type { MisuraTest, RisultatoPunteggio } from '../shared/types'
+import { calcolaPunteggio } from './screening-punteggio'
 
 function esc(s: unknown): string {
   return String(s ?? '')
@@ -146,6 +147,50 @@ function cambioPercentuale(adesso: number | null, prima: number | null): number 
   return Number.isFinite(delta) ? delta : null
 }
 
+// ---- il punteggio del cluster ----
+//
+// Solo per i protocolli che ne hanno uno: gli altri non stampano niente. Le
+// voci con i loro punti, il totale, la fascia, e — se si confrontano piu'
+// screening — i totali delle volte prima.
+function punteggioHtml(
+  risultato: RisultatoPunteggio | null,
+  prima: { data: string; risultato: RisultatoPunteggio | null }[]
+): string {
+  if (!risultato) return ''
+  const n = (v: number | null): string =>
+    v == null ? '—' : String(Math.round(v * 10) / 10).replace('.', ',')
+  const righe = risultato.voci
+    .map(
+      (v) =>
+        `<tr><td class="voce">${esc(v.nome)}</td><td>${n(v.valore)}${
+          v.valore != null && v.unita ? ` ${esc(v.unita)}` : ''
+        }</td><td>${v.punti == null ? '—' : `${n(v.punti)} / ${n(v.massimo)}`}</td></tr>`
+    )
+    .join('')
+  const storico = prima.flatMap((p) =>
+    p.risultato
+      ? [
+          `${data(p.data)}: ${n(p.risultato.totale)} / ${n(p.risultato.massimo)}${
+            p.risultato.fascia ? ` (${esc(p.risultato.fascia)})` : ''
+          }`
+        ]
+      : []
+  )
+  return `<div class="punteggio">
+    <h2>Punteggio: ${n(risultato.totale)} / ${n(risultato.massimo)}${
+      risultato.fascia ? `<span class="fascia">${esc(risultato.fascia)}</span>` : ''
+    }</h2>
+    <table class="prove tabella-punteggio"><thead><tr><th>Voce</th><th>Valore</th><th>Punti</th></tr></thead>
+    <tbody>${righe}</tbody></table>
+    ${
+      risultato.completo
+        ? ''
+        : '<p class="vuoto-test">Mancano i valori di qualche voce: il totale è parziale e la fascia non si calcola.</p>'
+    }
+    ${storico.length > 0 ? `<p class="storico-punteggio">Screening precedenti — ${storico.join(' · ')}</p>` : ''}
+  </div>`
+}
+
 // ---- disegni ----
 
 const ROSSO = '#d64545'
@@ -249,34 +294,8 @@ function andamento(punti: PuntoStorico[], soglia: number | null, unita: string |
 
 // ---- lettura dei dati ----
 
-interface RigaValore {
-  misura_id: number
-  lato: 'dx' | 'sx' | null
-  prova: number | null
-  valore: number
-}
-
-// Il valore riassunto di una misura in una sessione, per lato.
-function valoreDi(
-  valori: RigaValore[],
-  misura: MisuraTest,
-  tutte: MisuraTest[],
-  lato: 'dx' | 'sx' | null
-): number | null {
-  if (misura.calcolo != null && misura.calcolo_a != null && misura.calcolo_b != null) {
-    const a = tutte.find((m) => m.id === misura.calcolo_a)
-    const b = tutte.find((m) => m.id === misura.calcolo_b)
-    return combina(
-      a ? valoreDi(valori, a, tutte, lato) : null,
-      b ? valoreDi(valori, b, tutte, lato) : null,
-      misura.calcolo
-    )
-  }
-  const prove = valori
-    .filter((v) => v.misura_id === misura.id && v.lato === lato)
-    .map((v) => v.valore)
-  return riassumi(prove, misura.riassunto as RiassuntoMisura)
-}
+// Il valore riassunto di una misura (valoreDi) sta in shared/misure.ts: lo
+// usa anche il punteggio del cluster, che deve leggere lo stesso numero.
 
 export interface DatiReport {
   html: string
@@ -687,6 +706,11 @@ export function generaReportScreening(sessioneIds: number[]): DatiReport {
   .riga-questionario { margin: 2px 0 0; }
   .fascia { margin-left: 6px; padding: 1px 7px; border-radius: 999px; background: ${intestazione}; color: ${accentoScuro}; }
   .vuoto-test { color: #8b93a0; margin: 2px 0; }
+  .punteggio { border: 1px solid #dfe4ea; border-radius: 4px; padding: 8px 10px; margin: 14px 0 0;
+               page-break-inside: avoid; }
+  .punteggio h2 { font-size: 13px; margin: 0 0 6px; color: ${accentoScuro}; }
+  .tabella-punteggio td.voce, .tabella-punteggio th:first-child { text-align: left; }
+  .storico-punteggio { margin: 6px 0 0; color: #555b66; }
   .riassunto { border: 1px solid #dfe4ea; background: #f7f9fb; border-radius: 4px;
                padding: 8px 10px; margin: 14px 0 12px; page-break-inside: avoid; }
   .riassunto h2 { font-size: 12px; margin: 0 0 4px; color: ${accentoScuro}; }
@@ -744,6 +768,11 @@ export function generaReportScreening(sessioneIds: number[]): DatiReport {
     .join('')}</dl>
 
   ${blocchi || '<p class="vuoto-test">Nessun valore registrato in questo screening.</p>'}
+
+  ${punteggioHtml(
+    calcolaPunteggio(sessioneId),
+    scelti.slice(0, -1).map((x) => ({ data: x.data, risultato: calcolaPunteggio(x.id) }))
+  )}
 
   ${
     // Il riassunto in fondo, dopo i test: prima si leggono i numeri, poi

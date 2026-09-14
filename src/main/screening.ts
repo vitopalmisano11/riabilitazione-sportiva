@@ -12,6 +12,7 @@
 // assegnato dall'interfaccia, che qui si traduce nel vero id.
 import { getDb } from './db'
 import type { ProtocolloScreeningCompleto } from '../shared/types'
+import { leggiPunteggioProtocollo, salvaPunteggioProtocollo } from './screening-punteggio'
 
 function eliminaMancanti(
   db: ReturnType<typeof getDb>,
@@ -53,7 +54,8 @@ export function leggiProtocollo(id: number): ProtocolloScreeningCompleto {
       id: s.id,
       nome: s.nome,
       voci: vociStmt.all(s.id) as ProtocolloScreeningCompleto['sezioni'][number]['voci']
-    }))
+    })),
+    punteggio: leggiPunteggioProtocollo(id)
   }
 }
 
@@ -98,6 +100,8 @@ export function salvaProtocollo(dati: ProtocolloScreeningCompleto): void {
         else insVoce.run(sezId, v.test_id, v.questionario_id, j)
       })
     })
+
+    if (dati.punteggio) salvaPunteggioProtocollo(db, pid, dati.punteggio)
   })()
 }
 
@@ -125,7 +129,9 @@ export function duplicaProtocollo(id: number, nome: string): number {
         ...s,
         id: null,
         voci: s.voci.map((v) => ({ ...v, id: null }))
-      }))
+      })),
+      // anche il punteggio: e' parte del protocollo come i suoi test
+      punteggio: originale.punteggio
     })
     return nuovo
   })()

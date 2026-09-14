@@ -10,6 +10,7 @@ import {
   Trash2
 } from 'lucide-react'
 import type {
+  RisultatoPunteggio,
   MisuraTest,
   PazienteDettaglio,
   ProtocolloScreening,
@@ -21,6 +22,7 @@ import type {
 import { toast, toastErrore } from '../components/Toast'
 import { chiedi } from '../components/Conferma'
 import CompilaQuestionario from '../components/CompilaQuestionario'
+import { RisultatoCluster } from '../components/PunteggioCluster'
 import { errMsg, formatData, oggiIso } from '../lib'
 
 // Esecuzione di uno screening: si sceglie il paziente e uno dei protocolli
@@ -432,6 +434,17 @@ function Esecuzione({
   const [modificato, setModificato] = useState(false)
   // Questionario da compilare adesso, se ce n'e' uno aperto.
   const [compila, setCompila] = useState<number | null>(null)
+  // Il punteggio del cluster sui valori salvati; null se il protocollo non ne ha.
+  const [risultato, setRisultato] = useState<RisultatoPunteggio | null>(null)
+
+  const aggiornaPunteggio = useCallback((): void => {
+    window.api.screeningSvolti
+      .punteggio(id)
+      .then(setRisultato)
+      .catch(() => setRisultato(null))
+  }, [id])
+
+  useEffect(aggiornaPunteggio, [aggiornaPunteggio])
 
   useEffect(() => {
     window.api.screeningSvolti
@@ -465,6 +478,7 @@ function Esecuzione({
     try {
       await window.api.screeningSvolti.salva(id, data, note.trim() || null, daSalvare)
       setModificato(false)
+      aggiornaPunteggio()
       await onSalvato()
       toast('Screening salvato.')
     } catch (e) {
@@ -571,6 +585,9 @@ function Esecuzione({
         ))}
       </div>
 
+      {/* Solo per i protocolli che hanno un punteggio: gli altri non mostrano niente. */}
+      {risultato && <RisultatoCluster risultato={risultato} daAggiornare={modificato} />}
+
       <section className="card note-screening">
         <label>
           Note (facoltative)
@@ -602,7 +619,10 @@ function Esecuzione({
             void window.api.screeningSvolti
               .collegaQuestionario(id, q, compilazioneId)
               .then(() => window.api.screeningSvolti.get(id))
-              .then(setDati)
+              .then((d) => {
+                setDati(d)
+                aggiornaPunteggio()
+              })
               .catch((e) => toastErrore(errMsg(e)))
           }}
         />

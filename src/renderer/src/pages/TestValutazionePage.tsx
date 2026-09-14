@@ -335,7 +335,7 @@ function EditorTest({
   salvaUscendo.current = salva
 
   return (
-    <section className="card">
+    <section className="card editor-test">
       <label>
         A cosa serve
         <textarea
