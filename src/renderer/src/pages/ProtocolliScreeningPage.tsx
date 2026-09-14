@@ -13,9 +13,10 @@ import type {
 import { toast, toastErrore } from '../components/Toast'
 import { chiedi } from '../components/Conferma'
 import { errMsg } from '../lib'
+import { useRileggiDopoSalvataggio, useSalvaUscendo } from '../salvaUscendo'
 
 // Protocolli di screening, uno per sport: qui si programmano, non si eseguono.
-// L'esecuzione su un paziente sta nella sezione "Screening e RTP".
+// L'esecuzione su un paziente sta nella sezione "Return To Play".
 //
 // Qui non si scrivono test: si scelgono quelli che stanno gia' nella libreria
 // ("Test di valutazione") e i questionari, si mettono in ordine e si dividono
@@ -58,6 +59,7 @@ export default function ProtocolliScreeningPage({
   useEffect(() => {
     void carica()
   }, [carica])
+  useRileggiDopoSalvataggio(carica)
 
   useEffect(() => {
     if (tornaAllElenco === 0) return
@@ -288,6 +290,8 @@ function Editor({
   const [filtroTest, setFiltroTest] = useState<number | ''>('')
   const [filtroQuest, setFiltroQuest] = useState<number | ''>('')
   const [modificato, setModificato] = useState(false)
+  // uscendo con modifiche non salvate, si salvano da sole
+  const salvaUscendo = useSalvaUscendo(modificato)
   const [aggiungiA, setAggiungiA] = useState<number | null>(null)
 
   useEffect(() => {
@@ -327,11 +331,10 @@ function Editor({
       toastErrore(errMsg(e))
     }
   }
+  salvaUscendo.current = salva
 
-  const indietro = async (): Promise<void> => {
-    if (modificato && !(await chiedi('Ci sono modifiche non salvate. Uscire lo stesso?'))) return
-    onIndietro()
-  }
+  // Tornando all'elenco non si chiede niente: le modifiche si salvano da sole.
+  const indietro = (): void => onIndietro()
 
   // Un test o un questionario gia' presente non si ripropone: nello stesso
   // protocollo non ha senso eseguirlo due volte.
@@ -358,7 +361,7 @@ function Editor({
           )}
         </h2>
         <span className="row-actions">
-          <button onClick={() => void indietro()}>
+          <button onClick={indietro}>
             <ChevronLeft size={18} /> Tutti i protocolli
           </button>
           <button className="primary" disabled={!modificato} onClick={() => void salva()}>
@@ -543,10 +546,6 @@ function Editor({
       </div>
 
       <div className="riga-nuova-sezione">
-        <span className="hint">
-          Un gruppo in più oltre a quelli qui sopra: per esempio &ldquo;In palestra&rdquo;, o una
-          divisione per qualità (forza, salti, sprint).
-        </span>
         <button
           className="btn-piccolo"
           onClick={() => aggiorna([...dati.sezioni, { id: idTemporaneo(), nome: '', voci: [] }])}

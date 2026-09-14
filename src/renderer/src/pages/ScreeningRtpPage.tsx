@@ -99,7 +99,7 @@ export default function ScreeningRtpPage({
   return (
     <div className="page">
       <header className="page-header">
-        <h2>Screening e RTP</h2>
+        <h2>Return To Play</h2>
       </header>
 
       <div className="scheda">

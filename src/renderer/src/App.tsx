@@ -223,7 +223,7 @@ export default function App(): React.JSX.Element {
             onClick={() => vaiA('screening')}
           >
             <ClipboardCheck size={18} />
-            Screening e RTP
+            Return To Play
           </button>
         </nav>
         <div className="sidebar-footer">
@@ -296,27 +296,42 @@ function ConfigurazionePage({
   tornaAllInizio: number
 }): React.JSX.Element {
   const [tab, setTab] = useState<TabConfig>('patologie')
+  // Cambia a ogni pressione di una linguetta, anche quella gia' aperta: la
+  // pagina ricomincia dal suo elenco. Stavi modificando il ginocchio, premi
+  // "Distretti", e ritrovi tutti i distretti; quello che avevi scritto si e'
+  // salvato da solo uscendo.
+  const [giro, setGiro] = useState(0)
 
   useEffect(() => {
     if (tornaAllInizio === 0) return
     setTab('patologie')
+    setGiro((g) => g + 1)
   }, [tornaAllInizio])
 
   return (
     <div className="config-wrapper">
       <div className="config-tabs config-tabs-top">
         {TAB_CONFIG.map((t) => (
-          <button key={t.key} className={tab === t.key ? 'active' : ''} onClick={() => setTab(t.key)}>
+          <button
+            key={t.key}
+            className={tab === t.key ? 'active' : ''}
+            onClick={() => {
+              setTab(t.key)
+              setGiro((g) => g + 1)
+            }}
+          >
             {t.label}
           </button>
         ))}
       </div>
-      {tab === 'patologie' && <PatologiePage />}
-      {tab === 'distretti' && <DistrettiPage />}
-      {tab === 'esercizi' && <EserciziPage />}
-      {tab === 'questionari' && <QuestionariPage />}
-      {tab === 'testValutazione' && <TestValutazionePage />}
-      {tab === 'screening' && <ProtocolliScreeningPage tornaAllElenco={tornaAllInizio} />}
+      {tab === 'patologie' && <PatologiePage key={giro} />}
+      {tab === 'distretti' && <DistrettiPage key={giro} />}
+      {tab === 'esercizi' && <EserciziPage key={giro} />}
+      {tab === 'questionari' && <QuestionariPage key={giro} />}
+      {tab === 'testValutazione' && <TestValutazionePage key={giro} />}
+      {tab === 'screening' && (
+        <ProtocolliScreeningPage key={giro} tornaAllElenco={tornaAllInizio} />
+      )}
     </div>
   )
 }

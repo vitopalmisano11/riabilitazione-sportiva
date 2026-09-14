@@ -12,6 +12,7 @@ import { toast, toastErrore } from '../components/Toast'
 import Aiuto from '../components/Aiuto'
 import { chiedi } from '../components/Conferma'
 import { errMsg } from '../lib'
+import { useRileggiDopoSalvataggio, useSalvaUscendo } from '../salvaUscendo'
 import { sposta, useRiordino } from '../riordino'
 import { GRUPPI } from '../../../shared/distretti'
 
@@ -44,6 +45,7 @@ export default function DistrettiPage(): React.JSX.Element {
   useEffect(() => {
     void load()
   }, [load])
+  useRileggiDopoSalvataggio(load)
 
   const aperto = distretti.find((d) => d.id === apertoId) ?? null
 
@@ -244,6 +246,8 @@ function EditorDistretto({
 }): React.JSX.Element {
   const [dati, setDati] = useState<DistrettoCompleto | null>(null)
   const [modificato, setModificato] = useState(false)
+  // uscendo con modifiche non salvate, si salvano da sole
+  const salvaUscendo = useSalvaUscendo(modificato)
 
   useEffect(() => {
     window.api.distretti
@@ -270,6 +274,7 @@ function EditorDistretto({
       toastErrore(errMsg(e))
     }
   }
+  salvaUscendo.current = salva
 
   return (
     <section className="card">

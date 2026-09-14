@@ -493,7 +493,16 @@ export default function EserciziPage(): React.JSX.Element {
       )}
 
       {form && (
-        <div className="modal-overlay" onClick={() => setForm(null)}>
+        // Cliccando fuori si salva, come nel resto della configurazione: si
+        // butta via solo un esercizio nuovo ancora senza nome. "Annulla" resta
+        // il modo per uscire senza salvare.
+        <div
+          className="modal-overlay"
+          onClick={() => {
+            if (form.id == null && !form.nome.trim()) setForm(null)
+            else void salva()
+          }}
+        >
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h3>{form.id == null ? 'Nuovo esercizio' : 'Modifica esercizio'}</h3>
             <label>

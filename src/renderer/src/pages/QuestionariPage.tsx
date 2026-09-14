@@ -14,6 +14,7 @@ import { chiedi } from '../components/Conferma'
 import ElencoCategorie from '../components/ElencoCategorie'
 import Aiuto from '../components/Aiuto'
 import { errMsg } from '../lib'
+import { useRileggiDopoSalvataggio, useSalvaUscendo } from '../salvaUscendo'
 import { sposta, useRiordino } from '../riordino'
 
 const TIPI: { valore: TipoDomanda; etichetta: string }[] = [
@@ -63,6 +64,7 @@ export default function QuestionariPage(): React.JSX.Element {
     void loadCategorie()
     void loadQuestionari()
   }, [loadCategorie, loadQuestionari])
+  useRileggiDopoSalvataggio(loadQuestionari)
 
   const categoria = categorie.find((c) => c.id === catId) ?? null
   const aperto = questionari.find((q) => q.id === apertoId) ?? null
@@ -311,6 +313,8 @@ function EditorQuestionario({
   const [dati, setDati] = useState<QuestionarioCompleto | null>(null)
   const [tab, setTab] = useState<Tab>('domande')
   const [modificato, setModificato] = useState(false)
+  // uscendo con modifiche non salvate, si salvano da sole
+  const salvaUscendo = useSalvaUscendo(modificato)
 
   useEffect(() => {
     window.api.questionari
@@ -338,6 +342,7 @@ function EditorQuestionario({
       toastErrore(errMsg(e))
     }
   }
+  salvaUscendo.current = salva
 
   return (
     <section className="card">

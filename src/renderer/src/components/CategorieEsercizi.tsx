@@ -326,7 +326,15 @@ export default function CategorieEsercizi({
       )}
 
       {form && (
-        <div className="modal-overlay" onClick={() => setForm(null)}>
+        // Cliccando fuori si salva; si butta via solo una categoria nuova
+        // ancora senza nome. "Annulla" resta per uscire senza salvare.
+        <div
+          className="modal-overlay"
+          onClick={() => {
+            if (form.id == null && !form.nome.trim()) setForm(null)
+            else void salva()
+          }}
+        >
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h3>
               {form.id == null

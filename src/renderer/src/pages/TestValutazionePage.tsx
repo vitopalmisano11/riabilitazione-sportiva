@@ -15,6 +15,7 @@ import { chiedi } from '../components/Conferma'
 import ElencoCategorie from '../components/ElencoCategorie'
 import Aiuto from '../components/Aiuto'
 import { errMsg } from '../lib'
+import { useRileggiDopoSalvataggio, useSalvaUscendo } from '../salvaUscendo'
 import { sposta, useRiordino } from '../riordino'
 
 const RIASSUNTI: { valore: RiassuntoMisura; etichetta: string }[] = [
@@ -42,6 +43,7 @@ export default function TestValutazionePage(): React.JSX.Element {
     void loadCategorie()
     void loadTest()
   }, [loadCategorie, loadTest])
+  useRileggiDopoSalvataggio(loadTest)
 
   const categoria = categorie.find((c) => c.id === catId) ?? null
   const aperto = test.find((t) => t.id === apertoId) ?? null
@@ -300,6 +302,8 @@ function EditorTest({
 }): React.JSX.Element {
   const [dati, setDati] = useState<TestValutazioneCompleto | null>(null)
   const [modificato, setModificato] = useState(false)
+  // uscendo con modifiche non salvate, si salvano da sole
+  const salvaUscendo = useSalvaUscendo(modificato)
 
   useEffect(() => {
     window.api.testValutazione
@@ -328,6 +332,7 @@ function EditorTest({
       toastErrore(errMsg(e))
     }
   }
+  salvaUscendo.current = salva
 
   return (
     <section className="card">
