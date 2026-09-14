@@ -70,7 +70,7 @@ function variazione(
 
 // ---- il riassunto scritto ----
 //
-// In cima al report, al posto di un elenco di numeri: per ogni qualita' valutata
+// In fondo al report, dopo i test: per ogni qualita' valutata
 // (forza, reattivita'...) una riga che dice se c'e' un deficit, se e' tutto
 // nella norma e cosa e' cambiato dal primo screening del confronto.
 //
@@ -688,7 +688,7 @@ export function generaReportScreening(sessioneIds: number[]): DatiReport {
   .fascia { margin-left: 6px; padding: 1px 7px; border-radius: 999px; background: ${intestazione}; color: ${accentoScuro}; }
   .vuoto-test { color: #8b93a0; margin: 2px 0; }
   .riassunto { border: 1px solid #dfe4ea; background: #f7f9fb; border-radius: 4px;
-               padding: 8px 10px; margin: 0 0 12px; page-break-inside: avoid; }
+               padding: 8px 10px; margin: 14px 0 12px; page-break-inside: avoid; }
   .riassunto h2 { font-size: 12px; margin: 0 0 4px; color: ${accentoScuro}; }
   .riassunto ul { margin: 0; padding-left: 16px; }
   .riassunto li { margin: 2px 0; line-height: 1.4; }
@@ -743,16 +743,20 @@ export function generaReportScreening(sessioneIds: number[]): DatiReport {
     .map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`)
     .join('')}</dl>
 
-  ${riassunto.html()}
-
   ${blocchi || '<p class="vuoto-test">Nessun valore registrato in questo screening.</p>'}
+
+  ${
+    // Il riassunto in fondo, dopo i test: prima si leggono i numeri, poi
+    // quello che se ne ricava.
+    riassunto.html()
+  }
 
   ${
     s.note
       ? `<div class="note"><h4>Note</h4><p>${esc(s.note).replace(/\n/g, '<br>')}</p></div>`
       : ''
   }
-  <p class="pie">Riabilitazione Sportiva · contiene dati sanitari: trattare con riservatezza.</p>
+  <p class="pie">Contiene dati sanitari: trattare con riservatezza.</p>
 </div>
 </body>
 </html>`

@@ -347,8 +347,9 @@ function EditorTest({
       </label>
       <label>
         Come si esegue (protocollo)
+        {/* Alta: spesso qui si scrive tutta la spiegazione teorica del test. */}
         <textarea
-          rows={1}
+          rows={7}
           placeholder="es. Dal box, cadere con entrambi i piedi e saltare subito il più in alto possibile"
           value={dati.test.protocollo ?? ''}
           onChange={(e) => aggiornaTest({ protocollo: e.target.value || null })}

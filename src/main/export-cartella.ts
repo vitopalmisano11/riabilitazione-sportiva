@@ -1231,7 +1231,7 @@ function documento(c: Cartella, cheCosa: string): string {
   <h1>${esc(c.cognome)} ${esc(c.nome)}</h1>
   <p class="info">${esc(cheCosa)} · stampata il ${data(oggiIso())}</p>
   ${corpo || '<p class="testo">Nessun contenuto da stampare.</p>'}
-  <p class="pie">Documento generato da Riabilitazione Sportiva. Contiene dati sanitari: trattare con riservatezza.</p>
+  <p class="pie">Contiene dati sanitari: trattare con riservatezza.</p>
 </div>
 </body>
 </html>`
