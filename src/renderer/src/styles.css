@@ -3781,7 +3781,7 @@ input[type='checkbox'].interruttore:focus-visible {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  gap: 10px 12px;
+  gap: 10px 8px;
 }
 
 .gruppo-scelta {
@@ -3812,7 +3812,9 @@ input[type='checkbox'].interruttore:focus-visible {
 
 .scelta-coppia.segmentata button {
   flex: 1 1 auto;
-  padding: 7px 14px;
+  /* stretti quanto basta perche' le quattro coppie stiano su una riga anche
+     quando la finestra ha la barra di scorrimento */
+  padding: 7px 10px;
   border: none;
   border-radius: 0;
   font-size: 14px;
