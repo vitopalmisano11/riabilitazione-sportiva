@@ -564,6 +564,7 @@ function SchedaBlocco({
         </span>
         <input
           type="checkbox"
+          className="interruttore"
           checked={attivo}
           onChange={(e) => salva({ attivo: e.target.checked, minuti })}
         />
@@ -627,11 +628,16 @@ function SchedaAspetto({
       <label className="riga-interruttore riga-staccata">
         <span className="nome-interruttore">
           Colonna laterale scura
-          <Aiuto testo="La striscia con i pulsanti delle sezioni, a sinistra: scura stacca di più dal contenuto, chiara è più leggera. Il colore che hai scelto resta quello." />
+          <Aiuto testo="La striscia con i pulsanti delle sezioni, a sinistra: scura stacca di più dal contenuto, chiara è più leggera. Il colore che hai scelto resta quello. Con la modalità scura la colonna è sempre scura, e questo interruttore resta acceso." />
         </span>
+        {/* Con la modalita' scura la colonna e' scura comunque: l'interruttore
+            lo dice restando acceso, invece di sembrare spento e non fare
+            niente. */}
         <input
           type="checkbox"
-          checked={barraScura}
+          className="interruttore"
+          checked={barraScura || scuro}
+          disabled={scuro}
           onChange={(e) => onBarraScura(e.target.checked)}
         />
       </label>
@@ -644,7 +650,12 @@ function SchedaAspetto({
           Modalità scura
           <Aiuto testo="Fondi scuri e scritte chiare, con il colore che hai scelto. I documenti che stampi restano chiari: vanno sulla carta." />
         </span>
-        <input type="checkbox" checked={scuro} onChange={(e) => onScuro(e.target.checked)} />
+        <input
+          type="checkbox"
+          className="interruttore"
+          checked={scuro}
+          onChange={(e) => onScuro(e.target.checked)}
+        />
       </label>
     </section>
   )

@@ -284,6 +284,7 @@ function EditorDistretto({
       <label className="checkbox-inline spunta-bilaterale">
         <input
           type="checkbox"
+          className="interruttore"
           checked={dati.distretto.bilaterale === 1}
           onChange={(e) =>
             aggiorna({ distretto: { ...dati.distretto, bilaterale: e.target.checked ? 1 : 0 } })

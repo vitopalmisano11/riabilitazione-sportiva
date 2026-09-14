@@ -106,6 +106,7 @@ export default function PannelloBackup(): React.JSX.Element {
       <label className="checkbox-inline">
         <input
           type="checkbox"
+          className="interruttore"
           checked={info.attivo}
           onChange={(e) => void run(() => window.api.backup.setAttivo(e.target.checked))}
         />

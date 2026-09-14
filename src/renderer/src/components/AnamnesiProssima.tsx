@@ -680,41 +680,63 @@ function ListaSintomi({
               </span>
             </div>
 
+            {/* Quattro coppie sulla stessa riga, ognuna con il suo nome sopra:
+                le due scelte di una coppia sono attaccate, cosi' si vede che
+                sono l'una o l'altra, e fra una coppia e l'altra c'e' aria. Con
+                i caratteri grandi le coppie vanno a capo intere. */}
             <div className="scelte-rapide">
-              <Scelta
-                etichette={[
-                  ['costante', 'Costante'],
-                  ['intermittente', 'Intermittente']
-                ]}
-                valore={s.andamento}
-                onScegli={(v) => modifica(i, { andamento: v as AndamentoSintomo | null })}
-              />
-              <Scelta
-                etichette={[
-                  ['primo', 'Primo episodio'],
-                  ['recidiva', 'Recidiva']
-                ]}
-                valore={s.episodio}
-                onScegli={(v) => modifica(i, { episodio: v as EpisodioSintomo | null })}
-              />
-              <Scelta
-                etichette={[
-                  ['improvviso', 'Esordio improvviso'],
-                  ['graduale', 'Graduale']
-                ]}
-                valore={s.esordio_modo}
-                onScegli={(v) =>
-                  modifica(i, { esordio_modo: v as SintomoAnamnesi['esordio_modo'] })
-                }
-              />
-              <Scelta
-                etichette={[
-                  ['1', 'Traumatico'],
-                  ['0', 'Non traumatico']
-                ]}
-                valore={s.traumatico == null ? null : String(s.traumatico)}
-                onScegli={(v) => modifica(i, { traumatico: v == null ? null : ((Number(v) as 0 | 1)) })}
-              />
+              <div className="gruppo-scelta">
+                <span className="didascalia-scelta">Andamento</span>
+                <Scelta
+                  segmentata
+                  etichette={[
+                    ['costante', 'Costante'],
+                    ['intermittente', 'Intermittente']
+                  ]}
+                  valore={s.andamento}
+                  onScegli={(v) => modifica(i, { andamento: v as AndamentoSintomo | null })}
+                />
+              </div>
+              <div className="gruppo-scelta">
+                <span className="didascalia-scelta">Episodio</span>
+                <Scelta
+                  segmentata
+                  etichette={[
+                    ['primo', 'Primo episodio'],
+                    ['recidiva', 'Recidiva']
+                  ]}
+                  valore={s.episodio}
+                  onScegli={(v) => modifica(i, { episodio: v as EpisodioSintomo | null })}
+                />
+              </div>
+              <div className="gruppo-scelta">
+                <span className="didascalia-scelta">Esordio</span>
+                <Scelta
+                  segmentata
+                  etichette={[
+                    ['improvviso', 'Improvviso'],
+                    ['graduale', 'Graduale']
+                  ]}
+                  valore={s.esordio_modo}
+                  onScegli={(v) =>
+                    modifica(i, { esordio_modo: v as SintomoAnamnesi['esordio_modo'] })
+                  }
+                />
+              </div>
+              <div className="gruppo-scelta">
+                <span className="didascalia-scelta">Trauma</span>
+                <Scelta
+                  segmentata
+                  etichette={[
+                    ['1', 'Traumatico'],
+                    ['0', 'Non traumatico']
+                  ]}
+                  valore={s.traumatico == null ? null : String(s.traumatico)}
+                  onScegli={(v) =>
+                    modifica(i, { traumatico: v == null ? null : (Number(v) as 0 | 1) })
+                  }
+                />
+              </div>
             </div>
 
             {/* La durata: un numero e l'unita' con un clic, e da li' la fase.
@@ -825,14 +847,17 @@ function ListaSintomi({
 function Scelta({
   etichette,
   valore,
+  segmentata,
   onScegli
 }: {
   etichette: [string, string][]
   valore: string | null
+  // i pulsanti attaccati in un pezzo solo, come un selettore
+  segmentata?: boolean
   onScegli: (v: string | null) => void
 }): React.JSX.Element {
   return (
-    <span className="scelta-coppia">
+    <span className={segmentata ? 'scelta-coppia segmentata' : 'scelta-coppia'}>
       {etichette.map(([v, testo]) => (
         <button
           key={v}

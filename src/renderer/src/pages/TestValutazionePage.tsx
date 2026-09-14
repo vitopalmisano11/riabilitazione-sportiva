@@ -394,6 +394,7 @@ function EditorTest({
       <label className="checkbox-inline">
         <input
           type="checkbox"
+          className="interruttore"
           checked={dati.test.per_lato === 1}
           onChange={(e) => aggiornaTest({ per_lato: e.target.checked ? 1 : 0 })}
         />

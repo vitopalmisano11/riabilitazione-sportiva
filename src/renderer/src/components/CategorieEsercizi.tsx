@@ -350,6 +350,7 @@ export default function CategorieEsercizi({
             <label className="checkbox-inline riga-staccata">
               <input
                 type="checkbox"
+                className="interruttore"
                 checked={form.cluster}
                 onChange={(e) => setForm({ ...form, cluster: e.target.checked })}
               />
@@ -359,6 +360,7 @@ export default function CategorieEsercizi({
             <label className="checkbox-inline">
               <input
                 type="checkbox"
+                className="interruttore"
                 checked={form.rir}
                 onChange={(e) => setForm({ ...form, rir: e.target.checked })}
               />
