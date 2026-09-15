@@ -1644,6 +1644,39 @@ span.row-actions button {
   animation: pop-up 0.18s ease-out;
 }
 
+/* Cambiando sezione dal menu la pagina nuova compare con una dissolvenza
+   breve, invece di sostituire l'altra di colpo. */
+.entrata-pagina {
+  animation: entrata-pagina 0.18s ease-out;
+}
+
+@keyframes entrata-pagina {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* I blocchi che si aprono (indicazioni per casa, segni, cestino) si aprono
+   con la stessa dissolvenza. */
+details[open] > :not(summary) {
+  animation: entrata-pagina 0.16s ease-out;
+}
+
+/* Chi ha chiesto a Windows di ridurre le animazioni non ne vede nessuna. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 @keyframes fade-in {
   from {
     opacity: 0;
@@ -1834,6 +1867,68 @@ span.row-actions button {
 
 .builder-col .page-header p {
   margin-bottom: 0;
+}
+
+/* La seduta a blocchi: l'intestazione con data e focus, la volta scorsa, cosa
+   riferisce, il trattamento, poi gli esercizi. Ogni blocco e' un riquadro suo,
+   con lo spazio fra uno e l'altro: prima stavano uno attaccato all'altro e
+   sembravano una cosa sola. */
+.builder-col > .builder-header,
+.builder-col > section.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 16px 18px;
+}
+
+.builder-col > .builder-header h2 {
+  font-size: 22px;
+}
+
+/* La volta scorsa si legge e non si compila: fondo del pannello e una
+   striscia di colore a sinistra. */
+.builder-col > section.card.ultima-seduta {
+  background: var(--pannello);
+  border-left: 4px solid var(--accent);
+}
+
+/* Il titolo di un blocco: icona, nome e punto interrogativo. */
+.titolo-blocco {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 17px;
+  font-weight: 650;
+  color: var(--text);
+}
+
+.titolo-blocco svg {
+  color: var(--accent);
+}
+
+/* Il titolo che separa gli esercizi dal diario: fuori dai riquadri, con una
+   linea che arriva fino in fondo. */
+.titolo-esercizi {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 17px;
+  font-weight: 650;
+  color: var(--text);
+}
+
+.titolo-esercizi svg {
+  color: var(--accent);
+}
+
+.titolo-esercizi::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  margin-left: 6px;
+  background: var(--border-forte);
 }
 
 /* Ogni sezione della seduta e' un riquadro bianco a se', come gli obiettivi:
@@ -6090,17 +6185,31 @@ input[type='checkbox'].interruttore:focus-visible {
 
 /* La cartella completa: il nome, le sezioni da spuntare e, sotto, i suoi due
    pulsanti a destra. */
-.blocco-cartella {
+/* Nella finestra dei documenti due gruppi ben distinti, ognuno nel suo
+   riquadro con il titolo: le relazioni, e la cartella con le sue spunte. */
+.gruppo-documenti {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
+  padding: 12px 14px;
+  background: var(--pannello);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
 }
 
-.blocco-cartella .nome-documento {
-  font-weight: 600;
-  color: var(--text);
+.gruppo-documenti + .gruppo-documenti {
+  margin-top: 6px;
+}
+
+.titolo-gruppo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-dim);
 }
 
 .pulsanti-cartella {

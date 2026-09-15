@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Check, History, Plus, X } from 'lucide-react'
+import { Check, History, MessageSquareText, Plus, Stethoscope, X } from 'lucide-react'
 import type { AndamentoRiferito, SedutaPrecedente, Tecnica } from '../../../shared/types'
 import Aiuto from './Aiuto'
 import { toast, toastErrore } from './Toast'
@@ -143,9 +143,14 @@ export default function DiarioSeduta({
   }
 
   return (
-    <section className="card diario-seduta">
+    <>
+    {/* Due riquadri, ognuno col suo titolo: cosa riferisce e il trattamento
+        sono due momenti diversi della seduta, e insieme sembravano una cosa
+        sola. */}
+    <section className="card blocco-seduta">
       <div className="riga-diario">
-        <span className="nome-domanda">
+        <span className="titolo-blocco">
+          <MessageSquareText size={18} />
           Cosa riferisce
           <Aiuto testo="Come sta tornando, rispetto alla volta prima: un clic su meglio, uguale o peggio, e con le sue parole quello che racconta. Nel diario si legge seduta dopo seduta, e la volta dopo lo ritrovi in cima alla seduta nuova." />
         </span>
@@ -168,9 +173,12 @@ export default function DiarioSeduta({
           onChange={(e) => onCambia({ riferito: e.target.value })}
         />
       </div>
+    </section>
 
+    <section className="card blocco-seduta">
       <div className="riga-diario">
-        <span className="nome-domanda">
+        <span className="titolo-blocco">
+          <Stethoscope size={18} />
           Trattamento eseguito
           <Aiuto testo="Le tecniche che fai oggi: si spuntano con un clic. L'elenco è tuo: con Aggiungi ne scrivi una nuova, con Modifica elenco togli quelle che non usi più (le sedute vecchie continuano a mostrarle). Nella casella sotto i dettagli, per esempio la zona o i parametri." />
         </span>
@@ -244,5 +252,6 @@ export default function DiarioSeduta({
         />
       </div>
     </section>
+    </>
   )
 }

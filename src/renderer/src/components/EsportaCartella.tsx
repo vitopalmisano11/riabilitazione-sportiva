@@ -119,7 +119,9 @@ export default function EsportaCartella({
         {/* In cima le due relazioni, ognuna con anteprima e scarica. Sotto la
             cartella completa: prima si scelgono le sezioni, poi i suoi
             pulsanti, subito sotto alle spunte. */}
-        <div className="elenco-documenti">
+        <div className="gruppo-documenti">
+          <div className="titolo-gruppo">Relazioni scritte</div>
+          <div className="elenco-documenti">
           {RELAZIONI.map((r) => (
             <div key={r.tipo} className="altro-documento senza-linea">
               <span className="nome-documento">
@@ -143,10 +145,11 @@ export default function EsportaCartella({
               </button>
             </div>
           ))}
+          </div>
         </div>
 
-        <div className="blocco-cartella">
-          <span className="nome-documento">
+        <div className="gruppo-documenti blocco-cartella">
+          <span className="titolo-gruppo">
             Cartella completa
             <Aiuto testo="Tutto quello che c'è nella scheda del paziente, con le sezioni che scegli qui sotto. Le sezioni ancora vuote non vengono stampate, anche se sono spuntate." />
           </span>

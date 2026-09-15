@@ -296,6 +296,9 @@ export default function App(): React.JSX.Element {
         </div>
       </aside>
       <main className="content">
+        {/* la chiave cambia con la sezione: la pagina nuova entra con la sua
+            dissolvenza */}
+        <div key={sezione} className="entrata-pagina">
         {sezione === 'settimana' && (
           <SettimanaPage
             onApriPaziente={vaiAlPaziente}
@@ -335,6 +338,7 @@ export default function App(): React.JSX.Element {
             onIngrandimento={scegliIngrandimento}
           />
         )}
+        </div>
       </main>
       <ConfermaHost />
       <ToastHost />

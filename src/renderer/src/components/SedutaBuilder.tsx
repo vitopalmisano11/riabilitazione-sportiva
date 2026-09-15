@@ -15,6 +15,7 @@ import type {
 import {
   AlertTriangle,
   CornerDownLeft,
+  Dumbbell,
   ImageIcon,
   Pencil,
   Plus,
@@ -684,6 +685,12 @@ export default function SedutaBuilder({
           if (p.trattamento !== undefined) setTrattamento(p.trattamento)
         }}
       />
+
+      {/* Da qui in giu' gli esercizi: un titolo li separa dal diario sopra. */}
+      <div className="titolo-esercizi">
+        <Dumbbell size={18} />
+        Esercizi
+      </div>
 
       {faseId != null && obiettivi.length > 0 && (
         <section className="card obiettivi-info">
