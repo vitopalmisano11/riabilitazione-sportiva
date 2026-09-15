@@ -70,7 +70,7 @@ export default function AuthGate({ onUnlocked }: { onUnlocked: () => void }): Re
         </div>
         {modo === 'setup' && (
           <>
-            <h1>Fisioterapia</h1>
+            <h1>Gestionale fisioterapia</h1>
             <p>
               Primo avvio: scegli la password che proteggerà i dati dei pazienti. Il database
               viene cifrato con questa chiave.
@@ -135,7 +135,7 @@ export default function AuthGate({ onUnlocked }: { onUnlocked: () => void }): Re
 
         {modo === 'login' && (
           <>
-            <h1>Fisioterapia</h1>
+            <h1>Gestionale fisioterapia</h1>
             <form
               className="auth-form"
               onSubmit={(e) => {

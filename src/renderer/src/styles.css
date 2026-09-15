@@ -627,9 +627,13 @@ button.danger:hover:not(:disabled) {
   gap: 4px;
 }
 
+/* Sotto al nome una riga del colore del tema, come quella sotto ai titoli dei
+   riquadri: divide il nome dalle voci del menu. */
 .sidebar h1 {
   font-size: 19px;
-  margin: 0 8px 20px;
+  margin: 0 0 12px;
+  padding: 0 8px 14px;
+  border-bottom: 2px solid var(--accent);
   font-weight: 600;
   display: flex;
   align-items: center;
