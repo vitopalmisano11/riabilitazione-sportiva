@@ -1886,20 +1886,9 @@ details[open] > :not(summary) {
   font-size: 22px;
 }
 
-/* L'intestazione resta in cima mentre si scorre la seduta: data, Annulla e
-   Salva sempre a portata. Il margine negativo compensa lo spazio in cima alla
-   pagina, cosi' si attacca proprio al bordo. */
-.builder-col > .builder-header {
-  position: sticky;
-  top: -30px;
-  z-index: 6;
-  box-shadow: var(--shadow-md);
-}
-
-/* La volta scorsa si legge e non si compila: fondo del pannello e una
-   striscia di colore a sinistra. */
+/* La volta scorsa si legge e non si compila: una striscia di colore a
+   sinistra, sullo stesso fondo degli altri riquadri. */
 .builder-col > section.card.ultima-seduta {
-  background: var(--pannello);
   border-left: 4px solid var(--accent);
 }
 
@@ -3545,9 +3534,14 @@ input[type='checkbox'].interruttore:focus-visible {
   width: 100%;
 }
 
-/* L'elenco scende fino in fondo alla finestra, e scorre lui. */
+/* L'elenco scende fino in fondo alla finestra, e scorre lui: un riquadro
+   con gli angoli arrotondati, come gli altri. */
 .lista-larga .riquadro-scorrevole {
-  max-height: max(320px, calc(100vh - var(--alto-barra) - 165px));
+  max-height: max(320px, calc(100vh - var(--alto-barra) - 215px));
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
 }
 
 .riga-paziente {
@@ -3578,7 +3572,7 @@ input[type='checkbox'].interruttore:focus-visible {
 
 .intestazione-pazienti {
   position: sticky;
-  top: -4px;
+  top: -6px;
   z-index: 1;
   background: var(--surface);
   cursor: default;
@@ -6060,11 +6054,6 @@ input[type='checkbox'].interruttore:focus-visible {
 }
 
 /* ---- Diario della seduta ---- */
-
-/* La volta scorsa: un riquadro basso e tenue, da leggere, non da compilare. */
-.ultima-seduta {
-  background: var(--pannello);
-}
 
 /* L'ultima volta: chiusa e' una riga sola, che si apre con un clic. */
 .titolo-ultima {
