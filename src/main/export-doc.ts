@@ -6,7 +6,6 @@ import {
   caricoTesto,
   intensitaTesto,
   rirTesto,
-  recuperoEsteso,
   recuperoTesto,
   ripetizioniTesto,
   volumeTesto
@@ -122,14 +121,6 @@ export function generaHtml(
   sedute: DatiSedutaExport[],
   illustrata = false
 ): string {
-  // I dettagli in riga servono ancora alla scheda illustrata, dove ogni
-  // esercizio ha la sua foto e il suo riquadro.
-  const dettagli = (e: DatiSedutaExport['sezioni'][number]['esercizi'][number]): string =>
-    [volumeTesto(e), caricoTesto(e.carico, e.unita_carico), rirTesto(e), recuperoEsteso(e)]
-      .filter(Boolean)
-      .map((x) => esc(String(x)))
-      .join(' · ')
-
   // La stessa tabella della finestra che si mostra al paziente: quattro colonne
   // sempre nello stesso posto — cosa fare, quanto, con che carico, quanto
   // riposare. Quello che si legge a schermo e quello che si stampa sono la

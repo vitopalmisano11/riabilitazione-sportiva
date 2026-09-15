@@ -195,7 +195,6 @@ function punteggioHtml(
 
 const ROSSO = '#d64545'
 const BLU = '#2563eb'
-const GRIGIO = '#8b93a0'
 
 // La ciambella dei due lati: l'ampiezza di ogni spicchio e' proporzionale al
 // valore, quindi il disegno mostra subito da che parte pende.

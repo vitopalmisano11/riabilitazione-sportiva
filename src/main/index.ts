@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, shell } from 'electron'
 import { join } from 'path'
 import { registerIpc } from './ipc'
 import {
@@ -85,6 +85,26 @@ function createWindow(): void {
     win.loadFile(join(__dirname, '../renderer/index.html'))
   }
 }
+
+// Un link dentro a una finestra del programma (il video di un esercizio nella
+// scheda illustrata, per esempio) non deve portarla via: prima la finestra
+// diventava quella pagina internet, e il documento non si ritrovava piu'. I
+// link internet si aprono nel browser; tutto il resto non si apre.
+app.on('web-contents-created', (_evento, contenuti) => {
+  const nelBrowser = (url: string): void => {
+    if (/^https?:\/\//i.test(url)) void shell.openExternal(url)
+  }
+  contenuti.setWindowOpenHandler(({ url }) => {
+    nelBrowser(url)
+    return { action: 'deny' }
+  })
+  contenuti.on('will-navigate', (evento, url) => {
+    const sviluppo = process.env['ELECTRON_RENDERER_URL']
+    if (sviluppo && url.startsWith(sviluppo)) return
+    evento.preventDefault()
+    nelBrowser(url)
+  })
+})
 
 app.whenReady().then(() => {
   // Sposta db e auth dalla vecchia posizione (userData) alla cartella dati, se serve.

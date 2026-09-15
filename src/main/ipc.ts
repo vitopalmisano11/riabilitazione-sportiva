@@ -84,7 +84,6 @@ import {
   collegaCompilazione,
   creaScreening,
   elencoScreening,
-  eliminaScreening,
   leggiScreening,
   salvaValori
 } from './screening-sessioni'

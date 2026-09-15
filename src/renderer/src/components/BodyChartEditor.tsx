@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useModificheInCorso } from '../modificheInCorso'
 import { Trash2 } from 'lucide-react'
 import type { BodyChartCompleta, SegnoBodyChart, TipoSegno } from '../../../shared/types'
 import { toast, toastErrore } from './Toast'
@@ -32,6 +33,9 @@ export default function BodyChartEditor({
   const [strumento, setStrumento] = useState<TipoSegno>('dolore')
   const [selezione, setSelezione] = useState<string | null>(null)
   const [modificato, setModificato] = useState(false)
+  // chiudendo il programma con segni non salvati, si salvano
+  const salvaAllaChiusura = useRef<(() => Promise<void>) | null>(null)
+  useModificheInCorso(!soloLettura && modificato, 'body chart', salvaAllaChiusura)
 
   // Esc chiude, Ctrl+S salva: sono le due cose che si fanno di continuo qui
   // dentro.
@@ -114,6 +118,7 @@ export default function BodyChartEditor({
     cambia(t.chiave, { x, y })
   }
 
+  salvaAllaChiusura.current = () => salva()
   const salva = async (): Promise<void> => {
     try {
       await window.api.bodyChart.salva({

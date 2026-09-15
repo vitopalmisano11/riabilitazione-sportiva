@@ -12,6 +12,12 @@ Specifica originale e feedback dell'utente sono nei file `prompt-*.md` alla radi
   `auth.ts` (password, recovery key, DEK avvolta), `export*.ts` (PDF/Word),
   `impostazioni.ts` (cartella dati/export), `file-dati.ts` (spostamento file).
 - `src/preload/index.ts` espone `window.api` tipizzato; il contratto è `Api` in `src/shared/types.ts`.
+  `src/preload/finestra.ts` è il ponte minimo delle finestre dei documenti (anteprima cartella,
+  relazioni, report): espone solo i comandi della barra in cima (riduci, ingrandisci, chiudi).
+- Tutte le finestre nascono senza barra di Windows (`barraDisegnata()` in `main/finestre.ts`): la
+  barra la disegna la pagina (`components/BarraFinestra.tsx`, `conBarra()` per l'HTML generato).
+- Editor con modifiche da salvare: `useModificheInCorso` (`renderer/src/modificheInCorso.ts`)
+  le salva se si chiude il programma; nella configurazione `useSalvaUscendo` salva anche uscendo.
 - `src/renderer/src/` React: `App.tsx` (shell, sidebar, modali globali), `pages/`, `components/`,
   `styles.css` (unico foglio di stile, design token in `:root`).
 - Lingua dell'interfaccia, dei commenti e dei commit: **italiano**.

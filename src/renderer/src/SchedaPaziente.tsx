@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { RotateCw } from 'lucide-react'
 import type { SchedaPaziente as Dati } from '../../shared/types'
 import { errMsg, formatData } from './lib'
-import { caricoTesto, intensitaTesto, recuperoTesto, volumeTesto } from '../../shared/dosaggio'
+import { intensitaTesto, recuperoTesto, volumeTesto } from '../../shared/dosaggio'
 import BarraFinestra from './components/BarraFinestra'
 
 // Quello che vede il paziente mentre si allena: solo il suo programma. Ne

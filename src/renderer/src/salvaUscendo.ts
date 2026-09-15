@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { useModificheInCorso } from './modificheInCorso'
 
 // Salvare uscendo, nelle schede della configurazione.
 //
@@ -20,6 +21,8 @@ export function useSalvaUscendo(
   const salva = useRef<(() => Promise<void>) | null>(null)
   const daSalvare = useRef(modificato)
   daSalvare.current = modificato
+  // anche chiudendo il programma
+  useModificheInCorso(modificato, 'configurazione', salva)
 
   useEffect(
     () => () => {

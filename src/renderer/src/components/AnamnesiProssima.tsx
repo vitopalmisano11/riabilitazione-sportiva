@@ -10,6 +10,7 @@ import type {
 } from '../../../shared/types'
 import { toastErrore } from './Toast'
 import { chiedi } from './Conferma'
+import { useModificheInCorso } from '../modificheInCorso'
 import { errMsg } from '../lib'
 import { sposta, useRiordino } from '../riordino'
 import GraficoAndamento, { COLORI, type Selezione } from './GraficoAndamento'
@@ -77,6 +78,10 @@ export default function AnamnesiProssima({
 }): React.JSX.Element {
   const [dati, setDati] = useState<Dati | null>(null)
   const [stato, setStato] = useState<'fermo' | 'salvo' | 'salvato'>('fermo')
+  // Il salvataggio aspetta un secondo e mezzo dall'ultima lettera: chiudendo
+  // il programma in quel mezzo, quello che resta si salva subito.
+  const salvaAllaChiusura = useRef<(() => Promise<void>) | null>(null)
+  useModificheInCorso(stato === 'salvo', 'anamnesi', salvaAllaChiusura)
   const [sintomoAttivo, setSintomoAttivo] = useState(0)
   const [attivita, setAttivita] = useState<AttivitaPartecipazione | null>(null)
   const attesa = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -95,6 +100,7 @@ export default function AnamnesiProssima({
   }, [pazienteId])
 
   // Salva quel che c'e' in sospeso: alla chiusura non si aspetta il timer.
+  salvaAllaChiusura.current = () => salvaSubito()
   const salvaSubito = async (): Promise<void> => {
     const d = daSalvare.current
     const a = attivitaDaSalvare.current

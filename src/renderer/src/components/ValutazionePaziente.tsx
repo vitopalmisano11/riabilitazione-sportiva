@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Check, Copy, Eye, Pencil, Plus, Trash2 } from 'lucide-react'
 import type {
   Andamento,
@@ -20,14 +20,8 @@ import ScalaPallini from './ScalaPallini'
 import Aiuto from './Aiuto'
 import { errMsg, formatData, oggiIso } from '../lib'
 import { useScorciatoie } from '../scorciatoie'
+import { useModificheInCorso } from '../modificheInCorso'
 import { GRUPPI } from '../pages/DistrettiPage'
-
-const GRADI: { valore: Grado; etichetta: string }[] = [
-  { valore: 0, etichetta: '—' },
-  { valore: 1, etichetta: 'lieve' },
-  { valore: 2, etichetta: 'moder.' },
-  { valore: 3, etichetta: 'severa' }
-]
 
 const ANDAMENTI: { valore: Andamento; etichetta: string }[] = [
   // Le etichette concordano con "capacita' di carico", che e' femminile. Il
@@ -235,6 +229,9 @@ function SchedaValutazione({
   const [dati, setDati] = useState<ValutazioneCompleta | null>(null)
   const [librerie, setLibrerie] = useState<DistrettoCompleto[]>([])
   const [modificato, setModificato] = useState(false)
+  // chiudendo il programma a valutazione non salvata, si salva
+  const salvaAllaChiusura = useRef<(() => Promise<void>) | null>(null)
+  useModificheInCorso(!soloLettura && modificato, 'valutazione', salvaAllaChiusura)
 
   useScorciatoie([
     { tasto: 'Escape', azione: () => void chiudi() },
@@ -385,6 +382,7 @@ function SchedaValutazione({
     return scrittaSenzaLati ? [''] : ['dx', 'sx']
   }
 
+  salvaAllaChiusura.current = () => salva()
   const salva = async (): Promise<void> => {
     try {
       await window.api.valutazioni.salva(dati)

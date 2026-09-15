@@ -13,7 +13,6 @@ import {
 import type { Categoria, EsercizioConCategoria, EsercizioInput } from '../../../shared/types'
 import { toastErrore } from '../components/Toast'
 import { chiedi } from '../components/Conferma'
-import Aiuto from '../components/Aiuto'
 import CategorieEsercizi from '../components/CategorieEsercizi'
 import SceltaConRicerca from '../components/SceltaConRicerca'
 import ImmagineEsercizio from '../components/ImmagineEsercizio'

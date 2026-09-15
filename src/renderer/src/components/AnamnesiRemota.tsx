@@ -4,6 +4,7 @@ import { FileText, ImageIcon, Plus, Trash2 } from 'lucide-react'
 import type { AnamnesiRemota as Dati, Bioimmagine, RispostaSiNo } from '../../../shared/types'
 import { toastErrore } from './Toast'
 import { chiedi } from './Conferma'
+import { useModificheInCorso } from '../modificheInCorso'
 import { errMsg, formatData } from '../lib'
 
 const ATTESA_SALVATAGGIO = 1500
@@ -49,6 +50,10 @@ export default function AnamnesiRemota({
   const [dati, setDati] = useState<Dati | null>(null)
   const [referti, setReferti] = useState<Bioimmagine[]>([])
   const [stato, setStato] = useState<'fermo' | 'salvo' | 'salvato'>('fermo')
+  // Il salvataggio aspetta un secondo e mezzo dall'ultima lettera: chiudendo
+  // il programma in quel mezzo, quello che resta si salva subito.
+  const salvaAllaChiusura = useRef<(() => Promise<void>) | null>(null)
+  useModificheInCorso(stato === 'salvo', 'anamnesi', salvaAllaChiusura)
   const attesa = useRef<ReturnType<typeof setTimeout> | null>(null)
   const daSalvare = useRef<Dati | null>(null)
 
@@ -68,6 +73,7 @@ export default function AnamnesiRemota({
     }
   }, [pazienteId, caricaReferti])
 
+  salvaAllaChiusura.current = () => salvaSubito()
   const salvaSubito = async (): Promise<void> => {
     const d = daSalvare.current
     if (!d) return

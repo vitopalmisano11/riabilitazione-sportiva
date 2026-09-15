@@ -465,22 +465,6 @@ function SchedaPaziente({
     await setFase(prossima.id)
   }
 
-  const elimina = async (): Promise<void> => {
-    if (
-      !(await chiedi(
-        `Eliminare ${paziente.nome} ${paziente.cognome}?\nVerranno eliminate anche tutte le sue sedute (diario).`
-      ))
-    ) {
-      return
-    }
-    try {
-      await window.api.pazienti.remove(paziente.id)
-      onDeleted()
-    } catch (e) {
-      toastErrore(errMsg(e))
-    }
-  }
-
   return (
     <div className="scheda">
       <AnagraficaPaziente paziente={paziente} onChanged={onChanged} onDeleted={onDeleted} />
