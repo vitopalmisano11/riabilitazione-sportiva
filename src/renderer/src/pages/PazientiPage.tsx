@@ -37,6 +37,22 @@ import { chiedi } from '../components/Conferma'
 import { errMsg, formatData, oggiIso } from '../lib'
 import { useScorciatoie } from '../scorciatoie'
 
+// Da quanto non viene: "oggi", "ieri", "5 giorni fa", "3 settimane fa".
+function quantoFa(data: string | null): string {
+  if (!data) return 'mai'
+  const [a, m, g] = data.split('-').map(Number)
+  const giorno = new Date(a, m - 1, g)
+  const oggi = new Date()
+  oggi.setHours(0, 0, 0, 0)
+  const giorni = Math.round((oggi.getTime() - giorno.getTime()) / 86400000)
+  if (giorni <= 0) return 'oggi'
+  if (giorni === 1) return 'ieri'
+  if (giorni < 14) return `${giorni} giorni fa`
+  if (giorni < 60) return `${Math.floor(giorni / 7)} settimane fa`
+  const mesi = Math.floor(giorni / 30)
+  return mesi < 12 ? `${mesi} mesi fa` : mesi < 24 ? 'più di un anno fa' : `${Math.floor(mesi / 12)} anni fa`
+}
+
 export default function PazientiPage({
   tornaAllElenco,
   apriPaziente,
@@ -201,7 +217,9 @@ export default function PazientiPage({
   }
 
   return (
-    <div className="page step-flow">
+    // Senza un paziente aperto la pagina e' la lista, larga quanto la
+    // finestra; con la scheda aperta resta la colonna di lettura di prima.
+    <div className={sel ? 'page step-flow' : 'page lista-larga'}>
       <header className="page-header">
         <h2>Pazienti</h2>
       </header>
@@ -241,7 +259,7 @@ export default function PazientiPage({
           onDuplicaSeduta={(id) => setBuilder({ sedutaId: null, duplicaDa: id })}
         />
       ) : (
-        <section className="card step-card colonna-centrata">
+        <section className="card step-card elenco-pazienti">
           <div className="ricerca-sopra">
             <input
               ref={ricercaRef}
@@ -310,12 +328,40 @@ export default function PazientiPage({
           {/* Un riquadro solo che scorre, come nel follow-up: prima erano dieci
               pazienti e il resto chiuso in un blocco a parte, che con
               l'archivio grande voleva dire due posti in cui cercare. */}
+          {/* Una riga per paziente, a colonne: il nome, a che punto e' del
+              percorso, da quanto non viene e se e' in trattamento o in
+              follow-up. Si legge tutto senza aprire la scheda. */}
           <div className="riquadro-scorrevole">
-            <div className="elenco-verticale">
+            {/* l'intestazione sta dentro al riquadro che scorre, ferma in
+                cima: cosi' le colonne sono larghe uguali a quelle delle righe */}
+            {trovati.length > 0 && (
+              <div className="riga-paziente intestazione-pazienti">
+                <span>Paziente</span>
+                <span>Patologia e fase</span>
+                <span>Ultima seduta</span>
+                <span>Stato</span>
+                <span />
+              </div>
+            )}
+            <div className="righe-pazienti">
               {trovati.map((p) => (
-                <div key={p.id} className="scelta-tile" onClick={() => setSelId(p.id)}>
-                  <span className="scelta-tile-nome">
+                <div key={p.id} className="riga-paziente" onClick={() => setSelId(p.id)}>
+                  <span className="nome-paziente-riga">
                     {p.cognome} {p.nome}
+                  </span>
+                  <span className="dettaglio-riga">
+                    {[p.patologia_nome, p.fase_nome].filter(Boolean).join(' · ') || '—'}
+                  </span>
+                  <span
+                    className="dettaglio-riga"
+                    title={p.ultima_seduta ? formatData(p.ultima_seduta) : undefined}
+                  >
+                    {quantoFa(p.ultima_seduta)}
+                  </span>
+                  <span>
+                    <span className={p.stato === 'concluso' ? 'badge-stato follow' : 'badge-stato'}>
+                      {p.stato === 'concluso' ? 'Follow-up' : 'In trattamento'}
+                    </span>
                   </span>
                   <button
                     className="primary btn-icona"

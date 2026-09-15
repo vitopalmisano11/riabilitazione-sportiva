@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Check, History, MessageSquareText, Plus, Stethoscope, X } from 'lucide-react'
+import { Check, ChevronDown, History, MessageSquareText, Plus, Stethoscope, X } from 'lucide-react'
 import type { AndamentoRiferito, SedutaPrecedente, Tecnica } from '../../../shared/types'
 import Aiuto from './Aiuto'
 import { toast, toastErrore } from './Toast'
@@ -38,13 +38,29 @@ export function UltimaVoltaSeduta({
     })
   ].filter(Boolean)
   const vuota = !p.riferito_andamento && !p.riferito && !trattamento && numeri.length === 0 && !p.note
+  // Chiusa e' una riga sola, con l'essenziale; aperta mostra tutto.
+  const [aperta, setAperta] = useState(false)
+  const inBreve = [
+    p.riferito_andamento ? NOME_ANDAMENTO[p.riferito_andamento] : null,
+    p.tecniche.join(', ') || null,
+    p.dolore != null ? `dolore ${p.dolore}/10` : null
+  ]
+    .filter(Boolean)
+    .join(' · ')
   return (
-    <section className="card ultima-seduta">
-      <div className="titolo-ultima">
+    <section className={aperta ? 'card ultima-seduta aperta' : 'card ultima-seduta'}>
+      <button
+        type="button"
+        className="titolo-ultima"
+        title={aperta ? 'Chiudi' : 'Vedi tutto'}
+        onClick={() => setAperta(!aperta)}
+      >
         <History size={16} />
-        <span>L&apos;ultima volta — {formatData(p.data)}</span>
-      </div>
-      {vuota ? (
+        <span className="data-ultima">L&apos;ultima volta — {formatData(p.data)}</span>
+        {!aperta && <span className="in-breve">{vuota ? 'niente di scritto' : inBreve}</span>}
+        <ChevronDown size={16} className="freccia-ultima" />
+      </button>
+      {!aperta ? null : vuota ? (
         <p className="hint">In quella seduta non erano scritti né come stava né il trattamento.</p>
       ) : (
         <dl className="righe-ultima">
@@ -143,10 +159,10 @@ export default function DiarioSeduta({
   }
 
   return (
-    <>
-    {/* Due riquadri, ognuno col suo titolo: cosa riferisce e il trattamento
-        sono due momenti diversi della seduta, e insieme sembravano una cosa
-        sola. */}
+    <div className="diario-affiancato">
+    {/* Due riquadri affiancati, ognuno col suo titolo: cosa riferisce e il
+        trattamento sono due momenti diversi della seduta, e uno sotto l'altro
+        allungavano la pagina. */}
     <section className="card blocco-seduta">
       <div className="riga-diario">
         <span className="titolo-blocco">
@@ -252,6 +268,6 @@ export default function DiarioSeduta({
         />
       </div>
     </section>
-    </>
+    </div>
   )
 }
