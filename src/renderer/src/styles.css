@@ -5926,20 +5926,45 @@ input[type='checkbox'].interruttore:focus-visible {
   gap: 6px;
 }
 
+/* Una tecnica e' una pillola sola: il nome e, mentre si modifica l'elenco, la
+   X dentro alla stessa pillola, separata da una linea. Cosi' si vede a quale
+   tecnica si riferisce, ed e' alta uguale. */
 .tecnica {
   display: inline-flex;
-  align-items: center;
-  gap: 2px;
+  align-items: stretch;
+  border: 1px solid var(--border-forte);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--surface);
 }
 
-.tecnica > button:first-child {
+.tecnica > button {
+  border: none;
+  border-radius: 0;
   display: inline-flex;
   align-items: center;
   gap: 5px;
 }
 
-.togli-tecnica {
-  padding: 2px 5px;
+.tecnica > button.scelta-attiva {
+  background: var(--accent);
+  color: #fff;
+}
+
+.tecnica.in-modifica > button:first-child {
+  cursor: default;
+}
+
+.tecnica .togli-tecnica {
+  padding: 0 10px;
+  border-left: 1px solid var(--border-forte);
+  color: var(--text-dim);
+  background: transparent;
+}
+
+.tecnica .togli-tecnica:hover:not(:disabled) {
+  background: #c24141;
+  color: #fff;
 }
 
 .nuova-tecnica {
@@ -6061,6 +6086,27 @@ input[type='checkbox'].interruttore:focus-visible {
 .orari-scuro input {
   width: 110px;
   padding: 6px 8px;
+}
+
+/* La cartella completa: il nome, le sezioni da spuntare e, sotto, i suoi due
+   pulsanti a destra. */
+.blocco-cartella {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.blocco-cartella .nome-documento {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.pulsanti-cartella {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .elenco-documenti {

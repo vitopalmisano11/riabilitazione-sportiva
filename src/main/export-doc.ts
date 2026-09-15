@@ -215,7 +215,10 @@ export function generaHtml(
       numero = 0
       return `
     <section class="seduta${i > 0 ? ' nuova-pagina' : ''}">
-      <h2>Seduta del ${formatData(s.data)}${s.fase_nome ? ` <span class="fase">· ${esc(s.fase_nome)}</span>` : ''}</h2>
+      <h2>Seduta del ${formatData(s.data)}${
+        // nella scheda illustrata, che va al paziente, la fase non si scrive
+        s.fase_nome && !illustrata ? ` <span class="fase">· ${esc(s.fase_nome)}</span>` : ''
+      }</h2>
       ${
         s.obiettivi.length
           ? `<p class="obiettivi"><strong>Obiettivi:</strong> ${s.obiettivi.map(esc).join(', ')}</p>`

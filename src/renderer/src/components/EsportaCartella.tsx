@@ -116,31 +116,10 @@ export default function EsportaCartella({
         <h3>
           Cartella di {paziente.cognome} {paziente.nome}
         </h3>
-        {/* Prima i tre documenti, ognuno con anteprima e scarica; sotto, le
-            sezioni da mettere nella cartella. */}
+        {/* In cima le due relazioni, ognuna con anteprima e scarica. Sotto la
+            cartella completa: prima si scelgono le sezioni, poi i suoi
+            pulsanti, subito sotto alle spunte. */}
         <div className="elenco-documenti">
-          <div className="altro-documento senza-linea">
-            <span className="nome-documento">
-              Cartella completa
-              <Aiuto testo="Tutto quello che c'è nella scheda del paziente, con le sezioni che scegli qui sotto. Le sezioni ancora vuote non vengono stampate, anche se sono spuntate." />
-            </span>
-            <span className="spacer" />
-            <button
-              title="Anteprima della cartella"
-              disabled={scelte.length === 0 || occupato}
-              onClick={() => void anteprima()}
-            >
-              <Eye size={18} />
-            </button>
-            <button
-              className="primary"
-              title="Scarica la cartella in PDF"
-              disabled={scelte.length === 0 || occupato}
-              onClick={() => void scarica()}
-            >
-              <Download size={18} />
-            </button>
-          </div>
           {RELAZIONI.map((r) => (
             <div key={r.tipo} className="altro-documento senza-linea">
               <span className="nome-documento">
@@ -166,18 +145,39 @@ export default function EsportaCartella({
           ))}
         </div>
 
-        <div className="sotto-titolo">Sezioni della cartella</div>
-        <div className="checkbox-list sezioni-cartella">
-          {SEZIONI.map((s) => (
-            <label key={s.chiave} className="checkbox-inline">
-              <input
-                type="checkbox"
-                checked={scelte.includes(s.chiave)}
-                onChange={(e) => cambia(s.chiave, e.target.checked)}
-              />
-              {s.etichetta}
-            </label>
-          ))}
+        <div className="blocco-cartella">
+          <span className="nome-documento">
+            Cartella completa
+            <Aiuto testo="Tutto quello che c'è nella scheda del paziente, con le sezioni che scegli qui sotto. Le sezioni ancora vuote non vengono stampate, anche se sono spuntate." />
+          </span>
+          <div className="checkbox-list sezioni-cartella">
+            {SEZIONI.map((s) => (
+              <label key={s.chiave} className="checkbox-inline">
+                <input
+                  type="checkbox"
+                  checked={scelte.includes(s.chiave)}
+                  onChange={(e) => cambia(s.chiave, e.target.checked)}
+                />
+                {s.etichetta}
+              </label>
+            ))}
+          </div>
+          <div className="pulsanti-cartella">
+            <button
+              title="Anteprima della cartella"
+              disabled={scelte.length === 0 || occupato}
+              onClick={() => void anteprima()}
+            >
+              <Eye size={18} />
+            </button>
+            <button
+              title="Scarica la cartella in PDF"
+              disabled={scelte.length === 0 || occupato}
+              onClick={() => void scarica()}
+            >
+              <Download size={18} />
+            </button>
+          </div>
         </div>
 
         <div className="modal-actions">

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Check, History, Plus, X } from 'lucide-react'
 import type { AndamentoRiferito, SedutaPrecedente, Tecnica } from '../../../shared/types'
 import Aiuto from './Aiuto'
-import { toastErrore } from './Toast'
+import { toast, toastErrore } from './Toast'
 import { errMsg, formatData } from '../lib'
 
 // Il diario della seduta, in cima alla seduta: prima come sta il paziente
@@ -136,6 +136,7 @@ export default function DiarioSeduta({
     try {
       await window.api.tecniche.setArchiviata(t.id, true)
       carica()
+      toast(`"${t.nome}" tolta dall'elenco. Per rimetterla, aggiungila di nuovo.`)
     } catch (e) {
       toastErrore(errMsg(e))
     }
@@ -177,15 +178,18 @@ export default function DiarioSeduta({
           {visibili.map((t) => {
             const dentro = tecnicaIds.includes(t.id)
             return (
-              <span key={t.id} className="tecnica">
+              <span key={t.id} className={modificaElenco ? 'tecnica in-modifica' : 'tecnica'}>
                 <button
                   type="button"
                   className={dentro ? 'scelta-attiva' : ''}
-                  onClick={() =>
+                  // mentre si modifica l'elenco il nome non si spunta: si
+                  // toglie con la X accanto, senza spuntare per sbaglio
+                  onClick={() => {
+                    if (modificaElenco) return
                     onCambia({
                       tecnicaIds: dentro ? tecnicaIds.filter((x) => x !== t.id) : [...tecnicaIds, t.id]
                     })
-                  }
+                  }}
                 >
                   {dentro && <Check size={14} />}
                   {t.nome}
@@ -193,11 +197,11 @@ export default function DiarioSeduta({
                 {modificaElenco && t.archiviata === 0 && (
                   <button
                     type="button"
-                    className="btn-icona danger togli-tecnica"
-                    title="Togli dall'elenco"
+                    className="togli-tecnica"
+                    title={`Togli "${t.nome}" dall'elenco`}
                     onClick={() => void archivia(t)}
                   >
-                    <X size={13} />
+                    <X size={14} />
                   </button>
                 )}
               </span>

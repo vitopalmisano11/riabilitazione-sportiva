@@ -27,7 +27,6 @@ import ProgrammaSettimana from '../components/ProgrammaSettimana'
 import QuestionariPaziente from '../components/QuestionariPaziente'
 import AnagraficaPaziente, { ModaleDatiPaziente } from '../components/AnagraficaPaziente'
 import SceltaConRicerca from '../components/SceltaConRicerca'
-import { NOME_ANDAMENTO } from '../components/DiarioSeduta'
 import SegniPaziente from '../components/SegniPaziente'
 import IndicazioniCasa from '../components/IndicazioniCasa'
 import MisurePaziente from '../components/MisurePaziente'
@@ -899,18 +898,7 @@ function DiarioCard({
                 {s.dolore != null && ` · dolore ${s.dolore}/10`}
               </span>
               {s.obiettivi_nomi && <span className="seduta-obiettivi">{s.obiettivi_nomi}</span>}
-              {/* Il diario della seduta: come stava e cosa gli si e' fatto. */}
-              {(s.riferito_andamento || s.riferito) && (
-                <span className="riga-diario-elenco">
-                  <span className="etichetta-diario">Riferisce</span>
-                  {s.riferito_andamento && (
-                    <span className={`badge-andamento ${s.riferito_andamento}`}>
-                      {NOME_ANDAMENTO[s.riferito_andamento]}
-                    </span>
-                  )}
-                  {s.riferito}
-                </span>
-              )}
+              {/* Sotto alla data, il trattamento fatto. */}
               {(s.tecniche_nomi || s.trattamento) && (
                 <span className="riga-diario-elenco">
                   <span className="etichetta-diario">Trattamento</span>
