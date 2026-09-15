@@ -23,7 +23,7 @@ import AuthGate from './components/AuthGate'
 import SchermoBloccato from './components/SchermoBloccato'
 import ToastHost, { toastErrore } from './components/Toast'
 import ConfermaHost from './components/Conferma'
-import { errMsg } from './lib'
+import { errMsg, oggiIso } from './lib'
 import type { Tema } from '../../shared/temi'
 
 type Sezione =
@@ -167,6 +167,27 @@ export default function App(): React.JSX.Element {
   // sempre e solo quella visibile.
   const [tornaAllElenco, setTornaAllElenco] = useState(0)
 
+  // Il numerino accanto a "Follow-up": quanti pazienti hanno la data per
+  // risentirli oggi o gia' passata. Si rilegge cambiando sezione, quando la
+  // pagina del follow-up cambia qualcosa e ogni dieci minuti (a mezzanotte
+  // cambia il giorno).
+  const [daSentire, setDaSentire] = useState(0)
+  const contaDaSentire = (): void => {
+    window.api.followUp
+      .list()
+      .then(({ concluso }) => {
+        const oggi = oggiIso()
+        setDaSentire(concluso.filter((p) => p.follow_up_il != null && p.follow_up_il <= oggi).length)
+      })
+      .catch(() => {})
+  }
+  useEffect(() => {
+    if (!sbloccata) return
+    contaDaSentire()
+    const t = setInterval(contaDaSentire, 600_000)
+    return () => clearInterval(t)
+  }, [sbloccata, sezione, tornaAllElenco])
+
   // Premere una voce del menu riporta sempre alla prima pagina di quella
   // sezione, anche arrivando da un'altra: se stavi dentro a una scheda o a una
   // seduta, esci. Prima il segnale partiva solo ripremendo la voce in cui gia'
@@ -178,7 +199,7 @@ export default function App(): React.JSX.Element {
     // Si dimentica anche il paziente che si era chiesto di aprire da un'altra
     // sezione. Restava li' anche dopo, e siccome la pagina dei pazienti la si
     // chiude e riapre passando da un'altra voce del menu, quella richiesta
-    // vecchia veniva eseguita di nuovo: si premeva "Pazienti e sedute" e si
+    // vecchia veniva eseguita di nuovo: si premeva "Pazienti" e si
     // finiva dentro alla scheda dell'ultimo paziente invece che nell'elenco.
     setApriPaziente(null)
     setTornaA(null)
@@ -243,7 +264,6 @@ export default function App(): React.JSX.Element {
           </span>
           Riabilitazione
         </h1>
-        <div className="nav-group-label">Diario pazienti</div>
         <nav>
           {/* Per prima: e' la schermata del lunedi' mattina, quella che
               risponde a "oggi chi viene". */}
@@ -259,7 +279,7 @@ export default function App(): React.JSX.Element {
             onClick={() => vaiA('pazienti')}
           >
             <Users size={18} />
-            Pazienti e sedute
+            Pazienti
           </button>
           <button
             className={sezione === 'followup' ? 'active' : ''}
@@ -267,6 +287,14 @@ export default function App(): React.JSX.Element {
           >
             <CalendarClock size={18} />
             Follow-up
+            {daSentire > 0 && (
+              <span
+                className="conta-menu"
+                title={daSentire === 1 ? '1 paziente da sentire' : `${daSentire} pazienti da sentire`}
+              >
+                {daSentire}
+              </span>
+            )}
           </button>
           <button
             className={sezione === 'screening' ? 'active' : ''}
@@ -319,7 +347,11 @@ export default function App(): React.JSX.Element {
           />
         )}
         {sezione === 'followup' && (
-          <FollowUpPage onApriPaziente={vaiAlPaziente} ricarica={tornaAllElenco} />
+          <FollowUpPage
+            onApriPaziente={vaiAlPaziente}
+            ricarica={tornaAllElenco}
+            onCambiato={contaDaSentire}
+          />
         )}
         {sezione === 'screening' && <ScreeningRtpPage tornaAllElenco={tornaAllElenco} />}
         {sezione === 'configurazione' && <ConfigurazionePage tornaAllInizio={tornaAllElenco} />}

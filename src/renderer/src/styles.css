@@ -650,12 +650,24 @@ button.danger:hover:not(:disabled) {
   flex-shrink: 0;
 }
 
-.nav-group-label {
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--barra-etichetta);
-  margin: 12px 8px 4px;
+/* Quanti pazienti del follow-up sono da sentire: un numerino in fondo alla
+   voce del menu. */
+.conta-menu {
+  margin-left: auto;
+  min-width: 22px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+
+.sidebar nav button.active .conta-menu {
+  background: #fff;
+  color: var(--accent);
 }
 
 .sidebar nav {

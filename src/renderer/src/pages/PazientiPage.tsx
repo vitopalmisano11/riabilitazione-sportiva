@@ -58,7 +58,7 @@ export default function PazientiPage({
   apriPaziente,
   onEsciDallaSeduta
 }: {
-  // Cambia ogni volta che si ripreme "Pazienti e sedute" nel menu a sinistra.
+  // Cambia ogni volta che si ripreme "Pazienti" nel menu a sinistra.
   tornaAllElenco: number
   // Scheda da aprire, richiesta da un'altra sezione (il follow-up, la
   // settimana). Con sedutaId si apre direttamente quella seduta.
@@ -106,7 +106,7 @@ export default function PazientiPage({
   const builderAperto = useRef(builder)
   builderAperto.current = builder
 
-  // Premendo "Pazienti e sedute" nel menu si torna all'elenco da qualunque
+  // Premendo "Pazienti" nel menu si torna all'elenco da qualunque
   // punto, anche dalla costruzione di una seduta. Per una seduta nuova non si
   // perde niente: la bozza e' gia' messa da parte e viene riproposta. Per una
   // seduta gia' salvata che si stava modificando, invece, si chiede prima.

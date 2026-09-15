@@ -12,9 +12,9 @@ import { errMsg, formatData, oggiIso } from '../lib'
 // qualcosa in sospeso. La data dell'ultimo contatto resta comunque sotto al
 // nome, cosi' non si perde la memoria di quando lo hai sentito.
 //
-// Non c'e' nessun avviso automatico: la sezione la guardi quando vuoi tu. Le
-// date passate si vedono in rosso, quindi basta scorrere l'elenco per capire
-// chi e' in ritardo.
+// Non c'e' nessun avviso che interrompe: solo un numerino accanto a
+// "Follow-up" nel menu, con quanti sono da sentire. Le date passate si vedono in
+// rosso, quindi basta scorrere l'elenco per capire chi e' in ritardo.
 
 // Fra un mese da oggi: la proposta piu' comune quando si chiude un ciclo.
 function fraUnMese(): string {
@@ -26,13 +26,16 @@ function fraUnMese(): string {
 
 export default function FollowUpPage({
   onApriPaziente,
-  ricarica
+  ricarica,
+  onCambiato
 }: {
-  // Porta alla scheda del paziente, nella sezione "Pazienti e sedute".
+  // Porta alla scheda del paziente, nella sezione "Pazienti".
   onApriPaziente: (id: number) => void
   // Cambia quando si ripreme "Follow-up" nel menu: qui non c'e' niente da
   // chiudere, quindi si rilegge l'elenco.
   ricarica: number
+  // Dopo ogni cambiamento: il menu rilegge quanti sono da sentire.
+  onCambiato?: () => void
 }): React.JSX.Element {
   const [trattamento, setTrattamento] = useState<PazienteDettaglio[]>([])
   const [concluso, setConcluso] = useState<PazienteDettaglio[]>([])
@@ -42,6 +45,7 @@ export default function FollowUpPage({
       const { trattamento: t, concluso: c } = await window.api.followUp.list()
       setTrattamento(t)
       setConcluso(c)
+      onCambiato?.()
     } catch (e) {
       toastErrore(errMsg(e))
     }
