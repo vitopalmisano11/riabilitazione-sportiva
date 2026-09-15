@@ -4331,12 +4331,6 @@ input[type='checkbox'].interruttore:focus-visible {
   min-width: 0;
 }
 
-.campo-andamento {
-  width: 150px;
-  padding: 4px 8px;
-  font-size: 14px;
-}
-
 /* carico locale e generale sulla prima riga, le capacita' sulla seconda */
 .griglia-carico {
   display: grid;
@@ -5447,33 +5441,28 @@ input[type='checkbox'].interruttore:focus-visible {
   padding: 4px;
 }
 
-/* Una tabella sola per i movimenti: il nome a sinistra, poi l'attivo e il
-   passivo. Prima erano due tabelle affiancate, ognuna troppo larga per il suo
-   spazio: per segnare i gradi bisognava scorrere di lato. */
+/* I movimenti: un riquadro per l'attivo e uno per il passivo, uno sotto
+   l'altro. Dentro, una riga per movimento; con i due lati destra e sinistra
+   stanno affiancate, ognuna con le sue colonnine. */
 .movimenti {
   margin-bottom: var(--spazio);
 }
 
-/* I movimenti su una griglia a tre colonne: il nome, l'attivo, il passivo.
-   Le due meta' sono larghe uguali per costruzione — non si allargano sul
-   contenuto come facevano le colonne di una tabella — e le note in fondo
-   usano la stessa griglia, quindi cadono esattamente sotto alla loro meta'. */
+.blocco-movimenti .sotto-titolo {
+  margin-top: 8px;
+}
+
 .griglia-movimenti {
   display: grid;
-  grid-template-columns: minmax(104px, 180px) 1fr 1fr;
+  grid-template-columns: minmax(120px, 1fr) minmax(0, 2.4fr);
   align-items: stretch;
 }
 
-/* Una riga verticale fra l'attivo e il passivo, per tutta l'altezza: sono due
-   colonne di dati, e senza niente in mezzo l'occhio le legge come una sola. */
-.griglia-movimenti .gm-lato + .gm-lato,
-.griglia-movimenti .gm-sotto + .gm-sotto,
-.griglia-movimenti .gm-rilievi + .gm-rilievi,
-.griglia-movimenti .gm-nota + .gm-nota {
-  border-left: 1px solid var(--border);
+.griglia-movimenti.due-lati {
+  grid-template-columns: minmax(120px, 1fr) repeat(2, minmax(0, 1.6fr));
 }
 
-/* La riga di un movimento e' tre celle della griglia, non un riquadro suo:
+/* La riga di un movimento sono celle della griglia, non un riquadro suo:
    cosi' resta incolonnata con le altre. */
 .gm-riga {
   display: contents;
@@ -5483,23 +5472,41 @@ input[type='checkbox'].interruttore:focus-visible {
   background: var(--riga-alterna);
 }
 
-/* Il nome del lato: una fascia sopra alle sue colonne. */
+/* Il nome del lato: una fascia sopra alle sue colonne. Il lato interessato
+   nel colore del tema. */
 .gm-lato {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 0 3px;
+  padding: 5px 8px;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
   background: var(--intestazione);
   color: var(--intestazione-testo-forte);
-  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
-  padding: 5px 8px;
-  text-align: center;
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
+.gm-lato.interessato {
+  background: var(--accent);
+  color: #fff;
+}
+
+.gm-lato .nota-lato {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  opacity: 0.9;
+}
+
 .gm-titolo {
   display: flex;
   align-items: flex-end;
-  padding: 8px 4px 6px;
+  padding: 8px 6px 6px;
   font-size: 12px;
   font-weight: 600;
   color: var(--text-dim);
@@ -5507,28 +5514,30 @@ input[type='checkbox'].interruttore:focus-visible {
   letter-spacing: 0.03em;
 }
 
-/* I titoli delle colonne e i rilievi hanno la stessa griglia interna: i numeri
-   cadono esattamente sotto al loro titolo. */
+/* Titoli e rilievi con le stesse colonnine: norma, intensita', dolore (stretta)
+   e gradi. Ogni valore cade esattamente sotto al suo titolo. */
 .gm-sotto,
 .gm-rilievi {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 34px 104px 48px;
+  justify-content: space-evenly;
   align-items: center;
   justify-items: center;
+  column-gap: 4px;
 }
 
 .con-gradi .gm-sotto,
 .con-gradi .gm-rilievi {
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: 34px 104px 48px 68px;
 }
 
 .gm-sotto {
   padding: 8px 0 6px;
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
   color: var(--text-dim);
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.02em;
 }
 
 /* La riga dei titoli si chiude con una linea: sotto comincia quello che si
@@ -5539,18 +5548,23 @@ input[type='checkbox'].interruttore:focus-visible {
 }
 
 .gm-rilievi {
-  padding: 8px 0;
+  padding: 6px 0;
 }
 
-/* Un filo fra una riga e l'altra, oltre al fondo alternato: due segnali deboli
-   messi insieme si leggono meglio di uno forte. */
+/* Una riga verticale fra destra e sinistra, per tutta l'altezza. */
+.griglia-movimenti .secondo-lato {
+  border-left: 1px solid var(--border-forte);
+}
+
+.gm-lato.secondo-lato {
+  border-left: none;
+}
+
 .gm-nome,
 .gm-rilievi {
-  border-bottom: 1px solid var(--bg);
+  border-bottom: 1px solid var(--border);
 }
 
-/* Gli angoli del fondo alternato seguono la riga, che comincia dal nome e
-   finisce con l'ultimo rilievo. */
 .gm-riga > *:first-child {
   border-radius: var(--radius-sm) 0 0 var(--radius-sm);
 }
@@ -5562,7 +5576,7 @@ input[type='checkbox'].interruttore:focus-visible {
 .gm-nome {
   display: flex;
   align-items: center;
-  padding: 8px 10px 8px 6px;
+  padding: 6px 10px 6px 6px;
   font-size: 14px;
   line-height: 1.25;
   overflow-wrap: anywhere;
@@ -5573,13 +5587,6 @@ input[type='checkbox'].interruttore:focus-visible {
 .gm-dolore input[type='checkbox'] {
   width: 20px;
   height: 20px;
-}
-
-/* Il nome del movimento, il lato e la spunta "nella norma" nella prima
-   colonna: il nome a sinistra, il resto in fondo a destra. */
-.gm-mov {
-  flex: 1;
-  min-width: 0;
 }
 
 .etichetta-lato {
@@ -5614,16 +5621,9 @@ input[type='checkbox'].interruttore:focus-visible {
 }
 
 /* Un movimento nella norma: i rilievi si fanno da parte. */
-.gm-riga.in-norma .scala-segni,
-.gm-riga.in-norma .gm-dolore {
+.gm-rilievi.in-norma .scala-segni,
+.gm-rilievi.in-norma .gm-dolore {
   opacity: 0.35;
-}
-
-/* Con i due lati, la linea fra un movimento e l'altro e' piu' marcata di
-   quella fra destra e sinistra dello stesso movimento. */
-.gm-riga.ultimo-lato > .gm-nome,
-.gm-riga.ultimo-lato > .gm-rilievi {
-  border-bottom: 1.5px solid var(--border);
 }
 
 .azioni-norma {
@@ -5644,20 +5644,19 @@ input[type='checkbox'].interruttore:focus-visible {
   margin-bottom: 12px;
 }
 
-.gm-gradi .campo-gradi {
-  width: 72px;
-  padding: 6px 4px;
+.gm-rilievi .campo-gradi {
+  width: 64px;
+  padding: 5px 4px;
   font-size: 15px;
   text-align: center;
 }
 
-/* Le note stanno sotto alla meta' a cui appartengono, e la prima colonna
-   resta vuota come nella griglia sopra. */
+/* Le note in fondo al loro riquadro, larghe quanto lui. */
 .gm-nota {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 10px 10px 0;
+  margin-top: 10px;
   font-size: 14px;
   color: var(--text-dim);
 }
@@ -5667,8 +5666,20 @@ input[type='checkbox'].interruttore:focus-visible {
   padding: 6px 8px;
 }
 
+.gm-nota textarea.cresce {
+  min-height: 38px;
+}
+
+/* Il carico: tre pulsanti con la freccia, stretti e uguali. */
+.riga-sino .scelta-andamento button {
+  min-width: 44px;
+  padding: 4px 10px;
+  justify-content: center;
+}
+
 @media (max-width: 760px) {
-  .griglia-movimenti {
+  .griglia-movimenti,
+  .griglia-movimenti.due-lati {
     grid-template-columns: 1fr;
   }
 

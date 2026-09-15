@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Check, Copy, Eye, Pencil, Plus, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, Check, Copy, Eye, Minus, Pencil, Plus, Trash2 } from 'lucide-react'
 import type {
   Andamento,
   Distretto,
@@ -23,12 +23,13 @@ import { useScorciatoie } from '../scorciatoie'
 import { useModificheInCorso } from '../modificheInCorso'
 import { GRUPPI } from '../pages/DistrettiPage'
 
-const ANDAMENTI: { valore: Andamento; etichetta: string }[] = [
+const ANDAMENTI: { valore: Andamento; etichetta: string; icona: React.JSX.Element }[] = [
+  // Sui pulsanti una freccia; la parola resta nel suggerimento e nei documenti.
   // Le etichette concordano con "capacita' di carico", che e' femminile. Il
   // valore salvato resta quello di prima: le valutazioni gia' fatte non cambiano.
-  { valore: 'aumentato', etichetta: 'Aumentata' },
-  { valore: 'invariato', etichetta: 'Invariata' },
-  { valore: 'diminuito', etichetta: 'Diminuita' }
+  { valore: 'aumentato', etichetta: 'Aumentata', icona: <ArrowUp size={16} /> },
+  { valore: 'invariato', etichetta: 'Invariata', icona: <Minus size={16} /> },
+  { valore: 'diminuito', etichetta: 'Diminuita', icona: <ArrowDown size={16} /> }
 ]
 
 // Storico delle valutazioni obiettive: si aggiunge, si rivede e si modifica,
@@ -543,21 +544,25 @@ function SchedaValutazione({
           ).map(([chiave, etichetta]) => (
             <div key={chiave} className="riga-sino">
               <span>{etichetta}</span>
-              <select
-                className="campo-andamento"
-                disabled={soloLettura}
-                value={dati.valutazione[chiave] ?? ''}
-                onChange={(e) =>
-                  campoValutazione({ [chiave]: (e.target.value || null) as Andamento | null })
-                }
-              >
-                <option value="">—</option>
-                {ANDAMENTI.map((a) => (
-                  <option key={a.valore} value={a.valore}>
-                    {a.etichetta}
-                  </option>
-                ))}
-              </select>
+              {/* Tre pulsanti invece della tendina: si sceglie con un clic, e
+                  ripremendo quello scelto si toglie. */}
+              <span className="scelta-coppia segmentata scelta-andamento">
+                {ANDAMENTI.map((a) => {
+                  const scelto = dati.valutazione[chiave] === a.valore
+                  return (
+                    <button
+                      key={a.valore}
+                      type="button"
+                      title={a.etichetta}
+                      disabled={soloLettura}
+                      className={scelto ? 'scelta-attiva' : ''}
+                      onClick={() => campoValutazione({ [chiave]: scelto ? null : a.valore })}
+                    >
+                      {a.icona}
+                    </button>
+                  )
+                })}
+              </span>
             </div>
           ))}
         </div>
@@ -604,21 +609,38 @@ function EtichettaLato({
   )
 }
 
-// Movimento attivo e passivo in due riquadri affiancati.
-//
-// Prima erano le colonne di un'unica tabella, con intestazioni come "Attivo —
-// restrizione" che andavano a capo e si leggevano male. Separandoli, ogni
-// riquadro ha le sue tre colonnine corte e il confronto fra attivo e passivo si
-// fa guardando a destra e a sinistra.
+// I movimenti in due riquadri, uno sotto l'altro: prima l'attivo, poi il
+// passivo, come si valutano. Dentro a ognuno una riga per movimento e, con i due
+// lati, destra e sinistra una accanto all'altra: il confronto fra i lati si fa
+// sulla stessa riga, e il nome del movimento si scrive una volta sola. Le note
+// stanno in fondo al loro riquadro, larghe quanto lui: prima erano sotto a una
+// meta' della tabella e non si capiva a cosa appartenessero.
 //
 // La restrizione si segna con +, ++ e +++ invece che con un menu: sono i segni
-// che si usano a mano sul foglio e si clicca una volta sola, invece di aprire
-// una tendina. Il dolore e' una spunta: c'e' o non c'e'.
+// che si usano a mano sul foglio e si clicca una volta sola. Il dolore e' una
+// spunta: c'e' o non c'e'.
 const SEGNI: { valore: Grado; segno: string; titolo: string }[] = [
   { valore: 1, segno: '+', titolo: 'Restrizione lieve' },
   { valore: 2, segno: '++', titolo: 'Restrizione moderata' },
   { valore: 3, segno: '+++', titolo: 'Restrizione severa' }
 ]
+
+const TIPI = [
+  {
+    tipo: 'attivo',
+    titolo: 'Movimento attivo',
+    restrizione: 'attivo_restrizione',
+    dolore: 'attivo_dolore',
+    gradi: 'attivo_gradi'
+  },
+  {
+    tipo: 'passivo',
+    titolo: 'Movimento passivo',
+    restrizione: 'passivo_restrizione',
+    dolore: 'passivo_dolore',
+    gradi: 'passivo_gradi'
+  }
+] as const
 
 function TabellaMovimenti({
   movimenti,
@@ -642,33 +664,49 @@ function TabellaMovimenti({
   onNote: (patch: Partial<NoteMovimenti>) => void
 }): React.JSX.Element {
   const conGradi = movimenti.some((m) => m.gradi === 1)
+  const dueLati = lati.length > 1
 
-  // Niente tabella: una griglia a tre colonne — il nome, l'attivo, il passivo.
-  // Le due meta' sono larghe uguali per costruzione, dentro ognuna i rilievi si
-  // dividono lo spazio in parti uguali, e le note in fondo usano la stessa
-  // griglia, quindi cadono esattamente sotto alla loro meta'. Con la tabella
-  // le colonne si allargavano sul contenuto: il nome si prendeva il vuoto e i
-  // titoli non stavano piu' sopra ai numeri.
-  const titoliLato = (): React.JSX.Element => (
-    <>
-      <span>Intensità</span>
-      <span>Dolore</span>
-      {conGradi && <span>Gradi</span>}
-    </>
-  )
+  const nomeLato = (lato: LatoRilievo): string =>
+    lato === 'dx' ? 'a destra' : lato === 'sx' ? 'a sinistra' : ''
 
-  const rilieviLato = (
-    id: number,
-    lato: LatoRilievo,
-    m: MovimentoDistretto,
-    campoRestrizione: 'attivo_restrizione' | 'passivo_restrizione',
-    campoDolore: 'attivo_dolore' | 'passivo_dolore',
-    campoGradi: 'attivo_gradi' | 'passivo_gradi'
-  ): React.JSX.Element => {
+  // I rilievi di un movimento, da un lato, per l'attivo o il passivo. Titoli e
+  // rilievi hanno le stesse colonnine, quindi cadono uno sotto all'altro.
+  const cella = (m: MovimentoDistretto, lato: LatoRilievo, t: (typeof TIPI)[number]): React.JSX.Element => {
+    const id = m.id as number
     const r = rilievo(id, lato)
-    const restrizione = r[campoRestrizione]
+    const restrizione = r[t.restrizione]
     return (
-      <>
+      <div
+        key={lato}
+        className={['gm-rilievi', r.norma === 1 ? 'in-norma' : '', lato === 'sx' && dueLati ? 'secondo-lato' : '']
+          .filter(Boolean)
+          .join(' ')}
+      >
+        {/* La spunta "nella norma" vale per il movimento da quel lato, attivo e
+            passivo insieme: e' la stessa nei due riquadri. */}
+        <button
+          type="button"
+          className={r.norma === 1 ? 'btn-norma scelta-attiva' : 'btn-norma'}
+          title="Nella norma"
+          disabled={soloLettura}
+          onClick={() =>
+            onCambia(
+              id,
+              lato,
+              r.norma === 1
+                ? { norma: null }
+                : {
+                    norma: 1,
+                    attivo_restrizione: null,
+                    attivo_dolore: null,
+                    passivo_restrizione: null,
+                    passivo_dolore: null
+                  }
+            )
+          }
+        >
+          <Check size={14} />
+        </button>
         <span className="scala-segni">
           {SEGNI.map((g) => (
             <button
@@ -680,9 +718,7 @@ function TabellaMovimenti({
               // ripremendo lo stesso segno si toglie: e' il modo piu' veloce
               // per correggere un clic sbagliato
               onClick={() =>
-                onCambia(id, lato, {
-                  [campoRestrizione]: restrizione === g.valore ? null : g.valore
-                })
+                onCambia(id, lato, { [t.restrizione]: restrizione === g.valore ? null : g.valore })
               }
             >
               {g.segno}
@@ -696,35 +732,34 @@ function TabellaMovimenti({
             disabled={soloLettura}
             // i rilievi vecchi avevano il dolore graduato: qualunque valore
             // diverso da zero vuol dire che il dolore c'era
-            checked={(r[campoDolore] ?? 0) > 0}
-            onChange={(e) => onCambia(id, lato, { [campoDolore]: e.target.checked ? 1 : null })}
+            checked={(r[t.dolore] ?? 0) > 0}
+            onChange={(e) => onCambia(id, lato, { [t.dolore]: e.target.checked ? 1 : null })}
           />
         </span>
-        {conGradi && (
-          <span className="gm-gradi">
-            {m.gradi === 1 ? (
-              <input
-                type="number"
-                className="campo-gradi"
-                disabled={soloLettura}
-                value={r[campoGradi] ?? ''}
-                onChange={(e) =>
-                  onCambia(id, lato, {
-                    [campoGradi]: e.target.value === '' ? null : Number(e.target.value)
-                  })
-                }
-              />
-            ) : (
-              <span className="hint">&mdash;</span>
-            )}
-          </span>
-        )}
-      </>
+        {conGradi &&
+          (m.gradi === 1 ? (
+            <input
+              type="number"
+              className="campo-gradi"
+              title="Gradi"
+              disabled={soloLettura}
+              value={r[t.gradi] ?? ''}
+              onChange={(e) =>
+                onCambia(id, lato, {
+                  [t.gradi]: e.target.value === '' ? null : Number(e.target.value)
+                })
+              }
+            />
+          ) : (
+            <span className="hint">&mdash;</span>
+          ))}
+      </div>
     )
   }
 
-  const nomeLato = (lato: LatoRilievo): string =>
-    lato === 'dx' ? 'a destra' : lato === 'sx' ? 'a sinistra' : ''
+  const classeGriglia = ['griglia-movimenti', dueLati ? 'due-lati' : '', conGradi ? 'con-gradi' : '']
+    .filter(Boolean)
+    .join(' ')
 
   return (
     <div className="movimenti">
@@ -744,92 +779,68 @@ function TabellaMovimenti({
               {lato !== '' && lato === latoInteressato ? ' (lato interessato)' : ''}
             </button>
           ))}
-          <Aiuto testo="Segna nella norma tutti i movimenti di quel lato in cui non hai messo né l'intensità né il dolore. Quelli che hai già segnato restano come sono. Il segno di spunta accanto a ogni movimento fa la stessa cosa per un movimento solo; se poi segni un'intensità o il dolore, la spunta si toglie da sola." />
+          <Aiuto testo="Segna nella norma tutti i movimenti di quel lato in cui non hai messo né l'intensità né il dolore. Quelli che hai già segnato restano come sono. La spunta nella colonna Norma fa la stessa cosa per un movimento solo, attivo e passivo insieme: per questo la ritrovi uguale nei due riquadri. Se poi segni un'intensità o il dolore, la spunta si toglie da sola." />
         </div>
       )}
 
-      <div className={conGradi ? 'griglia-movimenti con-gradi' : 'griglia-movimenti'}>
-        <span className="gm-angolo" />
-        <div className="gm-lato">Attivo</div>
-        <div className="gm-lato">Passivo</div>
-
-        <div className="gm-titolo">Movimento</div>
-        <div className="gm-sotto">{titoliLato()}</div>
-        <div className="gm-sotto">{titoliLato()}</div>
-
-        {movimenti.map((m, i) =>
-          lati.map((lato, j) => {
-            const id = m.id as number
-            const r = rilievo(id, lato)
-            const classi = [
-              'gm-riga',
-              i % 2 === 1 ? 'pari' : '',
-              // con i due lati, fra un movimento e l'altro la linea e' piu'
-              // marcata che fra destra e sinistra dello stesso movimento
-              lati.length > 1 && j === lati.length - 1 ? 'ultimo-lato' : '',
-              r.norma === 1 ? 'in-norma' : ''
-            ]
-              .filter(Boolean)
-              .join(' ')
-            return (
-              <div key={`${id}-${lato}`} className={classi}>
-                <div className="gm-nome">
-                  <span className="gm-mov">{j === 0 ? m.nome : ''}</span>
-                  {lato !== '' && (
-                    <EtichettaLato lato={lato} interessato={lato === latoInteressato} />
-                  )}
-                  <button
-                    type="button"
-                    className={r.norma === 1 ? 'btn-norma scelta-attiva' : 'btn-norma'}
-                    title="Nella norma"
-                    disabled={soloLettura}
-                    onClick={() =>
-                      onCambia(
-                        id,
-                        lato,
-                        r.norma === 1
-                          ? { norma: null }
-                          : {
-                              norma: 1,
-                              attivo_restrizione: null,
-                              attivo_dolore: null,
-                              passivo_restrizione: null,
-                              passivo_dolore: null
-                            }
-                      )
-                    }
+      {TIPI.map((t) => (
+        <div key={t.tipo} className="riquadro-test blocco-movimenti">
+          <div className="sotto-titolo">{t.titolo}</div>
+          <div className={classeGriglia}>
+            {dueLati && (
+              <>
+                <span className="gm-angolo" />
+                {lati.map((lato) => (
+                  <div
+                    key={lato}
+                    className={[
+                      'gm-lato',
+                      lato === latoInteressato ? 'interessato' : '',
+                      lato === 'sx' ? 'secondo-lato' : ''
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
                   >
-                    <Check size={14} />
-                  </button>
-                </div>
-                <div className="gm-rilievi">
-                  {rilieviLato(id, lato, m, 'attivo_restrizione', 'attivo_dolore', 'attivo_gradi')}
-                </div>
-                <div className="gm-rilievi">
-                  {rilieviLato(id, lato, m, 'passivo_restrizione', 'passivo_dolore', 'passivo_gradi')}
-                </div>
-              </div>
-            )
-          })
-        )}
+                    {lato === 'dx' ? 'Destra' : 'Sinistra'}
+                    {lato === latoInteressato && <span className="nota-lato">lato interessato</span>}
+                  </div>
+                ))}
+              </>
+            )}
 
-        {/* Una nota per lato: quello che si annota ("in inclinazione a destra
-            tira a sinistra") riguarda l'insieme dei movimenti provati in quel
-            modo, non il singolo movimento. La colonna vuota tiene il posto del
-            nome, cosi' ogni nota sta sotto alla sua meta'. */}
-        <span className="gm-angolo" />
-        {(['attivo', 'passivo'] as const).map((tipo) => (
-          <label key={tipo} className="gm-nota">
-            Note del movimento {tipo}
+            <div className="gm-titolo">Movimento</div>
+            {lati.map((lato) => (
+              <div
+                key={lato}
+                className={lato === 'sx' && dueLati ? 'gm-sotto secondo-lato' : 'gm-sotto'}
+              >
+                <span>Norma</span>
+                <span>Intensità</span>
+                <span>Dolore</span>
+                {conGradi && <span>Gradi</span>}
+              </div>
+            ))}
+
+            {movimenti.map((m, i) => (
+              <div key={m.id} className={i % 2 === 1 ? 'gm-riga pari' : 'gm-riga'}>
+                <div className="gm-nome">{m.nome}</div>
+                {lati.map((lato) => cella(m, lato, t))}
+              </div>
+            ))}
+          </div>
+
+          <label className="gm-nota">
+            Note sul {t.titolo.toLowerCase()}
             <textarea
-              rows={2}
+              rows={1}
+              className="cresce"
               disabled={soloLettura}
-              value={note[tipo] ?? ''}
-              onChange={(e) => onNote({ [tipo]: e.target.value || null })}
+              value={note[t.tipo] ?? ''}
+              onChange={(e) => onNote({ [t.tipo]: e.target.value || null })}
             />
           </label>
-        ))}
-      </div>
+        </div>
+      ))}
     </div>
   )
 }
