@@ -59,13 +59,12 @@ function intestazioneSettimana(lunedi: Date): string {
   return `${inizio} – ${domenica.getDate()} ${MESI[domenica.getMonth()]} ${domenica.getFullYear()}`
 }
 
-// Quello che si legge accanto al nome, prima e dopo il focus.
-const prima = (s: SedutaSettimana): string =>
-  [s.fase_campo === 1 ? 'al campo' : null, s.fase_nome].filter(Boolean).join(' · ')
-
-const dopo = (s: SedutaSettimana, oggi: string): string =>
+// Quello che si legge accanto al nome: la fase, e se la seduta e' ancora da
+// fare. Il numero degli esercizi non c'e': qui non serviva.
+const accanto = (s: SedutaSettimana, oggi: string): string =>
   [
-    `${s.num_esercizi} ${s.num_esercizi === 1 ? 'esercizio' : 'esercizi'}`,
+    s.fase_campo === 1 ? 'al campo' : null,
+    s.fase_nome,
     s.data > oggi ? 'programmata' : null
   ]
     .filter(Boolean)
@@ -296,13 +295,8 @@ Finisce nel cestino: puoi rimetterla a posto da Impostazioni entro un mese.`
                         {s.paziente}
                       </button>
                       {/* Il focus della seduta si legge nella scheda del
-                          paziente, non qui: qui serve sapere chi viene e
-                          quanto dura. */}
-                      <span className="seduta-meta">
-                        {prima(s)}
-                        {prima(s) ? ' · ' : ''}
-                        {dopo(s, oggi)}
-                      </span>
+                          paziente, non qui: qui serve sapere chi viene. */}
+                      {accanto(s, oggi) && <span className="seduta-meta">{accanto(s, oggi)}</span>}
                     </div>
                     {/* Il nome porta alla scheda, questi alla seduta: appena
                         preparata la si vuole mostrare o ritoccare, non cercarla

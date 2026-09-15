@@ -933,14 +933,11 @@ function DiarioCard({
           <li key={s.id}>
             <div className="seduta-info">
               <span className="seduta-data">{formatData(s.data)}</span>
-              {/* Fase, focus e numero di esercizi sulla stessa riga: il focus
-                  in mezzo, e in evidenza, perche' e' quello che distingue due
-                  sedute della stessa fase. */}
+              {/* Fase e focus sulla stessa riga: il focus in evidenza, perche'
+                  e' quello che distingue due sedute della stessa fase. */}
               <span className="seduta-meta">
                 {s.fase_nome ?? 'senza fase'}
                 {s.focus && <span className="seduta-focus">{s.focus}</span>}
-                {' · '}
-                {s.num_esercizi} {s.num_esercizi === 1 ? 'esercizio' : 'esercizi'}
                 {s.dolore != null && ` · dolore ${s.dolore}/10`}
               </span>
               {s.obiettivi_nomi && <span className="seduta-obiettivi">{s.obiettivi_nomi}</span>}
