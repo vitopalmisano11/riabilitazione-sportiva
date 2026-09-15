@@ -262,7 +262,7 @@ export default function App(): React.JSX.Element {
           <span className="logo-badge">
             <HeartPulse size={20} />
           </span>
-          Riabilitazione
+          Fisioterapia
         </h1>
         <nav>
           {/* Per prima: e' la schermata del lunedi' mattina, quella che

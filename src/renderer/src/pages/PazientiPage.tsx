@@ -166,10 +166,10 @@ export default function PazientiPage({
   // finestre aperte, sulla barra di Windows si distinguono.
   useEffect(() => {
     document.title = sel
-      ? `Riabilitazione — ${sel.cognome} ${sel.nome}`
-      : 'Riabilitazione Sportiva'
+      ? `Fisioterapia — ${sel.cognome} ${sel.nome}`
+      : 'Fisioterapia'
     return () => {
-      document.title = 'Riabilitazione Sportiva'
+      document.title = 'Fisioterapia'
     }
   }, [sel])
 
