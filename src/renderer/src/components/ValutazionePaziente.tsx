@@ -11,6 +11,7 @@ import type {
   PazienteDettaglio,
   RilievoMovimento,
   RilievoTest,
+  TestDistretto,
   ValutazioneCompleta,
   ValutazioneRiepilogo
 } from '../../../shared/types'
@@ -296,7 +297,8 @@ function SchedaValutazione({
       passivo_dolore: null,
       passivo_gradi: null,
       nota: null,
-      norma: null
+      norma: null,
+      passivo_norma: null
     }
 
   const rilievo = (movimentoId: number, lato: LatoRilievo): RilievoMovimento =>
@@ -308,29 +310,43 @@ function SchedaValutazione({
     patch: Partial<RilievoMovimento>
   ): void => {
     const nuovo = { ...rilievo(movimentoId, lato), ...patch }
-    // Segnare un'intensita' o il dolore vuol dire che nella norma non e'.
-    const segnato = (
-      ['attivo_restrizione', 'attivo_dolore', 'passivo_restrizione', 'passivo_dolore'] as const
-    ).some((k) => k in patch && patch[k] != null)
-    if (segnato) nuovo.norma = null
+    // Segnare un'intensita' o il dolore vuol dire che nella norma non e': per
+    // l'attivo o per il passivo, ognuno per conto suo.
+    const segnato = (k: keyof RilievoMovimento): boolean => k in patch && patch[k] != null
+    if (segnato('attivo_restrizione') || segnato('attivo_dolore')) nuovo.norma = null
+    if (segnato('passivo_restrizione') || segnato('passivo_dolore')) nuovo.passivo_norma = null
     aggiorna({
       movimenti: [...dati.movimenti.filter((m) => !stesso(m, movimentoId, lato)), nuovo]
     })
   }
 
-  // "Il resto nella norma": segna tutti i movimenti di quel lato che non hanno
-  // ne' un'intensita' ne' il dolore. Quelli gia' segnati restano come sono.
-  const restoNellaNorma = (movimenti: MovimentoDistretto[], lato: LatoRilievo): void => {
+  // "Il resto nella norma", per l'attivo o per il passivo di un lato: segna
+  // tutti i movimenti che non hanno ne' un'intensita' ne' il dolore. Quelli gia'
+  // segnati restano come sono. Ripremuto quando e' gia' fatto, toglie le spunte.
+  const campoNorma = (tipo: TipoMovimento): 'norma' | 'passivo_norma' =>
+    tipo === 'attivo' ? 'norma' : 'passivo_norma'
+  const segnatoIn = (r: RilievoMovimento, tipo: TipoMovimento): boolean =>
+    r[`${tipo}_restrizione`] != null || (r[`${tipo}_dolore`] ?? 0) > 0
+
+  const restoFatto = (movimenti: MovimentoDistretto[], lato: LatoRilievo, tipo: TipoMovimento): boolean => {
+    const righe = movimenti.map((m) => rilievo(m.id as number, lato))
+    return (
+      righe.some((r) => r[campoNorma(tipo)] === 1) &&
+      righe.every((r) => r[campoNorma(tipo)] === 1 || segnatoIn(r, tipo))
+    )
+  }
+
+  const restoNellaNorma = (movimenti: MovimentoDistretto[], lato: LatoRilievo, tipo: TipoMovimento): void => {
+    const togli = restoFatto(movimenti, lato, tipo)
+    const campo = campoNorma(tipo)
     let lista = dati.movimenti
     for (const m of movimenti) {
       const r = rilievoIn(lista, m.id as number, lato)
-      const segnato =
-        r.attivo_restrizione != null ||
-        (r.attivo_dolore ?? 0) > 0 ||
-        r.passivo_restrizione != null ||
-        (r.passivo_dolore ?? 0) > 0
-      if (segnato) continue
-      lista = [...lista.filter((x) => !stesso(x, m.id as number, lato)), { ...r, norma: 1 }]
+      if (togli ? r[campo] !== 1 : r[campo] === 1 || segnatoIn(r, tipo)) continue
+      lista = [
+        ...lista.filter((x) => !stesso(x, m.id as number, lato)),
+        { ...r, [campo]: togli ? null : 1 }
+      ]
     }
     aggiorna({ movimenti: lista })
   }
@@ -359,6 +375,23 @@ function SchedaValutazione({
       valore: null,
       nota: null
     }
+
+  // Con i due lati la nota e' una sola, del test: sta nella riga del primo
+  // lato. Se una valutazione vecchia ne ha due, si leggono insieme e alla prima
+  // modifica diventano una.
+  const notaTest = (testId: number, lati: LatoRilievo[]): string =>
+    [...new Set(lati.map((l) => rispostaTest(testId, l).nota).filter(Boolean))].join(' — ')
+
+  const cambiaNotaTest = (testId: number, lati: LatoRilievo[], nota: string | null): void => {
+    const [primo, ...altri] = lati
+    aggiorna({
+      test: [
+        ...dati.test.filter((t) => !(t.test_id === testId && lati.includes((t.lato ?? '') as LatoRilievo))),
+        { ...rispostaTest(testId, primo), nota },
+        ...altri.map((l) => ({ ...rispostaTest(testId, l), nota: null }))
+      ]
+    })
+  }
 
   const cambiaTest = (testId: number, lato: LatoRilievo, patch: Partial<RilievoTest>): void => {
     const nuovo = { ...rispostaTest(testId, lato), ...patch }
@@ -438,7 +471,8 @@ function SchedaValutazione({
                   soloLettura={soloLettura}
                   rilievo={rilievo}
                   onCambia={cambiaMovimento}
-                  onRestoNellaNorma={(lato) => restoNellaNorma(lib.movimenti, lato)}
+                  onRestoNellaNorma={(lato, tipo) => restoNellaNorma(lib.movimenti, lato, tipo)}
+                  restoFatto={(lato, tipo) => restoFatto(lib.movimenti, lato, tipo)}
                   note={noteDi(lib.distretto.id as number)}
                   onNote={(patch) => cambiaNote(lib.distretto.id as number, patch)}
                 />
@@ -450,81 +484,16 @@ function SchedaValutazione({
                 return (
                   <div key={g.valore} className="riquadro-test">
                     <div className="sotto-titolo">{g.etichetta}</div>
-                    {test.map((t) =>
-                      lati.map((lato, j) => {
-                        const r = rispostaTest(t.id as number, lato)
-                        return (
-                          <div
-                            key={`${t.id}-${lato}`}
-                            className={
-                              lati.length > 1 && j === 0
-                                ? 'riga-parametro riga-test primo-lato'
-                                : 'riga-parametro riga-test'
-                            }
-                          >
-                            <span className="item-nome">
-                              {/* con i due lati il nome si scrive una volta sola */}
-                              <span className="nome-test">{j === 0 ? t.nome : ''}</span>
-                              {lato !== '' && (
-                                <EtichettaLato lato={lato} interessato={lato === latoInteressato} />
-                              )}
-                            </span>
-                            {t.risposta === 'posneg' ? (
-                              <span className="scelta-coppia">
-                                {['positivo', 'negativo'].map((v) => (
-                                  <button
-                                    key={v}
-                                    disabled={soloLettura}
-                                    className={r.valore === v ? 'scelta-attiva' : ''}
-                                    onClick={() =>
-                                      cambiaTest(t.id as number, lato, {
-                                        valore: r.valore === v ? null : v
-                                      })
-                                    }
-                                  >
-                                    {v}
-                                  </button>
-                                ))}
-                              </span>
-                            ) : t.risposta === 'scala5' ? (
-                              // La stessa fascia di pallini dei questionari: e'
-                              // una scala, e come scala si legge.
-                              <ScalaPallini
-                                min={0}
-                                max={5}
-                                valore={r.valore == null || r.valore === '' ? null : Number(r.valore)}
-                                soloLettura={soloLettura}
-                                onCambia={(v) =>
-                                  cambiaTest(t.id as number, lato, {
-                                    valore: r.valore === String(v) ? null : String(v)
-                                  })
-                                }
-                              />
-                            ) : (
-                              <input
-                                disabled={soloLettura}
-                                placeholder="Esito"
-                                value={r.valore ?? ''}
-                                onChange={(e) =>
-                                  cambiaTest(t.id as number, lato, {
-                                    valore: e.target.value || null
-                                  })
-                                }
-                              />
-                            )}
-                            <input
-                              className="campo-nota-test"
-                              disabled={soloLettura}
-                              placeholder="Nota"
-                              value={r.nota ?? ''}
-                              onChange={(e) =>
-                                cambiaTest(t.id as number, lato, { nota: e.target.value || null })
-                              }
-                            />
-                          </div>
-                        )
-                      })
-                    )}
+                    <TabellaTest
+                      test={test}
+                      lati={lati}
+                      latoInteressato={latoInteressato}
+                      soloLettura={soloLettura}
+                      risposta={rispostaTest}
+                      onCambia={cambiaTest}
+                      nota={(id) => notaTest(id, lati)}
+                      onNota={(id, nota) => cambiaNotaTest(id, lati, nota)}
+                    />
                   </div>
                 )
               })}
@@ -590,25 +559,6 @@ function SchedaValutazione({
   )
 }
 
-// "Dx" o "Sx" accanto al movimento o al test; il lato interessato si
-// riconosce dal colore.
-function EtichettaLato({
-  lato,
-  interessato
-}: {
-  lato: 'dx' | 'sx'
-  interessato: boolean
-}): React.JSX.Element {
-  return (
-    <span
-      className={interessato ? 'etichetta-lato interessato' : 'etichetta-lato'}
-      title={`${lato === 'dx' ? 'Destra' : 'Sinistra'}${interessato ? ' — lato interessato' : ''}`}
-    >
-      {lato === 'dx' ? 'Dx' : 'Sx'}
-    </span>
-  )
-}
-
 // I movimenti in due riquadri, uno sotto l'altro: prima l'attivo, poi il
 // passivo, come si valutano. Dentro a ognuno una riga per movimento e, con i due
 // lati, destra e sinistra una accanto all'altra: il confronto fra i lati si fa
@@ -624,6 +574,8 @@ const SEGNI: { valore: Grado; segno: string; titolo: string }[] = [
   { valore: 2, segno: '++', titolo: 'Restrizione moderata' },
   { valore: 3, segno: '+++', titolo: 'Restrizione severa' }
 ]
+
+type TipoMovimento = 'attivo' | 'passivo'
 
 const TIPI = [
   {
@@ -650,6 +602,7 @@ function TabellaMovimenti({
   rilievo,
   onCambia,
   onRestoNellaNorma,
+  restoFatto,
   note,
   onNote
 }: {
@@ -659,7 +612,8 @@ function TabellaMovimenti({
   soloLettura: boolean
   rilievo: (id: number, lato: LatoRilievo) => RilievoMovimento
   onCambia: (id: number, lato: LatoRilievo, patch: Partial<RilievoMovimento>) => void
-  onRestoNellaNorma: (lato: LatoRilievo) => void
+  onRestoNellaNorma: (lato: LatoRilievo, tipo: TipoMovimento) => void
+  restoFatto: (lato: LatoRilievo, tipo: TipoMovimento) => boolean
   note: NoteMovimenti
   onNote: (patch: Partial<NoteMovimenti>) => void
 }): React.JSX.Element {
@@ -675,33 +629,29 @@ function TabellaMovimenti({
     const id = m.id as number
     const r = rilievo(id, lato)
     const restrizione = r[t.restrizione]
+    const norma = r[t.tipo === 'attivo' ? 'norma' : 'passivo_norma'] === 1
+    const campoNorma = t.tipo === 'attivo' ? 'norma' : 'passivo_norma'
     return (
       <div
         key={lato}
-        className={['gm-rilievi', r.norma === 1 ? 'in-norma' : '', lato === 'sx' && dueLati ? 'secondo-lato' : '']
+        className={['gm-rilievi', norma ? 'in-norma' : '', lato === 'sx' && dueLati ? 'secondo-lato' : '']
           .filter(Boolean)
           .join(' ')}
       >
-        {/* La spunta "nella norma" vale per il movimento da quel lato, attivo e
-            passivo insieme: e' la stessa nei due riquadri. */}
+        {/* La spunta "nella norma" vale solo per questo riquadro: attivo o
+            passivo. Mettendola si tolgono intensita' e dolore di qui. */}
         <button
           type="button"
-          className={r.norma === 1 ? 'btn-norma scelta-attiva' : 'btn-norma'}
+          className={norma ? 'btn-norma scelta-attiva' : 'btn-norma'}
           title="Nella norma"
           disabled={soloLettura}
           onClick={() =>
             onCambia(
               id,
               lato,
-              r.norma === 1
-                ? { norma: null }
-                : {
-                    norma: 1,
-                    attivo_restrizione: null,
-                    attivo_dolore: null,
-                    passivo_restrizione: null,
-                    passivo_dolore: null
-                  }
+              norma
+                ? { [campoNorma]: null }
+                : { [campoNorma]: 1, [t.restrizione]: null, [t.dolore]: null }
             )
           }
         >
@@ -763,29 +713,31 @@ function TabellaMovimenti({
 
   return (
     <div className="movimenti">
-      {/* Un clic per dire che quello che non hai segnato e' nella norma: la
-          relazione e la cartella lo scrivono, invece di lasciare il dubbio fra
-          "normale" e "non valutato". Sul lato sano di solito basta questo. */}
-      {!soloLettura && (
-        <div className="azioni-norma">
-          {lati.map((lato) => (
-            <button
-              key={lato}
-              type="button"
-              className="btn-piccolo"
-              onClick={() => onRestoNellaNorma(lato)}
-            >
-              <Check size={14} /> Il resto {nomeLato(lato)} nella norma
-              {lato !== '' && lato === latoInteressato ? ' (lato interessato)' : ''}
-            </button>
-          ))}
-          <Aiuto testo="Segna nella norma tutti i movimenti di quel lato in cui non hai messo né l'intensità né il dolore. Quelli che hai già segnato restano come sono. La spunta nella colonna Norma fa la stessa cosa per un movimento solo, attivo e passivo insieme: per questo la ritrovi uguale nei due riquadri. Se poi segni un'intensità o il dolore, la spunta si toglie da sola." />
-        </div>
-      )}
-
       {TIPI.map((t) => (
         <div key={t.tipo} className="riquadro-test blocco-movimenti">
           <div className="sotto-titolo">{t.titolo}</div>
+          {/* Un clic per dire che quello che non hai segnato e' nella norma: la
+              relazione e la cartella lo scrivono, invece di lasciare il dubbio
+              fra "normale" e "non valutato". Ripremuto, toglie le spunte. */}
+          {!soloLettura && (
+            <div className="azioni-norma">
+              {lati.map((lato) => {
+                const fatto = restoFatto(lato, t.tipo)
+                return (
+                  <button
+                    key={lato}
+                    type="button"
+                    className={fatto ? 'btn-piccolo scelta-attiva' : 'btn-piccolo'}
+                    onClick={() => onRestoNellaNorma(lato, t.tipo)}
+                  >
+                    <Check size={14} /> Il resto {nomeLato(lato)} nella norma
+                    {lato !== '' && lato === latoInteressato ? ' (lato interessato)' : ''}
+                  </button>
+                )
+              })}
+              <Aiuto testo="Segna nella norma tutti i movimenti di questo riquadro in cui non hai messo né l'intensità né il dolore; quelli che hai già segnato restano come sono. Ripremendo il pulsante le spunte si tolgono. L'attivo e il passivo hanno le loro spunte: un movimento può essere limitato in attivo e nella norma in passivo. La spunta nella colonna Norma fa la stessa cosa per un movimento solo; se poi segni un'intensità o il dolore, si toglie da sola." />
+            </div>
+          )}
           <div className={classeGriglia}>
             {dueLati && (
               <>
@@ -832,13 +784,130 @@ function TabellaMovimenti({
           <label className="gm-nota">
             Note sul {t.titolo.toLowerCase()}
             <textarea
-              rows={1}
+              rows={2}
               className="cresce"
               disabled={soloLettura}
               value={note[t.tipo] ?? ''}
               onChange={(e) => onNote({ [t.tipo]: e.target.value || null })}
             />
           </label>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// I test di un gruppo, in una tabella come i movimenti: una riga per test, con
+// destra e sinistra affiancate sotto alla fascia del loro lato, e in fondo alla
+// riga una nota sola per il test. Prima ogni test erano due righe, con "Dx" e
+// "Sx" e una nota per lato, e il nome scritto solo sulla prima.
+function TabellaTest({
+  test,
+  lati,
+  latoInteressato,
+  soloLettura,
+  risposta,
+  onCambia,
+  nota,
+  onNota
+}: {
+  test: TestDistretto[]
+  lati: LatoRilievo[]
+  latoInteressato: 'dx' | 'sx' | null
+  soloLettura: boolean
+  risposta: (id: number, lato: LatoRilievo) => RilievoTest
+  onCambia: (id: number, lato: LatoRilievo, patch: Partial<RilievoTest>) => void
+  nota: (id: number) => string
+  onNota: (id: number, nota: string | null) => void
+}): React.JSX.Element {
+  const dueLati = lati.length > 1
+
+  const esito = (t: TestDistretto, lato: LatoRilievo): React.JSX.Element => {
+    const id = t.id as number
+    const r = risposta(id, lato)
+    if (t.risposta === 'posneg') {
+      return (
+        <span className="scelta-coppia segmentata esito-test">
+          {['positivo', 'negativo'].map((v) => (
+            <button
+              key={v}
+              type="button"
+              disabled={soloLettura}
+              className={r.valore === v ? 'scelta-attiva' : ''}
+              onClick={() => onCambia(id, lato, { valore: r.valore === v ? null : v })}
+            >
+              {v === 'positivo' ? 'Positivo' : 'Negativo'}
+            </button>
+          ))}
+        </span>
+      )
+    }
+    if (t.risposta === 'scala5') {
+      // La stessa fascia di pallini dei questionari: e' una scala, e come
+      // scala si legge.
+      return (
+        <ScalaPallini
+          min={0}
+          max={5}
+          valore={r.valore == null || r.valore === '' ? null : Number(r.valore)}
+          soloLettura={soloLettura}
+          onCambia={(v) => onCambia(id, lato, { valore: r.valore === String(v) ? null : String(v) })}
+        />
+      )
+    }
+    return (
+      <input
+        disabled={soloLettura}
+        placeholder="Esito"
+        value={r.valore ?? ''}
+        onChange={(e) => onCambia(id, lato, { valore: e.target.value || null })}
+      />
+    )
+  }
+
+  return (
+    <div className={dueLati ? 'griglia-test due-lati' : 'griglia-test'}>
+      {dueLati ? (
+        <>
+          <div className="gm-titolo">Test</div>
+          {lati.map((lato) => (
+            <div
+              key={lato}
+              className={lato === latoInteressato ? 'gm-lato interessato' : 'gm-lato'}
+            >
+              {lato === 'dx' ? 'Destra' : 'Sinistra'}
+              {lato === latoInteressato && <span className="nota-lato">lato interessato</span>}
+            </div>
+          ))}
+          <div className="gm-titolo">Nota</div>
+        </>
+      ) : (
+        <>
+          <div className="gm-titolo">Test</div>
+          <div className="gm-titolo gt-centro">Esito</div>
+          <div className="gm-titolo">Nota</div>
+        </>
+      )}
+
+      {test.map((t, i) => (
+        <div key={t.id} className={i % 2 === 1 ? 'gm-riga pari' : 'gm-riga'}>
+          <div className="gm-nome">{t.nome}</div>
+          {lati.map((lato) => (
+            <div
+              key={lato}
+              className={lato === 'sx' && dueLati ? 'gt-esito secondo-lato' : 'gt-esito'}
+            >
+              {esito(t, lato)}
+            </div>
+          ))}
+          <div className="gt-nota">
+            <input
+              disabled={soloLettura}
+              placeholder="Nota"
+              value={nota(t.id as number)}
+              onChange={(e) => onNota(t.id as number, e.target.value || null)}
+            />
+          </div>
         </div>
       ))}
     </div>

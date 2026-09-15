@@ -89,7 +89,13 @@ const api: Api = {
     recover: (recoveryKey: string, nuovaPassword: string) =>
       invoke('auth:recover', recoveryKey, nuovaPassword),
     cambiaPassword: (vecchia: string, nuova: string) =>
-      invoke('auth:cambiaPassword', vecchia, nuova)
+      invoke('auth:cambiaPassword', vecchia, nuova),
+    domanda: () => invoke('auth:domanda'),
+    impostaDomanda: (password: string, domanda: string, risposta: string) =>
+      invoke('auth:impostaDomanda', password, domanda, risposta),
+    togliDomanda: (password: string) => invoke('auth:togliDomanda', password),
+    recoverDomanda: (risposta: string, nuovaPassword: string) =>
+      invoke('auth:recoverDomanda', risposta, nuovaPassword)
   },
   distretti: {
     list: () => invoke('distretti:list'),

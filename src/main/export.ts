@@ -25,8 +25,19 @@ import {
 export type FormatoExport = 'pdf' | 'docx'
 
 import type { AnteprimaScheda, TipoRelazione } from '../shared/types'
-import { barraDisegnata, chiudiConEsc, conBarra, sessioneSeparata, zoomabile } from './finestre'
-import { barraScura, scuroAdesso } from './impostazioni'
+import {
+  barraDisegnata,
+  chiudiConEsc,
+  coloriBarra,
+  conBarra,
+  sessioneSeparata,
+  zoomabile
+} from './finestre'
+import type { ColoriBarra } from './finestre'
+import { barraScura, scuroAdesso, tema } from './impostazioni'
+
+// La barra delle finestre generate, del colore della colonna laterale di adesso.
+const coloriBarraAdesso = (): ColoriBarra => coloriBarra(tema(), barraScura(), scuroAdesso())
 
 function leggiPaziente(id: number): DatiPazienteExport {
   const p = getDb()
@@ -228,7 +239,7 @@ export async function apriAnteprimaCartella(
   const html = generaCartella(pazienteId, sezioni)
   const { cognome, nome } = componiCartella(pazienteId, sezioni)
   const tmp = join(app.getPath('temp'), `riab-anteprima-${pazienteId}-${Date.now()}.html`)
-  await writeFile(tmp, conBarra(html, `Anteprima — ${cognome} ${nome}`, barraScura() || scuroAdesso()), 'utf-8')
+  await writeFile(tmp, conBarra(html, `Anteprima — ${cognome} ${nome}`, coloriBarraAdesso()), 'utf-8')
 
   const gia = anteprimeAperte.get(pazienteId)
   if (gia && !gia.isDestroyed()) {
@@ -299,7 +310,7 @@ export async function apriAnteprimaRelazione(
   const titolo = `${NOME_RELAZIONE[tipo].titolo} — ${cognome} ${nome}`
   const chiave = `${tipo}-${pazienteId}`
   const tmp = join(app.getPath('temp'), `riab-relazione-${chiave}-${Date.now()}.html`)
-  await writeFile(tmp, conBarra(generaRelazione(pazienteId, tipo), titolo, barraScura() || scuroAdesso()), 'utf-8')
+  await writeFile(tmp, conBarra(generaRelazione(pazienteId, tipo), titolo, coloriBarraAdesso()), 'utf-8')
 
   const gia = relazioniAperte.get(chiave)
   if (gia && !gia.isDestroyed()) {
@@ -358,7 +369,7 @@ export async function apriAnteprimaReport(sessioneIds: number[]): Promise<void> 
   const r = generaReportScreening(sessioneIds)
   const sessioneId = sessioneIds[sessioneIds.length - 1]
   const tmp = join(app.getPath('temp'), `riab-report-${sessioneId}-${Date.now()}.html`)
-  await writeFile(tmp, conBarra(r.html, `Report — ${r.cognome} ${r.nome}`, barraScura() || scuroAdesso()), 'utf-8')
+  await writeFile(tmp, conBarra(r.html, `Report — ${r.cognome} ${r.nome}`, coloriBarraAdesso()), 'utf-8')
 
   const gia = reportAperti.get(sessioneId)
   if (gia && !gia.isDestroyed()) {

@@ -9,6 +9,10 @@ export default function AuthGate({ onUnlocked }: { onUnlocked: () => void }): Re
   const [pw, setPw] = useState('')
   const [pw2, setPw2] = useState('')
   const [rk, setRk] = useState('')
+  // Il recupero: con la chiave, oppure rispondendo alla domanda se c'e'.
+  const [domanda, setDomanda] = useState<string | null>(null)
+  const [conDomanda, setConDomanda] = useState(false)
+  const [risposta, setRisposta] = useState('')
   const [chiave, setChiave] = useState('')
   const [salvata, setSalvata] = useState(false)
   const [copiata, setCopiata] = useState(false)
@@ -17,6 +21,10 @@ export default function AuthGate({ onUnlocked }: { onUnlocked: () => void }): Re
 
   useEffect(() => {
     void window.api.auth.status().then(setModo)
+    void window.api.auth
+      .domanda()
+      .then(setDomanda)
+      .catch(() => setDomanda(null))
   }, [])
 
   const run = async (fn: () => Promise<void>): Promise<void> => {
@@ -50,7 +58,8 @@ export default function AuthGate({ onUnlocked }: { onUnlocked: () => void }): Re
     run(async () => {
       if (pw.length < 8) throw new Error('La nuova password deve avere almeno 8 caratteri.')
       if (pw !== pw2) throw new Error('Le password non coincidono.')
-      await window.api.auth.recover(rk, pw)
+      if (conDomanda) await window.api.auth.recoverDomanda(risposta, pw)
+      else await window.api.auth.recover(rk, pw)
       onUnlocked()
     })
 
@@ -176,9 +185,34 @@ export default function AuthGate({ onUnlocked }: { onUnlocked: () => void }): Re
         {modo === 'recupero' && (
           <>
             <h1>Recupero accesso</h1>
+            {domanda && (
+              <span className="scelta-coppia segmentata scelta-recupero">
+                <button
+                  type="button"
+                  className={conDomanda ? '' : 'scelta-attiva'}
+                  onClick={() => {
+                    setErrore('')
+                    setConDomanda(false)
+                  }}
+                >
+                  Chiave di recupero
+                </button>
+                <button
+                  type="button"
+                  className={conDomanda ? 'scelta-attiva' : ''}
+                  onClick={() => {
+                    setErrore('')
+                    setConDomanda(true)
+                  }}
+                >
+                  Domanda
+                </button>
+              </span>
+            )}
             <p>
-              Inserisci la chiave di recupero che hai salvato alla prima configurazione e scegli
-              una nuova password.
+              {conDomanda
+                ? 'Rispondi alla domanda che hai scelto e scegli una nuova password.'
+                : 'Inserisci la chiave di recupero che hai salvato alla prima configurazione e scegli una nuova password.'}
             </p>
             <form
               className="auth-form"
@@ -187,15 +221,30 @@ export default function AuthGate({ onUnlocked }: { onUnlocked: () => void }): Re
                 void recupera()
               }}
             >
-              <label className="field">
-                Chiave di recupero
-                <input
-                  autoFocus
-                  placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX"
-                  value={rk}
-                  onChange={(e) => setRk(e.target.value)}
-                />
-              </label>
+              {conDomanda ? (
+                <label className="field">
+                  {domanda}
+                  <input
+                    key="risposta"
+                    type="password"
+                    autoFocus
+                    placeholder="La tua risposta"
+                    value={risposta}
+                    onChange={(e) => setRisposta(e.target.value)}
+                  />
+                </label>
+              ) : (
+                <label className="field">
+                  Chiave di recupero
+                  <input
+                    key="chiave"
+                    autoFocus
+                    placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX"
+                    value={rk}
+                    onChange={(e) => setRk(e.target.value)}
+                  />
+                </label>
+              )}
               <label className="field">
                 Nuova password (min 8 caratteri)
                 <input type="password" value={pw} onChange={(e) => setPw(e.target.value)} />

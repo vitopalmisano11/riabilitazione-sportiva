@@ -233,7 +233,7 @@ export function esportaArchivio(cartella: string): string {
     join(dest, 'valutazioni.csv'),
     q(`SELECT p.cognome, p.nome, v.data, d.nome AS distretto, m.nome AS movimento, vm.lato,
               vm.norma, vm.attivo_restrizione, vm.attivo_dolore, vm.attivo_gradi,
-              vm.passivo_restrizione, vm.passivo_dolore, vm.passivo_gradi,
+              vm.passivo_restrizione, vm.passivo_dolore, vm.passivo_gradi, vm.passivo_norma,
               vd.nota_attivo, vd.nota_passivo, v.ispezione, v.note
        FROM valutazione_movimenti vm
        JOIN valutazioni v ON v.id = vm.valutazione_id
@@ -257,6 +257,7 @@ export function esportaArchivio(cartella: string): string {
       'passivo_restrizione',
       'passivo_dolore',
       'passivo_gradi',
+      'passivo_norma',
       'nota_attivo',
       'nota_passivo',
       'ispezione',

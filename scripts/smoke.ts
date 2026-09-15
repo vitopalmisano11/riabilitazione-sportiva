@@ -11,7 +11,16 @@ import { join } from 'node:path'
 import Database from 'better-sqlite3-multiple-ciphers'
 import { runMigrations } from '../src/main/migrations'
 import { generaDocx, generaHtml } from '../src/main/export-doc'
-import { cambiaPasswordAuth, loginAuth, recoverAuth, setupAuth } from '../src/main/auth'
+import {
+  cambiaPasswordAuth,
+  domandaAuth,
+  impostaDomandaAuth,
+  loginAuth,
+  recoverAuth,
+  recoverDomandaAuth,
+  setupAuth,
+  togliDomandaAuth
+} from '../src/main/auth'
 import {
   apriAltroDb,
   closeDb,
@@ -49,7 +58,7 @@ import {
 } from '../src/main/questionari'
 import { spostaFileDati } from '../src/main/file-dati'
 import { generaReportScreening } from '../src/main/report-screening'
-import { conBarra } from '../src/main/finestre'
+import { coloriBarra, conBarra } from '../src/main/finestre'
 import { relazioneAnamnesi } from '../src/main/relazione-anamnesi'
 import { relazioneValutazione } from '../src/main/relazione-valutazione'
 import { calcolaPunteggio } from '../src/main/screening-punteggio'
@@ -74,7 +83,7 @@ db.pragma('foreign_keys = ON')
 
 runMigrations(db)
 runMigrations(db) // idempotente
-assert.equal(db.pragma('user_version', { simple: true }), 44)
+assert.equal(db.pragma('user_version', { simple: true }), 45)
 
 const count = (table: string): number =>
   (db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n
@@ -791,28 +800,31 @@ assert.equal(
     passivo_dolore: null,
     passivo_gradi: null,
     nota: null,
-    norma: null
+    norma: null,
+    passivo_norma: null
   }
   salvaValutazione({
     ...leggiValutazione(valL),
     distretto_ids: [ginocchio],
     movimenti: [
       { ...vuotoRilievo, movimento_id: flessione, lato: 'dx', attivo_restrizione: 2, attivo_dolore: 1, attivo_gradi: 110 },
-      { ...vuotoRilievo, movimento_id: flessione, lato: 'sx', attivo_gradi: 140, norma: 1 }
+      { ...vuotoRilievo, movimento_id: flessione, lato: 'sx', attivo_gradi: 140, norma: 1, passivo_norma: 1 }
     ],
     test: [
-      { test_id: lachman, lato: 'dx', valore: 'positivo', nota: null },
+      // con i due lati la nota e' una sola, del test: sta nella riga di destra
+      { test_id: lachman, lato: 'dx', valore: 'positivo', nota: 'fine corsa morbido' },
       { test_id: lachman, lato: 'sx', valore: 'negativo', nota: null }
     ]
   })
   const lettaL = leggiValutazione(valL)
   assert.equal(lettaL.movimenti.length, 2)
   assert.equal(lettaL.movimenti.find((m) => m.lato === 'sx')?.norma, 1)
+  assert.equal(lettaL.movimenti.find((m) => m.lato === 'sx')?.passivo_norma, 1)
   assert.equal(lettaL.test.length, 2)
   const cartellaL = generaCartella(pzL, ['valutazioni'])
   assert.ok(cartellaL.includes('Flessione attivo: destra 110° (interessato), sinistra 140° — lato interessato −21%'))
   assert.ok(cartellaL.includes('Flessione (nella norma)'))
-  assert.ok(cartellaL.includes('Lachman destra: positivo') && cartellaL.includes('Lachman sinistra: negativo'))
+  assert.ok(cartellaL.includes('Lachman: destra positivo, sinistra negativo (fine corsa morbido)'))
 
   // La relazione scritta della valutazione: le stesse cose in frasi.
   c.prepare("UPDATE valutazioni SET ispezione = 'tumefazione al ginocchio', carico_locale = 'diminuito', capacita_generale = 'aumentato' WHERE id = ?").run(valL)
@@ -823,7 +835,10 @@ assert.equal(
   assert.ok(testoV.includes('Movimenti attivi a destra (lato interessato): flessione moderatamente limitata e dolorosa (110°).'))
   assert.ok(testoV.includes('Movimenti attivi a sinistra: flessione nella norma (140°).'))
   assert.ok(testoV.includes('Confronto fra i lati: flessione attiva 110° a destra e 140° a sinistra, −21% sul lato interessato.'))
-  assert.ok(testoV.includes('Lachman positivo a destra (lato interessato) e negativo a sinistra'))
+  assert.ok(testoV.includes('Movimenti passivi a sinistra: flessione nella norma.'))
+  assert.ok(
+    testoV.includes('Lachman positivo a destra (lato interessato) e negativo a sinistra (fine corsa morbido)')
+  )
   assert.ok(testoV.includes('Carico locale diminuito, capacità di carico generale aumentata.'))
   const documentoV = generaRelazione(pzL, 'valutazione')
   assert.ok(documentoV.includes('Relazione della valutazione obiettiva · stampata il'))
@@ -924,6 +939,8 @@ assert.equal(
     qualifica: 'Fisioterapista',
     studio: null,
     indirizzo: 'via Roma 3, Bari',
+    codice_fiscale: null,
+    partita_iva: '01234567890',
     telefono: '333 1234567',
     email: null
   })
@@ -933,17 +950,19 @@ assert.equal(
   assert.equal(p.studio, null)
   const { chi, dove } = righeProfilo()
   assert.equal(chi, 'Dott. Mario Rossi · Fisioterapista')
-  assert.equal(dove, 'via Roma 3, Bari · 333 1234567')
+  assert.equal(dove, 'via Roma 3, Bari · P. IVA 01234567890 · 333 1234567')
   const conProfilo = generaHtml(pazExport, seduteExport)
   assert.ok(conProfilo.includes('carta-intestata'), 'intestazione nel foglio')
   assert.ok(conProfilo.includes('Dott. Mario Rossi · Fisioterapista'))
-  assert.ok(conProfilo.includes('via Roma 3, Bari · 333 1234567'))
+  assert.ok(conProfilo.includes('via Roma 3, Bari · P. IVA 01234567890 · 333 1234567'))
   // e poi si toglie, cosi' le prove che vengono dopo trovano i fogli com'erano
   salvaProfilo({
     nome: null,
     qualifica: null,
     studio: null,
     indirizzo: null,
+    codice_fiscale: null,
+    partita_iva: null,
     telefono: null,
     email: null
   })
@@ -1412,7 +1431,8 @@ assert.equal(
   const conTitolo = conBarra(html, 'Report — Prova <Luca>')
   assert.ok(/<body[^>]*><div class="barra-finestra"><span class="titolo-barra">Report — Prova &lt;Luca&gt;<\/span>/.test(conTitolo))
   assert.ok(conTitolo.includes("window.finestra.comando('chiudi')"))
-  assert.ok(conBarra(html, 'x', true).includes('background: #1c222b'))
+  assert.ok(conBarra(html, 'x', coloriBarra('blu', true, false)).includes('background: #18202b'))
+  assert.ok(conBarra(html, 'x', coloriBarra('verde', false, false)).includes('background: #e6dcc9'))
   assert.ok(conTitolo.includes('@media print { .barra-finestra, .spazio-barra { display: none; } }'))
 }
 
@@ -1627,6 +1647,20 @@ assert.throws(() => loginAuth(authPath, 'password-segreta'), /Password errata/)
 cambiaPasswordAuth(authPath, 'nuova-password', 'password-numero-tre')
 assert.equal(loginAuth(authPath, 'password-numero-tre'), dekHex)
 assert.equal(recoverAuth(authPath, recoveryKey, 'password-numero-tre'), dekHex)
+
+// Domanda di recupero: si imposta con la password, la risposta non bada a
+// maiuscole e spazi, e la chiave di recupero resta valida
+assert.equal(domandaAuth(authPath), null)
+assert.throws(() => impostaDomandaAuth(authPath, 'sbagliata', 'Primo cane?', 'Fido'), /Password errata/)
+impostaDomandaAuth(authPath, 'password-numero-tre', 'Nome del primo cane?', 'Fido Bello')
+assert.equal(domandaAuth(authPath), 'Nome del primo cane?')
+assert.throws(() => recoverDomandaAuth(authPath, 'Rex', 'password-quattro'), /Risposta sbagliata/)
+assert.equal(recoverDomandaAuth(authPath, '  fido   BELLO ', 'password-quattro'), dekHex)
+assert.equal(loginAuth(authPath, 'password-quattro'), dekHex)
+assert.equal(recoverAuth(authPath, recoveryKey, 'password-quattro'), dekHex)
+togliDomandaAuth(authPath, 'password-quattro')
+assert.equal(domandaAuth(authPath), null)
+assert.throws(() => recoverDomandaAuth(authPath, 'fido bello', 'password-cinque'), /Non è stata impostata/)
 
 rmSync(dirAuth, { recursive: true, force: true })
 

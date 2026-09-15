@@ -1167,6 +1167,22 @@ const MIGRATIONS: string[] = [
     ('Dry needling', 4),
     ('Taping', 5),
     ('Crioterapia', 6);
+  `,
+
+  // 45 - "nella norma" per il movimento attivo e per il passivo, separati; il
+  //      codice fiscale e la partita IVA di chi firma i fogli.
+  //
+  //      Fino a qui la spunta valeva per il movimento da quel lato, attivo e
+  //      passivo insieme. Ma un movimento attivo limitato con il passivo
+  //      completo e' proprio una delle cose che si vogliono scrivere. La
+  //      colonna di prima resta quella dell'attivo; quella nuova parte uguale,
+  //      perche' una spunta messa prima diceva nella norma tutti e due.
+  `
+  ALTER TABLE valutazione_movimenti ADD COLUMN passivo_norma INTEGER;
+  UPDATE valutazione_movimenti SET passivo_norma = norma WHERE norma IS NOT NULL;
+
+  ALTER TABLE profilo ADD COLUMN codice_fiscale TEXT;
+  ALTER TABLE profilo ADD COLUMN partita_iva TEXT;
   `
 ]
 

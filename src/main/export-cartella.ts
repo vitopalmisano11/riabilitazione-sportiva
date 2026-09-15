@@ -736,7 +736,7 @@ function sezValutazioni(pazienteId: number): Blocco[] {
     const perDistretto = distretti.flatMap((d): Blocco[] => {
       const movimenti = db
         .prepare(
-          `SELECT m.id, m.nome, m.gradi, vm.lato, vm.norma, vm.attivo_restrizione,
+          `SELECT m.id, m.nome, m.gradi, vm.lato, vm.norma, vm.passivo_norma, vm.attivo_restrizione,
                   vm.attivo_dolore, vm.attivo_gradi, vm.passivo_restrizione, vm.passivo_dolore,
                   vm.passivo_gradi
            FROM distretto_movimenti m
@@ -753,7 +753,8 @@ function sezValutazioni(pazienteId: number): Blocco[] {
           m.passivo_dolore != null ||
           m.attivo_gradi != null ||
           m.passivo_gradi != null ||
-          m.norma === 1
+          m.norma === 1 ||
+          m.passivo_norma === 1
       )
       const test = db
         .prepare(
@@ -825,13 +826,18 @@ function sezValutazioni(pazienteId: number): Blocco[] {
                   'Passivo · dolore',
                   ...(conGradi ? ['Passivo °'] : [])
                 ],
+                // "nella norma" nella colonna della restrizione del suo
+                // movimento, attivo o passivo; accanto al nome se lo sono tutti
+                // e due
                 righe: compilati.map((m) => [
-                  m.norma === 1 ? `${String(m.nome)} (nella norma)` : String(m.nome),
+                  m.norma === 1 && m.passivo_norma === 1
+                    ? `${String(m.nome)} (nella norma)`
+                    : String(m.nome),
                   ...(conLati ? [nomeLato(m.lato)] : []),
-                  g(m.attivo_restrizione),
+                  m.norma === 1 && m.passivo_norma !== 1 ? 'nella norma' : g(m.attivo_restrizione),
                   dol(m.attivo_dolore),
                   ...(conGradi ? [num(m.attivo_gradi)] : []),
-                  g(m.passivo_restrizione),
+                  m.passivo_norma === 1 && m.norma !== 1 ? 'nella norma' : g(m.passivo_restrizione),
                   dol(m.passivo_dolore),
                   ...(conGradi ? [num(m.passivo_gradi)] : [])
                 ])
@@ -842,13 +848,17 @@ function sezValutazioni(pazienteId: number): Blocco[] {
           ? []
           : [
               {
+                // Un test per voce: con i due lati "Lachman: destra positivo,
+                // sinistra negativo", e la nota del test in fondo.
                 tipo: 'elenco',
-                voci: test.map(
-                  (t) =>
-                    `${t.nome}${t.lato ? ` ${nomeLato(t.lato)}` : ''}: ${t.valore ?? '—'}${
-                      t.nota ? ` (${t.nota})` : ''
-                    }`
-                )
+                voci: [...new Set(test.map((t) => String(t.nome)))].map((nome) => {
+                  const righe = test.filter((t) => String(t.nome) === nome)
+                  const esiti = righe
+                    .filter((t) => t.valore != null || !t.lato)
+                    .map((t) => `${t.lato ? `${nomeLato(t.lato)} ` : ''}${t.valore ?? '—'}`)
+                  const note = [...new Set(righe.map((t) => t.nota).filter(Boolean))]
+                  return `${nome}: ${esiti.join(', ') || '—'}${note.length ? ` (${note.join('; ')})` : ''}`
+                })
               }
             ]
       return [

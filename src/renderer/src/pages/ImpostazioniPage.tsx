@@ -115,6 +115,7 @@ export default function ImpostazioniPage({
               />
               <SchedaPassword />
               <SchedaBlocco ingrandimento={ingrandimento} onIngrandimento={onIngrandimento} />
+              <SchedaRecupero />
             </div>
           </>
         )}
@@ -362,6 +363,8 @@ const CAMPI_PROFILO: { chiave: keyof Profilo; etichetta: string; esempio: string
   { chiave: 'qualifica', etichetta: 'Qualifica', esempio: 'es. Fisioterapista' },
   { chiave: 'studio', etichetta: 'Studio', esempio: 'es. Studio di Riabilitazione Sportiva' },
   { chiave: 'indirizzo', etichetta: 'Indirizzo', esempio: 'es. via Roma 3, Bari' },
+  { chiave: 'codice_fiscale', etichetta: 'Codice fiscale', esempio: 'es. RSSMRA80A01A662X' },
+  { chiave: 'partita_iva', etichetta: 'Partita IVA', esempio: 'es. 01234567890' },
   { chiave: 'telefono', etichetta: 'Telefono', esempio: 'es. 333 1234567' },
   { chiave: 'email', etichetta: 'Email', esempio: 'es. studio@esempio.it' }
 ]
@@ -371,6 +374,8 @@ const PROFILO_VUOTO: Profilo = {
   qualifica: null,
   studio: null,
   indirizzo: null,
+  codice_fiscale: null,
+  partita_iva: null,
   telefono: null,
   email: null
 }
@@ -404,7 +409,14 @@ function SchedaProfilo(): React.JSX.Element {
   // L'anteprima e' la stessa cosa che finisce in cima al foglio: cosi' si vede
   // subito com'e' venuta, senza stampare per scoprirlo.
   const chi = [profilo.nome, profilo.qualifica].filter(Boolean).join(' · ')
-  const dove = [profilo.studio, profilo.indirizzo, profilo.telefono, profilo.email]
+  const dove = [
+    profilo.studio,
+    profilo.indirizzo,
+    profilo.codice_fiscale ? `C.F. ${profilo.codice_fiscale}` : null,
+    profilo.partita_iva ? `P. IVA ${profilo.partita_iva}` : null,
+    profilo.telefono,
+    profilo.email
+  ]
     .filter(Boolean)
     .join(' · ')
 
@@ -413,7 +425,7 @@ function SchedaProfilo(): React.JSX.Element {
       <div className="blocco-impostazione">
         <div className="sotto-titolo">
           Chi firma i fogli
-          <Aiuto testo="Nome, qualifica e contatti compaiono in cima a tutto quello che stampi: schede, cartella e report. Lascia vuoto quello che non ti serve, e quella riga non comparirà; finché è tutto vuoto i fogli escono come adesso, senza intestazione." />
+          <Aiuto testo="Nome, qualifica, dati fiscali e contatti compaiono in cima a tutto quello che stampi: schede, cartella e report. Lascia vuoto quello che non ti serve, e non comparirà; finché è tutto vuoto i fogli escono come adesso, senza intestazione." />
         </div>
         <div className="form-row-2">
           {CAMPI_PROFILO.map((c) => (
@@ -449,6 +461,143 @@ function SchedaProfilo(): React.JSX.Element {
   )
 }
 
+// Come si rientra se si dimentica la password. La chiave di recupero c'e'
+// sempre, dal primo avvio. In piu' si puo' impostare una domanda: e' piu' comoda
+// da ricordare, ma meno sicura della chiave, quindi si aggiunge a lei e non la
+// sostituisce. Per impostarla o toglierla serve la password di adesso.
+function SchedaRecupero(): React.JSX.Element {
+  const [domanda, setDomanda] = useState<string | null>(null)
+  const [modo, setModo] = useState<'vedi' | 'imposta' | 'togli'>('vedi')
+  const [testo, setTesto] = useState('')
+  const [risposta, setRisposta] = useState('')
+  const [ripeti, setRipeti] = useState('')
+  const [password, setPassword] = useState('')
+  const [errore, setErrore] = useState('')
+
+  const carica = (): void => {
+    window.api.auth
+      .domanda()
+      .then(setDomanda)
+      .catch((e) => toastErrore(errMsg(e)))
+  }
+  useEffect(carica, [])
+
+  const chiudi = (): void => {
+    setModo('vedi')
+    setTesto('')
+    setRisposta('')
+    setRipeti('')
+    setPassword('')
+    setErrore('')
+  }
+
+  const salva = async (): Promise<void> => {
+    setErrore('')
+    if (risposta.trim().toLowerCase() !== ripeti.trim().toLowerCase()) {
+      setErrore('Le due risposte non coincidono.')
+      return
+    }
+    try {
+      await window.api.auth.impostaDomanda(password, testo, risposta)
+      toast('Domanda di recupero salvata.')
+      chiudi()
+      carica()
+    } catch (e) {
+      setErrore(errMsg(e))
+    }
+  }
+
+  const togli = async (): Promise<void> => {
+    setErrore('')
+    try {
+      await window.api.auth.togliDomanda(password)
+      toast('Domanda di recupero tolta. Resta la chiave di recupero.')
+      chiudi()
+      carica()
+    } catch (e) {
+      setErrore(errMsg(e))
+    }
+  }
+
+  return (
+    <section className="card single-col">
+      <div className="sotto-titolo">
+        Recupero della password
+        <Aiuto testo="Se dimentichi la password puoi rientrare in due modi. Con la chiave di recupero che hai salvato al primo avvio: vale sempre ed è il modo più sicuro. Oppure rispondendo a una domanda che scegli tu: è più comoda, ma una risposta si indovina più facilmente di una chiave. Scegli una domanda la cui risposta sai solo tu e non si trova online (non il nome dello studio o la tua città). Maiuscole e spazi nella risposta non contano." />
+      </div>
+
+      <div className="stato-recupero">
+        <div className="riga-recupero">
+          <span className="nome-recupero">Chiave di recupero</span>
+          <span className="badge-stato">Attiva</span>
+        </div>
+        <div className="riga-recupero">
+          <span className="nome-recupero">Domanda di recupero</span>
+          {domanda ? (
+            <span className="badge-stato">Attiva</span>
+          ) : (
+            <span className="badge-stato follow">Non impostata</span>
+          )}
+        </div>
+        {domanda && <p className="hint domanda-attuale">«{domanda}»</p>}
+      </div>
+
+      {modo === 'imposta' && (
+        <>
+          <label>
+            Domanda
+            <input
+              autoFocus
+              placeholder="es. Come si chiamava la mia maestra delle elementari?"
+              value={testo}
+              onChange={(e) => setTesto(e.target.value)}
+            />
+          </label>
+          <label>
+            Risposta (almeno 4 caratteri)
+            <input type="password" value={risposta} onChange={(e) => setRisposta(e.target.value)} />
+          </label>
+          <label>
+            Ripeti la risposta
+            <input type="password" value={ripeti} onChange={(e) => setRipeti(e.target.value)} />
+          </label>
+        </>
+      )}
+      {modo !== 'vedi' && (
+        <label>
+          Password attuale
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+        </label>
+      )}
+      {errore && <p className="auth-error">{errore}</p>}
+
+      <div className="modal-actions">
+        {modo === 'vedi' ? (
+          <>
+            {domanda && <button onClick={() => setModo('togli')}>Togli la domanda</button>}
+            <button className="primary" onClick={() => setModo('imposta')}>
+              {domanda ? 'Cambia la domanda' : 'Imposta una domanda'}
+            </button>
+          </>
+        ) : (
+          <>
+            <button onClick={chiudi}>Annulla</button>
+            {modo === 'imposta' ? (
+              <button className="primary" onClick={() => void salva()}>
+                Salva la domanda
+              </button>
+            ) : (
+              <button className="primary" onClick={() => void togli()}>
+                Togli la domanda
+              </button>
+            )}
+          </>
+        )}
+      </div>
+    </section>
+  )
+}
+
 function SchedaPassword(): React.JSX.Element {
   const [vecchia, setVecchia] = useState('')
   const [nuova, setNuova] = useState('')
@@ -467,7 +616,7 @@ function SchedaPassword(): React.JSX.Element {
     }
     try {
       await window.api.auth.cambiaPassword(vecchia, nuova)
-      toast('Password aggiornata. La chiave di recupero resta valida.')
+      toast('Password aggiornata. La chiave di recupero e la domanda restano valide.')
       setVecchia('')
       setNuova('')
       setConferma('')
@@ -480,7 +629,7 @@ function SchedaPassword(): React.JSX.Element {
     <section className="card single-col">
       <div className="sotto-titolo">
         Cambia password
-        <Aiuto testo="La chiave di recupero non cambia: quella che hai messo da parte al primo avvio resta valida." />
+        <Aiuto testo="La chiave di recupero non cambia: quella che hai messo da parte al primo avvio resta valida. Anche la domanda di recupero, se l'hai impostata, resta com'è." />
       </div>
       <label>
         Password attuale

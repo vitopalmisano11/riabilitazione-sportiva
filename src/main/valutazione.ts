@@ -107,8 +107,8 @@ export function leggiValutazione(id: number): ValutazioneCompleta {
   }))
   const movimenti = db
     .prepare(
-      `SELECT movimento_id, lato, norma, attivo_restrizione, attivo_dolore, attivo_gradi,
-              passivo_restrizione, passivo_dolore, passivo_gradi, nota
+      `SELECT movimento_id, lato, norma, passivo_norma, attivo_restrizione, attivo_dolore,
+              attivo_gradi, passivo_restrizione, passivo_dolore, passivo_gradi, nota
        FROM valutazione_movimenti WHERE valutazione_id = ?`
     )
     .all(id) as ValutazioneCompleta['movimenti']
@@ -178,9 +178,9 @@ export function salvaValutazione(dati: ValutazioneCompleta): void {
     db.prepare('DELETE FROM valutazione_movimenti WHERE valutazione_id = ?').run(id)
     const insM = db.prepare(
       `INSERT INTO valutazione_movimenti
-         (valutazione_id, movimento_id, lato, norma, attivo_restrizione, attivo_dolore,
-          attivo_gradi, passivo_restrizione, passivo_dolore, passivo_gradi, nota)
-       VALUES (@valutazione_id, @movimento_id, @lato, @norma, @attivo_restrizione,
+         (valutazione_id, movimento_id, lato, norma, passivo_norma, attivo_restrizione,
+          attivo_dolore, attivo_gradi, passivo_restrizione, passivo_dolore, passivo_gradi, nota)
+       VALUES (@valutazione_id, @movimento_id, @lato, @norma, @passivo_norma, @attivo_restrizione,
           @attivo_dolore, @attivo_gradi, @passivo_restrizione, @passivo_dolore,
           @passivo_gradi, @nota)`
     )
@@ -194,9 +194,16 @@ export function salvaValutazione(dati: ValutazioneCompleta): void {
         m.passivo_dolore == null &&
         m.passivo_gradi == null &&
         m.norma == null &&
+        m.passivo_norma == null &&
         !m.nota
       if (!vuoto) {
-        insM.run({ ...m, lato: m.lato ?? '', norma: m.norma ?? null, valutazione_id: id })
+        insM.run({
+          ...m,
+          lato: m.lato ?? '',
+          norma: m.norma ?? null,
+          passivo_norma: m.passivo_norma ?? null,
+          valutazione_id: id
+        })
       }
     }
 

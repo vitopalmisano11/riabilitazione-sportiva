@@ -58,9 +58,13 @@ import {
 import {
   authExists,
   cambiaPasswordAuth,
+  domandaAuth,
+  impostaDomandaAuth,
   loginAuth,
   recoverAuth,
-  setupAuth
+  recoverDomandaAuth,
+  setupAuth,
+  togliDomandaAuth
 } from './auth'
 import {
   apriAnteprimaCartella,
@@ -204,6 +208,16 @@ export function registerIpc(): void {
   handle('auth:cambiaPassword', (vecchia: string, nuova: string) => {
     if (nuova.length < 8) throw new Error('La nuova password deve avere almeno 8 caratteri.')
     cambiaPasswordAuth(authPath(), vecchia, nuova)
+  })
+  handle('auth:domanda', () => domandaAuth(authPath()))
+  handle('auth:impostaDomanda', (password: string, domanda: string, risposta: string) =>
+    impostaDomandaAuth(authPath(), password, domanda, risposta)
+  )
+  handle('auth:togliDomanda', (password: string) => togliDomandaAuth(authPath(), password))
+  handle('auth:recoverDomanda', (risposta: string, nuovaPassword: string) => {
+    if (nuovaPassword.length < 8) throw new Error('La password deve avere almeno 8 caratteri.')
+    const dekHex = recoverDomandaAuth(authPath(), risposta, nuovaPassword)
+    initDb(dbPath(), dekHex)
   })
 
   // ---- Copie di sicurezza ----

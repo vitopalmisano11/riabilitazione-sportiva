@@ -304,6 +304,8 @@ export interface Profilo {
   qualifica: string | null
   studio: string | null
   indirizzo: string | null
+  codice_fiscale: string | null
+  partita_iva: string | null
   telefono: string | null
   email: string | null
 }
@@ -947,8 +949,10 @@ export interface DistrettoCompleto {
 export interface RilievoMovimento {
   movimento_id: number
   lato: LatoRilievo
-  // 1 = valutato e nella norma
+  // 1 = valutato e nella norma: norma per il movimento attivo, passivo_norma
+  // per il passivo
   norma: 0 | 1 | null
+  passivo_norma: 0 | 1 | null
   attivo_restrizione: Grado
   attivo_dolore: Grado
   attivo_gradi: number | null
@@ -1064,6 +1068,11 @@ export interface Api {
     login(password: string): Promise<void>
     recover(recoveryKey: string, nuovaPassword: string): Promise<void>
     cambiaPassword(vecchia: string, nuova: string): Promise<void>
+    // La domanda per recuperare la password: il testo, o null se non c'e'.
+    domanda(): Promise<string | null>
+    impostaDomanda(password: string, domanda: string, risposta: string): Promise<void>
+    togliDomanda(password: string): Promise<void>
+    recoverDomanda(risposta: string, nuovaPassword: string): Promise<void>
   }
   distretti: {
     list(): Promise<Distretto[]>

@@ -419,13 +419,13 @@
 }
 
 /* Quanto e' alta la barra disegnata in cima alla finestra: zero dove non c'e'.
-   I suoi colori seguono la colonna laterale: chiara con la colonna chiara,
-   scura con quella scura (i temi scuri qui sotto la ridefiniscono). */
+   I suoi colori sono quelli della colonna laterale, sempre: prima con la
+   colonna chiara era bianca, e staccava dal resto dell'app. */
 :root {
   --alto-barra: 0px;
-  --barra-alta: var(--surface);
-  --barra-alta-testo: var(--text);
-  --barra-alta-bordo: var(--border);
+  --barra-alta: var(--barra);
+  --barra-alta-testo: var(--barra-testo);
+  --barra-alta-bordo: var(--barra-bordo);
 }
 
 :root[data-barra-disegnata='si'] {
@@ -5589,22 +5589,6 @@ input[type='checkbox'].interruttore:focus-visible {
   height: 20px;
 }
 
-.etichetta-lato {
-  flex: none;
-  margin-right: 6px;
-  padding: 1px 7px;
-  border-radius: 999px;
-  background: var(--intestazione);
-  color: var(--text-dim);
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.etichetta-lato.interessato {
-  background: var(--accent);
-  color: #fff;
-}
-
 .btn-norma {
   flex: none;
   width: 26px;
@@ -5667,14 +5651,98 @@ input[type='checkbox'].interruttore:focus-visible {
 }
 
 .gm-nota textarea.cresce {
-  min-height: 38px;
+  min-height: 64px;
 }
 
-/* Il carico: tre pulsanti con la freccia, stretti e uguali. */
+/* Il pulsante "il resto nella norma" quando e' gia' fatto: acceso, e un clic
+   lo spegne. */
+.azioni-norma .btn-piccolo.scelta-attiva {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Il carico: tre pulsanti quadrati con la freccia. */
 .riga-sino .scelta-andamento button {
-  min-width: 44px;
-  padding: 4px 10px;
+  flex: none;
+  width: 36px;
+  height: 34px;
+  padding: 0;
   justify-content: center;
+}
+
+/* I test: il nome, un esito per lato e la nota in fondo alla riga. Le righe,
+   le fasce dei lati e i titoli sono gli stessi della tabella dei movimenti. */
+.griglia-test {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) 230px minmax(150px, 1.1fr);
+  align-items: stretch;
+}
+
+.griglia-test.due-lati {
+  grid-template-columns: minmax(110px, 1fr) repeat(2, 214px) minmax(130px, 1fr);
+}
+
+.griglia-test > .gm-titolo,
+.griglia-test > .gm-lato {
+  margin-bottom: 0;
+}
+
+.griglia-test > .gm-titolo {
+  border-bottom: 1.5px solid var(--border-forte);
+}
+
+.griglia-test > .gm-lato {
+  margin: 0 3px;
+  border-bottom: 1.5px solid var(--border-forte);
+}
+
+.gt-centro {
+  justify-content: center;
+}
+
+.gt-esito,
+.gt-nota {
+  display: flex;
+  align-items: center;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.gt-esito {
+  justify-content: center;
+}
+
+.gt-esito > input,
+.gt-nota > input {
+  width: 100%;
+  min-width: 0;
+  padding: 5px 8px;
+  font-size: 14px;
+}
+
+.griglia-test .gt-esito.secondo-lato,
+.griglia-test .secondo-lato + .gt-nota,
+.griglia-test .gm-lato + .gm-titolo {
+  border-left: 1px solid var(--border-forte);
+}
+
+.esito-test button {
+  padding: 5px 10px;
+  font-size: 14px;
+}
+
+/* Nei test i pallini sono un filo piu' piccoli: due scale affiancate devono
+   stare nella loro colonna. */
+.griglia-test .scala-pallini {
+  gap: 4px;
+  flex-wrap: nowrap;
+}
+
+.griglia-test .scala-pallini .pallino {
+  width: 28px;
+  height: 28px;
+  font-size: 13px;
 }
 
 @media (max-width: 760px) {
@@ -6625,4 +6693,32 @@ textarea.cresce {
   background: var(--pannello);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
+}
+
+/* Il recupero della password in Impostazioni: com'e' adesso, poi i campi. */
+.stato-recupero {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.riga-recupero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.nome-recupero {
+  font-weight: 600;
+}
+
+.domanda-attuale {
+  margin: 0;
+}
+
+/* Nella schermata di accesso: chiave o domanda, sopra alla spiegazione. */
+.scelta-recupero {
+  align-self: center;
+  margin-bottom: 4px;
 }

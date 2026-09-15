@@ -62,7 +62,7 @@ function movimentiDi(righe: Riga[], tipo: 'attivo' | 'passivo'): string | null {
   const normali: string[] = []
   for (const r of righe) {
     const nome = String(r.nome).toLowerCase()
-    const normale = Number(r.norma) === 1
+    const normale = Number(tipo === 'attivo' ? r.norma : r.passivo_norma) === 1
     const gradi = r[`${tipo}_gradi`]
     if (normale) {
       // nella norma, con i gradi se sono stati misurati
@@ -188,16 +188,20 @@ export function relazioneValutazione(pazienteId: number): ParagrafoValutazione[]
         for (const id of [...new Set(delGruppo.map((t) => Number(t.id)))]) {
           const righe = delGruppo.filter((t) => Number(t.id) === id)
           const nome = String(righe[0].nome)
+          // Con i due lati la nota e' del test, non di un lato: va in fondo,
+          // dopo destra e sinistra.
           const detti = righe
             .map((t) => {
               const e = esito(t)
-              const nota = testoLibero(t.nota)
+              if (!e) return null
               const lato = t.lato === 'dx' || t.lato === 'sx' ? ` ${nomeLato(t.lato)}` : ''
-              if (!e && !nota) return null
-              return `${e ?? ''}${lato}${nota ? ` (${nota})` : ''}`.trim()
+              return `${e}${lato}`
             })
             .filter((x): x is string => x != null)
-          if (detti.length > 0) voci.push(`${nome} ${elenco(detti)}`)
+          const note = [...new Set(righe.map((t) => testoLibero(t.nota)).filter((x): x is string => x != null))]
+          const nota = note.length > 0 ? ` (${note.join('; ')})` : ''
+          if (detti.length > 0) voci.push(`${nome} ${elenco(detti)}${nota}`)
+          else if (nota) voci.push(`${nome}${nota}`)
         }
         if (voci.length > 0) {
           const titolo = GRUPPI.find((g) => g.valore === gruppo)?.etichetta ?? 'Test'

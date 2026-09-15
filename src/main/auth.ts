@@ -3,6 +3,10 @@
 // salvata in auth.json "avvolta" (AES-256-GCM) due volte: con una chiave
 // derivata dalla password (scrypt) e con una derivata dalla recovery key.
 // Cambiare password = ri-avvolgere la DEK, senza ricifrare il database.
+// Facoltativa, una terza chiave: la risposta a una domanda scelta da chi usa
+// l'app. E' piu' comoda della chiave di recupero ma piu' debole (una risposta si
+// indovina piu' facilmente di 32 caratteri a caso), percio' si aggiunge alla
+// chiave, non la sostituisce.
 // Nessuna dipendenza da Electron: testabile con Node (vedi scripts/smoke.ts).
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'crypto'
 import { existsSync, readFileSync, writeFileSync } from 'fs'
@@ -22,6 +26,7 @@ interface AuthFile {
   kdf: { algo: 'scrypt'; N: number; r: number; p: number }
   pw: Wrapped
   rk: Wrapped
+  dq?: { domanda: string; chiave: Wrapped }
 }
 
 function derive(secret: string, salt: Buffer, kdf: AuthFile['kdf']): Buffer {
@@ -71,6 +76,12 @@ function normalizeRecovery(s: string): string {
   const pulita = s.replace(/[^0-9a-fA-F]/g, '').toLowerCase()
   if (pulita.length !== 32) throw new Error('Chiave di recupero non valida.')
   return pulita
+}
+
+// La risposta si confronta senza badare a maiuscole, spazi e accenti scritti
+// in modo diverso: "Via Roma" e "via  roma " sono la stessa risposta.
+function normalizzaRisposta(s: string): string {
+  return s.normalize('NFC').trim().toLowerCase().replace(/\s+/g, ' ')
 }
 
 export function authExists(authPath: string): boolean {
@@ -135,4 +146,60 @@ export function cambiaPasswordAuth(
   }
   file.pw = wrap(dek, nuovaPassword, file.kdf)
   writeFileSync(authPath, JSON.stringify(file, null, 2))
+}
+
+export function domandaAuth(authPath: string): string | null {
+  if (!existsSync(authPath)) return null
+  return leggi(authPath).dq?.domanda ?? null
+}
+
+export function impostaDomandaAuth(
+  authPath: string,
+  password: string,
+  domanda: string,
+  risposta: string
+): void {
+  const file = leggi(authPath)
+  let dek: Buffer
+  try {
+    dek = unwrap(file.pw, password, file.kdf)
+  } catch {
+    throw new Error('Password errata.')
+  }
+  const d = domanda.trim()
+  const r = normalizzaRisposta(risposta)
+  if (d === '') throw new Error('Scrivi la domanda.')
+  if (r.length < 4) throw new Error('La risposta deve avere almeno 4 caratteri.')
+  file.dq = { domanda: d, chiave: wrap(dek, r, file.kdf) }
+  writeFileSync(authPath, JSON.stringify(file, null, 2))
+}
+
+export function togliDomandaAuth(authPath: string, password: string): void {
+  const file = leggi(authPath)
+  try {
+    unwrap(file.pw, password, file.kdf)
+  } catch {
+    throw new Error('Password errata.')
+  }
+  delete file.dq
+  writeFileSync(authPath, JSON.stringify(file, null, 2))
+}
+
+// Sblocca con la risposta alla domanda e imposta una nuova password.
+export function recoverDomandaAuth(
+  authPath: string,
+  risposta: string,
+  nuovaPassword: string
+): string {
+  const file = leggi(authPath)
+  if (!file.dq) throw new Error('Non è stata impostata nessuna domanda di recupero.')
+  let dek: Buffer
+  try {
+    dek = unwrap(file.dq.chiave, normalizzaRisposta(risposta), file.kdf)
+  } catch {
+    throw new Error('Risposta sbagliata.')
+  }
+  file.pw = wrap(dek, nuovaPassword, file.kdf)
+  writeFileSync(authPath, JSON.stringify(file, null, 2))
+  return dek.toString('hex')
 }

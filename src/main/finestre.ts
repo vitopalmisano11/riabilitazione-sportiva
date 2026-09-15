@@ -9,6 +9,7 @@
 // cosi' funziona anche dove la pagina e' un HTML generato, senza codice suo e
 // senza preload.
 import type { BrowserWindow, BrowserWindowConstructorOptions } from 'electron'
+import type { Tema } from '../shared/temi'
 
 // La barra in cima a tutte le finestre del programma.
 //
@@ -22,6 +23,52 @@ export function barraDisegnata(): Pick<BrowserWindowConstructorOptions, 'titleBa
   return { titleBarStyle: 'hidden' }
 }
 
+// I colori della barra sono quelli della colonna laterale dell'app, tema per
+// tema: gli stessi di styles.css (--barra, --barra-testo, --barra-bordo). Le
+// pagine generate non hanno quel foglio di stile, percio' stanno anche qui.
+export interface ColoriBarra {
+  fondo: string
+  testo: string
+  bordo: string
+}
+
+const BARRA_TEMA: Record<Tema, { chiara: ColoriBarra; scura: ColoriBarra }> = {
+  verde: {
+    chiara: { fondo: '#e6dcc9', testo: '#4a4237', bordo: '#cfc2a9' },
+    scura: { fondo: '#15201b', testo: '#e7efea', bordo: '#0f1814' }
+  },
+  terracotta: {
+    chiara: { fondo: '#efe1d3', testo: '#524134', bordo: '#d6bfa8' },
+    scura: { fondo: '#241a15', testo: '#f2e6dd', bordo: '#1a120e' }
+  },
+  blu: {
+    chiara: { fondo: '#e4ebf5', testo: '#35455c', bordo: '#c6d1e2' },
+    scura: { fondo: '#18202b', testo: '#e6eaf0', bordo: '#131a24' }
+  },
+  prugna: {
+    chiara: { fondo: '#ece5f2', testo: '#453a52', bordo: '#cfc2de' },
+    scura: { fondo: '#1e1826', testo: '#ece5f2', bordo: '#150f1c' }
+  },
+  ardesia: {
+    chiara: { fondo: '#e6ebef', testo: '#3b4a54', bordo: '#c9d2d9' },
+    scura: { fondo: '#172026', testo: '#e6ecf0', bordo: '#10171c' }
+  },
+  bordeaux: {
+    chiara: { fondo: '#f0e2e6', testo: '#4d3a40', bordo: '#d8bec6' },
+    scura: { fondo: '#221217', testo: '#f2e4e8', bordo: '#180c10' }
+  }
+}
+
+// La modalita' scura ha la sua colonna, grigio scuro, tranne dove il tema ha
+// gia' una colonna scura sua.
+const BARRA_MODALITA_SCURA: ColoriBarra = { fondo: '#131317', testo: '#e6e2de', bordo: '#101014' }
+
+export function coloriBarra(tema: Tema, colonnaScura: boolean, modalitaScura: boolean): ColoriBarra {
+  const t = BARRA_TEMA[tema] ?? BARRA_TEMA.verde
+  if (modalitaScura) return colonnaScura && tema !== 'verde' ? t.scura : BARRA_MODALITA_SCURA
+  return colonnaScura ? t.scura : t.chiara
+}
+
 const ICONA_INGRANDISCI =
   '<svg width="12" height="12" viewBox="0 0 12 12"><rect x="1.5" y="1.5" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>'
 const ICONA_RIPRISTINA =
@@ -32,10 +79,14 @@ const ICONA_RIPRISTINA =
 // pulsanti — comandati attraverso il piccolo ponte preload/finestra.ts — e uno
 // spazio della stessa altezza prima del contenuto. In stampa non c'e', e nella
 // finestra nascosta da cui nasce il PDF questa funzione non si usa proprio.
-// scura: con la colonna laterale scura o la modalita' scura la barra e' scura.
-export function conBarra(html: string, titolo: string, scura = false): string {
+// colori: quelli della colonna laterale (vedi coloriBarra).
+export function conBarra(
+  html: string,
+  titolo: string,
+  colori: ColoriBarra = BARRA_TEMA.verde.chiara
+): string {
   const esc = titolo.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-  const [fondo, testo, bordo] = scura ? ['#1c222b', '#e6eaf0', '#10151c'] : ['#ffffff', '#1c242b', '#e2e6ea']
+  const { fondo, testo, bordo } = colori
   const stile = `<style>
   .barra-finestra { position: fixed; z-index: 1000; top: 0; left: 0; right: 0;
     height: ${ALTEZZA_BARRA}px; overflow: hidden; display: flex; align-items: center;
