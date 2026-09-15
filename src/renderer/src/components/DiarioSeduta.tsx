@@ -159,12 +159,13 @@ export default function DiarioSeduta({
   }
 
   return (
-    <div className="diario-affiancato">
-    {/* Due riquadri affiancati, ognuno col suo titolo: cosa riferisce e il
-        trattamento sono due momenti diversi della seduta, e uno sotto l'altro
-        allungavano la pagina. */}
+    <>
+    {/* Due riquadri uno sopra l'altro, ma bassi: il titolo e i pulsanti sulla
+        stessa riga, e le caselle di testo alte una riga che crescono mentre si
+        scrive. Cosi' la seduta non si allunga per due caselle quasi vuote. */}
     <section className="card blocco-seduta">
       <div className="riga-diario">
+        <div className="testata-blocco">
         <span className="titolo-blocco">
           <MessageSquareText size={18} />
           Cosa riferisce
@@ -182,8 +183,10 @@ export default function DiarioSeduta({
             </button>
           ))}
         </span>
+        </div>
         <textarea
-          rows={2}
+          rows={1}
+          className="cresce"
           placeholder="es. meno dolore la mattina, fatica ancora sulle scale"
           value={riferito}
           onChange={(e) => onCambia({ riferito: e.target.value })}
@@ -193,11 +196,20 @@ export default function DiarioSeduta({
 
     <section className="card blocco-seduta">
       <div className="riga-diario">
+        <div className="testata-blocco">
         <span className="titolo-blocco">
           <Stethoscope size={18} />
           Trattamento eseguito
           <Aiuto testo="Le tecniche che fai oggi: si spuntano con un clic. L'elenco è tuo: con Aggiungi ne scrivi una nuova, con Modifica elenco togli quelle che non usi più (le sedute vecchie continuano a mostrarle). Nella casella sotto i dettagli, per esempio la zona o i parametri." />
         </span>
+          <button
+            type="button"
+            className="link-discreto"
+            onClick={() => setModificaElenco(!modificaElenco)}
+          >
+            {modificaElenco ? 'Fatto' : 'Modifica elenco'}
+          </button>
+        </div>
         <div className="scelte-multiple tecniche">
           {visibili.map((t) => {
             const dentro = tecnicaIds.includes(t.id)
@@ -252,22 +264,16 @@ export default function DiarioSeduta({
               </button>
             </span>
           )}
-          <button
-            type="button"
-            className="link-discreto"
-            onClick={() => setModificaElenco(!modificaElenco)}
-          >
-            {modificaElenco ? 'Fatto' : 'Modifica elenco'}
-          </button>
         </div>
         <textarea
-          rows={2}
+          rows={1}
+          className="cresce"
           placeholder="Dettagli (facoltativo): zona, parametri, come ha risposto"
           value={trattamento}
           onChange={(e) => onCambia({ trattamento: e.target.value })}
         />
       </div>
     </section>
-    </div>
+    </>
   )
 }

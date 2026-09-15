@@ -1874,8 +1874,7 @@ details[open] > :not(summary) {
    con lo spazio fra uno e l'altro: prima stavano uno attaccato all'altro e
    sembravano una cosa sola. */
 .builder-col > .builder-header,
-.builder-col > section.card,
-.diario-affiancato > section.card {
+.builder-col > section.card {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -3548,7 +3547,7 @@ input[type='checkbox'].interruttore:focus-visible {
 
 /* L'elenco scende fino in fondo alla finestra, e scorre lui. */
 .lista-larga .riquadro-scorrevole {
-  max-height: max(320px, calc(100vh - var(--alto-barra) - 300px));
+  max-height: max(320px, calc(100vh - var(--alto-barra) - 165px));
 }
 
 .riga-paziente {
@@ -3558,7 +3557,7 @@ input[type='checkbox'].interruttore:focus-visible {
     minmax(120px, 0.7fr) 44px;
   align-items: center;
   gap: 12px;
-  padding: 9px 12px 9px 16px;
+  padding: 5px 12px 5px 16px;
   border-radius: var(--radius-sm);
   cursor: pointer;
 }
@@ -6120,18 +6119,29 @@ input[type='checkbox'].interruttore:focus-visible {
   padding-bottom: 10px;
 }
 
-/* Cosa riferisce e il trattamento, uno accanto all'altro. */
-.diario-affiancato {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 16px;
-  align-items: stretch;
+/* Il titolo di un blocco della seduta e i suoi comandi sulla stessa riga. */
+.testata-blocco {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
 }
 
-@media (max-width: 900px) {
-  .diario-affiancato {
-    grid-template-columns: minmax(0, 1fr);
-  }
+.testata-blocco .link-discreto {
+  margin-left: auto;
+}
+
+/* Una casella di testo alta una riga, che cresce da sola mentre si scrive. */
+textarea.cresce {
+  field-sizing: content;
+  min-height: 44px;
+  max-height: 240px;
+  resize: none;
+}
+
+.blocco-seduta .riga-diario {
+  gap: 10px;
 }
 
 .righe-ultima {
