@@ -159,6 +159,24 @@ Finisce nel cestino: puoi rimetterla a posto da Impostazioni entro un mese.`
     return { nome, data, numero: d.getDate(), sedute: sedute.filter((s) => s.data === data) }
   })
 
+  // I giorni da scegliere quando si copia una seduta o se ne aggiunge una:
+  // sette, a partire da oggi. Se si sta guardando una settimana che deve ancora
+  // venire, dal suo lunedi'.
+  const inizioScelta = new Date(Math.max(lunediDi(new Date()).getTime(), lunedi.getTime()))
+  if (iso(inizioScelta) < oggi) {
+    const [a, m, g] = oggi.split('-').map(Number)
+    inizioScelta.setFullYear(a, m - 1, g)
+  }
+  const giorniScelta = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(inizioScelta)
+    d.setDate(inizioScelta.getDate() + i)
+    return {
+      nome: i === 0 && iso(d) === oggi ? 'oggi' : GIORNI[(d.getDay() + 6) % 7],
+      data: iso(d),
+      numero: d.getDate()
+    }
+  })
+
   return (
     <div className="page">
       <header className="page-header">
@@ -340,7 +358,7 @@ Finisce nel cestino: puoi rimetterla a posto da Impostazioni entro un mese.`
               Seduta di {perSeduta.cognome} {perSeduta.nome}: in che giorno?
             </h3>
             <div className="giorni-copia">
-              {giorni.map((g) => (
+              {giorniScelta.map((g) => (
                 <button
                   key={g.data}
                   onClick={() => {
@@ -387,7 +405,7 @@ Finisce nel cestino: puoi rimetterla a posto da Impostazioni entro un mese.`
               nuova con gli stessi esercizi, da ritoccare prima di salvarla.
             </p>
             <div className="giorni-copia">
-              {giorni.map((g) => (
+              {giorniScelta.map((g) => (
                 <button
                   key={g.data}
                   className={g.data === daCopiare.data ? 'giorno-origine' : ''}

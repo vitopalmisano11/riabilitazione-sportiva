@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type {
   AndamentoRiferito,
   SedutaPrecedente,
@@ -22,7 +22,7 @@ import {
   Video,
   X
 } from 'lucide-react'
-import { toastErrore } from './Toast'
+import { toast, toastErrore } from './Toast'
 import { chiedi } from './Conferma'
 import ImmagineEsercizio from './ImmagineEsercizio'
 import Aiuto from './Aiuto'
@@ -98,6 +98,9 @@ export default function SedutaBuilder({
   // La seduta di prima, da ricordare prima di chiedere "come va?".
   const [precedente, setPrecedente] = useState<SedutaPrecedente | null>(null)
   const [sezioni, setSezioni] = useState<SezioneBuilder[]>([])
+  // Ctrl+Z: com'erano le sezioni prima di ogni cambiamento (un esercizio
+  // aggiunto o tolto, una sezione tolta, un riordino), dal piu' recente.
+  const storia = useRef<{ sezioni: SezioneBuilder[]; cosa: string }[]>([])
   const [obiettivi, setObiettivi] = useState<Obiettivo[]>([])
   const [raggiunti, setRaggiunti] = useState<number[]>([])
   const [templateCats, setTemplateCats] = useState<Record<number, number[]>>({})
@@ -300,8 +303,40 @@ export default function SedutaBuilder({
   // L'esercizio nuovo si infila subito dopo l'ultimo della sua categoria, non in
   // fondo: cosi' l'elenco resta raggruppato da solo e ogni categoria ha una sola
   // intestazione, anche aggiungendo gli esercizi in ordine sparso.
+  // Cambia le sezioni ricordando com'erano, per Ctrl+Z.
+  const modificaSezioni = (nuove: SezioneBuilder[], cosa: string): void => {
+    storia.current.push({ sezioni, cosa })
+    if (storia.current.length > 50) storia.current.shift()
+    setSezioni(nuove)
+  }
+
+  const annullaUltima = (): void => {
+    const ultima = storia.current.pop()
+    if (!ultima) {
+      toast('Niente da annullare.')
+      return
+    }
+    setSezioni(ultima.sezioni)
+    toast(`Annullato: ${ultima.cosa}.`)
+  }
+
+  // Ctrl+Z dentro a una casella di testo annulla quello che si e' scritto,
+  // come sempre; fuori dalle caselle annulla l'ultimo cambiamento della seduta.
+  useEffect(() => {
+    const tasto = (e: KeyboardEvent): void => {
+      if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.key.toLowerCase() !== 'z') return
+      const el = e.target as HTMLElement | null
+      const tag = el?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el?.isContentEditable) return
+      e.preventDefault()
+      annullaUltima()
+    }
+    window.addEventListener('keydown', tasto)
+    return () => window.removeEventListener('keydown', tasto)
+  })
+
   const aggiungi = (idx: number, e: EsercizioConCategoria): void => {
-    setSezioni(
+    modificaSezioni(
       sezioni.map((s, i) => {
         if (i !== idx || s.righe.some((r) => r.esercizio_id === e.id)) return s
         const riga = {
@@ -327,7 +362,8 @@ export default function SedutaBuilder({
         const righe = [...s.righe]
         righe.splice(dopo + 1 === 0 ? righe.length : dopo + 1, 0, riga)
         return { ...s, righe }
-      })
+      }),
+      `aggiunto ${e.nome}`
     )
   }
 
@@ -357,7 +393,7 @@ export default function SedutaBuilder({
   // Rimette in riga i numeri dell'ultima volta, tutti insieme: da li' si
   // decide se aumentare o no, che e' il gesto vero della progressione.
   const ricopiaUltima = (idxSez: number, idxRiga: number, u: UltimaVolta): void => {
-    setSezioni(
+    modificaSezioni(
       sezioni.map((s, i) =>
         i === idxSez
           ? {
@@ -378,7 +414,8 @@ export default function SedutaBuilder({
               )
             }
           : s
-      )
+      ),
+      `ricopiati i numeri di ${sezioni[idxSez]?.righe[idxRiga]?.nome ?? "un esercizio"}`
     )
   }
 
@@ -389,15 +426,18 @@ export default function SedutaBuilder({
       .join(' · ')
 
   const rimuoviRiga = (idxSez: number, idxRiga: number): void => {
-    setSezioni(
+    const nome = sezioni[idxSez]?.righe[idxRiga]?.nome ?? 'esercizio'
+    modificaSezioni(
       sezioni.map((s, i) =>
         i === idxSez ? { ...s, righe: s.righe.filter((_, j) => j !== idxRiga) } : s
-      )
+      ),
+      `tolto ${nome}`
     )
+    toast(`${nome} tolto dalla seduta. Ctrl+Z per rimetterlo.`)
   }
 
   const { contenitore: contSez, presa: presaSez } = useRiordino<number>((da, a) =>
-    setSezioni(sposta(sezioni, da, a))
+    modificaSezioni(sposta(sezioni, da, a), 'spostata una sezione')
   )
 
   // Le righe si riordinano solo dentro la propria sezione: la chiave e' "sezione:riga".
@@ -405,8 +445,9 @@ export default function SedutaBuilder({
     const [sezDa, rigaDa] = da.split(':').map(Number)
     const [sezA, rigaA] = a.split(':').map(Number)
     if (sezDa !== sezA) return
-    setSezioni(
-      sezioni.map((s, i) => (i === sezDa ? { ...s, righe: sposta(s.righe, rigaDa, rigaA) } : s))
+    modificaSezioni(
+      sezioni.map((s, i) => (i === sezDa ? { ...s, righe: sposta(s.righe, rigaDa, rigaA) } : s)),
+      'spostato un esercizio'
     )
   })
 
@@ -418,7 +459,11 @@ export default function SedutaBuilder({
     ) {
       return
     }
-    setSezioni(sezioni.filter((_, i) => i !== idx))
+    modificaSezioni(
+      sezioni.filter((_, i) => i !== idx),
+      `tolta la sezione ${s.nome}`
+    )
+    toast(`Sezione "${s.nome}" tolta. Ctrl+Z per rimetterla.`)
   }
 
   // window.prompt non è supportato in Electron: rename inline della sezione
@@ -427,7 +472,7 @@ export default function SedutaBuilder({
   const aggiungiSezione = (): void => {
     const nome = nuovaSezione.trim()
     if (!nome) return
-    setSezioni([...sezioni, { sezione_id: null, nome, righe: [] }])
+    modificaSezioni([...sezioni, { sezione_id: null, nome, righe: [] }], `aggiunta la sezione ${nome}`)
     setNuovaSezione('')
   }
 
@@ -753,10 +798,11 @@ export default function SedutaBuilder({
                     onChange={(e) => setEditSez({ idx: idxSez, nome: e.target.value })}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && editSez.nome.trim()) {
-                        setSezioni(
+                        modificaSezioni(
                           sezioni.map((x, i) =>
                             i === idxSez ? { ...x, nome: editSez.nome.trim() } : x
-                          )
+                          ),
+                          'rinominata una sezione'
                         )
                         setEditSez(null)
                       }
@@ -766,10 +812,11 @@ export default function SedutaBuilder({
                   <button
                     onClick={() => {
                       if (editSez.nome.trim()) {
-                        setSezioni(
+                        modificaSezioni(
                           sezioni.map((x, i) =>
                             i === idxSez ? { ...x, nome: editSez.nome.trim() } : x
-                          )
+                          ),
+                          'rinominata una sezione'
                         )
                       }
                       setEditSez(null)
