@@ -27,6 +27,7 @@ import ProgrammaSettimana from '../components/ProgrammaSettimana'
 import QuestionariPaziente from '../components/QuestionariPaziente'
 import AnagraficaPaziente, { ModaleDatiPaziente } from '../components/AnagraficaPaziente'
 import SceltaConRicerca from '../components/SceltaConRicerca'
+import { NOME_ANDAMENTO } from '../components/DiarioSeduta'
 import SegniPaziente from '../components/SegniPaziente'
 import IndicazioniCasa from '../components/IndicazioniCasa'
 import MisurePaziente from '../components/MisurePaziente'
@@ -51,6 +52,7 @@ export default function PazientiPage({
     id: number
     sedutaId?: number
     duplicaDa?: number
+    nuova?: boolean
     data?: string
     seq: number
   } | null
@@ -116,7 +118,9 @@ export default function PazientiPage({
   useEffect(() => {
     if (apriPaziente == null) return
     setBuilder(
-      apriPaziente.duplicaDa != null
+      apriPaziente.nuova
+        ? { sedutaId: null, dataIniziale: apriPaziente.data, daFuori: true }
+        : apriPaziente.duplicaDa != null
         ? {
             sedutaId: null,
             duplicaDa: apriPaziente.duplicaDa,
@@ -892,8 +896,27 @@ function DiarioCard({
                 {s.focus && <span className="seduta-focus">{s.focus}</span>}
                 {' · '}
                 {s.num_esercizi} {s.num_esercizi === 1 ? 'esercizio' : 'esercizi'}
+                {s.dolore != null && ` · dolore ${s.dolore}/10`}
               </span>
               {s.obiettivi_nomi && <span className="seduta-obiettivi">{s.obiettivi_nomi}</span>}
+              {/* Il diario della seduta: come stava e cosa gli si e' fatto. */}
+              {(s.riferito_andamento || s.riferito) && (
+                <span className="riga-diario-elenco">
+                  <span className="etichetta-diario">Riferisce</span>
+                  {s.riferito_andamento && (
+                    <span className={`badge-andamento ${s.riferito_andamento}`}>
+                      {NOME_ANDAMENTO[s.riferito_andamento]}
+                    </span>
+                  )}
+                  {s.riferito}
+                </span>
+              )}
+              {(s.tecniche_nomi || s.trattamento) && (
+                <span className="riga-diario-elenco">
+                  <span className="etichetta-diario">Trattamento</span>
+                  {[s.tecniche_nomi, s.trattamento].filter(Boolean).join(' — ')}
+                </span>
+              )}
             </div>
             <span className="row-actions">
               <button

@@ -1129,6 +1129,44 @@ const MIGRATIONS: string[] = [
 
   CREATE INDEX idx_punteggio_regole_protocollo ON screening_punteggio_regole(protocollo_id);
   CREATE INDEX idx_punteggio_fasce_protocollo ON screening_punteggio_fasce(protocollo_id);
+  `,
+
+  // 44 - il diario della seduta: cosa riferisce il paziente e cosa gli si e'
+  //      fatto.
+  //
+  //      Fino a qui tutto finiva nelle note. Il paziente torna e riferisce
+  //      (meglio, uguale, peggio, e con parole sue), si fanno delle tecniche e
+  //      poi gli esercizi: sono tre cose diverse, e nel diario vanno lette
+  //      separate. Le tecniche sono un elenco del fisioterapista, come le
+  //      indicazioni per casa: si scrivono una volta e si spuntano. Non si
+  //      cancellano, si archiviano: le sedute vecchie devono continuare a dire
+  //      cosa e' stato fatto.
+  `
+  ALTER TABLE sedute ADD COLUMN riferito_andamento TEXT;
+  ALTER TABLE sedute ADD COLUMN riferito TEXT;
+  ALTER TABLE sedute ADD COLUMN trattamento TEXT;
+
+  CREATE TABLE tecniche (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome TEXT NOT NULL UNIQUE,
+    archiviata INTEGER NOT NULL DEFAULT 0,
+    ordine INTEGER NOT NULL DEFAULT 0
+  );
+
+  CREATE TABLE seduta_tecniche (
+    seduta_id INTEGER NOT NULL REFERENCES sedute(id) ON DELETE CASCADE,
+    tecnica_id INTEGER NOT NULL REFERENCES tecniche(id) ON DELETE CASCADE,
+    PRIMARY KEY (seduta_id, tecnica_id)
+  );
+
+  INSERT INTO tecniche (nome, ordine) VALUES
+    ('Terapia manuale', 0),
+    ('Mobilizzazione articolare', 1),
+    ('Massoterapia', 2),
+    ('Tecar', 3),
+    ('Dry needling', 4),
+    ('Taping', 5),
+    ('Crioterapia', 6);
   `
 ]
 

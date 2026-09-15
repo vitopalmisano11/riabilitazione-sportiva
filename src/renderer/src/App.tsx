@@ -53,12 +53,16 @@ const TAB_CONFIG: { key: TabConfig; label: string }[] = [
 
 export default function App(): React.JSX.Element {
   const [sbloccata, setSbloccata] = useState(false)
-  const [sezione, setSezione] = useState<Sezione>('pazienti')
+  // Si apre sulla settimana: la prima domanda della giornata e' chi viene oggi.
+  const [sezione, setSezione] = useState<Sezione>('settimana')
   // Il tema scelto: si applica mettendolo sull'elemento radice, e il foglio di
   // stile ridichiara i suoi colori. Arriva dal file delle impostazioni, cosi'
   // resta anche al riavvio, e lo conoscono anche i documenti stampati.
   const [tema, setTema] = useState<Tema>('verde')
+  // scuro: com'e' adesso; modoScuro: la scelta (chiara, scura, a orari fissi)
   const [scuro, setScuro] = useState(false)
+  const [modoScuro, setModoScuro] = useState<'chiaro' | 'scuro' | 'orari'>('chiaro')
+  const [orariScuro, setOrariScuro] = useState({ dalle: '20:00', alle: '07:00' })
   const [barraScura, setBarraScura] = useState(false)
   const [ingrandimento, setIngrandimento] = useState(1)
 
@@ -69,7 +73,9 @@ export default function App(): React.JSX.Element {
       .info()
       .then((i) => {
         setTema(i.tema)
-        setScuro(i.scuro)
+        setScuro(i.scuroAdesso)
+        setModoScuro(i.orariScuro.automatico ? 'orari' : i.scuro ? 'scuro' : 'chiaro')
+        setOrariScuro({ dalle: i.orariScuro.dalle, alle: i.orariScuro.alle })
         setBarraScura(i.barraScura)
         setIngrandimento(i.ingrandimento)
       })
@@ -123,12 +129,37 @@ export default function App(): React.JSX.Element {
     }
   }, [sbloccata, bloccata])
 
-  const scegliScuro = (valore: boolean): void => {
+  const applicaScuro = (valore: boolean): void => {
     setScuro(valore)
     if (valore) document.documentElement.dataset.scuro = 'si'
     else delete document.documentElement.dataset.scuro
-    window.api.impostazioni.setScuro(valore).catch((e) => toastErrore(errMsg(e)))
   }
+
+  const scegliScuro = async (
+    modo: 'chiaro' | 'scuro' | 'orari',
+    orari = orariScuro
+  ): Promise<void> => {
+    setModoScuro(modo)
+    setOrariScuro(orari)
+    try {
+      if (modo === 'orari') {
+        await window.api.impostazioni.setScuroAutomatico(orari.dalle, orari.alle)
+        applicaScuro((await window.api.impostazioni.info()).scuroAdesso)
+      } else {
+        applicaScuro(modo === 'scuro')
+        await window.api.impostazioni.setScuro(modo === 'scuro')
+      }
+    } catch (e) {
+      toastErrore(errMsg(e))
+    }
+  }
+
+  // Il ponte cambia i colori all'ora giusta; qui si tiene allineato quello che
+  // mostrano le impostazioni.
+  useEffect(() => {
+    const t = setInterval(() => setScuro(document.documentElement.dataset.scuro === 'si'), 60_000)
+    return () => clearInterval(t)
+  }, [])
   // Ripremere la voce della sezione in cui si e' gia' significa "torna alla
   // prima pagina di questa sezione". Da qui non si puo' azzerare cosa c'e'
   // aperto dentro una pagina: le si manda un contatore, e a ogni scatto lei
@@ -161,6 +192,8 @@ export default function App(): React.JSX.Element {
     sedutaId?: number
     // Se c'e', si apre una seduta nuova copiata da questa, nel giorno data.
     duplicaDa?: number
+    // Una seduta nuova da zero, nel giorno data.
+    nuova?: boolean
     data?: string
     seq: number
   } | null>(null)
@@ -181,6 +214,12 @@ export default function App(): React.JSX.Element {
 
   // Una seduta nuova copiata da un'altra, in un altro giorno: salvata o chiusa,
   // si torna da dove si e' partiti.
+  const nuovaSeduta = (id: number, data: string, da: Sezione): void => {
+    setTornaA(da)
+    setSezione('pazienti')
+    setApriPaziente((p) => ({ id, nuova: true, data, seq: (p?.seq ?? 0) + 1 }))
+  }
+
   const copiaSeduta = (id: number, sedutaId: number, data: string, da: Sezione): void => {
     setTornaA(da)
     setSezione('pazienti')
@@ -262,6 +301,7 @@ export default function App(): React.JSX.Element {
             onApriPaziente={vaiAlPaziente}
             onApriSeduta={(id, sedutaId) => vaiAllaSeduta(id, sedutaId, 'settimana')}
             onCopiaSeduta={(id, sedutaId, data) => copiaSeduta(id, sedutaId, data, 'settimana')}
+            onNuovaSeduta={(id, data) => nuovaSeduta(id, data, 'settimana')}
             tornaAllElenco={tornaAllElenco}
           />
         )}
@@ -286,7 +326,9 @@ export default function App(): React.JSX.Element {
             tema={tema}
             onTema={scegliTema}
             scuro={scuro}
-            onScuro={scegliScuro}
+            modoScuro={modoScuro}
+            orariScuro={orariScuro}
+            onScuro={(modo, orari) => void scegliScuro(modo, orari)}
             barraScura={barraScura}
             onBarraScura={scegliBarraScura}
             ingrandimento={ingrandimento}

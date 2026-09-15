@@ -48,7 +48,7 @@ import {
   type Linea
 } from '../shared/figure'
 import type { SezioneCartella, TipoRelazione } from '../shared/types'
-import { relazioneAnamnesi } from './relazione-anamnesi'
+import { relazioneAnamnesi, type ParagrafoRelazione } from './relazione-anamnesi'
 import { relazioneValutazione } from './relazione-valutazione'
 import { TIPI_NEURO, durataTesto, faseDurata, tipiNeuro, type UnitaDurata } from '../shared/sintomi'
 
@@ -73,8 +73,9 @@ export type Blocco =
   | { tipo: 'testo'; titolo?: string; corpo: string }
   | { tipo: 'coppie'; voci: [string, string][] }
   | { tipo: 'elenco'; voci: string[] }
-  // testo di seguito, un paragrafo dopo l'altro: la relazione dell'anamnesi
-  | { tipo: 'paragrafi'; voci: string[] }
+  // testo di seguito, un paragrafo dopo l'altro, con gli elenchi puntati che
+  // lo seguono: le relazioni scritte
+  | { tipo: 'paragrafi'; voci: ParagrafoRelazione[] }
   | { tipo: 'tabella'; intestazioni: string[]; righe: string[][] }
   | { tipo: 'figure'; viste: { didascalia: string; svg: string }[] }
   | { tipo: 'riquadro'; titolo: string; colore?: string; blocchi: Blocco[] }
@@ -949,14 +950,34 @@ function sezObiettivi(pazienteId: number): Blocco[] {
 // Delle sedute nella cartella restano solo le date: a chi legge serve sapere
 // quando e quante, non l'elenco degli esercizi di ogni volta. Il programma
 // dettagliato si esporta a parte, dal diario.
+// Il diario: per ogni seduta la data e la fase, e — se scritti — cosa ha
+// riferito il paziente, il trattamento eseguito e il dolore. Gli esercizi no:
+// stanno nei programmi, e qui farebbero una cartella di venti pagine.
+const PAROLA_ANDAMENTO: Record<string, string> = {
+  meglio: 'meglio',
+  uguale: 'uguale',
+  peggio: 'peggio'
+}
+
 function sezSedute(pazienteId: number): Blocco[] {
   const sedute = getDb()
     .prepare(
-      `SELECT s.data, f.nome AS fase_nome
+      `SELECT s.data, f.nome AS fase_nome, s.riferito_andamento, s.riferito, s.trattamento,
+              s.dolore,
+              (SELECT GROUP_CONCAT(t.nome, ', ') FROM seduta_tecniche st
+                 JOIN tecniche t ON t.id = st.tecnica_id WHERE st.seduta_id = s.id) AS tecniche
        FROM sedute s LEFT JOIN fasi f ON f.id = s.fase_id
        WHERE s.paziente_id = ? ORDER BY s.data DESC, s.id DESC`
     )
-    .all(pazienteId) as { data: string; fase_nome: string | null }[]
+    .all(pazienteId) as {
+    data: string
+    fase_nome: string | null
+    riferito_andamento: string | null
+    riferito: string | null
+    trattamento: string | null
+    dolore: number | null
+    tecniche: string | null
+  }[]
   if (sedute.length === 0) return []
 
   return [
@@ -966,7 +987,25 @@ function sezSedute(pazienteId: number): Blocco[] {
     },
     {
       tipo: 'elenco',
-      voci: sedute.map((s) => `${data(s.data)}${s.fase_nome ? ` — ${s.fase_nome}` : ''}`)
+      voci: sedute.map((s) => {
+        const riferisce = [
+          s.riferito_andamento ? PAROLA_ANDAMENTO[s.riferito_andamento] : null,
+          pieno(s.riferito) ? s.riferito : null
+        ]
+          .filter(Boolean)
+          .join(', ')
+        const trattamento = [s.tecniche, pieno(s.trattamento) ? s.trattamento : null]
+          .filter(Boolean)
+          .join('; ')
+        const parti = [
+          riferisce ? `riferisce: ${riferisce}` : null,
+          trattamento ? `trattamento: ${trattamento}` : null,
+          s.dolore != null ? `dolore ${s.dolore}/10` : null
+        ].filter(Boolean)
+        return `${data(s.data)}${s.fase_nome ? ` — ${s.fase_nome}` : ''}${
+          parti.length ? ` · ${parti.join(' · ')}` : ''
+        }`
+      })
     }
   ]
 }
@@ -1055,7 +1094,23 @@ function bloccoHtml(b: Blocco): string {
     case 'elenco':
       return `<ul class="voci">${b.voci.map((v) => `<li>${esc(v)}</li>`).join('')}</ul>`
     case 'paragrafi':
-      return `<div class="paragrafi">${b.voci.map((v) => `<p>${esc(v)}</p>`).join('')}</div>`
+      return `<div class="paragrafi">${b.voci
+        .map(
+          (v) =>
+            `${v.testo ? `<p>${esc(v.testo)}</p>` : ''}${
+              v.elenchi && v.elenchi.length > 0
+                ? `<div class="elenchi-relazione">${v.elenchi
+                    .map(
+                      (e) =>
+                        `<div><div class="titolo-elenco">${esc(e.titolo)}</div><ul>${e.voci
+                          .map((x) => `<li>${esc(x)}</li>`)
+                          .join('')}</ul></div>`
+                    )
+                    .join('')}</div>`
+                : ''
+            }`
+        )
+        .join('')}</div>`
     case 'tabella':
       return `<table><thead><tr>${b.intestazioni
         .map((h) => `<th>${esc(h)}</th>`)
@@ -1122,7 +1177,10 @@ export function componiRelazioneValutazione(pazienteId: number): Cartella {
   if (!p) throw new Error('Paziente non trovato.')
   const sezioni: SezioneComposta[] = relazioneValutazione(pazienteId)
     .filter((v) => v.paragrafi.length > 0)
-    .map((v) => ({ titolo: v.titolo, blocchi: [{ tipo: 'paragrafi', voci: v.paragrafi }] }))
+    .map((v) => ({
+      titolo: v.titolo,
+      blocchi: [{ tipo: 'paragrafi', voci: v.paragrafi.map((testo) => ({ testo })) }]
+    }))
   return { nome: String(p.nome), cognome: String(p.cognome), sezioni }
 }
 
@@ -1183,6 +1241,10 @@ function documento(c: Cartella, cheCosa: string): string {
   .griglia-voci .voce { page-break-inside: avoid; }
   .griglia-voci .voce-larga { grid-column: 1 / -1; }
   .paragrafi p { margin: 4px 0 8px; line-height: 1.55; }
+  .elenchi-relazione { display: flex; flex-wrap: wrap; gap: 6px 36px; margin: -2px 0 10px 2px; }
+  .elenchi-relazione .titolo-elenco { font-weight: 600; color: #555b66; }
+  .elenchi-relazione ul { margin: 2px 0 0; padding-left: 18px; }
+  .elenchi-relazione li { line-height: 1.45; }
   .griglia-voci .voce > h3 { margin-top: 8px; }
   dl.dati { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 20px; margin: 0 0 8px; }
   dl.dati div { display: flex; gap: 6px; }

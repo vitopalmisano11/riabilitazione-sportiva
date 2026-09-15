@@ -43,6 +43,7 @@ Questi file sono tabelle in formato CSV: si aprono con un doppio clic in Excel
   sintomi.csv        i sintomi raccolti nell'anamnesi
   obiettivi.csv      obiettivi terapeutici concordati
   sedute.csv         una riga per esercizio di ogni seduta
+  diario.csv         una riga per seduta: cosa riferisce, trattamento, note
   valutazioni.csv    una riga per movimento di ogni valutazione obiettiva
   questionari.csv    i questionari compilati, con punteggi ed esito
   screening.csv      i valori misurati negli screening
@@ -167,6 +168,33 @@ export function esportaArchivio(cartella: string): string {
        FROM obiettivi_terapeutici o JOIN pazienti p ON p.id = o.paziente_id
        ORDER BY p.cognome, p.nome, o.ordine, o.id`),
     ['cognome', 'nome', 'testo', 'termine']
+  )
+
+  scriviCsv(
+    join(dest, 'diario.csv'),
+    q(`SELECT p.cognome, p.nome, s.data, f.nome AS fase, s.focus, s.riferito_andamento,
+              s.riferito,
+              (SELECT GROUP_CONCAT(t.nome, ' · ') FROM seduta_tecniche st
+                 JOIN tecniche t ON t.id = st.tecnica_id WHERE st.seduta_id = s.id) AS tecniche,
+              s.trattamento, s.dolore, s.sforzo, s.note
+       FROM sedute s
+       JOIN pazienti p ON p.id = s.paziente_id
+       LEFT JOIN fasi f ON f.id = s.fase_id
+       ORDER BY p.cognome, p.nome, s.data`),
+    [
+      'cognome',
+      'nome',
+      'data',
+      'fase',
+      'focus',
+      'riferito_andamento',
+      'riferito',
+      'tecniche',
+      'trattamento',
+      'dolore',
+      'sforzo',
+      'note'
+    ]
   )
 
   scriviCsv(

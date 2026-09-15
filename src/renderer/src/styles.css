@@ -5857,10 +5857,221 @@ input[type='checkbox'].interruttore:focus-visible {
   margin-top: 6px;
 }
 
+/* ---- Diario della seduta ---- */
+
+/* La volta scorsa: un riquadro basso e tenue, da leggere, non da compilare. */
+.ultima-seduta {
+  background: var(--pannello);
+}
+
+.titolo-ultima {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+
+.righe-ultima {
+  margin: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.righe-ultima > div {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: 10px;
+}
+
+.righe-ultima dt {
+  color: var(--text-dim);
+  font-size: 14px;
+}
+
+.righe-ultima dd {
+  margin: 0;
+  font-size: 15px;
+}
+
+.diario-seduta {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.riga-diario {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.riga-diario .scelta-coppia.segmentata {
+  align-self: flex-start;
+}
+
+.riga-diario .scelta-coppia.segmentata button.scelta-attiva.meglio {
+  background: #1f9d61;
+  border-color: #1f9d61;
+}
+
+.riga-diario .scelta-coppia.segmentata button.scelta-attiva.peggio {
+  background: #c24141;
+  border-color: #c24141;
+}
+
+.scelte-multiple.tecniche {
+  align-items: center;
+  gap: 6px;
+}
+
+.tecnica {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.tecnica > button:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.togli-tecnica {
+  padding: 2px 5px;
+}
+
+.nuova-tecnica {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.nuova-tecnica input {
+  width: 200px;
+  padding: 6px 10px;
+}
+
+.link-discreto {
+  border: none;
+  background: none;
+  padding: 4px 6px;
+  font-size: 14px;
+  color: var(--text-dim);
+  text-decoration: underline;
+}
+
+.link-discreto:hover:not(:disabled) {
+  background: none;
+  color: var(--accent);
+}
+
+/* Meglio, uguale, peggio: la parola colorata, nel diario e nel promemoria. */
+.badge-andamento {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--intestazione);
+  color: var(--text-dim);
+}
+
+.badge-andamento.meglio {
+  background: rgba(31, 157, 97, 0.15);
+  color: #1f9d61;
+}
+
+.badge-andamento.peggio {
+  background: rgba(194, 65, 65, 0.15);
+  color: #c24141;
+}
+
+.riga-diario-elenco {
+  font-size: 14px;
+  color: var(--text);
+}
+
+.etichetta-diario {
+  margin-right: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-dim);
+}
+
 .altro-documento.senza-linea {
   margin-top: 0;
   padding-top: 0;
   border-top: none;
+}
+
+/* La ricerca del paziente in cima alla settimana: l'elenco dei risultati
+   scende sopra al resto, come una tendina. */
+.ricerca-settimana {
+  position: relative;
+  width: 280px;
+  max-width: 100%;
+}
+
+.ricerca-settimana input {
+  width: 100%;
+}
+
+.risultati-settimana {
+  left: auto;
+  right: 0;
+  width: 340px;
+  max-width: 90vw;
+}
+
+.risultati-settimana li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+}
+
+.risultati-settimana li:hover {
+  background: var(--intestazione);
+}
+
+.risultati-settimana .nome-risultato {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.orari-scuro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+  color: var(--text-dim);
+  font-size: 15px;
+}
+
+.orari-scuro input {
+  width: 110px;
+  padding: 6px 8px;
+}
+
+.elenco-documenti {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.elenco-documenti .altro-documento + .altro-documento {
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
 }
 
 .altro-documento .nome-documento {

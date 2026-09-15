@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type {
+  AndamentoRiferito,
+  SedutaPrecedente,
   Fase,
   Categoria,
   EsercizioConCategoria,
@@ -23,6 +25,7 @@ import { toastErrore } from './Toast'
 import { chiedi } from './Conferma'
 import ImmagineEsercizio from './ImmagineEsercizio'
 import Aiuto from './Aiuto'
+import DiarioSeduta, { UltimaVoltaSeduta } from './DiarioSeduta'
 import { errMsg, formatData, oggiIso } from '../lib'
 import { useScorciatoie } from '../scorciatoie'
 import { sposta, useRiordino } from '../riordino'
@@ -51,6 +54,10 @@ interface BozzaSeduta {
   data: string
   faseId: number | null
   focus?: string
+  riferitoAndamento?: AndamentoRiferito | null
+  riferito?: string
+  tecnicaIds?: number[]
+  trattamento?: string
   note: string
   sezioni: SezioneBuilder[]
 }
@@ -82,6 +89,13 @@ export default function SedutaBuilder({
   const [segni, setSegni] = useState<Segno[]>([])
   const [misure, setMisure] = useState<Record<number, string>>({})
   const [note, setNote] = useState('')
+  // Il diario: come sta tornando e cosa gli si fa oggi.
+  const [riferitoAndamento, setRiferitoAndamento] = useState<AndamentoRiferito | null>(null)
+  const [riferito, setRiferito] = useState('')
+  const [tecnicaIds, setTecnicaIds] = useState<number[]>([])
+  const [trattamento, setTrattamento] = useState('')
+  // La seduta di prima, da ricordare prima di chiedere "come va?".
+  const [precedente, setPrecedente] = useState<SedutaPrecedente | null>(null)
   const [sezioni, setSezioni] = useState<SezioneBuilder[]>([])
   const [obiettivi, setObiettivi] = useState<Obiettivo[]>([])
   const [raggiunti, setRaggiunti] = useState<number[]>([])
@@ -133,6 +147,14 @@ export default function SedutaBuilder({
           const gia = await window.api.segni.dellaSeduta(sedutaId)
           setMisure(Object.fromEntries(gia.map((v) => [v.segno_id, String(v.valore)])))
           setNote(s.note ?? '')
+          setRiferitoAndamento(s.riferito_andamento ?? null)
+          setRiferito(s.riferito ?? '')
+          setTecnicaIds(s.tecnica_ids ?? [])
+          setTrattamento(s.trattamento ?? '')
+          void window.api.sedute
+            .precedente(paziente.id, sedutaId, s.data)
+            .then(setPrecedente)
+            .catch(() => undefined)
           setSezioni(s.sezioni.map((sz) => ({ ...sz, righe: sz.esercizi })))
           fase = s.fase_id
           faseN = s.fase_nome
@@ -171,12 +193,22 @@ export default function SedutaBuilder({
               setData(salvata.data)
               setFocus(salvata.focus ?? '')
               setNote(salvata.note)
+              setRiferitoAndamento(salvata.riferitoAndamento ?? null)
+              setRiferito(salvata.riferito ?? '')
+              setTecnicaIds(salvata.tecnicaIds ?? [])
+              setTrattamento(salvata.trattamento ?? '')
               setSezioni(salvata.sezioni)
               if (salvata.faseId != null) fase = salvata.faseId
             } else {
               await window.api.bozze.elimina(paziente.id)
             }
           }
+        }
+        if (sedutaId == null) {
+          void window.api.sedute
+            .precedente(paziente.id, null, dataIniziale ?? oggiIso())
+            .then(setPrecedente)
+            .catch(() => undefined)
         }
         setPronto(true)
       } catch (e) {
@@ -403,13 +435,39 @@ export default function SedutaBuilder({
   // sedute nuove — quelle gia' salvate sono gia' al sicuro nel loro posto.
   useEffect(() => {
     if (!pronto || sedutaId != null) return
-    if (totaleEsercizi === 0 && note.trim() === '' && focus.trim() === '') return
-    const bozza: BozzaSeduta = { data, faseId, focus, note, sezioni }
+    const diarioVuoto =
+      riferitoAndamento == null && riferito.trim() === '' && tecnicaIds.length === 0 && trattamento.trim() === ''
+    if (totaleEsercizi === 0 && note.trim() === '' && focus.trim() === '' && diarioVuoto) return
+    const bozza: BozzaSeduta = {
+      data,
+      faseId,
+      focus,
+      riferitoAndamento,
+      riferito,
+      tecnicaIds,
+      trattamento,
+      note,
+      sezioni
+    }
     const attesa = setTimeout(() => {
       void window.api.bozze.salva(paziente.id, JSON.stringify(bozza)).catch(() => undefined)
     }, 1000)
     return () => clearTimeout(attesa)
-  }, [pronto, sedutaId, paziente.id, data, faseId, focus, note, sezioni, totaleEsercizi])
+  }, [
+    pronto,
+    sedutaId,
+    paziente.id,
+    data,
+    faseId,
+    focus,
+    note,
+    sezioni,
+    totaleEsercizi,
+    riferitoAndamento,
+    riferito,
+    tecnicaIds,
+    trattamento
+  ])
 
   // Esc annulla, Ctrl+S salva: la seduta si compila con la tastiera, senza
   // tornare col mouse in fondo alla finestra.
@@ -417,7 +475,14 @@ export default function SedutaBuilder({
   // riprenderla. Chiedere qui e' meglio che ritrovarsela proposta domani senza
   // averlo voluto.
   const annulla = async (): Promise<void> => {
-    if (sedutaId == null && (totaleEsercizi > 0 || note.trim() !== '')) {
+    if (
+      sedutaId == null &&
+      (totaleEsercizi > 0 ||
+        note.trim() !== '' ||
+        riferito.trim() !== '' ||
+        trattamento.trim() !== '' ||
+        tecnicaIds.length > 0)
+    ) {
       if (!(await chiedi('Tengo quello che hai messo, per riprenderlo dopo?'))) {
         await window.api.bozze.elimina(paziente.id).catch(() => undefined)
       }
@@ -435,8 +500,17 @@ export default function SedutaBuilder({
       toastErrore('Imposta la data della seduta.')
       return
     }
-    if (totaleEsercizi === 0) {
-      toastErrore('Aggiungi almeno un esercizio alla seduta.')
+    // Una seduta di sole tecniche e' una seduta vera: basta che ci sia
+    // qualcosa — esercizi, trattamento, cosa riferisce o le note.
+    const qualcosa =
+      totaleEsercizi > 0 ||
+      tecnicaIds.length > 0 ||
+      trattamento.trim() !== '' ||
+      riferito.trim() !== '' ||
+      riferitoAndamento != null ||
+      note.trim() !== ''
+    if (!qualcosa) {
+      toastErrore('La seduta è vuota: scrivi cosa riferisce, il trattamento o aggiungi un esercizio.')
       return
     }
     const input: SedutaInput = {
@@ -451,6 +525,10 @@ export default function SedutaBuilder({
       segni: segni
         .map((g) => ({ segno_id: g.id, valore: Number((misure[g.id] ?? '').replace(',', '.')) }))
         .filter((v) => (misure[v.segno_id] ?? '').trim() !== '' && !Number.isNaN(v.valore)),
+      riferito_andamento: riferitoAndamento,
+      riferito: riferito.trim() || null,
+      tecnica_ids: tecnicaIds,
+      trattamento: trattamento.trim() || null,
       note: note.trim() || null,
       sezioni: sezioni.map((s) => ({ sezione_id: s.sezione_id, nome: s.nome })),
       esercizi: sezioni.flatMap((s, i) =>
@@ -590,6 +668,22 @@ export default function SedutaBuilder({
           {paziente.precauzioni}
         </p>
       )}
+
+      {/* Prima la volta scorsa, poi com'e' oggi e cosa gli si fa: e' l'ordine
+          della seduta vera. Gli esercizi vengono dopo. */}
+      {precedente && <UltimaVoltaSeduta precedente={precedente} />}
+      <DiarioSeduta
+        andamento={riferitoAndamento}
+        riferito={riferito}
+        tecnicaIds={tecnicaIds}
+        trattamento={trattamento}
+        onCambia={(p) => {
+          if (p.andamento !== undefined) setRiferitoAndamento(p.andamento)
+          if (p.riferito !== undefined) setRiferito(p.riferito)
+          if (p.tecnicaIds !== undefined) setTecnicaIds(p.tecnicaIds)
+          if (p.trattamento !== undefined) setTrattamento(p.trattamento)
+        }}
+      />
 
       {faseId != null && obiettivi.length > 0 && (
         <section className="card obiettivi-info">

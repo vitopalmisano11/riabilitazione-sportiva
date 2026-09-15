@@ -25,6 +25,9 @@ import {
   impostaIngrandimento,
   ingrandimento,
   impostaScuro,
+  impostaScuroAutomatico,
+  orariScuro,
+  scuroAdesso,
   impostaTema,
   scuro,
   tema
@@ -98,6 +101,7 @@ import {
 import type { Tema } from '../shared/temi'
 import { seduteDellaSettimana } from './settimana'
 import { ultimaVoltaPerPaziente } from './ultima-volta'
+import { sedutaPrecedente } from './seduta-precedente'
 import { leggiProfilo, salvaProfilo } from './profilo'
 import type {
   TipoChart,
@@ -262,6 +266,8 @@ export function registerIpc(): void {
     cartellaExport: cartellaExport(),
     tema: tema(),
     scuro: scuro(),
+    scuroAdesso: scuroAdesso(),
+    orariScuro: orariScuro(),
     barraScura: barraScura(),
     ingrandimento: ingrandimento()
   }))
@@ -276,12 +282,15 @@ export function registerIpc(): void {
   })
   handle('impostazioni:setBarraScura', (valore: boolean) => impostaBarraScura(valore))
   handle('impostazioni:setScuro', (valore: boolean) => impostaScuro(valore))
+  handle('impostazioni:setScuroAutomatico', (dalle: string, alle: string) =>
+    impostaScuroAutomatico(dalle, alle)
+  )
   handle('impostazioni:setTema', (t: Tema) => impostaTema(t))
   // Il tema serve al preload prima ancora che la pagina si disegni, percio' e'
   // l'unica risposta immediata: chiesta dopo, si vedrebbe un lampo dei colori
   // di partenza a ogni avvio.
   ipcMain.on('impostazioni:temaSubito', (e) => {
-    e.returnValue = { tema: tema(), scuro: scuro(), barraScura: barraScura() }
+    e.returnValue = { tema: tema(), scuro: scuroAdesso(), barraScura: barraScura() }
   })
   handle('impostazioni:cambiaCartellaExport', async () => {
     const { canceled, filePaths } = await dialog.showOpenDialog({
@@ -1154,6 +1163,10 @@ export function registerIpc(): void {
       'INSERT INTO segno_valori (segno_id, seduta_id, valore) VALUES (?, ?, ?)'
     )
     for (const v of input.segni) insSegno.run(v.segno_id, sedutaId, v.valore)
+    const insTecnica = db.prepare(
+      'INSERT OR IGNORE INTO seduta_tecniche (seduta_id, tecnica_id) VALUES (?, ?)'
+    )
+    for (const t of input.tecnica_ids ?? []) insTecnica.run(sedutaId, t)
     const insSez = db.prepare(
       'INSERT INTO seduta_sezioni (seduta_id, sezione_id, nome, ordine) VALUES (?, ?, ?, ?)'
     )
@@ -1192,6 +1205,10 @@ export function registerIpc(): void {
       .prepare(
         `SELECT s.id, s.paziente_id, s.data, s.focus, s.dolore, s.sforzo, f.nome AS fase_nome,
            COALESCE(f.campo, 0) AS fase_campo, s.note,
+           s.riferito_andamento, s.riferito, s.trattamento,
+           (SELECT GROUP_CONCAT(t.nome, ' · ')
+              FROM seduta_tecniche st JOIN tecniche t ON t.id = st.tecnica_id
+              WHERE st.seduta_id = s.id) AS tecniche_nomi,
            (SELECT COUNT(*) FROM seduta_esercizi se WHERE se.seduta_id = s.id) AS num_esercizi,
            (SELECT GROUP_CONCAT(o.nome, ' · ')
               FROM seduta_obiettivi so JOIN obiettivi o ON o.id = so.obiettivo_id
@@ -1221,6 +1238,41 @@ export function registerIpc(): void {
   handle('sedute:ultimaVolta', (pazienteId: number, escludi: number | null) =>
     ultimaVoltaPerPaziente(pazienteId, escludi)
   )
+  handle('sedute:precedente', (pazienteId: number, escludi: number | null, finoAl: string) =>
+    sedutaPrecedente(pazienteId, escludi, finoAl)
+  )
+
+  // ---- Tecniche del trattamento ----
+  handle('tecniche:list', (includiArchiviate: boolean) =>
+    getDb()
+      .prepare(
+        `SELECT * FROM tecniche ${includiArchiviate ? '' : 'WHERE archiviata = 0'}
+         ORDER BY ordine, nome`
+      )
+      .all()
+  )
+  handle('tecniche:crea', (nome: string) => {
+    const db = getDb()
+    const pulito = nome.trim()
+    if (!pulito) throw new Error('Scrivi il nome della tecnica.')
+    // Se c'era gia' (magari archiviata) si rimette in elenco invece di duplicarla.
+    const esiste = db.prepare('SELECT id FROM tecniche WHERE nome = ? COLLATE NOCASE').get(pulito) as
+      | { id: number }
+      | undefined
+    if (esiste) {
+      db.prepare('UPDATE tecniche SET archiviata = 0 WHERE id = ?').run(esiste.id)
+      return esiste.id
+    }
+    const { next } = db
+      .prepare('SELECT COALESCE(MAX(ordine), -1) + 1 AS next FROM tecniche')
+      .get() as { next: number }
+    return Number(
+      db.prepare('INSERT INTO tecniche (nome, ordine) VALUES (?, ?)').run(pulito, next).lastInsertRowid
+    )
+  })
+  handle('tecniche:setArchiviata', (id: number, archiviata: boolean) => {
+    getDb().prepare('UPDATE tecniche SET archiviata = ? WHERE id = ?').run(archiviata ? 1 : 0, id)
+  })
   handle('sedute:get', (id: number) => {
     const db = getDb()
     const seduta = db
@@ -1261,15 +1313,21 @@ export function registerIpc(): void {
     if (orfani.length > 0) {
       sezioni.push({ sezione_id: null, nome: 'Esercizi', esercizi: orfani })
     }
-    return { ...seduta, sezioni }
+    const tecnica_ids = (
+      db.prepare('SELECT tecnica_id FROM seduta_tecniche WHERE seduta_id = ?').all(id) as {
+        tecnica_id: number
+      }[]
+    ).map((t) => t.tecnica_id)
+    return { ...seduta, tecnica_ids, sezioni }
   })
   handle('sedute:create', (input: SedutaInput) => {
     const db = getDb()
     return db.transaction(() => {
       const sid = db
         .prepare(
-          `INSERT INTO sedute (paziente_id, data, fase_id, focus, dolore, sforzo, note)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`
+          `INSERT INTO sedute (paziente_id, data, fase_id, focus, dolore, sforzo,
+                               riferito_andamento, riferito, trattamento, note)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
         )
         .run(
           input.paziente_id,
@@ -1278,6 +1336,9 @@ export function registerIpc(): void {
           input.focus,
           input.dolore,
           input.sforzo,
+          input.riferito_andamento ?? null,
+          input.riferito ?? null,
+          input.trattamento ?? null,
           input.note
         ).lastInsertRowid
       insertFigliSeduta(sid, input)
@@ -1334,6 +1395,11 @@ export function registerIpc(): void {
           dolore: null,
           sforzo: null,
           segni: [],
+          // Nemmeno cosa riferisce e il trattamento: si scrivono il giorno stesso.
+          riferito_andamento: null,
+          riferito: null,
+          tecnica_ids: [],
+          trattamento: null,
           note: sorgente.note,
           sezioni: sezioni.map((z) => ({ sezione_id: z.sezione_id, nome: z.nome })),
           esercizi: esercizi.map((e) => ({
@@ -1364,7 +1430,8 @@ export function registerIpc(): void {
     const db = getDb()
     db.transaction(() => {
       db.prepare(
-        `UPDATE sedute SET data = ?, fase_id = ?, focus = ?, dolore = ?, sforzo = ?, note = ?
+        `UPDATE sedute SET data = ?, fase_id = ?, focus = ?, dolore = ?, sforzo = ?,
+           riferito_andamento = ?, riferito = ?, trattamento = ?, note = ?
          WHERE id = ?`
       ).run(
         input.data,
@@ -1372,10 +1439,14 @@ export function registerIpc(): void {
         input.focus,
         input.dolore,
         input.sforzo,
+        input.riferito_andamento ?? null,
+        input.riferito ?? null,
+        input.trattamento ?? null,
         input.note,
         id
       )
       db.prepare('DELETE FROM segno_valori WHERE seduta_id = ?').run(id)
+      db.prepare('DELETE FROM seduta_tecniche WHERE seduta_id = ?').run(id)
       db.prepare('DELETE FROM seduta_obiettivi WHERE seduta_id = ?').run(id)
       db.prepare('DELETE FROM seduta_esercizi WHERE seduta_id = ?').run(id)
       db.prepare('DELETE FROM seduta_sezioni WHERE seduta_id = ?').run(id)

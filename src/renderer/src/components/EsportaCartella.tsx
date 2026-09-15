@@ -116,10 +116,57 @@ export default function EsportaCartella({
         <h3>
           Cartella di {paziente.cognome} {paziente.nome}
         </h3>
-        <p className="modal-testo">
-          Le sezioni ancora vuote non vengono stampate, anche se sono spuntate.
-        </p>
+        {/* Prima i tre documenti, ognuno con anteprima e scarica; sotto, le
+            sezioni da mettere nella cartella. */}
+        <div className="elenco-documenti">
+          <div className="altro-documento senza-linea">
+            <span className="nome-documento">
+              Cartella completa
+              <Aiuto testo="Tutto quello che c'è nella scheda del paziente, con le sezioni che scegli qui sotto. Le sezioni ancora vuote non vengono stampate, anche se sono spuntate." />
+            </span>
+            <span className="spacer" />
+            <button
+              title="Anteprima della cartella"
+              disabled={scelte.length === 0 || occupato}
+              onClick={() => void anteprima()}
+            >
+              <Eye size={18} />
+            </button>
+            <button
+              className="primary"
+              title="Scarica la cartella in PDF"
+              disabled={scelte.length === 0 || occupato}
+              onClick={() => void scarica()}
+            >
+              <Download size={18} />
+            </button>
+          </div>
+          {RELAZIONI.map((r) => (
+            <div key={r.tipo} className="altro-documento senza-linea">
+              <span className="nome-documento">
+                {r.nome}
+                <Aiuto testo={r.aiuto} />
+              </span>
+              <span className="spacer" />
+              <button
+                title="Anteprima della relazione"
+                disabled={occupato}
+                onClick={() => void anteprimaRelazione(r.tipo)}
+              >
+                <Eye size={18} />
+              </button>
+              <button
+                title="Scarica la relazione in PDF"
+                disabled={occupato}
+                onClick={() => void scaricaRelazione(r.tipo)}
+              >
+                <Download size={18} />
+              </button>
+            </div>
+          ))}
+        </div>
 
+        <div className="sotto-titolo">Sezioni della cartella</div>
         <div className="checkbox-list sezioni-cartella">
           {SEZIONI.map((s) => (
             <label key={s.chiave} className="checkbox-inline">
@@ -134,50 +181,8 @@ export default function EsportaCartella({
         </div>
 
         <div className="modal-actions">
-          <span className="spacer" />
-          <button
-            title="Anteprima del documento"
-            disabled={scelte.length === 0 || occupato}
-            onClick={() => void anteprima()}
-          >
-            <Eye size={18} />
-          </button>
-          <button
-            className="primary"
-            title="Scarica il documento in PDF"
-            disabled={scelte.length === 0 || occupato}
-            onClick={() => void scarica()}
-          >
-            <Download size={18} />
-          </button>
           <button onClick={onChiudi}>Chiudi</button>
         </div>
-
-        {/* Documenti diversi dalla cartella, ognuno con i suoi pulsanti: non
-            spunte in piu' fra le sezioni. */}
-        {RELAZIONI.map((r, i) => (
-          <div key={r.tipo} className={i === 0 ? 'altro-documento' : 'altro-documento senza-linea'}>
-            <span className="nome-documento">
-              {r.nome}
-              <Aiuto testo={r.aiuto} />
-            </span>
-            <span className="spacer" />
-            <button
-              title="Anteprima della relazione"
-              disabled={occupato}
-              onClick={() => void anteprimaRelazione(r.tipo)}
-            >
-              <Eye size={18} />
-            </button>
-            <button
-              title="Scarica la relazione in PDF"
-              disabled={occupato}
-              onClick={() => void scaricaRelazione(r.tipo)}
-            >
-              <Download size={18} />
-            </button>
-          </div>
-        ))}
       </div>
     </div>
   )

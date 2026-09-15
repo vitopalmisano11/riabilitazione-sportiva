@@ -54,6 +54,20 @@ try {
   }
   if (pagina?.readyState === 'loading') pagina.addEventListener('DOMContentLoaded', applica)
   else applica()
+
+  // Con la modalita' scura a orari fissi la pagina deve cambiare da sola
+  // all'ora giusta, anche restando aperta: si ricontrolla ogni minuto.
+  setInterval(() => {
+    if (!pagina) return
+    try {
+      const ora = ipcRenderer.sendSync('impostazioni:temaSubito') as { scuro: boolean }
+      const d = pagina.documentElement.dataset
+      if (ora.scuro && d.scuro !== 'si') d.scuro = 'si'
+      if (!ora.scuro && d.scuro === 'si') delete d.scuro
+    } catch {
+      // un minuto dopo si riprova
+    }
+  }, 60_000)
 } catch {
   // senza risposta resta il tema di partenza: non e' un motivo per non aprire
 }
@@ -233,6 +247,8 @@ const api: Api = {
     focusUsati: () => invoke('sedute:focusUsati'),
     ultimaVolta: (pazienteId: number, escludi: number | null) =>
       invoke('sedute:ultimaVolta', pazienteId, escludi),
+    precedente: (pazienteId: number, escludi: number | null, finoAl: string) =>
+      invoke('sedute:precedente', pazienteId, escludi, finoAl),
     get: (id: number) => invoke('sedute:get', id),
     create: (data: SedutaInput) => invoke('sedute:create', data),
     update: (id: number, data: SedutaInput) => invoke('sedute:update', id, data),
@@ -390,9 +406,17 @@ const api: Api = {
     copiaFuori: () => invoke('backup:copiaFuori'),
     esportaArchivio: () => invoke('backup:esportaArchivio')
   },
+  tecniche: {
+    list: (includiArchiviate: boolean) => invoke('tecniche:list', includiArchiviate),
+    crea: (nome: string) => invoke('tecniche:crea', nome),
+    setArchiviata: (id: number, archiviata: boolean) =>
+      invoke('tecniche:setArchiviata', id, archiviata)
+  },
   impostazioni: {
     setTema: (t: Tema) => invoke('impostazioni:setTema', t),
     setScuro: (valore: boolean) => invoke('impostazioni:setScuro', valore),
+    setScuroAutomatico: (dalle: string, alle: string) =>
+      invoke('impostazioni:setScuroAutomatico', dalle, alle),
     setBarraScura: (valore: boolean) => invoke('impostazioni:setBarraScura', valore),
     setIngrandimento: (valore: number) => invoke('impostazioni:setIngrandimento', valore),
     info: () => invoke('impostazioni:info'),

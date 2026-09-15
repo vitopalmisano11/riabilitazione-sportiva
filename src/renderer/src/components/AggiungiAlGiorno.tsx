@@ -13,12 +13,18 @@ import { errMsg, formatData } from '../lib'
 // giorno, gia' pronta da ritoccare.
 export default function AggiungiAlGiorno({
   data,
+  pazienteIniziale,
   onChiudi,
-  onApriPaziente
+  onApriPaziente,
+  onNuovaSeduta
 }: {
   data: string
+  // arrivando dalla ricerca in cima alla settimana il paziente e' gia' scelto
+  pazienteIniziale?: PazienteDettaglio | null
   onChiudi: (creata: boolean) => void
   onApriPaziente: (id: number) => void
+  // una seduta nuova da zero, per quel paziente in quel giorno
+  onNuovaSeduta: (pazienteId: number, data: string) => void
 }): React.JSX.Element {
   const [pazienti, setPazienti] = useState<PazienteDettaglio[]>([])
   const [ricerca, setRicerca] = useState('')
@@ -31,6 +37,8 @@ export default function AggiungiAlGiorno({
       .list()
       .then(setPazienti)
       .catch((e) => toastErrore(errMsg(e)))
+    if (pazienteIniziale) scegli(pazienteIniziale)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Scegliendo il paziente si guardano le sue sedute: si copia da una di
@@ -125,8 +133,9 @@ export default function AggiungiAlGiorno({
                 </p>
                 <div className="modal-actions">
                   <button onClick={() => onChiudi(false)}>Annulla</button>
-                  <button className="primary" onClick={() => onApriPaziente(scelto.id)}>
-                    Apri la scheda
+                  <button onClick={() => onApriPaziente(scelto.id)}>Apri la scheda</button>
+                  <button className="primary" onClick={() => onNuovaSeduta(scelto.id, data)}>
+                    <Plus size={16} /> Nuova seduta
                   </button>
                 </div>
               </>
@@ -151,6 +160,9 @@ export default function AggiungiAlGiorno({
                 </p>
                 <div className="modal-actions">
                   <button onClick={() => onChiudi(false)}>Annulla</button>
+                  {/* Da zero, quando non c'e' niente da ricopiare: si apre la
+                      seduta vuota in quel giorno. */}
+                  <button onClick={() => onNuovaSeduta(scelto.id, data)}>Da zero</button>
                   <button className="primary" onClick={() => void aggiungi()}>
                     <Plus size={16} /> Aggiungi al {formatData(data)}
                   </button>

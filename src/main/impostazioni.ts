@@ -12,6 +12,7 @@ import {
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { spostaFileDati } from './file-dati'
+import { nellaFascia } from '../shared/orari'
 
 interface Impostazioni {
   cartellaDati?: string
@@ -19,6 +20,10 @@ interface Impostazioni {
   cartellaBackup?: string
   tema?: string
   scuro?: boolean
+  // modalita' scura a orari fissi: se vero, "scuro" non conta
+  scuroAutomatico?: boolean
+  scuroDalle?: string
+  scuroAlle?: string
   finestra?: PosizioneFinestra
   bloccoAttivo?: boolean
   bloccoMinuti?: number
@@ -140,7 +145,26 @@ export function scuro(): boolean {
 }
 
 export function impostaScuro(valore: boolean): void {
-  salva({ scuro: valore })
+  salva({ scuro: valore, scuroAutomatico: false })
+}
+
+export function orariScuro(): { automatico: boolean; dalle: string; alle: string } {
+  const i = leggi()
+  return {
+    automatico: i.scuroAutomatico === true,
+    dalle: i.scuroDalle ?? '20:00',
+    alle: i.scuroAlle ?? '07:00'
+  }
+}
+
+export function impostaScuroAutomatico(dalle: string, alle: string): void {
+  salva({ scuroAutomatico: true, scuroDalle: dalle, scuroAlle: alle })
+}
+
+// Scura adesso? Con gli orari fissi dipende dall'ora, altrimenti dalla scelta.
+export function scuroAdesso(adesso = new Date()): boolean {
+  const o = orariScuro()
+  return o.automatico ? nellaFascia(o.dalle, o.alle, adesso) : scuro()
 }
 
 // Blocco automatico: dopo un po' che non tocchi niente l'app torna alla

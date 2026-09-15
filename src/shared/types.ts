@@ -242,9 +242,39 @@ export interface SedutaInput {
   sforzo: number | null
   // I segni di riferimento misurati in questa seduta.
   segni: { segno_id: number; valore: number }[]
+  // Cosa riferisce il paziente tornando, e cosa gli si e' fatto.
+  riferito_andamento: AndamentoRiferito | null
+  riferito: string | null
+  tecnica_ids: number[]
+  trattamento: string | null
   note: string | null
   sezioni: SedutaSezioneInput[]
   esercizi: SedutaEsercizioInput[]
+}
+
+// Come riferisce di stare, tornando: rispetto alla volta prima.
+export type AndamentoRiferito = 'meglio' | 'uguale' | 'peggio'
+
+// Una tecnica del trattamento (terapia manuale, tecar...): l'elenco e' del
+// fisioterapista, e quelle che non usa piu' si archiviano.
+export interface Tecnica {
+  id: number
+  nome: string
+  archiviata: 0 | 1
+  ordine: number
+}
+
+// L'ultima seduta prima di quella che si sta scrivendo, per ricordarsela.
+export interface SedutaPrecedente {
+  data: string
+  riferito_andamento: AndamentoRiferito | null
+  riferito: string | null
+  trattamento: string | null
+  tecniche: string[]
+  dolore: number | null
+  sforzo: number | null
+  note: string | null
+  segni: { nome: string; unita: string | null; valore: number }[]
 }
 
 // Una seduta come compare nella schermata della settimana: di chi e', di che
@@ -302,6 +332,11 @@ export interface SedutaRiepilogo {
   // 1 se la seduta e' stata costruita su una fase del percorso al campo.
   fase_campo: 0 | 1
   note: string | null
+  riferito_andamento: AndamentoRiferito | null
+  riferito: string | null
+  trattamento: string | null
+  // le tecniche fatte, gia' in fila: "Tecar · Terapia manuale"
+  tecniche_nomi: string | null
   num_esercizi: number
   obiettivi_nomi: string | null
 }
@@ -329,6 +364,10 @@ export interface SedutaDettaglio {
   focus: string | null
   dolore: number | null
   sforzo: number | null
+  riferito_andamento: AndamentoRiferito | null
+  riferito: string | null
+  trattamento: string | null
+  tecnica_ids: number[]
   note: string | null
   sezioni: SedutaSezioneDettaglio[]
 }
@@ -1194,6 +1233,12 @@ export interface Api {
     // dato invece che a memoria. `escludi` e' la seduta che si sta
     // modificando: se stessa non e' "l'ultima volta".
     ultimaVolta(pazienteId: number, escludi: number | null): Promise<UltimaVolta[]>
+    // La seduta prima di questa: cosa riferiva, il trattamento, i segni.
+    precedente(
+      pazienteId: number,
+      escludi: number | null,
+      finoAl: string
+    ): Promise<SedutaPrecedente | null>
     // Le sedute di tutti i pazienti fra due date, per la settimana.
     settimana(dal: string, al: string): Promise<SedutaSettimana[]>
     get(id: number): Promise<SedutaDettaglio>
@@ -1389,9 +1434,16 @@ export interface Api {
     // Tabelle CSV leggibili senza l'app (non e' un backup ripristinabile).
     esportaArchivio(): Promise<string | null>
   }
+  tecniche: {
+    list(includiArchiviate: boolean): Promise<Tecnica[]>
+    crea(nome: string): Promise<number>
+    setArchiviata(id: number, archiviata: boolean): Promise<void>
+  }
   impostazioni: {
     setTema(t: Tema): Promise<void>
     setScuro(valore: boolean): Promise<void>
+    // scura dalle ... alle ..., ogni giorno
+    setScuroAutomatico(dalle: string, alle: string): Promise<void>
     setBarraScura(valore: boolean): Promise<void>
     setIngrandimento(valore: number): Promise<void>
     info(): Promise<{
@@ -1399,6 +1451,9 @@ export interface Api {
       cartellaExport: string
       tema: Tema
       scuro: boolean
+      // scura in questo momento, anche con gli orari fissi
+      scuroAdesso: boolean
+      orariScuro: { automatico: boolean; dalle: string; alle: string }
       barraScura: boolean
       // 1 e' la misura normale dei caratteri; 1.2 vuol dire "un quinto piu'
       // grandi", e con loro cresce tutto il resto della pagina.

@@ -46,6 +46,8 @@ export default function ImpostazioniPage({
   tema,
   onTema,
   scuro,
+  modoScuro,
+  orariScuro,
   onScuro,
   barraScura,
   onBarraScura,
@@ -56,7 +58,9 @@ export default function ImpostazioniPage({
   tema: Tema
   onTema: (t: Tema) => void
   scuro: boolean
-  onScuro: (valore: boolean) => void
+  modoScuro: ModoScuro
+  orariScuro: { dalle: string; alle: string }
+  onScuro: (modo: ModoScuro, orari?: { dalle: string; alle: string }) => void
   barraScura: boolean
   onBarraScura: (valore: boolean) => void
   ingrandimento: number
@@ -103,6 +107,8 @@ export default function ImpostazioniPage({
                 tema={tema}
                 onTema={onTema}
                 scuro={scuro}
+                modoScuro={modoScuro}
+                orariScuro={orariScuro}
                 onScuro={onScuro}
                 barraScura={barraScura}
                 onBarraScura={onBarraScura}
@@ -588,10 +594,14 @@ function SchedaBlocco({
   )
 }
 
+type ModoScuro = 'chiaro' | 'scuro' | 'orari'
+
 function SchedaAspetto({
   tema,
   onTema,
   scuro,
+  modoScuro,
+  orariScuro,
   onScuro,
   barraScura,
   onBarraScura
@@ -599,7 +609,9 @@ function SchedaAspetto({
   tema: Tema
   onTema: (t: Tema) => void
   scuro: boolean
-  onScuro: (valore: boolean) => void
+  modoScuro: ModoScuro
+  orariScuro: { dalle: string; alle: string }
+  onScuro: (modo: ModoScuro, orari?: { dalle: string; alle: string }) => void
   barraScura: boolean
   onBarraScura: (valore: boolean) => void
 }): React.JSX.Element {
@@ -645,18 +657,46 @@ function SchedaAspetto({
       {/* La modalita' scura non e' una tavolozza a parte: si accende sopra a
           quella scelta, e sta nello stesso riquadro perche' e' la stessa
           domanda — che aspetto ha l'app. */}
-      <label className="riga-interruttore riga-luce">
+      <div className="riga-interruttore riga-luce">
         <span className="nome-interruttore">
           Modalità scura
-          <Aiuto testo="Fondi scuri e scritte chiare, con il colore che hai scelto. I documenti che stampi restano chiari: vanno sulla carta." />
+          <Aiuto testo="Fondi scuri e scritte chiare, con il colore che hai scelto. Con A orari diventa scura da sola all'ora che scegli e torna chiara la mattina, anche con il programma aperto. I documenti che stampi restano chiari: vanno sulla carta." />
         </span>
-        <input
-          type="checkbox"
-          className="interruttore"
-          checked={scuro}
-          onChange={(e) => onScuro(e.target.checked)}
-        />
-      </label>
+        <span className="scelta-coppia segmentata">
+          {(
+            [
+              ['chiaro', 'Chiara'],
+              ['scuro', 'Scura'],
+              ['orari', 'A orari']
+            ] as const
+          ).map(([modo, nome]) => (
+            <button
+              key={modo}
+              type="button"
+              className={modoScuro === modo ? 'scelta-attiva' : ''}
+              onClick={() => onScuro(modo)}
+            >
+              {nome}
+            </button>
+          ))}
+        </span>
+      </div>
+      {modoScuro === 'orari' && (
+        <div className="orari-scuro">
+          <span>Scura dalle</span>
+          <input
+            type="time"
+            value={orariScuro.dalle}
+            onChange={(e) => e.target.value && onScuro('orari', { ...orariScuro, dalle: e.target.value })}
+          />
+          <span>alle</span>
+          <input
+            type="time"
+            value={orariScuro.alle}
+            onChange={(e) => e.target.value && onScuro('orari', { ...orariScuro, alle: e.target.value })}
+          />
+        </div>
+      )}
     </section>
   )
 }

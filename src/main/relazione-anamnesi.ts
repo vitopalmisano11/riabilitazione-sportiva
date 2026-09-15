@@ -49,9 +49,27 @@ function siNo(v: unknown): 'si' | 'no' | string | null {
   return t
 }
 
+// Un paragrafo della relazione, con gli elenchi puntati che lo seguono (cosa
+// aggrava e cosa allevia un sintomo si leggono meglio in colonna).
+export interface ParagrafoRelazione {
+  testo: string
+  elenchi?: { titolo: string; voci: string[] }[]
+}
+
 export interface RelazioneAnamnesi {
-  prossima: string[]
-  remota: string[]
+  prossima: ParagrafoRelazione[]
+  remota: ParagrafoRelazione[]
+}
+
+// "scale, corsa; stare seduto" → tre voci: si divide dove c'e' una virgola,
+// un punto e virgola o un a capo. Ogni voce con la maiuscola.
+function vociElenco(v: unknown): string[] {
+  if (v == null) return []
+  return String(v)
+    .split(/[,;\n]+/)
+    .map((x) => x.trim().replace(/\.$/, ''))
+    .filter((x) => x !== '')
+    .map((x) => x.charAt(0).toUpperCase() + x.slice(1))
 }
 
 export function relazioneAnamnesi(pazienteId: number): RelazioneAnamnesi {
@@ -74,10 +92,10 @@ export function relazioneAnamnesi(pazienteId: number): RelazioneAnamnesi {
 
   // ---- anamnesi prossima: un paragrafo per il motivo, uno per sintomo, uno
   // per il quadro generale ----
-  const prossima: string[] = []
+  const prossima: ParagrafoRelazione[] = []
 
   const motivo = pezzo(a?.motivo_consulto)
-  if (motivo) prossima.push(frase(`Si rivolge per ${motivo}`))
+  if (motivo) prossima.push({ testo: frase(`Si rivolge per ${motivo}`) })
 
   sintomi.forEach((s, i) => {
     const frasi: string[] = []
@@ -129,27 +147,28 @@ export function relazioneAnamnesi(pazienteId: number): RelazioneAnamnesi {
       .map(([nome, v]) => `${nome} ${v}/10`)
     if (intensita.length > 0) frasi.push(frase(`Intensità del dolore (NPRS): ${intensita.join(', ')}`))
 
-    const aggrava = pezzo(s.aggrava)
-    const allevia = pezzo(s.allevia)
-    if (aggrava && allevia) frasi.push(frase(`Peggiora con ${aggrava} e migliora con ${allevia}`))
-    else if (aggrava) frasi.push(frase(`Peggiora con ${aggrava}`))
-    else if (allevia) frasi.push(frase(`Migliora con ${allevia}`))
+    // Cosa lo aggrava e cosa lo allevia: due elenchi puntati sotto al sintomo,
+    // da leggere a colpo d'occhio.
+    const elenchi = [
+      { titolo: 'Cosa lo aggrava', voci: vociElenco(s.aggrava) },
+      { titolo: 'Cosa lo allevia', voci: vociElenco(s.allevia) }
+    ].filter((e) => e.voci.length > 0)
 
     const comportamento = pezzo(s.comportamento)
     if (comportamento) frasi.push(frase(`Finora ha gestito il disturbo con: ${comportamento}`))
 
-    if (frasi.length > 0) prossima.push(frasi.join(' '))
+    if (frasi.length > 0 || elenchi.length > 0) {
+      prossima.push({ testo: frasi.join(' '), ...(elenchi.length > 0 ? { elenchi } : {}) })
+    }
   })
 
-  // L'andamento nel tempo: le note scritte sotto ai due grafici.
-  const andamento: string[] = []
+  // L'andamento nel tempo: le note scritte sotto ai due grafici, ognuna a capo.
   const giorno = pezzo(a?.note_giorno)
-  if (giorno) andamento.push(frase(`Nell'arco delle 24 ore: ${giorno}`))
+  if (giorno) prossima.push({ testo: frase(`Nell'arco delle 24 ore: ${giorno}`) })
   const dallEsordio = pezzo(a?.note_esordio)
-  if (dallEsordio) andamento.push(frase(`Dall'esordio a oggi: ${dallEsordio}`))
+  if (dallEsordio) prossima.push({ testo: frase(`Dall'esordio a oggi: ${dallEsordio}`) })
   const relazione = pezzo(a?.relazione_sintomi)
-  if (relazione) andamento.push(frase(`Relazione fra i sintomi: ${relazione}`))
-  if (andamento.length > 0) prossima.push(andamento.join(' '))
+  if (relazione) prossima.push({ testo: frase(`Relazione fra i sintomi: ${relazione}`) })
 
   // Il quadro generale: i si' insieme, i no insieme, il resto com'e' scritto.
   const riferisce: string[] = []
@@ -196,7 +215,7 @@ export function relazioneAnamnesi(pazienteId: number): RelazioneAnamnesi {
   if (riferisce.length) generale.push(frase(`Riferisce ${elenco(riferisce)}`))
   if (nega.length) generale.push(frase(`Nega ${elenco(nega)}`))
   generale.push(...altro)
-  if (generale.length > 0) prossima.push(generale.join(' '))
+  if (generale.length > 0) prossima.push({ testo: generale.join(' ') })
 
   const vita: string[] = []
   const attivita = pezzo(att?.attivita)
@@ -205,13 +224,13 @@ export function relazioneAnamnesi(pazienteId: number): RelazioneAnamnesi {
   if (partecipazione) vita.push(frase(`Nella partecipazione: ${partecipazione}`))
   const interni = pezzo(att?.fattori_interni)
   if (interni) vita.push(frase(`Aspetti psicologici e fattori personali: ${interni}`))
-  if (vita.length > 0) prossima.push(vita.join(' '))
+  if (vita.length > 0) prossima.push({ testo: vita.join(' ') })
 
   const note = siNo(a?.note)
-  if (note != null && note !== 'no' && note !== 'si') prossima.push(frase(`Note: ${note}`))
+  if (note != null && note !== 'no' && note !== 'si') prossima.push({ testo: frase(`Note: ${note}`) })
 
   // ---- anamnesi remota ----
-  const remota: string[] = []
+  const remota: ParagrafoRelazione[] = []
 
   // Anche qui un "nessuno" scritto nella casella diventa "nega": leggere
   // "Traumi precedenti: nessuno" in una relazione suona come un modulo.
@@ -230,7 +249,7 @@ export function relazioneAnamnesi(pazienteId: number): RelazioneAnamnesi {
     else storia.push(frase(`${titolo}: ${v}`))
   }
   if (negati.length) storia.push(frase(`Nega ${elenco(negati)}`))
-  if (storia.length > 0) remota.push(storia.join(' '))
+  if (storia.length > 0) remota.push({ testo: storia.join(' ') })
 
   const complementari: [string, unknown][] = [
     ['variazioni di peso', r?.peso],
@@ -248,7 +267,7 @@ export function relazioneAnamnesi(pazienteId: number): RelazioneAnamnesi {
   const clinica: string[] = []
   if (presenti.length) clinica.push(frase(`Riferisce ${elenco(presenti)}`))
   if (assenti.length) clinica.push(frase(`Nega ${elenco(assenti)}`))
-  if (clinica.length > 0) remota.push(clinica.join(' '))
+  if (clinica.length > 0) remota.push({ testo: clinica.join(' ') })
 
   const immagini: string[] = []
   const bioimmagini = pezzo(r?.bioimmagini_note)
@@ -260,7 +279,7 @@ export function relazioneAnamnesi(pazienteId: number): RelazioneAnamnesi {
       )
     )
   }
-  if (immagini.length > 0) remota.push(immagini.join(' '))
+  if (immagini.length > 0) remota.push({ testo: immagini.join(' ') })
 
   return { prossima, remota }
 }

@@ -5,12 +5,13 @@ import {
   ChevronRight,
   Copy,
   Pencil,
+  UserRound,
   Plus,
   Presentation,
   Trash2
 } from 'lucide-react'
 import AggiungiAlGiorno from '../components/AggiungiAlGiorno'
-import type { SedutaSettimana } from '../../../shared/types'
+import type { PazienteDettaglio, SedutaSettimana } from '../../../shared/types'
 import { toastErrore } from '../components/Toast'
 import { chiedi } from '../components/Conferma'
 import { errMsg, formatData, oggiIso } from '../lib'
@@ -74,12 +75,15 @@ export default function SettimanaPage({
   onApriPaziente,
   onApriSeduta,
   onCopiaSeduta,
+  onNuovaSeduta,
   tornaAllElenco
 }: {
   onApriPaziente: (id: number) => void
   onApriSeduta: (pazienteId: number, sedutaId: number) => void
   // una seduta nuova copiata da questa, nel giorno scelto
   onCopiaSeduta: (pazienteId: number, sedutaId: number, data: string) => void
+  // una seduta nuova da zero, per quel paziente in quel giorno
+  onNuovaSeduta: (pazienteId: number, data: string) => void
   tornaAllElenco: number
 }): React.JSX.Element {
   const [lunedi, setLunedi] = useState<Date>(() => lunediDi(new Date()))
@@ -89,6 +93,20 @@ export default function SettimanaPage({
   // La seduta che si sta copiando, mentre si sceglie il giorno.
   const [daCopiare, setDaCopiare] = useState<SedutaSettimana | null>(null)
   const [altraData, setAltraData] = useState('')
+  // La ricerca del paziente in cima: si apre la sua scheda o gli si aggiunge
+  // una seduta scegliendo il giorno.
+  const [pazienti, setPazienti] = useState<PazienteDettaglio[]>([])
+  const [cerca, setCerca] = useState('')
+  const [elencoAperto, setElencoAperto] = useState(false)
+  const [perSeduta, setPerSeduta] = useState<PazienteDettaglio | null>(null)
+  const [pazienteDelGiorno, setPazienteDelGiorno] = useState<PazienteDettaglio | null>(null)
+
+  useEffect(() => {
+    window.api.pazienti
+      .list()
+      .then(setPazienti)
+      .catch(() => undefined)
+  }, [])
 
   // Ripremendo la voce del menu si torna alla settimana in corso.
   useEffect(() => {
@@ -159,13 +177,73 @@ Finisce nel cestino: puoi rimetterla a posto da Impostazioni entro un mese.`
           <CalendarDays size={16} /> Questa settimana
         </button>
         <span className="spacer" />
-        <span className="hint">
-          {sedute.length === 0
-            ? 'Nessuna seduta'
-            : sedute.length === 1
-              ? '1 seduta'
-              : `${sedute.length} sedute`}
-        </span>
+        <div className="ricerca-settimana">
+          <input
+            type="search"
+            placeholder="Cerca paziente…"
+            value={cerca}
+            onChange={(e) => {
+              setCerca(e.target.value)
+              setElencoAperto(true)
+            }}
+            onFocus={() => setElencoAperto(true)}
+            // si chiude poco dopo: il clic su un risultato deve fare in tempo
+            onBlur={() => setTimeout(() => setElencoAperto(false), 150)}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                setCerca('')
+                setElencoAperto(false)
+              }
+            }}
+          />
+          {elencoAperto && cerca.trim() !== '' && (
+            <ul className="elenco-scelta risultati-settimana">
+              {pazienti
+                .filter((p) =>
+                  `${p.cognome} ${p.nome} ${p.nome} ${p.cognome}`
+                    .toLowerCase()
+                    .includes(cerca.trim().toLowerCase())
+                )
+                .slice(0, 8)
+                .map((p) => (
+                  <li key={p.id}>
+                    <span className="nome-risultato">
+                      {p.cognome} {p.nome}
+                    </span>
+                    <button
+                      type="button"
+                      className="btn-icona"
+                      title="Apri la scheda"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => onApriPaziente(p.id)}
+                    >
+                      <UserRound size={16} />
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-icona primary"
+                      title="Aggiungi una seduta: scegli il giorno"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        setPerSeduta(p)
+                        setAltraData('')
+                        setCerca('')
+                        setElencoAperto(false)
+                      }}
+                    >
+                      <Plus size={16} />
+                    </button>
+                  </li>
+                ))}
+              {pazienti.every(
+                (p) =>
+                  !`${p.cognome} ${p.nome} ${p.nome} ${p.cognome}`
+                    .toLowerCase()
+                    .includes(cerca.trim().toLowerCase())
+              ) && <li className="empty">Nessun paziente con questo nome.</li>}
+            </ul>
+          )}
+        </div>
       </div>
 
       <section className="card settimana-card">
@@ -179,7 +257,10 @@ Finisce nel cestino: puoi rimetterla a posto da Impostazioni entro un mese.`
               <button
                 className="btn-aggiungi-giorno"
                 title={`Aggiungi una seduta a ${g.nome} ${g.numero}`}
-                onClick={() => setGiornoAperto(g.data)}
+                onClick={() => {
+                  setPazienteDelGiorno(null)
+                  setGiornoAperto(g.data)
+                }}
               >
                 <Plus size={15} />
               </button>
@@ -251,6 +332,52 @@ Finisce nel cestino: puoi rimetterla a posto da Impostazioni entro un mese.`
         ))}
       </section>
 
+      {/* Il giorno della seduta nuova, per il paziente trovato con la ricerca. */}
+      {perSeduta && (
+        <div className="modal-overlay" onClick={() => setPerSeduta(null)}>
+          <div className="modal modal-sm" onClick={(e) => e.stopPropagation()}>
+            <h3>
+              Seduta di {perSeduta.cognome} {perSeduta.nome}: in che giorno?
+            </h3>
+            <div className="giorni-copia">
+              {giorni.map((g) => (
+                <button
+                  key={g.data}
+                  onClick={() => {
+                    setPazienteDelGiorno(perSeduta)
+                    setPerSeduta(null)
+                    setGiornoAperto(g.data)
+                  }}
+                >
+                  <span className="nome-giorno">{g.nome}</span>
+                  <span className="numero-giorno">{g.numero}</span>
+                </button>
+              ))}
+            </div>
+            <div className="riga-altra-data">
+              <label className="compila-data">
+                Un altro giorno
+                <input type="date" value={altraData} onChange={(e) => setAltraData(e.target.value)} />
+              </label>
+              <button
+                className="primary"
+                disabled={altraData === ''}
+                onClick={() => {
+                  setPazienteDelGiorno(perSeduta)
+                  setPerSeduta(null)
+                  setGiornoAperto(altraData)
+                }}
+              >
+                Avanti
+              </button>
+            </div>
+            <div className="modal-actions">
+              <button onClick={() => setPerSeduta(null)}>Annulla</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {daCopiare && (
         <div className="modal-overlay" onClick={() => setDaCopiare(null)}>
           <div className="modal modal-sm" onClick={(e) => e.stopPropagation()}>
@@ -302,9 +429,12 @@ Finisce nel cestino: puoi rimetterla a posto da Impostazioni entro un mese.`
       {giornoAperto && (
         <AggiungiAlGiorno
           data={giornoAperto}
+          pazienteIniziale={pazienteDelGiorno}
           onApriPaziente={onApriPaziente}
+          onNuovaSeduta={onNuovaSeduta}
           onChiudi={(creata) => {
             setGiornoAperto(null)
+            setPazienteDelGiorno(null)
             if (creata) carica()
           }}
         />

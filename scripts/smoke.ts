@@ -53,6 +53,8 @@ import { conBarra } from '../src/main/finestre'
 import { relazioneAnamnesi } from '../src/main/relazione-anamnesi'
 import { relazioneValutazione } from '../src/main/relazione-valutazione'
 import { calcolaPunteggio } from '../src/main/screening-punteggio'
+import { sedutaPrecedente } from '../src/main/seduta-precedente'
+import { nellaFascia } from '../src/shared/orari'
 import { copyFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { daQuando } from '../src/renderer/src/lib'
 import {
@@ -72,7 +74,7 @@ db.pragma('foreign_keys = ON')
 
 runMigrations(db)
 runMigrations(db) // idempotente
-assert.equal(db.pragma('user_version', { simple: true }), 43)
+assert.equal(db.pragma('user_version', { simple: true }), 44)
 
 const count = (table: string): number =>
   (db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n
@@ -1414,6 +1416,56 @@ assert.equal(
   assert.ok(conTitolo.includes('@media print { .barra-finestra, .spazio-barra { display: none; } }'))
 }
 
+// --- Il diario della seduta: cosa riferisce, trattamento, l'ultima volta ---
+{
+  const db = getDb()
+  const ins = (sql: string, ...a: unknown[]): number => Number(db.prepare(sql).run(...a).lastInsertRowid)
+  // le tecniche di partenza ci sono gia'
+  const tecniche = db.prepare('SELECT id, nome FROM tecniche ORDER BY ordine').all() as { id: number; nome: string }[]
+  assert.ok(tecniche.some((t) => t.nome === 'Tecar'))
+  const tecar = tecniche.find((t) => t.nome === 'Tecar')!.id
+  const manuale = tecniche.find((t) => t.nome === 'Terapia manuale')!.id
+
+  const paz = ins("INSERT INTO pazienti (nome, cognome) VALUES ('Diario', 'Prova')")
+  const prima = ins(
+    `INSERT INTO sedute (paziente_id, data, riferito_andamento, riferito, trattamento, dolore, note)
+     VALUES (?, '2026-09-01', 'meglio', 'meno dolore la mattina', 'zona rotulea', 4, 'rivedere lo squat')`,
+    paz
+  )
+  ins('INSERT INTO seduta_tecniche (seduta_id, tecnica_id) VALUES (?, ?)', prima, tecar)
+  ins('INSERT INTO seduta_tecniche (seduta_id, tecnica_id) VALUES (?, ?)', prima, manuale)
+  const segno = ins("INSERT INTO segni (paziente_id, nome, unita) VALUES (?, 'Dolore nello squat', '0-10')", paz)
+  ins('INSERT INTO segno_valori (segno_id, seduta_id, valore) VALUES (?, ?, 5)', segno, prima)
+  // una seduta programmata piu' avanti non conta come "l'ultima volta"
+  ins("INSERT INTO sedute (paziente_id, data, riferito) VALUES (?, '2026-09-20', 'futura')", paz)
+
+  const p = sedutaPrecedente(paz, null, '2026-09-05')
+  assert.ok(p)
+  assert.equal(p?.data, '2026-09-01')
+  assert.equal(p?.riferito_andamento, 'meglio')
+  assert.deepEqual(p?.tecniche, ['Terapia manuale', 'Tecar'])
+  assert.deepEqual(p?.segni, [{ nome: 'Dolore nello squat', unita: '0-10', valore: 5 }])
+  // modificando proprio quella seduta, la precedente non e' lei
+  assert.equal(sedutaPrecedente(paz, prima, '2026-09-01'), null)
+
+  // nel diario stampato: cosa riferisce, trattamento e dolore, non gli esercizi
+  const cartellaDiario = generaCartella(paz, ['sedute'])
+  assert.ok(
+    cartellaDiario.includes(
+      '01/09/2026 · riferisce: meglio, meno dolore la mattina · trattamento: Terapia manuale, Tecar; zona rotulea · dolore 4/10'
+    )
+  )
+
+  // la modalita' scura a orari fissi, anche a cavallo della mezzanotte
+  const alle = (h: number, m = 0): Date => new Date(2026, 8, 15, h, m)
+  assert.equal(nellaFascia('20:00', '07:00', alle(21)), true)
+  assert.equal(nellaFascia('20:00', '07:00', alle(6, 59)), true)
+  assert.equal(nellaFascia('20:00', '07:00', alle(7)), false)
+  assert.equal(nellaFascia('20:00', '07:00', alle(12)), false)
+  assert.equal(nellaFascia('13:00', '15:00', alle(14)), true)
+  assert.equal(nellaFascia('10:00', '10:00', alle(10)), false)
+}
+
 // --- Il punteggio del cluster ---
 // Un piccolo Ankle-GO: una misura di un test a una gamba per volta, una di un
 // test bilaterale e il punteggio di un questionario, con le soglie dei punti e
@@ -1763,23 +1815,30 @@ initDb(join(dirCartella, 'cartella.db'), dekHex)
   // La relazione scritta: frasi fisse riempite con quello che c'e', i "no"
   // detti con "nega", niente di inventato.
   const rel = relazioneAnamnesi(Number(pz))
-  assert.equal(rel.prossima[0], 'Si rivolge per dolore lombare.')
+  assert.equal(rel.prossima[0].testo, 'Si rivolge per dolore lombare.')
   assert.ok(
-    rel.prossima[1].startsWith(
+    rel.prossima[1].testo.startsWith(
       'Riferisce lombare destro, intermittente, al primo episodio, presente da 3 settimane, a esordio non traumatico.'
     )
   )
-  assert.ok(rel.prossima[1].includes('Peggiora con stare seduta e migliora con camminare.'))
-  assert.ok(rel.prossima[2].startsWith('Riferisce inoltre rigidità mattutina, costante.'))
+  // cosa lo aggrava e cosa lo allevia: elenchi puntati sotto al sintomo
+  assert.deepEqual(rel.prossima[1].elenchi, [
+    { titolo: 'Cosa lo aggrava', voci: ['Stare seduta'] },
+    { titolo: 'Cosa lo allevia', voci: ['Camminare'] }
+  ])
+  // l'andamento nelle 24 ore e dall'esordio: ognuno a capo
+  assert.ok(rel.prossima.some((p) => p.testo === "Nell'arco delle 24 ore: peggio la sera."))
+  assert.ok(rel.prossima.some((p) => p.testo === "Dall'esordio a oggi: in calo."))
+  assert.ok(rel.prossima[2].testo.startsWith('Riferisce inoltre rigidità mattutina, costante.'))
   assert.ok(
     rel.prossima.some((p) =>
-      p.includes('Nega dolore o sintomi notturni, disturbi del sonno, sintomi neurologici e peggioramento con tosse o starnuto.')
+      p.testo.includes('Nega dolore o sintomi notturni, disturbi del sonno, sintomi neurologici e peggioramento con tosse o starnuto.')
     )
   )
-  assert.ok(!rel.prossima.some((p) => p.includes('Note: nessuna')))
-  assert.ok(rel.remota[0].startsWith('Altre patologie e farmaci: ipertensione.'))
-  assert.ok(rel.remota[0].includes('Nega traumi precedenti, interventi chirurgici e precedenti riabilitativi.'))
-  assert.ok(rel.remota.some((p) => p.startsWith('Riferisce fumo. Nega variazioni di peso')))
+  assert.ok(!rel.prossima.some((p) => p.testo.includes('Note: nessuna')))
+  assert.ok(rel.remota[0].testo.startsWith('Altre patologie e farmaci: ipertensione.'))
+  assert.ok(rel.remota[0].testo.includes('Nega traumi precedenti, interventi chirurgici e precedenti riabilitativi.'))
+  assert.ok(rel.remota.some((p) => p.testo.startsWith('Riferisce fumo. Nega variazioni di peso')))
   // I campi a pulsanti: si'/no col dettaglio, durata con la fase, esordio in
   // una parola, intensita' del dolore.
   const pzNuovo = ins("INSERT INTO pazienti (nome, cognome) VALUES ('Nuovi', 'Campi')")
@@ -1797,11 +1856,11 @@ initDb(join(dirCartella, 'cartella.db'), dekHex)
   )
   const relNuova = relazioneAnamnesi(Number(pzNuovo))
   assert.equal(
-    relNuova.prossima[0],
+    relNuova.prossima[0].testo,
     'Riferisce dolore al ginocchio destro, presente da 3 settimane (fase acuta), dopo la partita, a esordio improvviso e traumatico. Intensità del dolore (NPRS): attuale 4/10, peggiore 7/10.'
   )
   assert.equal(
-    relNuova.prossima[1],
+    relNuova.prossima[1].testo,
     'Riferisce dolore o sintomi notturni (si sveglia verso le 4) e sintomi neurologici (formicolio o parestesie e perdita di forza, gamba sinistra). Nega disturbi del sonno.'
   )
   const cartellaNuova = generaCartella(Number(pzNuovo), ['anamnesi'])
