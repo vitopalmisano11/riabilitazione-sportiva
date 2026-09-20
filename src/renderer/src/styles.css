@@ -1890,7 +1890,7 @@ details[open] > :not(summary) {
    con lo spazio fra uno e l'altro: prima stavano uno attaccato all'altro e
    sembravano una cosa sola. */
 .builder-col > .builder-header,
-.builder-col > section.card {
+.builder-col > .card {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -1906,6 +1906,11 @@ details[open] > :not(summary) {
    sinistra, sullo stesso fondo degli altri riquadri. */
 .builder-col > section.card.ultima-seduta {
   border-left: 4px solid var(--accent);
+}
+
+.riga-modifica-elenco {
+  display: flex;
+  justify-content: flex-end;
 }
 
 /* Il titolo di un blocco: icona, nome e punto interrogativo. */
@@ -3755,6 +3760,15 @@ input[type='checkbox'].interruttore:focus-visible {
 }
 
 .blocco-archivio .contenuto-apribile {
+  max-width: none;
+}
+
+/* Cosa riferisce e il trattamento: chiusi come gli altri blocchi apribili
+   dell'app, ma larghi quanto la seduta (senza il limite di 520px pensato per
+   un elenco di caselle strette). Specificita' pari alla regola sopra, e
+   dichiarata dopo: cosi' vince lei. */
+.contenuto-apribile.contenuto-riferisce,
+.contenuto-apribile.contenuto-trattamento {
   max-width: none;
 }
 

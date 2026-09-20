@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Check, ChevronDown, History, MessageSquareText, Plus, Stethoscope, X } from 'lucide-react'
+import { Check, ChevronDown, History, Plus, X } from 'lucide-react'
 import type { AndamentoRiferito, SedutaPrecedente, Tecnica } from '../../../shared/types'
 import Aiuto from './Aiuto'
 import { toast, toastErrore } from './Toast'
@@ -160,17 +160,17 @@ export default function DiarioSeduta({
 
   return (
     <>
-    {/* Due riquadri uno sopra l'altro, ma bassi: il titolo e i pulsanti sulla
-        stessa riga, e le caselle di testo alte una riga che crescono mentre si
-        scrive. Cosi' la seduta non si allunga per due caselle quasi vuote. */}
-    <section className="card blocco-seduta">
-      <div className="riga-diario">
-        <div className="testata-blocco">
-        <span className="titolo-blocco">
-          <MessageSquareText size={18} />
-          Cosa riferisce
-          <Aiuto testo="Come sta tornando, rispetto alla volta prima: un clic su meglio, uguale o peggio, e con le sue parole quello che racconta. Nel diario si legge seduta dopo seduta, e la volta dopo lo ritrovi in cima alla seduta nuova." />
-        </span>
+    {/* Chiuse all'inizio, come le altre sezioni facoltative (segni,
+        indicazioni per casa, cestino): occupavano spazio in cima alla seduta
+        anche quando non c'era niente da scrivere. Si aprono con un clic e
+        restano com'erano finche' non si tocca la freccia. */}
+    <details className="blocco-apribile blocco-riferisce">
+      <summary>
+        Cosa riferisce{andamento ? ` (${NOME_ANDAMENTO[andamento]})` : ''}
+        <Aiuto testo="Come sta tornando, rispetto alla volta prima: un clic su meglio, uguale o peggio, e con le sue parole quello che racconta. Nel diario si legge seduta dopo seduta, e la volta dopo lo ritrovi in cima alla seduta nuova." />
+      </summary>
+      <div className="contenuto-apribile contenuto-riferisce">
+        <div className="riga-diario">
         <span className="scelta-coppia segmentata">
           {ANDAMENTI.map((a) => (
             <button
@@ -183,7 +183,6 @@ export default function DiarioSeduta({
             </button>
           ))}
         </span>
-        </div>
         <textarea
           rows={1}
           className="cresce"
@@ -191,17 +190,18 @@ export default function DiarioSeduta({
           value={riferito}
           onChange={(e) => onCambia({ riferito: e.target.value })}
         />
+        </div>
       </div>
-    </section>
+    </details>
 
-    <section className="card blocco-seduta">
-      <div className="riga-diario">
-        <div className="testata-blocco">
-        <span className="titolo-blocco">
-          <Stethoscope size={18} />
-          Trattamento eseguito
-          <Aiuto testo="Le tecniche che fai oggi: si spuntano con un clic. L'elenco è tuo: con Aggiungi ne scrivi una nuova, con Modifica elenco togli quelle che non usi più (le sedute vecchie continuano a mostrarle). Nella casella sotto i dettagli, per esempio la zona o i parametri." />
-        </span>
+    <details className="blocco-apribile blocco-trattamento">
+      <summary>
+        Trattamento eseguito{tecnicaIds.length > 0 ? ` (${tecnicaIds.length})` : ''}
+        <Aiuto testo="Le tecniche che fai oggi: si spuntano con un clic. L'elenco è tuo: con Aggiungi ne scrivi una nuova, con Modifica elenco togli quelle che non usi più (le sedute vecchie continuano a mostrarle). Nella casella sotto i dettagli, per esempio la zona o i parametri." />
+      </summary>
+      <div className="contenuto-apribile contenuto-trattamento">
+        <div className="riga-diario">
+        <div className="riga-modifica-elenco">
           <button
             type="button"
             className="link-discreto"
@@ -272,8 +272,9 @@ export default function DiarioSeduta({
           value={trattamento}
           onChange={(e) => onCambia({ trattamento: e.target.value })}
         />
+        </div>
       </div>
-    </section>
+    </details>
     </>
   )
 }

@@ -413,7 +413,9 @@ function SchedaValutazione({
     const scrittaSenzaLati =
       dati.movimenti.some((m) => movimenti.has(m.movimento_id) && (m.lato ?? '') === '') ||
       dati.test.some((t) => test.has(t.test_id) && (t.lato ?? '') === '')
-    return scrittaSenzaLati ? [''] : ['dx', 'sx']
+    // In tabella la sinistra sta a sinistra e la destra a destra, come si
+    // guarda il paziente di fronte: l'ordine dei due lati parte da qui.
+    return scrittaSenzaLati ? [''] : ['sx', 'dx']
   }
 
   salvaAllaChiusura.current = () => salva()
@@ -634,7 +636,7 @@ function TabellaMovimenti({
     return (
       <div
         key={lato}
-        className={['gm-rilievi', norma ? 'in-norma' : '', lato === 'sx' && dueLati ? 'secondo-lato' : '']
+        className={['gm-rilievi', norma ? 'in-norma' : '', lato === 'dx' && dueLati ? 'secondo-lato' : '']
           .filter(Boolean)
           .join(' ')}
       >
@@ -748,7 +750,7 @@ function TabellaMovimenti({
                     className={[
                       'gm-lato',
                       lato === latoInteressato ? 'interessato' : '',
-                      lato === 'sx' ? 'secondo-lato' : ''
+                      lato === 'dx' ? 'secondo-lato' : ''
                     ]
                       .filter(Boolean)
                       .join(' ')}
@@ -764,7 +766,7 @@ function TabellaMovimenti({
             {lati.map((lato) => (
               <div
                 key={lato}
-                className={lato === 'sx' && dueLati ? 'gm-sotto secondo-lato' : 'gm-sotto'}
+                className={lato === 'dx' && dueLati ? 'gm-sotto secondo-lato' : 'gm-sotto'}
               >
                 <span>Norma</span>
                 <span>Intensità</span>
@@ -895,7 +897,7 @@ function TabellaTest({
           {lati.map((lato) => (
             <div
               key={lato}
-              className={lato === 'sx' && dueLati ? 'gt-esito secondo-lato' : 'gt-esito'}
+              className={lato === 'dx' && dueLati ? 'gt-esito secondo-lato' : 'gt-esito'}
             >
               {esito(t, lato)}
             </div>

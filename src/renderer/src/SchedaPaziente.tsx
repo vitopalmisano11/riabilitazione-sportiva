@@ -52,10 +52,9 @@ export default function SchedaPaziente({ sedutaId }: { sedutaId: number }): Reac
       <header>
         <div>
           <h1>{dati.paziente}</h1>
-          <p>
-            {formatData(dati.data)}
-            {dati.fase_nome && ` · ${dati.fase_nome}`}
-          </p>
+          {/* La fase si legge nella scheda del paziente, non qui: qui e' il
+              programma da fare, e la fase non gli serve. */}
+          <p>{formatData(dati.data)}</p>
         </div>
         <button title="Ricarica il programma" onClick={carica}>
           <RotateCw size={18} /> Aggiorna
