@@ -78,7 +78,6 @@ export function useRiordino<K extends Chiave>(
   const presoOra = useRef<K | null>(null)
   const primoSpostamento = useRef(true)
   const spostatoQualcosa = useRef(false)
-  const ultimoPunto = useRef<{ x: number; y: number } | null>(null)
   const nelFrame = useRef(false)
 
   // Gli elementi della lista: servono a misurare dov'erano prima di uno
@@ -118,7 +117,6 @@ export function useRiordino<K extends Chiave>(
     presoOra.current = null
     primoSpostamento.current = true
     spostatoQualcosa.current = false
-    ultimoPunto.current = null
     setPreso(null)
     setAbilitato(null)
     if (eraSpostato) onFine?.()
@@ -142,20 +140,29 @@ export function useRiordino<K extends Chiave>(
   }
 
   // Lo scambio avviene solo dopo aver superato la meta' dell'elemento sotto al
-  // cursore, nel verso in cui si sta andando: senza, due elementi di altezza
-  // diversa si scambierebbero avanti e indietro al minimo tremolio del mouse.
-  const oltreLaMeta = (e: DragEvent<HTMLElement>): boolean => {
-    const r = rettangoloDiRiposo(e.currentTarget)
-    const p = ultimoPunto.current
-    ultimoPunto.current = { x: e.clientX, y: e.clientY }
-    const dx = p ? e.clientX - p.x : 0
-    const dy = p ? e.clientY - p.y : 0
-    if (Math.abs(dy) >= Math.abs(dx)) {
-      const meta = r.top + r.height / 2
-      return dy >= 0 ? e.clientY > meta : e.clientY < meta
+  // cursore, dal lato da cui si arriva: se il bersaglio sta sotto (o a destra)
+  // di dove si trova ora l'elemento trascinato, la meta' si supera scendendo;
+  // se sta sopra (o a sinistra), salendo.
+  //
+  // La versione precedente guardava il movimento del mouse fra un evento e il
+  // successivo, invece che una posizione: trascinando piano il cursore resta
+  // fermo su una stessa casella per piu' eventi, e quando finalmente passava
+  // alla prossima il punto di riferimento era rimasto quello di molti eventi
+  // prima — bastava un tremolio minimo nel frattempo per far scegliere la
+  // direzione (verticale/orizzontale) sbagliata, e i due elementi si
+  // scambiavano avanti e indietro. Confrontando due posizioni ferme invece
+  // del movimento fra due istanti, quel margine di errore sparisce.
+  const oltreLaMeta = (e: DragEvent<HTMLElement>, elAttuale: HTMLElement | undefined): boolean => {
+    const bersaglio = rettangoloDiRiposo(e.currentTarget)
+    const partenza = elAttuale ? rettangoloDiRiposo(elAttuale) : null
+    const dRighe = partenza ? bersaglio.top - partenza.top : 1
+    const dColonne = partenza ? bersaglio.left - partenza.left : 1
+    if (Math.abs(dRighe) >= Math.abs(dColonne)) {
+      const meta = bersaglio.top + bersaglio.height / 2
+      return dRighe >= 0 ? e.clientY > meta : e.clientY < meta
     }
-    const meta = r.left + r.width / 2
-    return dx >= 0 ? e.clientX > meta : e.clientX < meta
+    const meta = bersaglio.left + bersaglio.width / 2
+    return dColonne >= 0 ? e.clientX > meta : e.clientX < meta
   }
 
   return {
@@ -173,7 +180,6 @@ export function useRiordino<K extends Chiave>(
         presoOra.current = chiave
         primoSpostamento.current = true
         spostatoQualcosa.current = false
-        ultimoPunto.current = { x: e.clientX, y: e.clientY }
         setPreso(chiave)
       },
       onDragOver: (e) => {
@@ -190,7 +196,7 @@ export function useRiordino<K extends Chiave>(
         // uno scambio per fotogramma: cosi' il prossimo evento lavora sempre
         // sull'elenco gia' aggiornato
         if (nelFrame.current) return
-        if (!oltreLaMeta(e)) return
+        if (!oltreLaMeta(e, nodi.current.get(attuale))) return
 
         if (!animazioniRidotte()) {
           misure.current = new Map(
