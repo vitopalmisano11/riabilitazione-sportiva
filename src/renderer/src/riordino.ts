@@ -124,11 +124,28 @@ export function useRiordino<K extends Chiave>(
     if (eraSpostato) onFine?.()
   }
 
+  // Il rettangolo "di riposo" di un elemento: dove sta per come e' messa la
+  // pagina, ignorando lo scivolamento che lo sta ancora animando dallo scambio
+  // di prima. getBoundingClientRect() darebbe invece la posizione visiva di
+  // quel momento — che durante l'animazione cambia a ogni fotogramma, anche a
+  // mouse fermo — e la soglia sotto avrebbe sbattuto avanti e indietro.
+  const rettangoloDiRiposo = (el: HTMLElement): { top: number; left: number; width: number; height: number } => {
+    const genitore = el.offsetParent as HTMLElement | null
+    if (!genitore) return el.getBoundingClientRect()
+    const base = genitore.getBoundingClientRect()
+    return {
+      top: base.top + el.offsetTop - genitore.scrollTop,
+      left: base.left + el.offsetLeft - genitore.scrollLeft,
+      width: el.offsetWidth,
+      height: el.offsetHeight
+    }
+  }
+
   // Lo scambio avviene solo dopo aver superato la meta' dell'elemento sotto al
   // cursore, nel verso in cui si sta andando: senza, due elementi di altezza
   // diversa si scambierebbero avanti e indietro al minimo tremolio del mouse.
   const oltreLaMeta = (e: DragEvent<HTMLElement>): boolean => {
-    const r = e.currentTarget.getBoundingClientRect()
+    const r = rettangoloDiRiposo(e.currentTarget)
     const p = ultimoPunto.current
     ultimoPunto.current = { x: e.clientX, y: e.clientY }
     const dx = p ? e.clientX - p.x : 0
