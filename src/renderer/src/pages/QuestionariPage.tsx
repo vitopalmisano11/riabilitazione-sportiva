@@ -441,7 +441,7 @@ function TabDomande({
       {domande.map((d, i) => {
         const dnd = contenitore(i)
         return (
-          <div key={i} {...dnd} {...presa(i)} className={['domanda-card', dnd.className].filter(Boolean).join(' ')}>
+          <div key={d.id ?? i} {...dnd} {...presa(i)} className={['domanda-card', dnd.className].filter(Boolean).join(' ')}>
             <div className="domanda-testata">
               <span className="domanda-numero">{i + 1}</span>
               <input
@@ -715,7 +715,7 @@ function TabFasce({
       {fasce.map((f, i) => {
         const dnd = contenitore(i)
         return (
-          <div key={i} {...dnd} {...presa(i)} className={['domanda-card', dnd.className].filter(Boolean).join(' ')}>
+          <div key={f.id ?? i} {...dnd} {...presa(i)} className={['domanda-card', dnd.className].filter(Boolean).join(' ')}>
             <div className="domanda-testata">
               <span className="domanda-numero">{i + 1}</span>
               <input

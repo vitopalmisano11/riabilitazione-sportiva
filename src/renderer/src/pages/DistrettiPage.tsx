@@ -13,7 +13,7 @@ import Aiuto from '../components/Aiuto'
 import { chiedi } from '../components/Conferma'
 import { errMsg } from '../lib'
 import { useRileggiDopoSalvataggio, useSalvaUscendo } from '../salvaUscendo'
-import { sposta, useRiordino } from '../riordino'
+import { sposta, useRiordino, useRiordinoSalvato } from '../riordino'
 import { GRUPPI } from '../../../shared/distretti'
 
 // I movimenti e i test appartengono al distretto, non alla patologia: il rachide
@@ -95,13 +95,12 @@ function ElencoDistretti({
     }
   }
 
-  const { contenitore, presa } = useRiordino<number>((da, a) => {
-    const ids = sposta(distretti, da, a).map((d) => d.id)
-    void run(async () => {
+  const { ordine, contenitore, presa } = useRiordinoSalvato(distretti, (ids) =>
+    run(async () => {
       await window.api.distretti.reorder(ids)
       await onChanged()
     })
-  })
+  )
 
   const crea = (): void => {
     const n = nome.trim()
@@ -145,7 +144,7 @@ function ElencoDistretti({
       </div>
 
       <div className="scelta-tiles">
-        {distretti.map((d, idx) => {
+        {ordine.map((d, idx) => {
           const dnd = contenitore(idx)
           return (
             <div

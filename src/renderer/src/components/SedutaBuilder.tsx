@@ -436,19 +436,27 @@ export default function SedutaBuilder({
     toast(`${nome} tolto dalla seduta. Ctrl+Z per rimetterlo.`)
   }
 
-  const { contenitore: contSez, presa: presaSez } = useRiordino<number>((da, a) =>
-    modificaSezioni(sposta(sezioni, da, a), 'spostata una sezione')
-  )
+  // Trascinando, le sezioni si spostano passo passo: nella cronologia di Ctrl+Z
+  // ne finisce uno solo, quello di partenza, altrimenti annullare uno
+  // spostamento vorrebbe dire premere Ctrl+Z una volta per ogni sezione
+  // scavalcata.
+  const { contenitore: contSez, presa: presaSez } = useRiordino<number>((da, a, primo) => {
+    const nuove = sposta(sezioni, da, a)
+    if (primo) modificaSezioni(nuove, 'spostata una sezione')
+    else setSezioni(nuove)
+  })
 
   // Le righe si riordinano solo dentro la propria sezione: la chiave e' "sezione:riga".
-  const { contenitore: contRiga, presa: presaRiga } = useRiordino<string>((da, a) => {
+  const { contenitore: contRiga, presa: presaRiga } = useRiordino<string>((da, a, primo) => {
     const [sezDa, rigaDa] = da.split(':').map(Number)
     const [sezA, rigaA] = a.split(':').map(Number)
-    if (sezDa !== sezA) return
-    modificaSezioni(
-      sezioni.map((s, i) => (i === sezDa ? { ...s, righe: sposta(s.righe, rigaDa, rigaA) } : s)),
-      'spostato un esercizio'
+    if (sezDa !== sezA) return false
+    const nuove = sezioni.map((s, i) =>
+      i === sezDa ? { ...s, righe: sposta(s.righe, rigaDa, rigaA) } : s
     )
+    if (primo) modificaSezioni(nuove, 'spostato un esercizio')
+    else setSezioni(nuove)
+    return true
   })
 
   const rimuoviSezione = async (idx: number): Promise<void> => {

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Pencil, Plus, X } from 'lucide-react'
 import { errMsg } from '../lib'
-import { sposta, useRiordino } from '../riordino'
+import { useRiordinoSalvato } from '../riordino'
 import { toastErrore } from './Toast'
 import { chiedi } from './Conferma'
 import Aiuto from './Aiuto'
@@ -93,11 +93,9 @@ export default function CrudList({
     })
   }
 
-  const { contenitore, presa } = useRiordino<number>((da, a) => {
-    if (!onReorder) return
-    const ids = sposta(items, da, a).map((i) => i.id)
-    void run(() => onReorder(ids))
-  })
+  const { ordine, contenitore, presa } = useRiordinoSalvato(items, (ids) =>
+    onReorder ? run(() => onReorder(ids)) : undefined
+  )
 
   return (
     <section className="crud-list">
@@ -114,7 +112,7 @@ export default function CrudList({
         )}
       </h3>
       <ul>
-        {items.map((item, idx) => {
+        {ordine.map((item, idx) => {
           const dnd = onReorder ? contenitore(idx) : null
           return (
           <li

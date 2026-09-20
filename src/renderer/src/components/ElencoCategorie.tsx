@@ -3,7 +3,7 @@ import { Pencil, Plus, X } from 'lucide-react'
 import { toastErrore } from './Toast'
 import { chiedi } from './Conferma'
 import { errMsg } from '../lib'
-import { sposta, useRiordino } from '../riordino'
+import { useRiordinoSalvato } from '../riordino'
 
 // Primo passo di una configurazione a livelli: le categorie che raggruppano
 // questionari o test. La stessa schermata serve a entrambi, cambiano solo i
@@ -49,13 +49,12 @@ export default function ElencoCategorie({
     }
   }
 
-  const { contenitore, presa } = useRiordino<number>((da, a) => {
-    const ids = sposta(categorie, da, a).map((c) => c.id)
-    void run(async () => {
+  const { ordine, contenitore, presa } = useRiordinoSalvato(categorie, (ids) =>
+    run(async () => {
       await api.reorder(ids)
       await onChanged()
     })
-  })
+  )
 
   const crea = (): void => {
     const n = nome.trim()
@@ -95,7 +94,7 @@ export default function ElencoCategorie({
       </div>
 
       <div className="scelta-tiles">
-        {categorie.map((c, idx) => {
+        {ordine.map((c, idx) => {
           const dnd = contenitore(idx)
           return (
             <div

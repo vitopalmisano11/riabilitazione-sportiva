@@ -80,16 +80,23 @@ export default function ObiettiviTerapeutici({
   // Si trascina solo dentro il proprio gruppo: per cambiare respiro c'e' il
   // menu a tendina, cosi' un trascinamento lungo non cambia per sbaglio il
   // significato dell'obiettivo.
-  const { contenitore, presa } = useRiordino<number>((daId, aId) => {
-    const da = lista.findIndex((o) => o.id === daId)
-    const a = lista.findIndex((o) => o.id === aId)
-    if (da < 0 || a < 0 || lista[da].termine !== lista[a].termine) return
-    const riordinata = sposta(lista, da, a)
-    setLista(riordinata)
-    void window.api.obiettiviTerapeutici
-      .reorder(riordinata.map((o) => o.id))
-      .catch((e) => toastErrore(errMsg(e)))
-  })
+  // L'ordine nuovo si vede mentre trascini; nell'archivio si scrive una volta
+  // sola, quando lasci.
+  const { contenitore, presa } = useRiordino<number>(
+    (daId, aId) => {
+      const da = lista.findIndex((o) => o.id === daId)
+      const a = lista.findIndex((o) => o.id === aId)
+      // fuori dal suo gruppo (breve, medio, lungo termine) non si sposta
+      if (da < 0 || a < 0 || lista[da].termine !== lista[a].termine) return false
+      setLista(sposta(lista, da, a))
+      return true
+    },
+    () => {
+      void window.api.obiettiviTerapeutici
+        .reorder(lista.map((o) => o.id))
+        .catch((e) => toastErrore(errMsg(e)))
+    }
+  )
 
   return (
     <div className="modal-overlay" onClick={onChiudi}>

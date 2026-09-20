@@ -11,7 +11,7 @@ import type {
 } from '../../../shared/types'
 import CrudList from '../components/CrudList'
 import Aiuto from '../components/Aiuto'
-import { sposta, useRiordino } from '../riordino'
+import { useRiordinoSalvato } from '../riordino'
 import { toastErrore } from '../components/Toast'
 import { chiedi } from '../components/Conferma'
 import { errMsg } from '../lib'
@@ -124,9 +124,6 @@ function Step1Patologie({
   const [nuovaAperta, setNuovaAperta] = useState(false)
   const [edit, setEdit] = useState<{ id: number; nome: string } | null>(null)
 
-  const q = ricerca.trim().toLowerCase()
-  const filtrate = patologie.filter((p) => q === '' || p.nome.toLowerCase().includes(q))
-
   const run = async (fn: () => Promise<unknown>): Promise<void> => {
     try {
       await fn()
@@ -154,13 +151,15 @@ function Step1Patologie({
     })
   }
 
-  const { contenitore, presa } = useRiordino<number>((da, a) => {
-    const ids = sposta(patologie, da, a).map((p) => p.id)
-    void run(async () => {
+  const { ordine, contenitore, presa } = useRiordinoSalvato(patologie, (ids) =>
+    run(async () => {
       await window.api.patologie.reorder(ids)
       await onChanged()
     })
-  })
+  )
+
+  const q = ricerca.trim().toLowerCase()
+  const filtrate = ordine.filter((p) => q === '' || p.nome.toLowerCase().includes(q))
 
   return (
     <section className="card step-card">
@@ -466,17 +465,16 @@ function ElencoFasi({
     })
   }
 
-  const { contenitore, presa } = useRiordino<number>((da, a) => {
-    const ids = sposta(fasi, da, a).map((f) => f.id)
-    void run(async () => {
+  const { ordine: fasiInOrdine, contenitore, presa } = useRiordinoSalvato(fasi, (ids) =>
+    run(async () => {
       await window.api.fasi.reorder(ids)
       await onChanged()
     })
-  })
+  )
 
   return (
     <div className="scelta-tiles">
-      {fasi.map((f, idx) => {
+      {fasiInOrdine.map((f, idx) => {
         const dnd = contenitore(idx)
         return (
           <div
