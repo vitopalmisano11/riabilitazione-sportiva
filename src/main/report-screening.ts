@@ -570,7 +570,7 @@ export function generaReportScreening(sessioneIds: number[]): DatiReport {
                              perLato
                                ? '<span class="pallino blu"></span>Destra' +
                                  '<span class="pallino rosso"></span>Sinistra'
-                               : '<span class="pallino blu"></span>valore'
+                               : '<span class="pallino blu"></span>Valore'
                            }${
                              m.riferimento != null
                                ? '<span class="tratteggio"></span>riferimento'

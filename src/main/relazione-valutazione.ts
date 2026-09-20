@@ -209,7 +209,10 @@ export function relazioneValutazione(pazienteId: number): ParagrafoValutazione[]
         }
       }
 
-      if (frasi.length > 0) paragrafi.push(`${d.nome}. ${frasi.join(' ')}`)
+      // Un paragrafo per movimento/gruppo di test invece che una frase sola
+      // dietro l'altra: si leggeva come un blocco unico, e il distretto fa
+      // da titolo del gruppo che segue.
+      if (frasi.length > 0) paragrafi.push(frase(String(d.nome)), ...frasi)
     }
 
     // Carico e capacita' di carico: il carico e' maschile, la capacita'

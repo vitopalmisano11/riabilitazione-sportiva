@@ -1908,6 +1908,19 @@ details[open] > :not(summary) {
   border-left: 4px solid var(--accent);
 }
 
+/* Cosa riferisce e il trattamento: un po' piu' vicine fra loro (8px) di
+   quanto lo spazio fra tutti i riquadri della seduta (16px, dal gap del
+   builder-col) le terrebbe da sole — vicine ma non attaccate. */
+.coppia-diario {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.coppia-diario > .blocco-apribile {
+  margin-bottom: 0;
+}
+
 .riga-modifica-elenco {
   display: flex;
   justify-content: flex-end;

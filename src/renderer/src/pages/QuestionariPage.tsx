@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ChevronRight, Pencil, Plus, X } from 'lucide-react'
+import { ChevronRight, Copy, Pencil, Plus, X } from 'lucide-react'
 import type {
   CategoriaQuestionario,
   DomandaQuestionario,
@@ -418,6 +418,18 @@ function TabDomande({
   const modifica = (i: number, patch: Partial<DomandaQuestionario>): void =>
     onChange(domande.map((d, j) => (i === j ? { ...d, ...patch } : d)))
 
+  // Una copia subito sotto l'originale: per le domande che si somigliano
+  // (le stesse risposte a punteggio, cambia solo il testo) si riparte da una
+  // gia' fatta invece di riscriverla.
+  const duplica = (i: number): void => {
+    const copia: DomandaQuestionario = {
+      ...domande[i],
+      id: nuovaChiave(),
+      opzioni: domande[i].opzioni.map((o) => ({ ...o, id: null }))
+    }
+    onChange([...domande.slice(0, i + 1), copia, ...domande.slice(i + 1)])
+  }
+
   return (
     <div className="lista-domande">
       <p className="modal-testo">
@@ -457,6 +469,9 @@ function TabDomande({
                 ))}
               </select>
               <span className="item-actions-static">
+                <button title="Copia domanda" onClick={() => duplica(i)}>
+                  <Copy size={16} />
+                </button>
                 <button
                   title="Elimina domanda"
                   className="danger"

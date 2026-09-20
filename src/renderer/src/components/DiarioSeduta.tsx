@@ -163,7 +163,10 @@ export default function DiarioSeduta({
     {/* Chiuse all'inizio, come le altre sezioni facoltative (segni,
         indicazioni per casa, cestino): occupavano spazio in cima alla seduta
         anche quando non c'era niente da scrivere. Si aprono con un clic e
-        restano com'erano finche' non si tocca la freccia. */}
+        restano com'erano finche' non si tocca la freccia. Le due stanno un
+        po' piu' vicine fra loro che dal resto della seduta: sono la stessa
+        cosa, riferito e trattamento, letta in due tempi. */}
+    <div className="coppia-diario">
     <details className="blocco-apribile blocco-riferisce">
       <summary>
         Cosa riferisce{andamento ? ` (${NOME_ANDAMENTO[andamento]})` : ''}
@@ -193,7 +196,6 @@ export default function DiarioSeduta({
         </div>
       </div>
     </details>
-
     <details className="blocco-apribile blocco-trattamento">
       <summary>
         Trattamento eseguito{tecnicaIds.length > 0 ? ` (${tecnicaIds.length})` : ''}
@@ -275,6 +277,7 @@ export default function DiarioSeduta({
         </div>
       </div>
     </details>
+    </div>
     </>
   )
 }
