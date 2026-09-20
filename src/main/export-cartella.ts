@@ -72,7 +72,10 @@ export type Blocco =
   | { tipo: 'sottotitolo'; testo: string }
   | { tipo: 'testo'; titolo?: string; corpo: string }
   | { tipo: 'coppie'; voci: [string, string][] }
-  | { tipo: 'elenco'; voci: string[] }
+  // colonna: quante voci al massimo per colonna, prima di affiancarne una
+  // nuova (il diario delle sedute, con tante sedute, altrimenti farebbe una
+  // cartella lunghissima da scorrere)
+  | { tipo: 'elenco'; voci: string[]; perColonna?: number }
   // testo di seguito, un paragrafo dopo l'altro, con gli elenchi puntati che
   // lo seguono: le relazioni scritte
   | { tipo: 'paragrafi'; voci: ParagrafoRelazione[] }
@@ -997,6 +1000,9 @@ function sezSedute(pazienteId: number): Blocco[] {
     },
     {
       tipo: 'elenco',
+      // al massimo 10 per colonna, poi la prossima si affianca: tre colonne
+      // per riquadro, trenta sedute per riga
+      perColonna: 10,
       voci: sedute.map((s) => {
         const riferisce = [
           s.riferito_andamento ? PAROLA_ANDAMENTO[s.riferito_andamento] : null,
@@ -1101,8 +1107,21 @@ function bloccoHtml(b: Blocco): string {
       return `<dl class="dati">${b.voci
         .map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`)
         .join('')}</dl>`
-    case 'elenco':
-      return `<ul class="voci">${b.voci.map((v) => `<li>${esc(v)}</li>`).join('')}</ul>`
+    case 'elenco': {
+      // Oltre la soglia, le voci si affiancano su tre colonne invece di
+      // scendere in un'unica lista lunga: un gruppo di 30 sta in una sola
+      // schermata di riquadro, non su una pagina intera.
+      if (!b.perColonna || b.voci.length <= b.perColonna) {
+        return `<ul class="voci">${b.voci.map((v) => `<li>${esc(v)}</li>`).join('')}</ul>`
+      }
+      const colonne: string[][] = []
+      for (let i = 0; i < b.voci.length; i += b.perColonna) {
+        colonne.push(b.voci.slice(i, i + b.perColonna))
+      }
+      return `<div class="voci-colonne">${colonne
+        .map((c) => `<ul class="voci">${c.map((v) => `<li>${esc(v)}</li>`).join('')}</ul>`)
+        .join('')}</div>`
+    }
     case 'paragrafi':
       return `<div class="paragrafi">${b.voci
         .map(
@@ -1290,6 +1309,11 @@ function documento(c: Cartella, cheCosa: string): string {
   .legenda i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
   ul.voci { margin: 0 0 8px; padding-left: 18px; }
   ul.voci li { margin-bottom: 3px; }
+  /* Il diario delle sedute oltre le dieci voci: tre colonne invece di una
+     lista lunghissima. */
+  .voci-colonne { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 20px; align-items: start; }
+  .voci-colonne ul.voci { margin: 0; }
+  @media (max-width: 720px) { .voci-colonne { grid-template-columns: 1fr; } }
   .corpi { display: flex; gap: 6px; page-break-inside: avoid; }
   .corpi figure { margin: 0; flex: 1; text-align: center; }
   .corpi svg { width: 100%; height: auto; max-height: 190mm; }
