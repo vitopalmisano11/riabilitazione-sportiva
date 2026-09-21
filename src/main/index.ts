@@ -91,6 +91,14 @@ function createWindow(): void {
 // diventava quella pagina internet, e il documento non si ritrovava piu'. I
 // link internet si aprono nel browser; tutto il resto non si apre.
 app.on('web-contents-created', (_evento, contenuti) => {
+  // Gli strumenti da sviluppatore servono mentre si lavora al programma, non
+  // nell'app installata: da li' si legge e si cambia tutto quello che la pagina
+  // ha in mano, saltando l'interfaccia. Vale per ogni finestra, compresa quella
+  // della scheda, che sta aperta davanti al paziente.
+  if (app.isPackaged) {
+    contenuti.on('devtools-opened', () => contenuti.closeDevTools())
+  }
+
   const nelBrowser = (url: string): void => {
     if (/^https?:\/\//i.test(url)) void shell.openExternal(url)
   }

@@ -7,12 +7,14 @@ export default defineConfig({
   },
   preload: {
     plugins: [externalizeDepsPlugin()],
-    // due ponti: quello dell'app, e quello piccolissimo delle finestre dei
-    // documenti, che serve solo ai pulsanti della barra in cima
+    // tre ponti: quello dell'app; quello della scheda che guarda il paziente,
+    // che vede solo il programma della sua seduta; e quello piccolissimo delle
+    // finestre dei documenti, che serve solo ai pulsanti della barra in cima
     build: {
       rollupOptions: {
         input: {
           index: 'src/preload/index.ts',
+          scheda: 'src/preload/scheda.ts',
           finestra: 'src/preload/finestra.ts'
         }
       }

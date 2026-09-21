@@ -33,8 +33,10 @@ export function apriScheda(sedutaId: number): void {
     autoHideMenuBar: true,
     icon: icona,
     webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
-      sandbox: false,
+      // Il ponte piccolo: da questa finestra si arriva al programma di questa
+      // seduta e a nient'altro dell'archivio.
+      preload: join(__dirname, '../preload/scheda.js'),
+      sandbox: true,
       partition: sessioneSeparata(`scheda-${sedutaId}`)
     }
   })
