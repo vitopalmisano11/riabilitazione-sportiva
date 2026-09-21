@@ -13,6 +13,9 @@ export interface SedutaSettimana {
   data: string
   paziente_id: number
   paziente: string
+  // L'orario dell'appuntamento, se segnato: "HH:MM". Senza, la seduta e'
+  // solo del giorno, senza un'ora precisa.
+  ora: string | null
   // Di cosa e' fatta la giornata: si legge nella riga, accanto alla fase.
   focus: string | null
   fase_nome: string | null
@@ -24,7 +27,7 @@ export interface SedutaSettimana {
 export function seduteDellaSettimana(dal: string, al: string): SedutaSettimana[] {
   return getDb()
     .prepare(
-      `SELECT s.id, s.data, s.paziente_id, s.focus,
+      `SELECT s.id, s.data, s.paziente_id, s.focus, s.ora,
               p.cognome || ' ' || p.nome AS paziente,
               f.nome AS fase_nome, COALESCE(f.campo, 0) AS fase_campo,
               (SELECT COUNT(*) FROM seduta_esercizi se WHERE se.seduta_id = s.id) AS num_esercizi
@@ -32,7 +35,9 @@ export function seduteDellaSettimana(dal: string, al: string): SedutaSettimana[]
        JOIN pazienti p ON p.id = s.paziente_id
        LEFT JOIN fasi f ON f.id = s.fase_id
        WHERE s.data BETWEEN ? AND ?
-       ORDER BY s.data, p.cognome, p.nome`
+       -- prima chi ha un orario segnato, in ordine di appuntamento; chi non
+       -- ce l'ha resta in fondo alla giornata, per cognome
+       ORDER BY s.data, s.ora IS NULL, s.ora, p.cognome, p.nome`
     )
     .all(dal, al) as SedutaSettimana[]
 }

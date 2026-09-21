@@ -53,6 +53,7 @@ interface SezioneBuilder {
 // Quello che si sta componendo, messo da parte cosi' com'e'.
 interface BozzaSeduta {
   data: string
+  ora?: string
   faseId: number | null
   focus?: string
   riferitoAndamento?: AndamentoRiferito | null
@@ -72,6 +73,8 @@ export default function SedutaBuilder({
 }: Props): React.JSX.Element {
   const [pronto, setPronto] = useState(false)
   const [data, setData] = useState(dataIniziale ?? oggiIso())
+  // L'orario dell'appuntamento: facoltativo, serve a ordinare la settimana.
+  const [ora, setOra] = useState('')
   const [faseId, setFaseId] = useState<number | null>(paziente.fase_corrente_id)
   const [faseNome, setFaseNome] = useState<string | null>(paziente.fase_nome)
   // Di cosa e' fatta la giornata. Testo libero, con i suggerimenti di quelli
@@ -145,6 +148,7 @@ export default function SedutaBuilder({
         if (sedutaId != null) {
           const s = await window.api.sedute.get(sedutaId)
           setData(s.data)
+          setOra(s.ora ?? '')
           setFocus(s.focus ?? '')
           setDolore(s.dolore == null ? '' : String(s.dolore))
           setSforzo(s.sforzo == null ? '' : String(s.sforzo))
@@ -195,6 +199,7 @@ export default function SedutaBuilder({
             if (await chiedi(`C'è una seduta lasciata a metà il ${etichetta}. Vuoi riprenderla?`)) {
               const salvata = JSON.parse(bozza.contenuto) as BozzaSeduta
               setData(salvata.data)
+              setOra(salvata.ora ?? '')
               setFocus(salvata.focus ?? '')
               setNote(salvata.note)
               setRiferitoAndamento(salvata.riferitoAndamento ?? null)
@@ -494,6 +499,7 @@ export default function SedutaBuilder({
     if (totaleEsercizi === 0 && note.trim() === '' && focus.trim() === '' && diarioVuoto) return
     const bozza: BozzaSeduta = {
       data,
+      ora: ora || undefined,
       faseId,
       focus,
       riferitoAndamento,
@@ -512,6 +518,7 @@ export default function SedutaBuilder({
     sedutaId,
     paziente.id,
     data,
+    ora,
     faseId,
     focus,
     note,
@@ -570,6 +577,7 @@ export default function SedutaBuilder({
     const input: SedutaInput = {
       paziente_id: paziente.id,
       data,
+      ora: ora || null,
       fase_id: faseId,
       focus: focus.trim() || null,
       dolore: dolore === '' ? null : Number(dolore),
@@ -688,6 +696,12 @@ export default function SedutaBuilder({
           <label className="field data-field">
             Data
             <input type="date" value={data} onChange={(e) => setData(e.target.value)} />
+          </label>
+          {/* Facoltativo: serve a sapere a che ora viene, e a ordinare la
+              settimana per appuntamento invece che per cognome. */}
+          <label className="field ora-field">
+            Ora
+            <input type="time" value={ora} onChange={(e) => setOra(e.target.value)} />
           </label>
           {/* Il focus della giornata: due sedute della stessa fase possono
               essere due cose diverse, e nell'elenco si distinguono da qui.

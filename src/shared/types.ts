@@ -234,6 +234,8 @@ export interface SedutaSezioneInput {
 export interface SedutaInput {
   paziente_id: number
   data: string
+  // L'orario dell'appuntamento, "HH:MM", oppure null se non lo si segna.
+  ora: string | null
   fase_id: number | null
   // Di cosa e' fatta questa giornata: "preparazione corsa", "salti", "potenza".
   focus: string | null
@@ -284,6 +286,7 @@ export interface SedutaSettimana {
   data: string
   paziente_id: number
   paziente: string
+  ora: string | null
   focus: string | null
   fase_nome: string | null
   fase_campo: 0 | 1
@@ -360,6 +363,7 @@ export interface SedutaDettaglio {
   id: number
   paziente_id: number
   data: string
+  ora: string | null
   fase_id: number | null
   fase_nome: string | null
   focus: string | null

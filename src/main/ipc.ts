@@ -107,7 +107,13 @@ import { seduteDellaSettimana } from './settimana'
 import { ultimaVoltaPerPaziente } from './ultima-volta'
 import { sedutaPrecedente } from './seduta-precedente'
 import { leggiProfilo, salvaProfilo } from './profilo'
-import { richiedeTesto, validaData, validaNumeroPositivo, validaScala010 } from './validazione'
+import {
+  richiedeTesto,
+  validaData,
+  validaNumeroPositivo,
+  validaOra,
+  validaScala010
+} from './validazione'
 import type {
   TipoChart,
   AnamnesiProssima,
@@ -1353,6 +1359,7 @@ export function registerIpc(): void {
   })
   function validaSeduta(input: SedutaInput): void {
     validaData(input.data, 'La data della seduta', { obbligatoria: true })
+    validaOra(input.ora, "L'orario della seduta")
     validaScala010(input.dolore, 'Il dolore')
     validaScala010(input.sforzo, 'Lo sforzo percepito')
   }
@@ -1363,13 +1370,14 @@ export function registerIpc(): void {
     return db.transaction(() => {
       const sid = db
         .prepare(
-          `INSERT INTO sedute (paziente_id, data, fase_id, focus, dolore, sforzo,
+          `INSERT INTO sedute (paziente_id, data, ora, fase_id, focus, dolore, sforzo,
                                riferito_andamento, riferito, trattamento, note)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
         )
         .run(
           input.paziente_id,
           input.data,
+          input.ora,
           input.fase_id,
           input.focus,
           input.dolore,
@@ -1426,6 +1434,9 @@ export function registerIpc(): void {
         insertFigliSeduta(sid, {
           paziente_id: sorgente.paziente_id,
           data,
+          // L'orario non si copia: e' quello del giorno originale, non di
+          // quello nuovo. Si segna aprendo la seduta del giorno.
+          ora: null,
           fase_id: sorgente.fase_id,
           focus: sorgente.focus,
           // Dolore e sforzo non si copiano: sono come e' andata quella volta,
@@ -1469,11 +1480,12 @@ export function registerIpc(): void {
     const db = getDb()
     db.transaction(() => {
       db.prepare(
-        `UPDATE sedute SET data = ?, fase_id = ?, focus = ?, dolore = ?, sforzo = ?,
+        `UPDATE sedute SET data = ?, ora = ?, fase_id = ?, focus = ?, dolore = ?, sforzo = ?,
            riferito_andamento = ?, riferito = ?, trattamento = ?, note = ?
          WHERE id = ?`
       ).run(
         input.data,
+        input.ora,
         input.fase_id,
         input.focus,
         input.dolore,

@@ -1866,6 +1866,11 @@ details[open] > :not(summary) {
   min-width: 130px;
 }
 
+.ora-field {
+  flex: 0 1 100px;
+  min-width: 90px;
+}
+
 /* Il focus della seduta sta accanto alla data: e' testo libero, quindi un po'
    piu' larga. */
 .focus-field {
@@ -2350,6 +2355,19 @@ details[open] > :not(summary) {
 .seduta-meta {
   font-size: 14px;
   color: var(--text-dim);
+}
+
+/* L'orario dell'appuntamento, nella settimana: una piccola etichetta prima
+   del nome, cosi' si legge insieme a chi viene senza cercarla nel testo. */
+.seduta-ora {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: 6px;
+  padding: 3px 8px;
+  min-width: 46px;
+  text-align: center;
 }
 
 /* Il focus della giornata dentro alla riga della seduta: sta fra la fase e il

@@ -1191,6 +1191,12 @@ export const MIGRATIONS: string[] = [
   //      (paziente_obiettivi), non uno per seduta. Codice morto, si toglie.
   `
   DROP TABLE seduta_obiettivi;
+  `,
+
+  // 47 - l'orario della seduta (facoltativo, formato HH:MM): la settimana si
+  //      legge ordinata per appuntamento, non piu' per cognome del paziente.
+  `
+  ALTER TABLE sedute ADD COLUMN ora TEXT;
   `
 ]
 

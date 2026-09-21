@@ -288,6 +288,9 @@ Finisce nel cestino: puoi rimetterla a posto da Impostazioni entro un mese.`
               <ul className="sedute-list">
                 {g.sedute.map((s) => (
                   <li key={s.id}>
+                    {/* L'orario dell'appuntamento, quando c'e': la settimana e'
+                        gia' ordinata per questo, qui si legge a colpo d'occhio. */}
+                    {s.ora && <span className="seduta-ora">{s.ora}</span>}
                     <div className="seduta-info">
                       {/* Il nome apre la scheda: da qui si passa al paziente
                           senza tornare all'elenco e cercarlo. */}

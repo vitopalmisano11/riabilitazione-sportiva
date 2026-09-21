@@ -83,7 +83,7 @@ db.pragma('foreign_keys = ON')
 
 runMigrations(db)
 runMigrations(db) // idempotente
-assert.equal(db.pragma('user_version', { simple: true }), 46)
+assert.equal(db.pragma('user_version', { simple: true }), 47)
 
 const count = (table: string): number =>
   (db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n
@@ -911,6 +911,21 @@ assert.equal(
   // il focus della giornata arriva fino alla riga della settimana
   assert.equal(sett[0].focus, 'preparazione corsa')
   assert.equal(sett[1].focus, null)
+
+  // Lo stesso giorno, piu' pazienti: l'ordine segue l'orario dell'appuntamento,
+  // chi non ce l'ha segnato resta in fondo alla giornata.
+  const pz3 = ins("INSERT INTO pazienti (nome, cognome) VALUES ('Luca', 'Verdi')")
+  ins("INSERT INTO sedute (paziente_id, data, ora) VALUES (?, '2026-10-08', '15:30')", pz1)
+  ins("INSERT INTO sedute (paziente_id, data, ora) VALUES (?, '2026-10-08', '09:00')", pz2)
+  ins("INSERT INTO sedute (paziente_id, data) VALUES (?, '2026-10-08')", pz3)
+  const giorno = seduteDellaSettimana('2026-10-08', '2026-10-08')
+  assert.equal(giorno.length, 3)
+  assert.equal(giorno[0].ora, '09:00')
+  assert.equal(giorno[0].paziente, 'Rossi Marco')
+  assert.equal(giorno[1].ora, '15:30')
+  assert.equal(giorno[1].paziente, 'Bianchi Anna')
+  assert.equal(giorno[2].ora, null)
+  assert.equal(giorno[2].paziente, 'Verdi Luca')
 }
 
 // --- Le indicazioni per casa in fondo al foglio ---

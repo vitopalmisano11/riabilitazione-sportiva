@@ -49,3 +49,14 @@ export function validaNumeroPositivo(valore: number, etichetta: string): void {
     throw new Error(`${etichetta} deve essere un numero valido.`)
   }
 }
+
+const FORMATO_ORA = /^([01]\d|2[0-3]):[0-5]\d$/
+
+// L'orario di un appuntamento, "HH:MM": facoltativo, `null` vuol dire "non
+// segnato", non un errore.
+export function validaOra(valore: string | null, etichetta: string): void {
+  if (valore == null) return
+  if (!FORMATO_ORA.test(valore)) {
+    throw new Error(`${etichetta} non è un orario valido.`)
+  }
+}
