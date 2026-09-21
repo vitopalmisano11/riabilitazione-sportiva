@@ -107,6 +107,7 @@ import { seduteDellaSettimana } from './settimana'
 import { ultimaVoltaPerPaziente } from './ultima-volta'
 import { sedutaPrecedente } from './seduta-precedente'
 import { leggiProfilo, salvaProfilo } from './profilo'
+import { richiedeTesto, validaData, validaNumeroPositivo, validaScala010 } from './validazione'
 import type {
   TipoChart,
   AnamnesiProssima,
@@ -438,6 +439,7 @@ export function registerIpc(): void {
   )
   handle('valutazioni:get', (id: number) => leggiValutazione(id))
   handle('valutazioni:create', (pazienteId: number, data: string, distrettoIds: number[]) => {
+    validaData(data, 'La data della valutazione', { obbligatoria: true })
     const db = getDb()
     return db.transaction(() => {
       const id = Number(
@@ -505,19 +507,25 @@ export function registerIpc(): void {
   )
   handle(
     'massimali:create',
-    (pazienteId: number, esercizio: string, valore: number, unita: string | null, data: string) =>
-      Number(
+    (pazienteId: number, esercizio: string, valore: number, unita: string | null, data: string) => {
+      richiedeTesto(esercizio, "Il nome dell'esercizio")
+      validaNumeroPositivo(valore, 'Il valore')
+      validaData(data, 'La data', { obbligatoria: true })
+      return Number(
         getDb()
           .prepare(
             'INSERT INTO massimali (paziente_id, esercizio, valore, unita, data) VALUES (?, ?, ?, ?, ?)'
           )
           .run(pazienteId, esercizio.trim(), valore, unita?.trim() || null, data).lastInsertRowid
       )
+    }
   )
   handle('massimali:delete', (id: number) => {
     getDb().prepare('DELETE FROM massimali WHERE id = ?').run(id)
   })
   handle('massimali:setMisure', (pazienteId: number, peso: number | null, altezza: number | null) => {
+    if (peso != null) validaNumeroPositivo(peso, 'Il peso')
+    if (altezza != null) validaNumeroPositivo(altezza, "L'altezza")
     getDb().prepare('UPDATE pazienti SET peso = ?, altezza = ? WHERE id = ?').run(peso, altezza, pazienteId)
   })
 
@@ -942,6 +950,10 @@ export function registerIpc(): void {
       .all()
   )
   handle('pazienti:create', (data: PazienteCreateInput) => {
+    richiedeTesto(data.nome, 'Il nome')
+    richiedeTesto(data.cognome, 'Il cognome')
+    validaData(data.data_nascita, 'La data di nascita')
+    validaData(data.data_intervento, "La data dell'intervento")
     checkFaseCoerente(data.patologia_id, data.fase_corrente_id)
     return Number(
       getDb()
@@ -957,6 +969,10 @@ export function registerIpc(): void {
     )
   })
   handle('pazienti:update', (id: number, data: PazienteInput) => {
+    richiedeTesto(data.nome, 'Il nome')
+    richiedeTesto(data.cognome, 'Il cognome')
+    validaData(data.data_nascita, 'La data di nascita')
+    validaData(data.data_intervento, "La data dell'intervento")
     getDb()
       .prepare(
         `UPDATE pazienti SET nome = @nome, cognome = @cognome,
@@ -1036,13 +1052,17 @@ export function registerIpc(): void {
   handle('screeningSvolti:get', (id: number) => leggiScreening(id))
   handle(
     'screeningSvolti:create',
-    (pazienteId: number, protocolloId: number, data: string) =>
-      creaScreening(pazienteId, protocolloId, data)
+    (pazienteId: number, protocolloId: number, data: string) => {
+      validaData(data, 'La data dello screening', { obbligatoria: true })
+      return creaScreening(pazienteId, protocolloId, data)
+    }
   )
   handle(
     'screeningSvolti:salva',
-    (id: number, data: string, note: string | null, valori: ValoreScreening[]) =>
-      salvaValori(id, data, note, valori)
+    (id: number, data: string, note: string | null, valori: ValoreScreening[]) => {
+      validaData(data, 'La data dello screening', { obbligatoria: true })
+      return salvaValori(id, data, note, valori)
+    }
   )
   handle(
     'screeningSvolti:collegaQuestionario',
@@ -1334,7 +1354,14 @@ export function registerIpc(): void {
     ).map((t) => t.tecnica_id)
     return { ...seduta, tecnica_ids, sezioni }
   })
+  function validaSeduta(input: SedutaInput): void {
+    validaData(input.data, 'La data della seduta', { obbligatoria: true })
+    validaScala010(input.dolore, 'Il dolore')
+    validaScala010(input.sforzo, 'Lo sforzo percepito')
+  }
+
   handle('sedute:create', (input: SedutaInput) => {
+    validaSeduta(input)
     const db = getDb()
     return db.transaction(() => {
       const sid = db
@@ -1441,6 +1468,7 @@ export function registerIpc(): void {
     })()
   })
   handle('sedute:update', (id: number, input: SedutaInput) => {
+    validaSeduta(input)
     const db = getDb()
     db.transaction(() => {
       db.prepare(
