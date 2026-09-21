@@ -2482,6 +2482,26 @@ details[open] > :not(summary) {
   gap: 12px;
 }
 
+/* Due campi sulla stessa riga dentro a una finestra: uno largo (un elenco,
+   di solito) e uno stretto accanto, allineati in basso cosi' le caselle
+   restano alla pari anche se le etichette hanno lunghezze diverse. */
+.riga-campi {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.riga-campi > label {
+  flex: 1;
+  min-width: 160px;
+}
+
+.riga-campi > .ora-field {
+  flex: 0 1 100px;
+  min-width: 90px;
+}
+
 /* Etichetta sopra, casella sotto: fuori dalle finestre modali non c'era
    nessuna regola e le due cose finivano affiancate. */
 .field {

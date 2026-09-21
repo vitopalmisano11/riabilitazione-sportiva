@@ -31,6 +31,8 @@ export default function AggiungiAlGiorno({
   const [scelto, setScelto] = useState<PazienteDettaglio | null>(null)
   const [sue, setSue] = useState<SedutaRiepilogo[] | null>(null)
   const [origine, setOrigine] = useState<number | null>(null)
+  // A che ora viene, quel giorno: facoltativo.
+  const [ora, setOra] = useState('')
 
   useEffect(() => {
     void window.api.pazienti
@@ -63,7 +65,7 @@ export default function AggiungiAlGiorno({
   const aggiungi = async (): Promise<void> => {
     if (origine == null) return
     try {
-      await window.api.sedute.programma(origine, [data])
+      await window.api.sedute.programma(origine, [data], ora || null)
       toast(`Seduta aggiunta al ${formatData(data)}.`)
       onChiudi(true)
     } catch (e) {
@@ -141,20 +143,26 @@ export default function AggiungiAlGiorno({
               </>
             ) : (
               <>
-                <label>
-                  Copia il programma da
-                  <select
-                    value={origine ?? 0}
-                    onChange={(e) => setOrigine(Number(e.target.value))}
-                  >
-                    {sue.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {formatData(s.data)} — {s.num_esercizi}{' '}
-                        {s.num_esercizi === 1 ? 'esercizio' : 'esercizi'}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <div className="riga-campi">
+                  <label className="field">
+                    Copia il programma da
+                    <select
+                      value={origine ?? 0}
+                      onChange={(e) => setOrigine(Number(e.target.value))}
+                    >
+                      {sue.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {formatData(s.data)} — {s.num_esercizi}{' '}
+                          {s.num_esercizi === 1 ? 'esercizio' : 'esercizi'}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="field ora-field">
+                    Ora
+                    <input type="time" value={ora} onChange={(e) => setOra(e.target.value)} />
+                  </label>
+                </div>
                 <p className="hint">
                   La seduta compare nel giorno scelto: poi la apri e cambi quello che serve.
                 </p>

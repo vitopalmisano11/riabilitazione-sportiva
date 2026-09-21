@@ -1257,7 +1257,7 @@ export interface Api {
     create(data: SedutaInput): Promise<number>
     update(id: number, data: SedutaInput): Promise<void>
     // Copia una seduta su piu' date: e' il programma della settimana.
-    programma(origineId: number, date: string[]): Promise<number[]>
+    programma(origineId: number, date: string[], ora?: string | null): Promise<number[]>
     remove(id: number): Promise<void>
   }
   followUp: {

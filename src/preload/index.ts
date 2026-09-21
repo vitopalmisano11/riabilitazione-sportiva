@@ -258,8 +258,8 @@ const api: Api = {
     get: (id: number) => invoke('sedute:get', id),
     create: (data: SedutaInput) => invoke('sedute:create', data),
     update: (id: number, data: SedutaInput) => invoke('sedute:update', id, data),
-    programma: (origineId: number, date: string[]) =>
-      invoke('sedute:programma', origineId, date),
+    programma: (origineId: number, date: string[], ora?: string | null) =>
+      invoke('sedute:programma', origineId, date, ora ?? null),
     remove: (id: number) => invoke('sedute:delete', id)
   },
   followUp: {

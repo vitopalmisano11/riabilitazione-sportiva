@@ -1394,7 +1394,8 @@ export function registerIpc(): void {
   // Programmare la settimana: la stessa seduta copiata su piu' giorni. Chi
   // prepara il lunedi', il mercoledi' e il venerdi' lo fa una volta sola, e poi
   // il giorno stesso apre quella del giorno e cambia i due esercizi che vuole.
-  handle('sedute:programma', (origineId: number, date: string[]) => {
+  handle('sedute:programma', (origineId: number, date: string[], ora: string | null = null) => {
+    validaOra(ora, "L'orario della seduta")
     const db = getDb()
     const sorgente = db.prepare('SELECT * FROM sedute WHERE id = ?').get(origineId) as
       | { paziente_id: number; fase_id: number | null; focus: string | null; note: string | null }
@@ -1427,16 +1428,16 @@ export function registerIpc(): void {
       for (const data of date) {
         const sid = db
           .prepare(
-            'INSERT INTO sedute (paziente_id, data, fase_id, focus, note) VALUES (?, ?, ?, ?, ?)'
+            'INSERT INTO sedute (paziente_id, data, ora, fase_id, focus, note) VALUES (?, ?, ?, ?, ?, ?)'
           )
-          .run(sorgente.paziente_id, data, sorgente.fase_id, sorgente.focus, sorgente.note)
+          .run(sorgente.paziente_id, data, ora, sorgente.fase_id, sorgente.focus, sorgente.note)
           .lastInsertRowid
         insertFigliSeduta(sid, {
           paziente_id: sorgente.paziente_id,
           data,
-          // L'orario non si copia: e' quello del giorno originale, non di
-          // quello nuovo. Si segna aprendo la seduta del giorno.
-          ora: null,
+          // L'orario e' quello scelto per il nuovo appuntamento, non quello
+          // (se mai ce l'aveva) della seduta da cui si copia il programma.
+          ora,
           fase_id: sorgente.fase_id,
           focus: sorgente.focus,
           // Dolore e sforzo non si copiano: sono come e' andata quella volta,
