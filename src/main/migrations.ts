@@ -1183,6 +1183,14 @@ const MIGRATIONS: string[] = [
 
   ALTER TABLE profilo ADD COLUMN codice_fiscale TEXT;
   ALTER TABLE profilo ADD COLUMN partita_iva TEXT;
+  `,
+
+  // 46 - la tabella degli obiettivi della seduta non e' mai stata scritta (il
+  //      diario e l'export la leggevano, ma restava sempre vuota): il modello
+  //      voluto e' quello degli obiettivi raggiunti sul paziente
+  //      (paziente_obiettivi), non uno per seduta. Codice morto, si toglie.
+  `
+  DROP TABLE seduta_obiettivi;
   `
 ]
 

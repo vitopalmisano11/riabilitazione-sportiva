@@ -78,14 +78,6 @@ function leggiSeduta(
     | { paziente_id: number; data: string; note: string | null; fase_nome: string | null }
     | undefined
   if (!s) throw new Error('Seduta non trovata.')
-  const obiettivi = (
-    db
-      .prepare(
-        `SELECT o.nome FROM seduta_obiettivi so JOIN obiettivi o ON o.id = so.obiettivo_id
-         WHERE so.seduta_id = ? ORDER BY o.ordine, o.id`
-      )
-      .all(id) as { nome: string }[]
-  ).map((r) => r.nome)
   const sezioniRows = db
     .prepare('SELECT id, nome FROM seduta_sezioni WHERE seduta_id = ? ORDER BY ordine, id')
     .all(id) as { id: number; nome: string }[]
@@ -115,7 +107,7 @@ function leggiSeduta(
     .filter((sez) => sez.esercizi.length > 0)
   const orfani = esercizi.filter((e) => e.seduta_sezione_id == null).map(spoglia)
   if (orfani.length > 0) sezioni.push({ nome: null, esercizi: orfani })
-  return { ...s, obiettivi, sezioni }
+  return { ...s, sezioni }
 }
 
 function slug(s: string): string {

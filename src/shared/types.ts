@@ -340,7 +340,6 @@ export interface SedutaRiepilogo {
   // le tecniche fatte, gia' in fila: "Tecar · Terapia manuale"
   tecniche_nomi: string | null
   num_esercizi: number
-  obiettivi_nomi: string | null
 }
 
 export type SedutaEsercizioDettaglio = Omit<SedutaEsercizioInput, 'sezioneIndex'> & {

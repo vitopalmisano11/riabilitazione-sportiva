@@ -38,7 +38,6 @@ export interface DatiSedutaExport {
   data: string
   fase_nome: string | null
   note: string | null
-  obiettivi: string[]
   sezioni: {
     nome: string | null // null = esercizi senza sezione (sedute v1)
     esercizi: {
@@ -219,11 +218,6 @@ export function generaHtml(
         // nella scheda illustrata, che va al paziente, la fase non si scrive
         s.fase_nome && !illustrata ? ` <span class="fase">· ${esc(s.fase_nome)}</span>` : ''
       }</h2>
-      ${
-        s.obiettivi.length
-          ? `<p class="obiettivi"><strong>Obiettivi:</strong> ${s.obiettivi.map(esc).join(', ')}</p>`
-          : ''
-      }
       ${s.sezioni
         .map(
           (sez) => `
@@ -258,7 +252,6 @@ export function generaHtml(
                  font-size: 10.5px; font-weight: 600;
                  text-transform: uppercase; letter-spacing: 0.05em; }
   .nuova-pagina { page-break-before: always; }
-  .obiettivi { margin: 0 0 8px; }
   .gruppo-esercizi { margin: 0 0 8px; page-break-inside: avoid; }
   .gruppo-esercizi .cat { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
                           color: ${accento}; margin-bottom: 2px; }
@@ -370,18 +363,6 @@ export async function generaDocx(
         pageBreakBefore: i > 0
       })
     )
-    if (s.obiettivi.length > 0) {
-      children.push(
-        new Paragraph({
-          children: [
-            new TextRun({ text: 'Obiettivi: ', bold: true }),
-            new TextRun(s.obiettivi.join(', '))
-          ],
-          spacing: { after: 150 }
-        })
-      )
-    }
-
     for (const sez of s.sezioni) {
       if (sez.nome) {
         children.push(

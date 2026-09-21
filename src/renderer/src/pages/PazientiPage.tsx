@@ -940,7 +940,6 @@ function DiarioCard({
                 {s.focus && <span className="seduta-focus">{s.focus}</span>}
                 {s.dolore != null && ` · dolore ${s.dolore}/10`}
               </span>
-              {s.obiettivi_nomi && <span className="seduta-obiettivi">{s.obiettivi_nomi}</span>}
               {/* Sotto alla data, il trattamento fatto. */}
               {(s.tecniche_nomi || s.trattamento) && (
                 <span className="riga-diario-elenco">

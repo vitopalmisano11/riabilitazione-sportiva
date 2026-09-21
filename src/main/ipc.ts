@@ -1243,10 +1243,7 @@ export function registerIpc(): void {
            (SELECT GROUP_CONCAT(t.nome, ' · ')
               FROM seduta_tecniche st JOIN tecniche t ON t.id = st.tecnica_id
               WHERE st.seduta_id = s.id) AS tecniche_nomi,
-           (SELECT COUNT(*) FROM seduta_esercizi se WHERE se.seduta_id = s.id) AS num_esercizi,
-           (SELECT GROUP_CONCAT(o.nome, ' · ')
-              FROM seduta_obiettivi so JOIN obiettivi o ON o.id = so.obiettivo_id
-              WHERE so.seduta_id = s.id) AS obiettivi_nomi
+           (SELECT COUNT(*) FROM seduta_esercizi se WHERE se.seduta_id = s.id) AS num_esercizi
          FROM sedute s
          LEFT JOIN fasi f ON f.id = s.fase_id
          WHERE s.paziente_id = ?
@@ -1489,7 +1486,6 @@ export function registerIpc(): void {
       )
       db.prepare('DELETE FROM segno_valori WHERE seduta_id = ?').run(id)
       db.prepare('DELETE FROM seduta_tecniche WHERE seduta_id = ?').run(id)
-      db.prepare('DELETE FROM seduta_obiettivi WHERE seduta_id = ?').run(id)
       db.prepare('DELETE FROM seduta_esercizi WHERE seduta_id = ?').run(id)
       db.prepare('DELETE FROM seduta_sezioni WHERE seduta_id = ?').run(id)
       insertFigliSeduta(id, input)
