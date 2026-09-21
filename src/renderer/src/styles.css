@@ -2513,11 +2513,6 @@ details[open] > :not(summary) {
 /* Menu a tendina disegnato dal programma (MenuScelta): il bottone ha lo
    stesso aspetto delle caselle e dei menu nativi, cosi' non si vede la
    differenza finche' non si apre. */
-.menu-scelta {
-  position: relative;
-  min-width: 0;
-}
-
 .menu-scelta-bottone {
   width: 100%;
   display: flex;
@@ -2547,12 +2542,13 @@ details[open] > :not(summary) {
   color: var(--text-dim);
 }
 
+/* position: fixed e non absolute: cosi' l'elenco si disegna sopra a tutto,
+   anche dentro a una finestra modale che altrimenti taglierebbe quello che
+   sfora dai suoi bordi. La posizione esatta (sotto al bottone) la calcola
+   il componente e arriva come stile in linea. */
 .menu-scelta-lista {
-  position: absolute;
+  position: fixed;
   z-index: 30;
-  top: calc(100% + 4px);
-  left: 0;
-  right: 0;
   max-height: 260px;
   overflow-y: auto;
   margin: 0;

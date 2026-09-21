@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { ChevronDown } from 'lucide-react'
 
 // Un menu a tendina disegnato dal programma, non quello del sistema.
@@ -8,6 +9,11 @@ import { ChevronDown } from 'lucide-react'
 // spazio si apre verso l'alto invece che verso il basso. Questo menu invece
 // e' html vero e proprio, quindi ha l'aspetto del resto del programma e sta
 // sempre sotto alla casella, scorrendo dentro di se' se le voci sono tante.
+//
+// L'elenco si disegna fuori dalla finestra che lo contiene (con un portale,
+// dentro <body>, in posizione "fixed"): dentro a una finestra modale, che si
+// taglia da sola quello che sfora, l'elenco restava schiacciato dentro ai
+// bordi della finestra invece di aprirsi per intero sopra a tutto.
 export interface OpzioneMenu<T extends string | number> {
   valore: T
   etichetta: string
@@ -29,31 +35,56 @@ export default function MenuScelta<T extends string | number>({
   id?: string
 }): React.JSX.Element {
   const [aperto, setAperto] = useState(false)
-  const rif = useRef<HTMLDivElement>(null)
+  const [posizione, setPosizione] = useState<{ top: number; left: number; width: number } | null>(
+    null
+  )
+  const bottoneRif = useRef<HTMLButtonElement>(null)
+  const listaRif = useRef<HTMLUListElement>(null)
+
+  const posiziona = (): void => {
+    const r = bottoneRif.current?.getBoundingClientRect()
+    if (r) setPosizione({ top: r.bottom + 4, left: r.left, width: r.width })
+  }
+
+  useLayoutEffect(() => {
+    if (aperto) posiziona()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aperto])
 
   useEffect(() => {
     if (!aperto) return
     const chiudiFuori = (e: MouseEvent): void => {
-      if (rif.current && !rif.current.contains(e.target as Node)) setAperto(false)
+      const t = e.target as Node
+      if (bottoneRif.current?.contains(t)) return
+      if (listaRif.current?.contains(t)) return
+      setAperto(false)
     }
     const chiudiEsc = (e: KeyboardEvent): void => {
       if (e.key === 'Escape') setAperto(false)
     }
+    // La finestra puo' scorrere o cambiare misura mentre il menu e' aperto:
+    // l'elenco segue il bottone, invece di restare appeso dov'era.
     document.addEventListener('mousedown', chiudiFuori)
     document.addEventListener('keydown', chiudiEsc)
+    window.addEventListener('scroll', posiziona, true)
+    window.addEventListener('resize', posiziona)
     return () => {
       document.removeEventListener('mousedown', chiudiFuori)
       document.removeEventListener('keydown', chiudiEsc)
+      window.removeEventListener('scroll', posiziona, true)
+      window.removeEventListener('resize', posiziona)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aperto])
 
   const scelta = opzioni.find((o) => o.valore === valore)
 
   return (
-    <div className="menu-scelta" ref={rif}>
+    <>
       <button
         type="button"
         id={id}
+        ref={bottoneRif}
         className="menu-scelta-bottone"
         onClick={() => setAperto((a) => !a)}
       >
@@ -62,38 +93,46 @@ export default function MenuScelta<T extends string | number>({
         </span>
         <ChevronDown size={16} />
       </button>
-      {aperto && (
-        <ul className="menu-scelta-lista" role="listbox">
-          {placeholder != null && (
-            <li>
-              <button
-                type="button"
-                className={valore === '' ? 'scelta-attiva' : ''}
-                onClick={() => {
-                  onScegli('')
-                  setAperto(false)
-                }}
-              >
-                {placeholder}
-              </button>
-            </li>
-          )}
-          {opzioni.map((o) => (
-            <li key={o.valore}>
-              <button
-                type="button"
-                className={o.valore === valore ? 'scelta-attiva' : ''}
-                onClick={() => {
-                  onScegli(o.valore)
-                  setAperto(false)
-                }}
-              >
-                {o.etichetta}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+      {aperto &&
+        posizione &&
+        createPortal(
+          <ul
+            ref={listaRif}
+            className="menu-scelta-lista"
+            role="listbox"
+            style={{ top: posizione.top, left: posizione.left, width: posizione.width }}
+          >
+            {placeholder != null && (
+              <li>
+                <button
+                  type="button"
+                  className={valore === '' ? 'scelta-attiva' : ''}
+                  onClick={() => {
+                    onScegli('')
+                    setAperto(false)
+                  }}
+                >
+                  {placeholder}
+                </button>
+              </li>
+            )}
+            {opzioni.map((o) => (
+              <li key={o.valore}>
+                <button
+                  type="button"
+                  className={o.valore === valore ? 'scelta-attiva' : ''}
+                  onClick={() => {
+                    onScegli(o.valore)
+                    setAperto(false)
+                  }}
+                >
+                  {o.etichetta}
+                </button>
+              </li>
+            ))}
+          </ul>,
+          document.body
+        )}
+    </>
   )
 }
