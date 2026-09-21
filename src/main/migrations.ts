@@ -2,7 +2,7 @@ import type Database from 'better-sqlite3-multiple-ciphers'
 
 // Ogni voce è una migrazione; l'indice + 1 corrisponde a PRAGMA user_version.
 // Mai modificare una migrazione già rilasciata: aggiungerne una nuova in coda.
-const MIGRATIONS: string[] = [
+export const MIGRATIONS: string[] = [
   // 1 — schema iniziale
   `
   CREATE TABLE patologie (

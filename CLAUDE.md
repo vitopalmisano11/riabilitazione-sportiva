@@ -42,6 +42,8 @@ npm run typecheck  # obbligatorio prima di committare
 npm run build      # build di produzione in out/
 npm run smoke:app  # test db/auth/export — da preferire, gira con l'ABI dell'app
 npm run smoke      # stesso test con Node — richiede la ricompilazione, vedi sotto
+npm run smoke:ripristino  # prova del ripristino delle copie e dell'aggiornamento di un archivio
+                   # vecchio — solo in locale, non in CI (avvia Electron per davvero)
 npm run dev:reset  # azzera i dati di sviluppo (li archivia, non li cancella)
 npm run build:win  # installer Windows in dist/
 ```
@@ -71,6 +73,14 @@ npm run smoke
 npx @electron/rebuild -f -m .                 # -> Electron, per far ripartire l'app (il -f e' obbligatorio)
 ```
 Se l'app si avvia "muta" senza finestra, è quasi sempre questo: rilanciare l'ultimo comando.
+
+`npm run smoke:ripristino` sta un gradino più in là: gli servono le **vere** API di Electron
+(`app.getPath`/`setPath`, da cui passano `impostazioni.ts` e `backup.ts`), che sotto
+`ELECTRON_RUN_AS_NODE=1` non ci sono. `scripts/smoke-ripristino.js` riavvia quindi se stesso
+dentro a Electron avviato per davvero (togliendo `ELECTRON_RUN_AS_NODE` dall'ambiente) ed esegue
+`scripts/smoke-ripristino.ts` con il loader di `tsx`. ABI già giusta, nessuna ricompilazione in
+più. Resta fuori dalla CI, che gira su Linux senza un vero Electron: va lanciato a mano quando si
+tocca `backup.ts`, `db.ts` o le migrazioni. Lavora solo in cartelle temporanee.
 
 ## Release
 1. Aggiornare `version` in `package.json` e la sezione novità nel `README.md`.

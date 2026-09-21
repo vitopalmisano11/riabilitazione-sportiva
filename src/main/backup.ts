@@ -252,7 +252,11 @@ export function controllaBackup(nome: string): EsitoControllo {
 // Database e chiavi devono restare una coppia: un database senza il suo
 // auth.json non si riapre piu'. Per questo si pretendono tutti e due, e le due
 // rinomine stanno una dietro l'altra, senza niente in mezzo.
-export function ripristinaBackup(nome: string): void {
+//
+// La sostituzione vera e propria sta qui, staccata dal riavvio: cosi' la si puo'
+// mettere alla prova da sola (scripts/smoke-ripristino.ts), senza che la prova
+// si chiuda il programma sotto i piedi.
+export function eseguiRipristino(nome: string): void {
   // Si guarda dentro la copia prima di toccare qualunque cosa: se non si apre,
   // il ripristino non parte nemmeno.
   const esito = controllaBackup(nome)
@@ -306,7 +310,12 @@ export function ripristinaBackup(nome: string): void {
   renameSync(dbNuovo, join(dest, DB))
   renameSync(authNuovo, join(dest, AUTH))
   ripulisci()
+}
 
+// Quello che succede all'utente: l'archivio viene sostituito e il programma si
+// riapre da solo sui dati appena ripristinati.
+export function ripristinaBackup(nome: string): void {
+  eseguiRipristino(nome)
   app.relaunch()
   app.exit(0)
 }
