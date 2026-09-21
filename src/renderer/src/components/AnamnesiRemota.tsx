@@ -69,7 +69,16 @@ export default function AnamnesiRemota({
       .catch((e) => toastErrore(errMsg(e)))
     void caricaReferti()
     return () => {
-      if (attesa.current) clearTimeout(attesa.current)
+      // Cambiando paziente (o scheda) mentre questa e' aperta, il componente
+      // si smonta subito, senza passare dal pulsante "Chiudi": senza questo,
+      // il salvataggio in attesa veniva solo annullato e l'ultima frase
+      // scritta andava persa in silenzio. Qui si esegue comunque, senza
+      // toccare lo stato del componente: non c'e' piu'.
+      if (!attesa.current) return
+      clearTimeout(attesa.current)
+      const d = daSalvare.current
+      daSalvare.current = null
+      if (d) void window.api.anamnesi.salvaRemota(pazienteId, d).catch((e) => toastErrore(errMsg(e)))
     }
   }, [pazienteId, caricaReferti])
 

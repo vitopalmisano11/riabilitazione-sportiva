@@ -126,9 +126,24 @@ export default function AnamnesiProssima({
 
   useEffect(() => {
     return () => {
-      if (attesa.current) clearTimeout(attesa.current)
+      // Chiudendo la scheda (o cambiando paziente) il componente si smonta
+      // subito, prima che il secondo e mezzo sia passato: senza questo,
+      // l'ultima frase scritta andava persa in silenzio, perche' il
+      // salvataggio in attesa veniva solo annullato. Qui invece si esegue,
+      // senza toccare lo stato del componente: non c'e' piu'.
+      if (!attesa.current) return
+      clearTimeout(attesa.current)
+      const d = daSalvare.current
+      const a = attivitaDaSalvare.current
+      daSalvare.current = null
+      attivitaDaSalvare.current = null
+      if (d) void window.api.anamnesi.salva(pazienteId, d).catch((e) => toastErrore(errMsg(e)))
+      if (a)
+        void window.api.anamnesi
+          .salvaAttivita(pazienteId, a)
+          .catch((e) => toastErrore(errMsg(e)))
     }
-  }, [])
+  }, [pazienteId])
 
   if (!dati) {
     return (
