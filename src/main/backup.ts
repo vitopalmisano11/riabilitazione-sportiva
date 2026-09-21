@@ -12,11 +12,12 @@ import {
   existsSync,
   mkdirSync,
   readdirSync,
+  renameSync,
   rmSync,
   statSync
 } from 'fs'
 import { join, sep } from 'path'
-import { apriAltroDb, getDb } from './db'
+import { apriAltroDb, closeDb, getDb, riapriDb } from './db'
 import {
   cartellaBackup,
   backupAttivo,
@@ -186,21 +187,14 @@ export interface EsitoControllo {
   ultimaSeduta?: string | null
 }
 
-export function controllaBackup(nome: string): EsitoControllo {
-  if (!NOME_BACKUP.test(nome)) return { ok: false, messaggio: 'Copia di sicurezza non valida.' }
-  const dir = join(cartellaBackup(), nome)
-  if (!existsSync(join(dir, DB))) {
-    return { ok: false, messaggio: 'In questa copia manca il database.' }
-  }
-  if (!existsSync(join(dir, AUTH))) {
-    return {
-      ok: false,
-      messaggio: 'In questa copia manca auth.json: senza le chiavi il database non si apre.'
-    }
-  }
+// Guarda dentro a un file di database, in disparte e in sola lettura, senza
+// toccare l'archivio in uso. Serve due volte: per controllare una copia prima
+// di averne bisogno, e per controllare il file appena copiato durante un
+// ripristino, prima di lasciargli prendere il posto dell'archivio.
+function ispeziona(percorsoDb: string): EsitoControllo {
   let conn: ReturnType<typeof apriAltroDb> | null = null
   try {
-    conn = apriAltroDb(join(dir, DB))
+    conn = apriAltroDb(percorsoDb)
     const male = conn.pragma('integrity_check', { simple: true })
     if (male !== 'ok') {
       return { ok: false, messaggio: `Il database di questa copia è danneggiato (${male}).` }
@@ -230,25 +224,88 @@ export function controllaBackup(nome: string): EsitoControllo {
   }
 }
 
-// Ripristino: prima si mette al sicuro lo stato attuale, poi si riportano
-// indietro i due file. L'app si riavvia perche' il database va riaperto da zero.
-export function ripristinaBackup(nome: string): void {
-  if (!NOME_BACKUP.test(nome)) throw new Error('Copia di sicurezza non valida.')
-  const sorgente = join(cartellaBackup(), nome)
-  const db = join(sorgente, DB)
-  if (!existsSync(db)) throw new Error('Questa copia non contiene il database.')
+export function controllaBackup(nome: string): EsitoControllo {
+  if (!NOME_BACKUP.test(nome)) return { ok: false, messaggio: 'Copia di sicurezza non valida.' }
+  const dir = join(cartellaBackup(), nome)
+  if (!existsSync(join(dir, DB))) {
+    return { ok: false, messaggio: 'In questa copia manca il database.' }
+  }
+  if (!existsSync(join(dir, AUTH))) {
+    return {
+      ok: false,
+      messaggio: 'In questa copia manca auth.json: senza le chiavi il database non si apre.'
+    }
+  }
+  return ispeziona(join(dir, DB))
+}
 
+// Ripristino: l'archivio in uso viene sostituito solo alla fine, quando i file
+// nuovi sono gia' sul disco e si e' visto che si aprono.
+//
+// Il modo pericoloso sarebbe scrivere la copia direttamente sopra all'archivio,
+// che e' quello che si faceva prima: se la copia si interrompe a meta' (il disco
+// esterno che si stacca, lo spazio che finisce) l'archivio buono non c'e' piu' e
+// quello nuovo non e' finito. Qui invece i due file arrivano prima accanto ai
+// loro, con un nome provvisorio; solo dopo che si sono aperti davvero prendono
+// il loro posto con una rinomina, che non copia niente e dura un istante.
+//
+// Database e chiavi devono restare una coppia: un database senza il suo
+// auth.json non si riapre piu'. Per questo si pretendono tutti e due, e le due
+// rinomine stanno una dietro l'altra, senza niente in mezzo.
+export function ripristinaBackup(nome: string): void {
+  // Si guarda dentro la copia prima di toccare qualunque cosa: se non si apre,
+  // il ripristino non parte nemmeno.
+  const esito = controllaBackup(nome)
+  if (!esito.ok) {
+    throw new Error(`${esito.messaggio} Il ripristino non è stato fatto: il tuo archivio è rimasto com'era.`)
+  }
+
+  const sorgente = join(cartellaBackup(), nome)
+  // Rete di sicurezza: lo stato di adesso, prima di cambiarlo. Va fatto mentre
+  // il database e' ancora aperto, perche' serve il checkpoint del giornale.
   eseguiBackup('prima-del-ripristino_')
 
   const dest = cartellaDati()
-  copyFileSync(db, join(dest, DB))
-  const auth = join(sorgente, AUTH)
-  if (existsSync(auth)) copyFileSync(auth, join(dest, AUTH))
-  // il giornale della sessione precedente non vale piu' per il file ripristinato
-  for (const extra of [`${DB}-wal`, `${DB}-shm`]) {
-    const f = join(dest, extra)
-    if (existsSync(f)) rmSync(f, { force: true })
+  const dbNuovo = join(dest, `${DB}.nuovo`)
+  const authNuovo = join(dest, `${AUTH}.nuovo`)
+  // Controllare il file provvisorio vuol dire aprirlo, e aprirlo lascia accanto
+  // i due file di servizio di SQLite. La rinomina non se li porta dietro, quindi
+  // vanno tolti a mano: se restassero, il prossimo ripristino troverebbe il
+  // giornale di quello di prima.
+  const ripulisci = (): void => {
+    for (const f of [dbNuovo, authNuovo, `${dbNuovo}-wal`, `${dbNuovo}-shm`]) {
+      rmSync(f, { force: true })
+    }
   }
+
+  // Da qui l'archivio non e' piu' aperto: il file deve essere libero, altrimenti
+  // su Windows non si puo' sostituire.
+  closeDb()
+  ripulisci() // resti di un ripristino interrotto male
+  try {
+    copyFileSync(join(sorgente, DB), dbNuovo)
+    copyFileSync(join(sorgente, AUTH), authNuovo)
+    // Non basta che la copia di partenza fosse buona: si controlla quella
+    // appena arrivata, perche' e' lei che diventera' l'archivio.
+    const arrivato = ispeziona(dbNuovo)
+    if (!arrivato.ok) throw new Error(arrivato.messaggio)
+  } catch (e) {
+    // Niente e' stato sostituito: si buttano i file provvisori e si torna a
+    // lavorare sull'archivio di prima, che non e' mai stato toccato.
+    ripulisci()
+    riapriDb(join(dest, DB))
+    throw new Error(
+      `${e instanceof Error ? e.message : String(e)} Il ripristino non è stato fatto: il tuo archivio è rimasto com'era.`
+    )
+  }
+
+  // Il giornale della sessione di prima non vale piu' per il file nuovo.
+  for (const extra of [`${DB}-wal`, `${DB}-shm`]) {
+    rmSync(join(dest, extra), { force: true })
+  }
+  renameSync(dbNuovo, join(dest, DB))
+  renameSync(authNuovo, join(dest, AUTH))
+  ripulisci()
 
   app.relaunch()
   app.exit(0)
