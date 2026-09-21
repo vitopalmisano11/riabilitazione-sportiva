@@ -362,58 +362,60 @@ function NuovoScreening({
   }
 
   return (
-    <section className="card">
-      <h3>Nuovo screening</h3>
-      {protocolli.length === 0 && (
-        <p className="hint">
-          Non hai ancora protocolli: creane uno in Configurazione, scheda &ldquo;Screening&rdquo;.
-        </p>
-      )}
-      <div className="riga-nuovo-screening">
-        <label>
-          Paziente
-          <select
-            value={pazienteId}
-            onChange={(e) => setPazienteId(e.target.value === '' ? '' : Number(e.target.value))}
+    <div className="modal-overlay" onClick={onAnnulla}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <h3>Nuovo screening</h3>
+        {protocolli.length === 0 && (
+          <p className="hint">
+            Non hai ancora protocolli: creane uno in Configurazione, scheda &ldquo;Screening&rdquo;.
+          </p>
+        )}
+        <div className="riga-campi">
+          <label>
+            Paziente
+            <select
+              value={pazienteId}
+              onChange={(e) => setPazienteId(e.target.value === '' ? '' : Number(e.target.value))}
+            >
+              <option value="">— scegli —</option>
+              {pazienti.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.cognome} {p.nome}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Protocollo
+            <select
+              value={protocolloId}
+              onChange={(e) => setProtocolloId(e.target.value === '' ? '' : Number(e.target.value))}
+            >
+              <option value="">— scegli —</option>
+              {protocolli.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.sport} · {p.nome}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="data-field">
+            Data
+            <input type="date" value={data} onChange={(e) => setData(e.target.value)} />
+          </label>
+        </div>
+        <div className="modal-actions">
+          <button onClick={onAnnulla}>Annulla</button>
+          <button
+            className="primary"
+            disabled={pazienteId === '' || protocolloId === ''}
+            onClick={() => void crea()}
           >
-            <option value="">— scegli —</option>
-            {pazienti.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.cognome} {p.nome}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Protocollo
-          <select
-            value={protocolloId}
-            onChange={(e) => setProtocolloId(e.target.value === '' ? '' : Number(e.target.value))}
-          >
-            <option value="">— scegli —</option>
-            {protocolli.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.sport} · {p.nome}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Data
-          <input type="date" value={data} onChange={(e) => setData(e.target.value)} />
-        </label>
+            Comincia
+          </button>
+        </div>
       </div>
-      <div className="modal-actions">
-        <button onClick={onAnnulla}>Annulla</button>
-        <button
-          className="primary"
-          disabled={pazienteId === '' || protocolloId === ''}
-          onClick={() => void crea()}
-        >
-          Comincia
-        </button>
-      </div>
-    </section>
+    </div>
   )
 }
 
@@ -539,9 +541,6 @@ function Esecuzione({
           >
             <FileText size={16} /> Report
           </button>
-          <button className="primary" disabled={!modificato} onClick={() => void salva()}>
-            <Save size={16} /> Salva
-          </button>
         </span>
       </header>
 
@@ -607,6 +606,18 @@ function Esecuzione({
           />
         </label>
       </section>
+
+      {/* Il salvataggio sta in fondo, dopo l'ultimo test: e' li' che si arriva
+          finendo di scrivere i numeri, non tornando su fino in cima. */}
+      <div className="azioni-fine-pagina">
+        <button
+          className="primary pulsante-grande"
+          disabled={!modificato}
+          onClick={() => void salva()}
+        >
+          <Save size={18} /> Salva
+        </button>
+      </div>
 
       {/* Il questionario si compila da qui e si salva nella scheda del paziente
           come tutti gli altri, con la sua data: allo screening resta collegato,

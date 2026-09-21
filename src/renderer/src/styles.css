@@ -2502,6 +2502,11 @@ details[open] > :not(summary) {
   min-width: 90px;
 }
 
+.riga-campi > .data-field {
+  flex: 0 1 140px;
+  min-width: 130px;
+}
+
 /* Etichetta sopra, casella sotto: fuori dalle finestre modali non c'era
    nessuna regola e le due cose finivano affiancate. */
 .field {
@@ -4147,6 +4152,9 @@ input[type='checkbox'].interruttore:focus-visible {
 .scelta-coppia button {
   padding: 6px 12px;
   font-size: 15px;
+  /* "Sì" e "No" alla stessa larghezza: senza, il testo piu' corto lasciava
+     un pulsante piu' stretto dell'altro. */
+  min-width: 46px;
 }
 
 /* Una domanda si'/no con il dettaglio accanto: il nome sopra, i due pulsanti
@@ -4362,6 +4370,7 @@ input[type='checkbox'].interruttore:focus-visible {
 .riga-sino .scelta-coppia button {
   padding: 3px 12px;
   font-size: 14px;
+  min-width: 42px;
 }
 
 /* testata del grafico: titolo a sinistra, svuota a destra */
@@ -4971,10 +4980,13 @@ input[type='checkbox'].interruttore:focus-visible {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 6px;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--bg);
 }
 
 .voce-nome {
+  font-size: 16px;
   font-weight: 600;
 }
 
@@ -5033,12 +5045,20 @@ input[type='checkbox'].interruttore:focus-visible {
   font-weight: 600;
 }
 
-/* Nuovo screening: paziente, protocollo e data sulla stessa riga, staccati. */
-.riga-nuovo-screening {
-  display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 2fr) minmax(0, 1fr);
-  gap: 16px;
+/* Il salvataggio di uno screening, in fondo alla pagina invece che in cima:
+   si arriva li' scrivendo l'ultimo numero, e conviene piu' grande perche' e'
+   il pulsante che si preme piu' spesso in questa schermata. */
+.azioni-fine-pagina {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
 }
+
+.pulsante-grande {
+  padding: 13px 26px;
+  font-size: 16px;
+}
+
 
 /* Uno screening svolto: nome, protocollo, sport e data incolonnati, tutto su
    una riga sola. */
@@ -5144,23 +5164,23 @@ input[type='checkbox'].interruttore:focus-visible {
   justify-content: flex-start;
 }
 
-/* Titolo a sinistra e tendina della categoria a destra, sopra all'elenco dei
-   test da aggiungere. */
+/* Ricerca per nome e tendina della categoria affiancate, sopra all'elenco dei
+   test o questionari da aggiungere: stesso formato dei menu e delle caselle
+   usati nel resto del programma, non piu' piccoli apposta. */
 .riga-filtro {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
   margin-bottom: 6px;
 }
 
-.riga-filtro .sotto-titolo {
-  margin: 0;
+.riga-filtro input[type='search'] {
+  flex: 1;
+  min-width: 0;
 }
 
 .riga-filtro select {
-  padding: 5px 10px;
-  font-size: 14px;
+  flex: 0 0 auto;
 }
 
 /* Iconcina rotonda accanto a un titolo: apre una spiegazione, non un'azione. */

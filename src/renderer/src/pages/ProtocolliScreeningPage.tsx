@@ -287,9 +287,12 @@ function Editor({
   const [catTest, setCatTest] = useState<CategoriaTest[]>([])
   const [catQuest, setCatQuest] = useState<CategoriaQuestionario[]>([])
   // Categoria scelta nelle due tendine: con molti test in libreria scorrerli
-  // tutti sarebbe impraticabile.
+  // tutti sarebbe impraticabile. La ricerca per nome affianca la categoria,
+  // per quando si sa gia' cosa si cerca.
   const [filtroTest, setFiltroTest] = useState<number | ''>('')
   const [filtroQuest, setFiltroQuest] = useState<number | ''>('')
+  const [ricercaTest, setRicercaTest] = useState('')
+  const [ricercaQuest, setRicercaQuest] = useState('')
   const [modificato, setModificato] = useState(false)
   // uscendo con modifiche non salvate, si salvano da sole
   const salvaUscendo = useSalvaUscendo(modificato)
@@ -445,8 +448,14 @@ function Editor({
 
             {aggiungiA === i ? (
               <div className="aggiungi-area">
+                <div className="sotto-titolo">Test di valutazione</div>
                 <div className="riga-filtro">
-                  <div className="sotto-titolo">Test di valutazione</div>
+                  <input
+                    type="search"
+                    placeholder="Cerca un test per nome…"
+                    value={ricercaTest}
+                    onChange={(e) => setRicercaTest(e.target.value)}
+                  />
                   <select
                     value={filtroTest}
                     onChange={(e) =>
@@ -464,6 +473,7 @@ function Editor({
                 <ul className="esercizi-proposti">
                   {test
                     .filter((t) => filtroTest === '' || t.categoria_id === filtroTest)
+                    .filter((t) => t.nome.toLowerCase().includes(ricercaTest.trim().toLowerCase()))
                     .filter((t) => !giaDentro.has(`t${t.id}`))
                     .map((t) => (
                       <li key={t.id}>
@@ -485,12 +495,19 @@ function Editor({
                     ))}
                   {test
                     .filter((t) => filtroTest === '' || t.categoria_id === filtroTest)
+                    .filter((t) => t.nome.toLowerCase().includes(ricercaTest.trim().toLowerCase()))
                     .every((t) => giaDentro.has(`t${t.id}`)) && (
-                    <li className="hint">Nessun test da aggiungere in questa categoria.</li>
+                    <li className="hint">Nessun test da aggiungere.</li>
                   )}
                 </ul>
+                <div className="sotto-titolo">Questionari</div>
                 <div className="riga-filtro">
-                  <div className="sotto-titolo">Questionari</div>
+                  <input
+                    type="search"
+                    placeholder="Cerca un questionario per nome…"
+                    value={ricercaQuest}
+                    onChange={(e) => setRicercaQuest(e.target.value)}
+                  />
                   <select
                     value={filtroQuest}
                     onChange={(e) =>
@@ -508,6 +525,7 @@ function Editor({
                 <ul className="esercizi-proposti">
                   {questionari
                     .filter((q) => filtroQuest === '' || q.categoria_id === filtroQuest)
+                    .filter((q) => q.nome.toLowerCase().includes(ricercaQuest.trim().toLowerCase()))
                     .filter((q) => !giaDentro.has(`q${q.id}`))
                     .map((q) => (
                       <li key={q.id}>
@@ -529,8 +547,9 @@ function Editor({
                     ))}
                   {questionari
                     .filter((q) => filtroQuest === '' || q.categoria_id === filtroQuest)
+                    .filter((q) => q.nome.toLowerCase().includes(ricercaQuest.trim().toLowerCase()))
                     .every((q) => giaDentro.has(`q${q.id}`)) && (
-                    <li className="hint">Nessun questionario da aggiungere in questa categoria.</li>
+                    <li className="hint">Nessun questionario da aggiungere.</li>
                   )}
                 </ul>
                 <div className="modal-actions">
