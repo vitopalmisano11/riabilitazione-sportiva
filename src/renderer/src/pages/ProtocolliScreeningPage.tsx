@@ -15,6 +15,7 @@ import { chiedi } from '../components/Conferma'
 import { errMsg } from '../lib'
 import { useRileggiDopoSalvataggio, useSalvaUscendo } from '../salvaUscendo'
 import PunteggioCluster from '../components/PunteggioCluster'
+import MenuScelta from '../components/MenuScelta'
 
 // Protocolli di screening, uno per sport: qui si programmano, non si eseguono.
 // L'esecuzione su un paziente sta nella sezione "Return To Play".
@@ -456,19 +457,15 @@ function Editor({
                     value={ricercaTest}
                     onChange={(e) => setRicercaTest(e.target.value)}
                   />
-                  <select
-                    value={filtroTest}
-                    onChange={(e) =>
-                      setFiltroTest(e.target.value === '' ? '' : Number(e.target.value))
-                    }
-                  >
-                    <option value="">tutte le categorie</option>
-                    {catTest.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.nome}
-                      </option>
-                    ))}
-                  </select>
+                  <label className="campo-categorie">
+                    Categorie
+                    <MenuScelta
+                      placeholder="tutte le categorie"
+                      valore={filtroTest}
+                      opzioni={catTest.map((c) => ({ valore: c.id, etichetta: c.nome }))}
+                      onScegli={setFiltroTest}
+                    />
+                  </label>
                 </div>
                 <ul className="esercizi-proposti">
                   {test
@@ -508,19 +505,15 @@ function Editor({
                     value={ricercaQuest}
                     onChange={(e) => setRicercaQuest(e.target.value)}
                   />
-                  <select
-                    value={filtroQuest}
-                    onChange={(e) =>
-                      setFiltroQuest(e.target.value === '' ? '' : Number(e.target.value))
-                    }
-                  >
-                    <option value="">tutte le categorie</option>
-                    {catQuest.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.nome}
-                      </option>
-                    ))}
-                  </select>
+                  <label className="campo-categorie">
+                    Categorie
+                    <MenuScelta
+                      placeholder="tutte le categorie"
+                      valore={filtroQuest}
+                      opzioni={catQuest.map((c) => ({ valore: c.id, etichetta: c.nome }))}
+                      onScegli={setFiltroQuest}
+                    />
+                  </label>
                 </div>
                 <ul className="esercizi-proposti">
                   {questionari

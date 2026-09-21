@@ -2503,8 +2503,84 @@ details[open] > :not(summary) {
 }
 
 .riga-campi > .data-field {
-  flex: 0 1 140px;
-  min-width: 130px;
+  /* un po' piu' larga della versione base: qui non puo' crescere (flex-grow
+     0), e troppo stretta la data finiva scritta sopra all'icona del
+     calendario invece che a fianco. */
+  flex: 0 1 160px;
+  min-width: 150px;
+}
+
+/* Menu a tendina disegnato dal programma (MenuScelta): il bottone ha lo
+   stesso aspetto delle caselle e dei menu nativi, cosi' non si vede la
+   differenza finche' non si apre. */
+.menu-scelta {
+  position: relative;
+  min-width: 0;
+}
+
+.menu-scelta-bottone {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  text-align: left;
+  font-weight: 400;
+  padding: 10px 14px;
+  font-size: 16px;
+  /* stesso sfondo delle caselle, non quello (diverso) dei pulsanti */
+  background: var(--campo);
+}
+
+.menu-scelta-bottone:hover:not(:disabled) {
+  background: var(--campo);
+  color: inherit;
+  border-color: var(--border-forte);
+}
+
+.menu-scelta-bottone svg {
+  flex-shrink: 0;
+  color: var(--text-dim);
+}
+
+.menu-scelta-placeholder {
+  color: var(--text-dim);
+}
+
+.menu-scelta-lista {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 260px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--border-forte);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+}
+
+.menu-scelta-lista button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 7px 10px;
+  border: none;
+  background: none;
+  font-size: 15px;
+}
+
+.menu-scelta-lista button:hover:not(.scelta-attiva) {
+  background: var(--accent-soft);
+}
+
+.menu-scelta-lista button.scelta-attiva {
+  background: var(--accent);
+  color: #fff;
 }
 
 /* Etichetta sopra, casella sotto: fuori dalle finestre modali non c'era
@@ -5046,17 +5122,19 @@ input[type='checkbox'].interruttore:focus-visible {
 }
 
 /* Il salvataggio di uno screening, in fondo alla pagina invece che in cima:
-   si arriva li' scrivendo l'ultimo numero, e conviene piu' grande perche' e'
-   il pulsante che si preme piu' spesso in questa schermata. */
+   si arriva li' scrivendo l'ultimo numero. Stessa altezza dei pulsanti grandi
+   usati nelle finestre del programma (.modal-actions button), non una
+   misura inventata apposta. */
 .azioni-fine-pagina {
   display: flex;
   justify-content: flex-end;
   margin-top: 20px;
 }
 
-.pulsante-grande {
-  padding: 13px 26px;
-  font-size: 16px;
+.azioni-fine-pagina button {
+  min-height: 44px;
+  padding-left: 20px;
+  padding-right: 20px;
 }
 
 
@@ -5169,7 +5247,7 @@ input[type='checkbox'].interruttore:focus-visible {
    usati nel resto del programma, non piu' piccoli apposta. */
 .riga-filtro {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 12px;
   margin-bottom: 6px;
 }
@@ -5179,8 +5257,9 @@ input[type='checkbox'].interruttore:focus-visible {
   min-width: 0;
 }
 
-.riga-filtro select {
-  flex: 0 0 auto;
+.riga-filtro .campo-categorie {
+  flex: 0 0 200px;
+  min-width: 160px;
 }
 
 /* Iconcina rotonda accanto a un titolo: apre una spiegazione, non un'azione. */

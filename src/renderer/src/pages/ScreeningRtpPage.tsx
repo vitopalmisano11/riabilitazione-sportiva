@@ -23,6 +23,7 @@ import { toast, toastErrore } from '../components/Toast'
 import { chiedi } from '../components/Conferma'
 import CompilaQuestionario from '../components/CompilaQuestionario'
 import { RisultatoCluster } from '../components/PunteggioCluster'
+import MenuScelta from '../components/MenuScelta'
 import { useModificheInCorso } from '../modificheInCorso'
 import { errMsg, formatData, oggiIso } from '../lib'
 
@@ -373,31 +374,21 @@ function NuovoScreening({
         <div className="riga-campi">
           <label>
             Paziente
-            <select
-              value={pazienteId}
-              onChange={(e) => setPazienteId(e.target.value === '' ? '' : Number(e.target.value))}
-            >
-              <option value="">— scegli —</option>
-              {pazienti.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.cognome} {p.nome}
-                </option>
-              ))}
-            </select>
+            <MenuScelta
+              placeholder="— scegli —"
+              valore={pazienteId}
+              opzioni={pazienti.map((p) => ({ valore: p.id, etichetta: `${p.cognome} ${p.nome}` }))}
+              onScegli={setPazienteId}
+            />
           </label>
           <label>
             Protocollo
-            <select
-              value={protocolloId}
-              onChange={(e) => setProtocolloId(e.target.value === '' ? '' : Number(e.target.value))}
-            >
-              <option value="">— scegli —</option>
-              {protocolli.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.sport} · {p.nome}
-                </option>
-              ))}
-            </select>
+            <MenuScelta
+              placeholder="— scegli —"
+              valore={protocolloId}
+              opzioni={protocolli.map((p) => ({ valore: p.id, etichetta: `${p.sport} · ${p.nome}` }))}
+              onScegli={setProtocolloId}
+            />
           </label>
           <label className="data-field">
             Data
@@ -610,11 +601,7 @@ function Esecuzione({
       {/* Il salvataggio sta in fondo, dopo l'ultimo test: e' li' che si arriva
           finendo di scrivere i numeri, non tornando su fino in cima. */}
       <div className="azioni-fine-pagina">
-        <button
-          className="primary pulsante-grande"
-          disabled={!modificato}
-          onClick={() => void salva()}
-        >
+        <button className="primary" disabled={!modificato} onClick={() => void salva()}>
           <Save size={18} /> Salva
         </button>
       </div>
