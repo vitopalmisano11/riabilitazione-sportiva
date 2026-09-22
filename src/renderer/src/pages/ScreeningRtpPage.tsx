@@ -381,6 +381,7 @@ function NuovoScreening({
               onScegli={setPazienteId}
               cercabile
               segnaposto="Cerca per nome…"
+              placeholderSceglibile={false}
             />
           </label>
           <label>
@@ -392,6 +393,7 @@ function NuovoScreening({
               onScegli={setProtocolloId}
               cercabile
               segnaposto="Cerca per sport o nome…"
+              placeholderSceglibile={false}
             />
           </label>
           <label className="data-field">

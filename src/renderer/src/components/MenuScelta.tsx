@@ -26,11 +26,12 @@ export default function MenuScelta<T extends string | number>({
   onScegli,
   id,
   cercabile,
-  segnaposto
+  segnaposto,
+  placeholderSceglibile = true
 }: {
   valore: T | ''
-  // Voce in cima per "niente scelto", es. "tutte le categorie": omessa se
-  // una scelta ci deve sempre essere.
+  // Testo del bottone quando non e' ancora scelto niente, es. "— scegli —"
+  // o "tutte le categorie".
   placeholder?: string
   opzioni: OpzioneMenu<T>[]
   onScegli: (v: T | '') => void
@@ -40,6 +41,11 @@ export default function MenuScelta<T extends string | number>({
   cercabile?: boolean
   // Testo della casella di ricerca, se "Cerca…" da solo non basta a dire cosa.
   segnaposto?: string
+  // Il placeholder e' anche una voce dell'elenco, per tornare a "niente
+  // scelto" (es. "tutte le categorie", che toglie il filtro). Dove una
+  // scelta ci deve sempre essere, e "scegli" non è un valore vero, si toglie
+  // dall'elenco: resta solo come testo del bottone finche' non si sceglie.
+  placeholderSceglibile?: boolean
 }): React.JSX.Element {
   const [aperto, setAperto] = useState(false)
   const [ricerca, setRicerca] = useState('')
@@ -141,7 +147,7 @@ export default function MenuScelta<T extends string | number>({
               />
             )}
             <ul className="menu-scelta-lista" role="listbox">
-              {placeholder != null && (
+              {placeholder != null && placeholderSceglibile && (
                 <li>
                   <button
                     type="button"

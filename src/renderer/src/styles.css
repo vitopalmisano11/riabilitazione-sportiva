@@ -2576,7 +2576,9 @@ details[open] > :not(summary) {
 }
 
 .menu-scelta-lista {
-  max-height: 260px;
+  /* circa cinque voci: oltre, si scorre dentro invece di allungarsi fino a
+     uscire dalla finestra che lo contiene. */
+  max-height: 195px;
   overflow-y: auto;
   margin: 0;
   padding: 6px;
