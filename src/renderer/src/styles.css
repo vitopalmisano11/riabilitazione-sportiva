@@ -1660,6 +1660,17 @@ span.row-actions button {
   animation: pop-up 0.18s ease-out;
 }
 
+/* Una finestra centrata nello spazio a destra della barra laterale, non in
+   tutta la finestra del programma: altrimenti il centro cade sotto alla
+   barra e la finestra sembra spostata a sinistra. */
+.modal-overlay.modal-overlay-contenuto {
+  left: 252px;
+}
+
+.modal-nuovo-screening {
+  width: 720px;
+}
+
 /* Cambiando sezione dal menu la pagina nuova compare con una dissolvenza
    breve, invece di sostituire l'altra di colpo. */
 .entrata-pagina {

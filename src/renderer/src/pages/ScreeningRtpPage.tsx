@@ -363,8 +363,8 @@ function NuovoScreening({
   }
 
   return (
-    <div className="modal-overlay" onClick={onAnnulla}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-overlay modal-overlay-contenuto" onClick={onAnnulla}>
+      <div className="modal modal-nuovo-screening" onClick={(e) => e.stopPropagation()}>
         <h3>Nuovo screening</h3>
         {protocolli.length === 0 && (
           <p className="hint">
