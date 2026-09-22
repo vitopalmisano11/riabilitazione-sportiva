@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Plus, X } from 'lucide-react'
 import type { PazienteDettaglio, SedutaRiepilogo } from '../../../shared/types'
 import { toast, toastErrore } from './Toast'
+import SceltaConRicerca from './SceltaConRicerca'
 import { errMsg, formatData } from '../lib'
 
 // Aggiungere una seduta a un giorno della settimana.
@@ -146,17 +147,14 @@ export default function AggiungiAlGiorno({
                 <div className="riga-campi">
                   <label className="field">
                     Copia il programma da
-                    <select
-                      value={origine ?? 0}
-                      onChange={(e) => setOrigine(Number(e.target.value))}
-                    >
-                      {sue.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {formatData(s.data)} — {s.num_esercizi}{' '}
-                          {s.num_esercizi === 1 ? 'esercizio' : 'esercizi'}
-                        </option>
-                      ))}
-                    </select>
+                    <SceltaConRicerca
+                      voci={sue.map((s) => ({
+                        id: s.id,
+                        nome: `${formatData(s.data)} — ${s.num_esercizi} ${s.num_esercizi === 1 ? 'esercizio' : 'esercizi'}`
+                      }))}
+                      valore={origine ?? ''}
+                      onCambia={(id) => setOrigine(id === '' ? null : id)}
+                    />
                   </label>
                   <label className="field ora-field">
                     Ora

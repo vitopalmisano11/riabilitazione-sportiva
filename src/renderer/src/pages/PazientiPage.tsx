@@ -616,18 +616,14 @@ function SchedaPaziente({
           </label>
           <label className="field campo-fase">
             Fase corrente
-            <select
-              value={paziente.fase_corrente_id ?? ''}
+            <SceltaConRicerca
+              voci={fasi.map((f) => ({ id: f.id, nome: f.nome }))}
+              valore={paziente.fase_corrente_id ?? ''}
               disabled={paziente.patologia_id == null}
-              onChange={(e) => void setFase(e.target.value === '' ? null : Number(e.target.value))}
-            >
-              <option value="">— non impostata —</option>
-              {fasi.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.nome}
-                </option>
-              ))}
-            </select>
+              segnaposto="— non impostata —"
+              vuoto="— non impostata —"
+              onCambia={(id) => void setFase(id === '' ? null : id)}
+            />
           </label>
           {paziente.patologia_id != null && fasi.length > 0 && (
             <label className="field campo-avanza">

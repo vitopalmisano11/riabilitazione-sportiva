@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { ChevronDown, ChevronLeft, ChevronRight, X } from 'lucide-react'
 
 // Una casella in cui si sceglie scrivendo, al posto del menu a tendina.
@@ -7,6 +8,11 @@ import { ChevronDown, ChevronLeft, ChevronRight, X } from 'lucide-react'
 // puo' accorciare da dentro l'app: la disegna il sistema. Questa invece e'
 // roba nostra — si scrivono due lettere, restano le voci che corrispondono, e
 // l'elenco non supera mai sette righe.
+//
+// L'elenco si disegna fuori dalla finestra che lo contiene (con un portale,
+// dentro <body>, in posizione "fixed"): dentro a una finestra modale, che si
+// taglia da sola quello che sfora, restava schiacciato dentro ai bordi della
+// finestra invece di aprirsi per intero sopra a tutto.
 
 export interface VoceScelta {
   id: number
@@ -26,7 +32,8 @@ export default function SceltaConRicerca({
   segnaposto,
   vuoto,
   sceltaGruppo,
-  autoFocus
+  autoFocus,
+  disabled
 }: {
   voci: VoceScelta[]
   // '' = niente scelto.
@@ -41,30 +48,55 @@ export default function SceltaConRicerca({
   // categoria a un esercizio invece si sceglie sempre un distretto.
   sceltaGruppo?: boolean
   autoFocus?: boolean
+  disabled?: boolean
 }): React.JSX.Element {
   const [aperto, setAperto] = useState(false)
   const [testo, setTesto] = useState('')
   // La voce di sopra di cui si stanno guardando le voci dentro; null = il
   // primo livello.
   const [dentro, setDentro] = useState<number | null>(null)
+  const [posizione, setPosizione] = useState<{ top: number; left: number; width: number } | null>(
+    null
+  )
   const contenitore = useRef<HTMLDivElement>(null)
+  const popupRif = useRef<HTMLUListElement>(null)
 
   const scelta = voci.find((v) => v.id === valore) ?? null
   const figli = (id: number): VoceScelta[] => voci.filter((v) => v.padre === id)
   const aDueLivelli = voci.some((v) => v.padre != null)
+
+  const posiziona = (): void => {
+    const r = contenitore.current?.getBoundingClientRect()
+    if (r) setPosizione({ top: r.bottom + 4, left: r.left, width: r.width })
+  }
+
+  useLayoutEffect(() => {
+    if (aperto) posiziona()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aperto])
 
   // Premendo fuori si chiude e si dimentica quello che si stava scrivendo: la
   // casella torna a mostrare la voce scelta, non un testo a meta'.
   useEffect(() => {
     if (!aperto) return
     const fuori = (e: MouseEvent): void => {
-      if (!contenitore.current?.contains(e.target as Node)) {
-        setAperto(false)
-        setTesto('')
-      }
+      const t = e.target as Node
+      if (contenitore.current?.contains(t)) return
+      if (popupRif.current?.contains(t)) return
+      setAperto(false)
+      setTesto('')
     }
     document.addEventListener('mousedown', fuori)
-    return () => document.removeEventListener('mousedown', fuori)
+    // La finestra puo' scorrere o cambiare misura mentre l'elenco e' aperto:
+    // lo si segue, invece di lasciarlo appeso dov'era.
+    window.addEventListener('scroll', posiziona, true)
+    window.addEventListener('resize', posiziona)
+    return () => {
+      document.removeEventListener('mousedown', fuori)
+      window.removeEventListener('scroll', posiziona, true)
+      window.removeEventListener('resize', posiziona)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aperto])
 
   // Aprendo l'elenco si parte da dove sta la voce scelta: se e' un distretto,
@@ -118,6 +150,7 @@ export default function SceltaConRicerca({
         <input
           type="text"
           autoFocus={autoFocus}
+          disabled={disabled}
           // Aperta si scrive per cercare; chiusa mostra la voce scelta.
           value={aperto ? testo : (scelta?.nome ?? '')}
           // Aperta e vuota si legge comunque cosa c'e' scelto adesso, cosi' non
@@ -155,6 +188,7 @@ export default function SceltaConRicerca({
           type="button"
           className="btn-icona apri-scelta"
           title="Vedi l'elenco"
+          disabled={disabled}
           onClick={() => {
             setTesto('')
             if (aperto) setAperto(false)
@@ -165,76 +199,83 @@ export default function SceltaConRicerca({
         </button>
       </div>
 
-      {aperto && (
-        <ul className="elenco-scelta">
-          {/* Dentro a una categoria, la prima riga riporta indietro. */}
-          {!cercando && padreAperto && (
-            <li>
-              <button
-                type="button"
-                className="briciola voce-indietro"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => setDentro(null)}
-              >
-                <ChevronLeft size={16} />
-                {padreAperto.nome}
-              </button>
-            </li>
-          )}
-          {!cercando && padreAperto && sceltaGruppo && (
-            <li>
-              <button
-                type="button"
-                className={padreAperto.id === valore ? 'briciola scelta-attiva' : 'briciola'}
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => scegli(padreAperto.id)}
-              >
-                Tutta la categoria
-              </button>
-            </li>
-          )}
-          {vuoto != null && !padreAperto && (
-            <li>
-              <button
-                type="button"
-                className="briciola"
-                // Senza questo l'input perde il fuoco prima che il clic arrivi,
-                // e su certe combinazioni il clic va perso.
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => scegli('')}
-              >
-                {vuoto}
-              </button>
-            </li>
-          )}
-          {trovate.map((v) => {
-            const apribile = !cercando && aDueLivelli && figli(v.id).length > 0
-            return (
-              <li key={v.id}>
+      {aperto &&
+        posizione &&
+        createPortal(
+          <ul
+            ref={popupRif}
+            className="elenco-scelta"
+            style={{ top: posizione.top, left: posizione.left, width: posizione.width }}
+          >
+            {/* Dentro a una categoria, la prima riga riporta indietro. */}
+            {!cercando && padreAperto && (
+              <li>
                 <button
                   type="button"
-                  className={[
-                    'briciola',
-                    apribile && 'voce-apribile',
-                    v.id === valore && 'scelta-attiva'
-                  ]
-                    .filter(Boolean)
-                    .join(' ')}
+                  className="briciola voce-indietro"
                   onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => premi(v)}
+                  onClick={() => setDentro(null)}
                 >
-                  <span>{v.nome}</span>
-                  {/* Cercando, un distretto porta accanto la sua categoria:
-                      "Spalla" puo' stare sia nel rinforzo sia nella mobilita'. */}
-                  {cercando && v.gruppo && <span className="voce-gruppo">{v.gruppo}</span>}
-                  {apribile && <ChevronRight size={16} />}
+                  <ChevronLeft size={16} />
+                  {padreAperto.nome}
                 </button>
               </li>
-            )
-          })}
-          {trovate.length === 0 && <li className="empty">Nessuna voce con questo nome.</li>}
-        </ul>
-      )}
+            )}
+            {!cercando && padreAperto && sceltaGruppo && (
+              <li>
+                <button
+                  type="button"
+                  className={padreAperto.id === valore ? 'briciola scelta-attiva' : 'briciola'}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => scegli(padreAperto.id)}
+                >
+                  Tutta la categoria
+                </button>
+              </li>
+            )}
+            {vuoto != null && !padreAperto && (
+              <li>
+                <button
+                  type="button"
+                  className="briciola"
+                  // Senza questo l'input perde il fuoco prima che il clic arrivi,
+                  // e su certe combinazioni il clic va perso.
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => scegli('')}
+                >
+                  {vuoto}
+                </button>
+              </li>
+            )}
+            {trovate.map((v) => {
+              const apribile = !cercando && aDueLivelli && figli(v.id).length > 0
+              return (
+                <li key={v.id}>
+                  <button
+                    type="button"
+                    className={[
+                      'briciola',
+                      apribile && 'voce-apribile',
+                      v.id === valore && 'scelta-attiva'
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => premi(v)}
+                  >
+                    <span>{v.nome}</span>
+                    {/* Cercando, un distretto porta accanto la sua categoria:
+                        "Spalla" puo' stare sia nel rinforzo sia nella mobilita'. */}
+                    {cercando && v.gruppo && <span className="voce-gruppo">{v.gruppo}</span>}
+                    {apribile && <ChevronRight size={16} />}
+                  </button>
+                </li>
+              )
+            })}
+            {trovate.length === 0 && <li className="empty">Nessuna voce con questo nome.</li>}
+          </ul>,
+          document.body
+        )}
     </div>
   )
 }

@@ -1878,8 +1878,10 @@ details[open] > :not(summary) {
 }
 
 .ora-field {
-  flex: 0 1 100px;
-  min-width: 90px;
+  /* troppo stretta, i minuti finivano tagliati invece di stare per intero
+     nella casella */
+  flex: 0 1 120px;
+  min-width: 112px;
 }
 
 /* Il focus della seduta sta accanto alla data: e' testo libero, quindi un po'
@@ -2509,8 +2511,10 @@ details[open] > :not(summary) {
 }
 
 .riga-campi > .ora-field {
-  flex: 0 1 100px;
-  min-width: 90px;
+  /* troppo stretta, i minuti finivano tagliati invece di stare per intero
+     nella casella */
+  flex: 0 1 120px;
+  min-width: 112px;
 }
 
 .riga-campi > .data-field {
@@ -3233,7 +3237,10 @@ textarea {
   background: var(--pannello);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 4px 10px 8px;
+  /* niente spazio a destra e sinistra: con quello le righe qui dentro
+     partivano piu' rientrate delle sedute svolte subito sotto, e le due
+     colonne della data non erano piu' allineate. */
+  padding: 4px 0 8px;
   margin-bottom: var(--spazio);
 }
 
@@ -5508,13 +5515,13 @@ input[type='checkbox'].interruttore:focus-visible {
 }
 
 /* L'elenco sta sopra a quello che c'e' sotto, come farebbe una tendina, e non
-   supera mai sette righe. */
+   supera mai sette righe. position: fixed e non absolute: cosi' si disegna
+   sopra a tutto, anche dentro a una finestra modale che altrimenti
+   taglierebbe quello che sfora dai suoi bordi. La posizione esatta la calcola
+   il componente e arriva come stile in linea. */
 .elenco-scelta {
-  position: absolute;
-  z-index: 20;
-  left: 0;
-  right: 0;
-  top: calc(100% + 4px);
+  position: fixed;
+  z-index: 30;
   max-height: 260px;
   overflow-y: auto;
   margin: 0;

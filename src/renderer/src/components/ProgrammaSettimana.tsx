@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { CalendarPlus, X } from 'lucide-react'
 import type { SedutaRiepilogo } from '../../../shared/types'
 import { toast, toastErrore } from './Toast'
+import SceltaConRicerca from './SceltaConRicerca'
 import { errMsg, formatData, oggiIso } from '../lib'
 
 // Programmare piu' sedute in una volta.
@@ -66,14 +67,14 @@ export default function ProgrammaSettimana({
 
         <label>
           Copia il programma da
-          <select value={origine} onChange={(e) => setOrigine(Number(e.target.value))}>
-            {sedute.map((s) => (
-              <option key={s.id} value={s.id}>
-                {formatData(s.data)} — {s.num_esercizi}{' '}
-                {s.num_esercizi === 1 ? 'esercizio' : 'esercizi'}
-              </option>
-            ))}
-          </select>
+          <SceltaConRicerca
+            voci={sedute.map((s) => ({
+              id: s.id,
+              nome: `${formatData(s.data)} — ${s.num_esercizi} ${s.num_esercizi === 1 ? 'esercizio' : 'esercizi'}`
+            }))}
+            valore={origine}
+            onCambia={(id) => setOrigine(id === '' ? 0 : id)}
+          />
         </label>
 
         <div className="sotto-titolo">In quali giorni</div>
