@@ -24,7 +24,9 @@ export default function MenuScelta<T extends string | number>({
   placeholder,
   opzioni,
   onScegli,
-  id
+  id,
+  cercabile,
+  segnaposto
 }: {
   valore: T | ''
   // Voce in cima per "niente scelto", es. "tutte le categorie": omessa se
@@ -33,13 +35,20 @@ export default function MenuScelta<T extends string | number>({
   opzioni: OpzioneMenu<T>[]
   onScegli: (v: T | '') => void
   id?: string
+  // Con tante voci, scorrerle tutte e' scomodo: aggiunge una casella per
+  // cercarle scrivendo, sopra all'elenco.
+  cercabile?: boolean
+  // Testo della casella di ricerca, se "Cerca…" da solo non basta a dire cosa.
+  segnaposto?: string
 }): React.JSX.Element {
   const [aperto, setAperto] = useState(false)
+  const [ricerca, setRicerca] = useState('')
   const [posizione, setPosizione] = useState<{ top: number; left: number; width: number } | null>(
     null
   )
   const bottoneRif = useRef<HTMLButtonElement>(null)
-  const listaRif = useRef<HTMLUListElement>(null)
+  const popupRif = useRef<HTMLDivElement>(null)
+  const ricercaRif = useRef<HTMLInputElement>(null)
 
   const posiziona = (): void => {
     const r = bottoneRif.current?.getBoundingClientRect()
@@ -47,16 +56,25 @@ export default function MenuScelta<T extends string | number>({
   }
 
   useLayoutEffect(() => {
-    if (aperto) posiziona()
+    if (aperto) {
+      posiziona()
+      setRicerca('')
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aperto])
+
+  // Il cursore parte gia' nella ricerca: e' quasi sempre per quello che si
+  // apre il menu quando c'e' da cercare, non per scorrere a mano.
+  useEffect(() => {
+    if (aperto && cercabile) ricercaRif.current?.focus()
+  }, [aperto, cercabile])
 
   useEffect(() => {
     if (!aperto) return
     const chiudiFuori = (e: MouseEvent): void => {
       const t = e.target as Node
       if (bottoneRif.current?.contains(t)) return
-      if (listaRif.current?.contains(t)) return
+      if (popupRif.current?.contains(t)) return
       setAperto(false)
     }
     const chiudiEsc = (e: KeyboardEvent): void => {
@@ -78,6 +96,14 @@ export default function MenuScelta<T extends string | number>({
   }, [aperto])
 
   const scelta = opzioni.find((o) => o.valore === valore)
+  const q = ricerca.trim().toLowerCase()
+  const filtrate =
+    cercabile && q !== '' ? opzioni.filter((o) => o.etichetta.toLowerCase().includes(q)) : opzioni
+
+  const scegli = (v: T | ''): void => {
+    onScegli(v)
+    setAperto(false)
+  }
 
   return (
     <>
@@ -96,41 +122,52 @@ export default function MenuScelta<T extends string | number>({
       {aperto &&
         posizione &&
         createPortal(
-          <ul
-            ref={listaRif}
-            className="menu-scelta-lista"
-            role="listbox"
+          <div
+            ref={popupRif}
+            className="menu-scelta-popup"
             style={{ top: posizione.top, left: posizione.left, width: posizione.width }}
           >
-            {placeholder != null && (
-              <li>
-                <button
-                  type="button"
-                  className={valore === '' ? 'scelta-attiva' : ''}
-                  onClick={() => {
-                    onScegli('')
-                    setAperto(false)
-                  }}
-                >
-                  {placeholder}
-                </button>
-              </li>
+            {cercabile && (
+              <input
+                ref={ricercaRif}
+                type="search"
+                className="menu-scelta-ricerca"
+                placeholder={segnaposto ?? 'Cerca…'}
+                value={ricerca}
+                onChange={(e) => setRicerca(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && filtrate.length > 0) scegli(filtrate[0].valore)
+                }}
+              />
             )}
-            {opzioni.map((o) => (
-              <li key={o.valore}>
-                <button
-                  type="button"
-                  className={o.valore === valore ? 'scelta-attiva' : ''}
-                  onClick={() => {
-                    onScegli(o.valore)
-                    setAperto(false)
-                  }}
-                >
-                  {o.etichetta}
-                </button>
-              </li>
-            ))}
-          </ul>,
+            <ul className="menu-scelta-lista" role="listbox">
+              {placeholder != null && (
+                <li>
+                  <button
+                    type="button"
+                    className={valore === '' ? 'scelta-attiva' : ''}
+                    onClick={() => scegli('')}
+                  >
+                    {placeholder}
+                  </button>
+                </li>
+              )}
+              {filtrate.map((o) => (
+                <li key={o.valore}>
+                  <button
+                    type="button"
+                    className={o.valore === valore ? 'scelta-attiva' : ''}
+                    onClick={() => scegli(o.valore)}
+                  >
+                    {o.etichetta}
+                  </button>
+                </li>
+              ))}
+              {cercabile && q !== '' && filtrate.length === 0 && (
+                <li className="hint">Nessun risultato.</li>
+              )}
+            </ul>
+          </div>,
           document.body
         )}
     </>

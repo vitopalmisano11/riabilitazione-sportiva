@@ -379,6 +379,8 @@ function NuovoScreening({
               valore={pazienteId}
               opzioni={pazienti.map((p) => ({ valore: p.id, etichetta: `${p.cognome} ${p.nome}` }))}
               onScegli={setPazienteId}
+              cercabile
+              segnaposto="Cerca per nome…"
             />
           </label>
           <label>
@@ -388,6 +390,8 @@ function NuovoScreening({
               valore={protocolloId}
               opzioni={protocolli.map((p) => ({ valore: p.id, etichetta: `${p.sport} · ${p.nome}` }))}
               onScegli={setProtocolloId}
+              cercabile
+              segnaposto="Cerca per sport o nome…"
             />
           </label>
           <label className="data-field">

@@ -2553,22 +2553,34 @@ details[open] > :not(summary) {
   color: var(--text-dim);
 }
 
-/* position: fixed e non absolute: cosi' l'elenco si disegna sopra a tutto,
+/* position: fixed e non absolute: cosi' il menu si disegna sopra a tutto,
    anche dentro a una finestra modale che altrimenti taglierebbe quello che
    sfora dai suoi bordi. La posizione esatta (sotto al bottone) la calcola
    il componente e arriva come stile in linea. */
-.menu-scelta-lista {
+.menu-scelta-popup {
   position: fixed;
   z-index: 30;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border-forte);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.menu-scelta-ricerca {
+  margin: 6px 6px 0 6px;
+  padding: 8px 10px;
+  font-size: 15px;
+}
+
+.menu-scelta-lista {
   max-height: 260px;
   overflow-y: auto;
   margin: 0;
   padding: 6px;
   list-style: none;
-  background: var(--surface);
-  border: 1px solid var(--border-forte);
-  border-radius: var(--radius-sm);
-  box-shadow: var(--shadow-sm);
 }
 
 .menu-scelta-lista button {
