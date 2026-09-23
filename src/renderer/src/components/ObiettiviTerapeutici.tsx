@@ -5,6 +5,7 @@ import { toastErrore } from './Toast'
 import { chiedi } from './Conferma'
 import { errMsg } from '../lib'
 import { sposta, useRiordino } from '../riordino'
+import MenuScelta from './MenuScelta'
 
 // Obiettivi concordati col paziente. L'elenco si presenta gia' diviso per
 // respiro dell'obiettivo — breve, medio, lungo — perche' e' l'ordine in cui si
@@ -134,16 +135,11 @@ export default function ObiettiviTerapeutici({
               if (e.key === 'Enter') void aggiungi()
             }}
           />
-          <select
-            value={termineNuovo}
-            onChange={(e) => setTermineNuovo(e.target.value as TermineObiettivo)}
-          >
-            {TERMINI.map((t) => (
-              <option key={t.valore} value={t.valore}>
-                {t.etichetta}
-              </option>
-            ))}
-          </select>
+          <MenuScelta
+            valore={termineNuovo}
+            opzioni={TERMINI}
+            onScegli={(v) => v !== '' && setTermineNuovo(v)}
+          />
           <button className="primary" disabled={nuovo.trim() === ''} onClick={() => void aggiungi()}>
             <Plus size={16} /> Aggiungi
           </button>
@@ -177,18 +173,11 @@ export default function ObiettiviTerapeutici({
                             onBlur={() => void salva(o)}
                           />
                         </span>
-                        <select
-                          value={o.termine}
-                          onChange={(e) =>
-                            void salva({ ...o, termine: e.target.value as TermineObiettivo })
-                          }
-                        >
-                          {TERMINI.map((x) => (
-                            <option key={x.valore} value={x.valore}>
-                              {x.etichetta}
-                            </option>
-                          ))}
-                        </select>
+                        <MenuScelta
+                          valore={o.termine}
+                          opzioni={TERMINI}
+                          onScegli={(v) => v !== '' && void salva({ ...o, termine: v })}
+                        />
                         <span className="row-actions">
                           <button
                             className="danger"
