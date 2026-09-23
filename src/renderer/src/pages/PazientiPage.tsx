@@ -16,7 +16,6 @@ import {
 import type {
   AnteprimaScheda,
   Fase,
-  Obiettivo,
   Patologia,
   PazienteDettaglio,
   SedutaRiepilogo,
@@ -32,6 +31,8 @@ import IndicazioniCasa from '../components/IndicazioniCasa'
 import MisurePaziente from '../components/MisurePaziente'
 import AnamnesiPaziente from '../components/AnamnesiPaziente'
 import ValutazionePaziente from '../components/ValutazionePaziente'
+import ObiettiviFase from '../components/ObiettiviFase'
+import QuadroPaziente from '../components/QuadroPaziente'
 import { toast, toastErrore } from '../components/Toast'
 import { chiedi } from '../components/Conferma'
 import { errMsg, formatData, oggiIso } from '../lib'
@@ -350,7 +351,7 @@ export default function PazientiPage({
                     {p.cognome} {p.nome}
                   </span>
                   <span className="dettaglio-riga">
-                    {[p.patologia_nome, p.fase_nome].filter(Boolean).join(' · ') || '—'}
+                    {[p.patologia_nome, p.fase_nome, p.sport].filter(Boolean).join(' · ') || '—'}
                   </span>
                   <span
                     className="dettaglio-riga"
@@ -405,9 +406,13 @@ export default function PazientiPage({
   )
 }
 
-type SchedaAperta = 'diario' | 'clinica' | 'percorso' | 'misure'
+type SchedaAperta = 'quadro' | 'diario' | 'clinica' | 'percorso' | 'misure'
 
 const SCHEDE_PAZIENTE: { key: SchedaAperta; label: string }[] = [
+  // Prima voce e prima cosa che si vede aprendo un paziente: e' la domanda
+  // che ci si fa per prima, "sta migliorando?", prima ancora di guardare il
+  // diario di oggi.
+  { key: 'quadro', label: 'Quadro' },
   { key: 'diario', label: 'Diario sedute' },
   { key: 'clinica', label: 'Clinica' },
   { key: 'percorso', label: 'Percorso' },
@@ -435,11 +440,11 @@ function SchedaPaziente({
   onDuplicaSeduta: (id: number) => void
 }): React.JSX.Element {
   const [fasi, setFasi] = useState<Fase[]>([])
-  // La scheda si apre sul diario: e' quello che si guarda tutti i giorni.
-  // L'anamnesi e la valutazione si riempiono alla prima visita e poi si
-  // consultano di rado, quindi stanno dietro alla loro linguetta invece di
-  // allungare la pagina.
-  const [scheda, setScheda] = useState<SchedaAperta>('diario')
+  // La scheda si apre sul quadro: e' la domanda con cui si apre un paziente,
+  // "sta migliorando?", prima ancora del diario di oggi. L'anamnesi e la
+  // valutazione si riempiono alla prima visita e poi si consultano di rado,
+  // quindi stanno dietro alla loro linguetta invece di allungare la pagina.
+  const [scheda, setScheda] = useState<SchedaAperta>('quadro')
   // Serve solo a sapere se c'e' una seduta da riprendere e quale.
   const [ultimaSeduta, setUltimaSeduta] = useState<number | null>(null)
 
@@ -578,6 +583,8 @@ function SchedaPaziente({
         />
       )}
 
+      {scheda === 'quadro' && <QuadroPaziente paziente={paziente} />}
+
       {scheda === 'diario' && (
         <DiarioCard
           paziente={paziente}
@@ -672,43 +679,23 @@ function SchedaPaziente({
 // Obiettivi della fase corrente con stato "raggiunto" persistente sul paziente,
 // più la checklist informativa dei test di avanzamento.
 function ObiettiviCard({ paziente }: { paziente: PazienteDettaglio }): React.JSX.Element {
-  const [obiettivi, setObiettivi] = useState<Obiettivo[]>([])
-  const [raggiunti, setRaggiunti] = useState<number[]>([])
   const [test, setTest] = useState<TestValore[]>([])
   const [testAperti, setTestAperti] = useState(false)
 
   const faseId = paziente.fase_corrente_id
 
-  const load = async (): Promise<void> => {
+  const loadTest = async (): Promise<void> => {
     if (faseId == null) {
-      setObiettivi([])
-      setRaggiunti([])
       setTest([])
       return
     }
-    const [obs, ragg, tst] = await Promise.all([
-      window.api.obiettivi.list(faseId),
-      window.api.pazienti.obiettiviRaggiunti(paziente.id),
-      window.api.pazienti.testValori(paziente.id, faseId)
-    ])
-    setObiettivi(obs)
-    setRaggiunti(ragg)
-    setTest(tst)
+    setTest(await window.api.pazienti.testValori(paziente.id, faseId))
   }
 
   useEffect(() => {
-    void load()
+    void loadTest()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paziente.id, faseId])
-
-  const toggle = async (obiettivoId: number, raggiunto: boolean): Promise<void> => {
-    try {
-      await window.api.pazienti.setObiettivoRaggiunto(paziente.id, obiettivoId, raggiunto)
-      await load()
-    } catch (e) {
-      toastErrore(errMsg(e))
-    }
-  }
 
   const eseguiti = test.filter((t) => t.eseguito).length
 
@@ -722,32 +709,7 @@ function ObiettiviCard({ paziente }: { paziente: PazienteDettaglio }): React.JSX
           </button>
         )}
       </div>
-      {faseId == null ? (
-        <p className="hint">Imposta la fase corrente per vedere gli obiettivi.</p>
-      ) : obiettivi.length === 0 ? (
-        <p className="hint">
-          Questa fase non ha obiettivi: definiscili in configurazione, &ldquo;Patologie e
-          fasi&rdquo;.
-        </p>
-      ) : (
-        <ul className="checkbox-list">
-          {obiettivi.map((o) => {
-            const fatto = raggiunti.includes(o.id)
-            return (
-              <li key={o.id}>
-                <label className={fatto ? 'obiettivo-raggiunto' : ''}>
-                  <input
-                    type="checkbox"
-                    checked={fatto}
-                    onChange={(e) => void toggle(o.id, e.target.checked)}
-                  />
-                  {o.nome}
-                </label>
-              </li>
-            )
-          })}
-        </ul>
-      )}
+      <ObiettiviFase pazienteId={paziente.id} faseId={faseId} />
 
       {testAperti && (
         <TestModal
@@ -755,7 +717,7 @@ function ObiettiviCard({ paziente }: { paziente: PazienteDettaglio }): React.JSX
           test={test}
           onClose={() => {
             setTestAperti(false)
-            void load()
+            void loadTest()
           }}
         />
       )}

@@ -1197,6 +1197,13 @@ export const MIGRATIONS: string[] = [
   //      legge ordinata per appuntamento, non piu' per cognome del paziente.
   `
   ALTER TABLE sedute ADD COLUMN ora TEXT;
+  `,
+
+  // 48 - lo sport praticato (testo libero, con dentro anche il ruolo se
+  //      c'e': "Calcio (portiere)"). Non e' un campo clinico, ma dice molto
+  //      su carichi e gesti da riprodurre in palestra.
+  `
+  ALTER TABLE pazienti ADD COLUMN sport TEXT;
   `
 ]
 

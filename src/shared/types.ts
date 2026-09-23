@@ -117,6 +117,9 @@ export interface Paziente {
   email: string | null
   lavoro: string | null
   inviato_da: string | null
+  // Testo libero: anche il ruolo ci va scritto dentro, fra parentesi
+  // ("Calcio (portiere)"). Non e' un campo a parte.
+  sport: string | null
   // Testo libero: puo' essere la diagnosi del medico o l'ipotesi del
   // fisioterapista. Resta separata dalla patologia, che e' il percorso di cura.
   diagnosi: string | null
@@ -160,6 +163,7 @@ export interface PazienteInput {
   email: string | null
   lavoro: string | null
   inviato_da: string | null
+  sport: string | null
   diagnosi: string | null
   tipo_intervento: string | null
   data_intervento: string | null
@@ -311,6 +315,16 @@ export interface Profilo {
   partita_iva: string | null
   telefono: string | null
   email: string | null
+}
+
+// Un punto dell'andamento del dolore nel tempo, per la linguetta "Quadro":
+// unisce i valori delle sedute svolte con quelli segnati in anamnesi, prima
+// ancora che il percorso iniziasse. L'origine serve solo a disegnarli in modo
+// diverso nel grafico.
+export interface PuntoAndamentoDolore {
+  data: string
+  dolore: number
+  origine: 'anamnesi' | 'seduta'
 }
 
 // Com'era dosato un esercizio l'ultima volta che quel paziente l'ha fatto.
@@ -1198,6 +1212,9 @@ export interface Api {
     // obiettivi raggiunti (stato persistente sul paziente)
     obiettiviRaggiunti(pazienteId: number): Promise<number[]>
     setObiettivoRaggiunto(pazienteId: number, obiettivoId: number, raggiunto: boolean): Promise<void>
+    // Il dolore nel tempo, per la linguetta "Quadro": sedute svolte e punti
+    // dell'anamnesi iniziale, gia' uniti e ordinati per data.
+    andamentoDolore(pazienteId: number): Promise<PuntoAndamentoDolore[]>
     // test di avanzamento della fase, con stato/valore del paziente
     testValori(pazienteId: number, faseId: number): Promise<TestValore[]>
     setTestValore(

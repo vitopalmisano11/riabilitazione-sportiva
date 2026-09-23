@@ -242,6 +242,7 @@ const api: Api = {
     obiettiviRaggiunti: (pazienteId: number) => invoke('pazienti:obiettiviRaggiunti', pazienteId),
     setObiettivoRaggiunto: (pazienteId: number, obiettivoId: number, raggiunto: boolean) =>
       invoke('pazienti:setObiettivoRaggiunto', pazienteId, obiettivoId, raggiunto),
+    andamentoDolore: (pazienteId: number) => invoke('pazienti:andamentoDolore', pazienteId),
     testValori: (pazienteId: number, faseId: number) =>
       invoke('pazienti:testValori', pazienteId, faseId),
     setTestValore: (pazienteId: number, testId: number, eseguito: boolean, valore: string | null) =>

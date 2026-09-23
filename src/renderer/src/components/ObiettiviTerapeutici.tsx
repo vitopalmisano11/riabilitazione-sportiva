@@ -11,7 +11,7 @@ import { sposta, useRiordino } from '../riordino'
 // ragiona durante il colloquio; dentro ogni gruppo l'ordine lo decide il
 // fisioterapista trascinando. Il menu a tendina sposta l'obiettivo di gruppo.
 
-const TERMINI: { valore: TermineObiettivo; etichetta: string }[] = [
+export const TERMINI: { valore: TermineObiettivo; etichetta: string }[] = [
   { valore: 'breve', etichetta: 'Breve termine' },
   { valore: 'medio', etichetta: 'Medio termine' },
   { valore: 'lungo', etichetta: 'Lungo termine' }

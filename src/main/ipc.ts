@@ -105,6 +105,7 @@ import {
 import type { Tema } from '../shared/temi'
 import { seduteDellaSettimana } from './settimana'
 import { ultimaVoltaPerPaziente } from './ultima-volta'
+import { andamentoDolorePerPaziente } from './andamento-dolore'
 import { sedutaPrecedente } from './seduta-precedente'
 import { leggiProfilo, salvaProfilo } from './profilo'
 import {
@@ -965,10 +966,10 @@ export function registerIpc(): void {
       getDb()
         .prepare(
           `INSERT INTO pazienti
-             (nome, cognome, data_nascita, telefono, email, lavoro, inviato_da, diagnosi,
+             (nome, cognome, data_nascita, telefono, email, lavoro, inviato_da, sport, diagnosi,
               tipo_intervento, data_intervento, precauzioni, patologia_id, fase_corrente_id)
            VALUES
-             (@nome, @cognome, @data_nascita, @telefono, @email, @lavoro, @inviato_da, @diagnosi,
+             (@nome, @cognome, @data_nascita, @telefono, @email, @lavoro, @inviato_da, @sport, @diagnosi,
               @tipo_intervento, @data_intervento, @precauzioni, @patologia_id, @fase_corrente_id)`
         )
         .run({ ...data, nome: data.nome.trim(), cognome: data.cognome.trim() }).lastInsertRowid
@@ -983,7 +984,7 @@ export function registerIpc(): void {
       .prepare(
         `UPDATE pazienti SET nome = @nome, cognome = @cognome,
          data_nascita = @data_nascita, telefono = @telefono, email = @email,
-         lavoro = @lavoro, inviato_da = @inviato_da, diagnosi = @diagnosi,
+         lavoro = @lavoro, inviato_da = @inviato_da, sport = @sport, diagnosi = @diagnosi,
          tipo_intervento = @tipo_intervento, data_intervento = @data_intervento,
          precauzioni = @precauzioni, arto_operato = @arto_operato
          WHERE id = @id`
@@ -1171,6 +1172,9 @@ export function registerIpc(): void {
         .run(pazienteId, obiettivoId)
     }
   })
+  // Il dolore nel tempo per la linguetta "Quadro": la query sta in un file
+  // suo, cosi' il test la puo' eseguire.
+  handle('pazienti:andamentoDolore', (pazienteId: number) => andamentoDolorePerPaziente(pazienteId))
   handle('pazienti:testValori', (pazienteId: number, faseId: number) =>
     getDb()
       .prepare(

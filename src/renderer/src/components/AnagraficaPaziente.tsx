@@ -53,6 +53,7 @@ export default function AnagraficaPaziente({
     { etichetta: 'Telefono', valore: paziente.telefono },
     { etichetta: 'E-mail', valore: paziente.email },
     { etichetta: 'Lavoro / Hobby', valore: paziente.lavoro },
+    { etichetta: 'Sport', valore: paziente.sport },
     { etichetta: 'Diagnosi', valore: paziente.diagnosi },
     { etichetta: 'Inviato da', valore: paziente.inviato_da },
     { etichetta: 'Tipo di intervento', valore: paziente.tipo_intervento },
@@ -134,6 +135,7 @@ const VUOTO = {
   email: '',
   lavoro: '',
   inviato_da: '',
+  sport: '',
   diagnosi: '',
   precauzioni: '',
   tipo_intervento: '',
@@ -164,6 +166,7 @@ export function ModaleDatiPaziente({
           email: paziente.email ?? '',
           lavoro: paziente.lavoro ?? '',
           inviato_da: paziente.inviato_da ?? '',
+          sport: paziente.sport ?? '',
           diagnosi: paziente.diagnosi ?? '',
           precauzioni: paziente.precauzioni ?? '',
           tipo_intervento: paziente.tipo_intervento ?? '',
@@ -203,6 +206,7 @@ export function ModaleDatiPaziente({
       email: vuotoNull(form.email),
       lavoro: vuotoNull(form.lavoro),
       inviato_da: vuotoNull(form.inviato_da),
+      sport: vuotoNull(form.sport),
       diagnosi: vuotoNull(form.diagnosi),
       precauzioni: vuotoNull(form.precauzioni),
       tipo_intervento: vuotoNull(form.tipo_intervento),
@@ -270,6 +274,15 @@ export function ModaleDatiPaziente({
             />
           </label>
         </div>
+
+        <label>
+          Sport
+          <input
+            placeholder="es. Calcio (portiere)"
+            value={form.sport}
+            onChange={campo('sport')}
+          />
+        </label>
 
         <div className="sotto-titolo">Quadro clinico</div>
 

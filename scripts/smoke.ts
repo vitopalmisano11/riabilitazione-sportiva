@@ -31,6 +31,7 @@ import {
 } from '../src/main/db'
 import { seduteDellaSettimana } from '../src/main/settimana'
 import { ultimaVoltaPerPaziente } from '../src/main/ultima-volta'
+import { andamentoDolorePerPaziente } from '../src/main/andamento-dolore'
 import { leggiProfilo, righeProfilo, salvaProfilo } from '../src/main/profilo'
 import { generaCartella, generaRelazione, SEZIONI } from '../src/main/export-cartella'
 import { esportaArchivio } from '../src/main/esporta-archivio'
@@ -83,7 +84,7 @@ db.pragma('foreign_keys = ON')
 
 runMigrations(db)
 runMigrations(db) // idempotente
-assert.equal(db.pragma('user_version', { simple: true }), 47)
+assert.equal(db.pragma('user_version', { simple: true }), 48)
 
 const count = (table: string): number =>
   (db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n
@@ -246,6 +247,30 @@ assert.equal(count('categorie'), 1)
     recensione: number
   }
   assert.deepEqual(ripreso, { stato: 'trattamento', recensione: 1 })
+}
+
+// --- Campo sport (v48): si scrive e si rilegge, e resta vuoto se non c'e' ---
+{
+  const pazSport = db
+    .prepare("INSERT INTO pazienti (nome, cognome, sport) VALUES ('Sara', 'Prova', 'Calcio (portiere)')")
+    .run().lastInsertRowid
+  assert.equal(
+    (db.prepare('SELECT sport FROM pazienti WHERE id = ?').get(pazSport) as { sport: string }).sport,
+    'Calcio (portiere)'
+  )
+  db.prepare('UPDATE pazienti SET sport = ? WHERE id = ?').run('Pallavolo', pazSport)
+  assert.equal(
+    (db.prepare('SELECT sport FROM pazienti WHERE id = ?').get(pazSport) as { sport: string }).sport,
+    'Pallavolo'
+  )
+  const pazSenzaSport = db
+    .prepare("INSERT INTO pazienti (nome, cognome) VALUES ('Noemi', 'Prova')")
+    .run().lastInsertRowid
+  assert.equal(
+    (db.prepare('SELECT sport FROM pazienti WHERE id = ?').get(pazSenzaSport) as { sport: string | null })
+      .sport,
+    null
+  )
 }
 
 db.close()
@@ -1020,6 +1045,57 @@ assert.equal(
   // un paziente che non ha mai fatto niente non ha nessun precedente
   const altro = ins("INSERT INTO pazienti (nome, cognome) VALUES ('Ida', 'Neri')")
   assert.equal(ultimaVoltaPerPaziente(altro, null).length, 0)
+}
+
+// --- Andamento del dolore (linguetta "Quadro"): sedute e anamnesi unite ---
+{
+  const c = getDb()
+  const ins = (sql: string, ...a: unknown[]): number =>
+    Number(c.prepare(sql).run(...a).lastInsertRowid)
+  const pzD = ins("INSERT INTO pazienti (nome, cognome) VALUES ('Dolo', 'Re')")
+  // il primo sintomo registrato e' quello del motivo della visita: i suoi
+  // punti "dall'esordio" precedono le sedute, che devono ancora iniziare
+  const sint1 = ins(
+    "INSERT INTO anamnesi_sintomi (paziente_id, descrizione, ordine) VALUES (?, 'Ginocchio', 0)",
+    pzD
+  )
+  // un secondo sintomo: i suoi punti non contano, si guarda solo il primo
+  const sint2 = ins(
+    "INSERT INTO anamnesi_sintomi (paziente_id, descrizione, ordine) VALUES (?, 'Caviglia', 1)",
+    pzD
+  )
+  ins(
+    "INSERT INTO sintomo_punti (sintomo_id, grafico, data, dolore) VALUES (?, 'esordio', '2026-01-15', 6)",
+    sint1
+  )
+  ins(
+    "INSERT INTO sintomo_punti (sintomo_id, grafico, data, dolore) VALUES (?, 'esordio', '2026-01-01', 8)",
+    sint1
+  )
+  // un punto del grafico "giorno" non c'entra con l'andamento nel tempo
+  ins("INSERT INTO sintomo_punti (sintomo_id, grafico, minuti, dolore) VALUES (?, 'giorno', 480, 7)", sint1)
+  ins(
+    "INSERT INTO sintomo_punti (sintomo_id, grafico, data, dolore) VALUES (?, 'esordio', '2025-01-01', 9)",
+    sint2
+  )
+  ins("INSERT INTO sedute (paziente_id, data, dolore) VALUES (?, '2026-02-10', 3)", pzD)
+  ins("INSERT INTO sedute (paziente_id, data, dolore) VALUES (?, '2026-02-01', 5)", pzD)
+  // una seduta senza dolore segnato non entra nella serie
+  ins("INSERT INTO sedute (paziente_id, data) VALUES (?, '2026-02-05')", pzD)
+  // una seduta programmata nel futuro non e' ancora "andamento"
+  ins("INSERT INTO sedute (paziente_id, data, dolore) VALUES (?, '2099-01-01', 1)", pzD)
+
+  const serie = andamentoDolorePerPaziente(pzD)
+  assert.deepEqual(serie, [
+    { data: '2026-01-01', dolore: 8, origine: 'anamnesi' },
+    { data: '2026-01-15', dolore: 6, origine: 'anamnesi' },
+    { data: '2026-02-01', dolore: 5, origine: 'seduta' },
+    { data: '2026-02-10', dolore: 3, origine: 'seduta' }
+  ])
+
+  // un paziente senza numeri sul dolore non ha nessun punto
+  const pzSenza = ins("INSERT INTO pazienti (nome, cognome) VALUES ('Senza', 'Numeri')")
+  assert.equal(andamentoDolorePerPaziente(pzSenza).length, 0)
 }
 
 // --- Controllo dell'archivio: un database sano lo dice ---
