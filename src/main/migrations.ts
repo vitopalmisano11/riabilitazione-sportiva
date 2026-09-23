@@ -1204,6 +1204,19 @@ export const MIGRATIONS: string[] = [
   //      su carichi e gesti da riprodurre in palestra.
   `
   ALTER TABLE pazienti ADD COLUMN sport TEXT;
+  `,
+
+  // 49 - i gruppi dei pazienti: dove li segui (Centro, Studio, Domicilio...),
+  //      configurabili come le patologie. Un paziente sta in un gruppo solo,
+  //      facoltativo.
+  `
+  CREATE TABLE gruppi (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome TEXT NOT NULL UNIQUE,
+    ordine INTEGER NOT NULL DEFAULT 0
+  );
+
+  ALTER TABLE pazienti ADD COLUMN gruppo_id INTEGER REFERENCES gruppi(id);
   `
 ]
 

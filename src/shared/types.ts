@@ -8,6 +8,14 @@ export interface Patologia {
   ha_campo: 0 | 1
 }
 
+// Dove segui il paziente: Centro, Studio, Domicilio... Configurabile, un
+// paziente ne ha uno solo (o nessuno).
+export interface Gruppo {
+  id: number
+  nome: string
+  ordine: number
+}
+
 export interface Fase {
   id: number
   patologia_id: number
@@ -136,6 +144,8 @@ export interface Paziente {
   altezza: number | null
   patologia_id: number | null
   fase_corrente_id: number | null
+  // Dove lo segui (Centro, Studio, Domicilio...). Facoltativo, un solo gruppo.
+  gruppo_id: number | null
   // 'trattamento' = lo stai seguendo adesso; 'concluso' = il ciclo e' finito e
   // il paziente e' passato nell'elenco del follow-up.
   stato: StatoPaziente
@@ -151,6 +161,7 @@ export interface Paziente {
 export type PazienteDettaglio = Paziente & {
   patologia_nome: string | null
   fase_nome: string | null
+  gruppo_nome: string | null
   // data dell'ultima seduta, per tenere in cima chi e' in trattamento adesso
   ultima_seduta: string | null
 }
@@ -169,6 +180,7 @@ export interface PazienteInput {
   data_intervento: string | null
   precauzioni: string | null
   arto_operato: 'dx' | 'sx' | null
+  gruppo_id: number | null
 }
 
 // Una frase da mettere sul foglio che il paziente si porta a casa. Stanno in
@@ -1150,6 +1162,13 @@ export interface Api {
     // distretti abituali della patologia: preselezione della valutazione
     distretti(patologiaId: number): Promise<number[]>
     setDistretti(patologiaId: number, distrettoIds: number[]): Promise<void>
+  }
+  gruppi: {
+    list(): Promise<Gruppo[]>
+    create(nome: string): Promise<number>
+    update(id: number, nome: string): Promise<void>
+    remove(id: number): Promise<void>
+    reorder(ids: number[]): Promise<void>
   }
   fasi: {
     list(patologiaId: number): Promise<Fase[]>

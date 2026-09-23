@@ -389,6 +389,30 @@ export function registerIpc(): void {
     eliminaConCestino('patologie', id, 'Patologia', nomeDi('patologie', id))
   })
 
+  // ---- Gruppi (dove segui il paziente: Centro, Studio, Domicilio...) ----
+  handle('gruppi:list', () => getDb().prepare('SELECT * FROM gruppi ORDER BY ordine, nome').all())
+  handle('gruppi:create', (nome: string) => {
+    const db = getDb()
+    const { next } = db
+      .prepare('SELECT COALESCE(MAX(ordine), -1) + 1 AS next FROM gruppi')
+      .get() as { next: number }
+    return Number(
+      db.prepare('INSERT INTO gruppi (nome, ordine) VALUES (?, ?)').run(nome.trim(), next)
+        .lastInsertRowid
+    )
+  })
+  handle('gruppi:reorder', (ids: number[]) => {
+    const db = getDb()
+    const stmt = db.prepare('UPDATE gruppi SET ordine = ? WHERE id = ?')
+    db.transaction(() => ids.forEach((id, i) => stmt.run(i, id)))()
+  })
+  handle('gruppi:update', (id: number, nome: string) => {
+    getDb().prepare('UPDATE gruppi SET nome = ? WHERE id = ?').run(nome.trim(), id)
+  })
+  handle('gruppi:delete', (id: number) => {
+    eliminaConCestino('gruppi', id, 'Gruppo', nomeDi('gruppi', id))
+  })
+
   // ---- Distretti (libreria della valutazione obiettiva) ----
   handle('distretti:list', () =>
     getDb().prepare('SELECT * FROM distretti ORDER BY ordine, nome').all()
@@ -944,12 +968,13 @@ export function registerIpc(): void {
   handle('pazienti:list', () =>
     getDb()
       .prepare(
-        `SELECT p.*, pat.nome AS patologia_nome, f.nome AS fase_nome,
+        `SELECT p.*, pat.nome AS patologia_nome, f.nome AS fase_nome, g.nome AS gruppo_nome,
                 (SELECT MAX(s.data) FROM sedute s
                  WHERE s.paziente_id = p.id AND s.data <= date('now', 'localtime')) AS ultima_seduta
          FROM pazienti p
          LEFT JOIN patologie pat ON pat.id = p.patologia_id
          LEFT JOIN fasi f ON f.id = p.fase_corrente_id
+         LEFT JOIN gruppi g ON g.id = p.gruppo_id
          -- in cima chi ha la seduta piu' recente; chi non ne ha ancora resta in
          -- fondo, in ordine alfabetico
          ORDER BY ultima_seduta IS NULL, ultima_seduta DESC, p.cognome, p.nome`
@@ -967,10 +992,10 @@ export function registerIpc(): void {
         .prepare(
           `INSERT INTO pazienti
              (nome, cognome, data_nascita, telefono, email, lavoro, inviato_da, sport, diagnosi,
-              tipo_intervento, data_intervento, precauzioni, patologia_id, fase_corrente_id)
+              tipo_intervento, data_intervento, precauzioni, patologia_id, fase_corrente_id, gruppo_id)
            VALUES
              (@nome, @cognome, @data_nascita, @telefono, @email, @lavoro, @inviato_da, @sport, @diagnosi,
-              @tipo_intervento, @data_intervento, @precauzioni, @patologia_id, @fase_corrente_id)`
+              @tipo_intervento, @data_intervento, @precauzioni, @patologia_id, @fase_corrente_id, @gruppo_id)`
         )
         .run({ ...data, nome: data.nome.trim(), cognome: data.cognome.trim() }).lastInsertRowid
     )
@@ -986,7 +1011,7 @@ export function registerIpc(): void {
          data_nascita = @data_nascita, telefono = @telefono, email = @email,
          lavoro = @lavoro, inviato_da = @inviato_da, sport = @sport, diagnosi = @diagnosi,
          tipo_intervento = @tipo_intervento, data_intervento = @data_intervento,
-         precauzioni = @precauzioni, arto_operato = @arto_operato
+         precauzioni = @precauzioni, arto_operato = @arto_operato, gruppo_id = @gruppo_id
          WHERE id = @id`
       )
       .run({ ...data, nome: data.nome.trim(), cognome: data.cognome.trim(), id })

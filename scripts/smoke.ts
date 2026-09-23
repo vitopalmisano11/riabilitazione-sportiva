@@ -84,7 +84,7 @@ db.pragma('foreign_keys = ON')
 
 runMigrations(db)
 runMigrations(db) // idempotente
-assert.equal(db.pragma('user_version', { simple: true }), 48)
+assert.equal(db.pragma('user_version', { simple: true }), 49)
 
 const count = (table: string): number =>
   (db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n
@@ -144,6 +144,23 @@ const pazId = db
 assert.throws(() => db.prepare('DELETE FROM patologie WHERE id = ?').run(patId), /FOREIGN KEY/)
 assert.throws(() => db.prepare('DELETE FROM fasi WHERE id = ?').run(faseId), /FOREIGN KEY/)
 db.prepare('DELETE FROM pazienti WHERE id = ?').run(pazId)
+
+// Gruppi (v1.5: dove segui il paziente): stesso comportamento delle patologie,
+// un paziente assegnato blocca l'eliminazione del gruppo, cosi' non si perde
+// mai a chi appartiene.
+const gruppoId = db.prepare('INSERT INTO gruppi (nome, ordine) VALUES (?, 0)').run('Centro').lastInsertRowid
+const pazGruppoId = db
+  .prepare("INSERT INTO pazienti (nome, cognome, gruppo_id) VALUES ('Paziente', 'Prova', ?)")
+  .run(gruppoId).lastInsertRowid
+assert.throws(() => db.prepare('DELETE FROM gruppi WHERE id = ?').run(gruppoId), /FOREIGN KEY/)
+assert.equal(
+  (db.prepare('SELECT gruppo_id FROM pazienti WHERE id = ?').get(pazGruppoId) as { gruppo_id: number })
+    .gruppo_id,
+  gruppoId
+)
+db.prepare('DELETE FROM pazienti WHERE id = ?').run(pazGruppoId)
+db.prepare('DELETE FROM gruppi WHERE id = ?').run(gruppoId)
+assert.equal(count('gruppi'), 0)
 
 // Sedute (v1.1: con sezioni e recupero): un esercizio usato nel diario non si
 // può eliminare (va archiviato), ma eliminare il paziente elimina in cascata

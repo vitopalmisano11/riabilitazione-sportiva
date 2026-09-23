@@ -181,6 +181,13 @@ const api: Api = {
     setDistretti: (patologiaId: number, ids: number[]) =>
       invoke('patologie:setDistretti', patologiaId, ids)
   },
+  gruppi: {
+    list: () => invoke('gruppi:list'),
+    create: (nome: string) => invoke('gruppi:create', nome),
+    update: (id: number, nome: string) => invoke('gruppi:update', id, nome),
+    remove: (id: number) => invoke('gruppi:delete', id),
+    reorder: (ids: number[]) => invoke('gruppi:reorder', ids)
+  },
   fasi: {
     list: (patologiaId: number) => invoke('fasi:list', patologiaId),
     create: (patologiaId: number, nome: string, campo?: boolean) =>

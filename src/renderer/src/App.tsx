@@ -9,6 +9,7 @@ import {
   Users
 } from 'lucide-react'
 import PatologiePage from './pages/PatologiePage'
+import GruppiPage from './pages/GruppiPage'
 import EserciziPage from './pages/EserciziPage'
 import QuestionariPage from './pages/QuestionariPage'
 import TestValutazionePage from './pages/TestValutazionePage'
@@ -36,6 +37,7 @@ type Sezione =
 
 type TabConfig =
   | 'patologie'
+  | 'gruppi'
   | 'distretti'
   | 'esercizi'
   | 'questionari'
@@ -44,6 +46,7 @@ type TabConfig =
 
 const TAB_CONFIG: { key: TabConfig; label: string }[] = [
   { key: 'patologie', label: 'Patologie e fasi' },
+  { key: 'gruppi', label: 'Gruppi' },
   { key: 'distretti', label: 'Distretti' },
   { key: 'esercizi', label: 'Libreria esercizi' },
   { key: 'questionari', label: 'Questionari' },
@@ -415,6 +418,7 @@ function ConfigurazionePage({
         ))}
       </div>
       {tab === 'patologie' && <PatologiePage key={giro} />}
+      {tab === 'gruppi' && <GruppiPage key={giro} />}
       {tab === 'distretti' && <DistrettiPage key={giro} />}
       {tab === 'esercizi' && <EserciziPage key={giro} />}
       {tab === 'questionari' && <QuestionariPage key={giro} />}

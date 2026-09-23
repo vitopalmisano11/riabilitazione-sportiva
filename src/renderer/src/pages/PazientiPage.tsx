@@ -16,6 +16,7 @@ import {
 import type {
   AnteprimaScheda,
   Fase,
+  Gruppo,
   Patologia,
   PazienteDettaglio,
   SedutaRiepilogo,
@@ -86,6 +87,7 @@ export default function PazientiPage({
   const [filtroPatologia, setFiltroPatologia] = useState<number | ''>('')
   const [filtroStato, setFiltroStato] = useState<'' | 'trattamento' | 'concluso'>('')
   const [patologie, setPatologie] = useState<Patologia[]>([])
+  const [gruppi, setGruppi] = useState<Gruppo[]>([])
   const [nuovo, setNuovo] = useState(false)
   // Quale linguetta e' aperta nella scheda del paziente: vive qui e non dentro
   // SchedaPaziente perche' aprire una seduta smonta quel componente (la pagina
@@ -106,6 +108,7 @@ export default function PazientiPage({
   useEffect(() => {
     void load()
     void window.api.patologie.list().then(setPatologie)
+    void window.api.gruppi.list().then(setGruppi)
   }, [])
 
   // Lo stato del builder letto dentro l'effetto senza farlo scattare: se fosse
@@ -169,6 +172,59 @@ export default function PazientiPage({
   // il riquadro a scorrere. Prima se ne mostravano dieci e il resto stava in un
   // blocco chiuso a parte, che voleva dire due posti in cui cercare.
   const sel = pazienti.find((p) => p.id === selId) ?? null
+
+  // Diviso in sezioni per gruppo solo se il fisioterapista ne ha creato
+  // almeno uno: chi non usa i gruppi non vede alcun cambiamento nell'elenco.
+  // Dentro a ogni sezione l'ordine di "trovati" (per ultima seduta) resta quello di prima.
+  const sezioniGruppo: { nome: string; pazienti: PazienteDettaglio[] }[] =
+    gruppi.length === 0
+      ? []
+      : [
+          ...[...gruppi]
+            .sort((a, b) => a.ordine - b.ordine)
+            .map((g) => ({ nome: g.nome, pazienti: trovati.filter((p) => p.gruppo_id === g.id) })),
+          { nome: 'Senza gruppo', pazienti: trovati.filter((p) => p.gruppo_id == null) }
+        ].filter((s) => s.pazienti.length > 0)
+
+  // La riga di un paziente nell'elenco: la stessa sia con i gruppi sia senza.
+  const rigaPaziente = (p: PazienteDettaglio): React.JSX.Element => (
+    <div
+      key={p.id}
+      className="riga-paziente"
+      onClick={() => {
+        setSelId(p.id)
+        setScheda('quadro')
+      }}
+    >
+      <span className="nome-paziente-riga">
+        {p.cognome} {p.nome}
+      </span>
+      <span className="dettaglio-riga">
+        {[p.patologia_nome, p.fase_nome, p.sport].filter(Boolean).join(' · ') || '—'}
+      </span>
+      <span
+        className="dettaglio-riga"
+        title={p.ultima_seduta ? formatData(p.ultima_seduta) : undefined}
+      >
+        {quantoFa(p.ultima_seduta)}
+      </span>
+      <span>
+        <span className={p.stato === 'concluso' ? 'badge-stato follow' : 'badge-stato'}>
+          {p.stato === 'concluso' ? 'Follow-up' : 'In trattamento'}
+        </span>
+      </span>
+      <button
+        className="primary btn-icona"
+        title="Nuova seduta per questo paziente"
+        onClick={(e) => {
+          e.stopPropagation()
+          nuovaSedutaPer(p.id)
+        }}
+      >
+        <Plus size={17} />
+      </button>
+    </div>
+  )
 
   // Il nome del paziente aperto finisce nel titolo della finestra: con piu'
   // finestre aperte, sulla barra di Windows si distinguono.
@@ -363,46 +419,20 @@ export default function PazientiPage({
                 <span />
               </div>
             )}
-            <div className="righe-pazienti">
-              {trovati.map((p) => (
-                <div
-                  key={p.id}
-                  className="riga-paziente"
-                  onClick={() => {
-                    setSelId(p.id)
-                    setScheda('quadro')
-                  }}
-                >
-                  <span className="nome-paziente-riga">
-                    {p.cognome} {p.nome}
-                  </span>
-                  <span className="dettaglio-riga">
-                    {[p.patologia_nome, p.fase_nome, p.sport].filter(Boolean).join(' · ') || '—'}
-                  </span>
-                  <span
-                    className="dettaglio-riga"
-                    title={p.ultima_seduta ? formatData(p.ultima_seduta) : undefined}
-                  >
-                    {quantoFa(p.ultima_seduta)}
-                  </span>
-                  <span>
-                    <span className={p.stato === 'concluso' ? 'badge-stato follow' : 'badge-stato'}>
-                      {p.stato === 'concluso' ? 'Follow-up' : 'In trattamento'}
-                    </span>
-                  </span>
-                  <button
-                    className="primary btn-icona"
-                    title="Nuova seduta per questo paziente"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      nuovaSedutaPer(p.id)
-                    }}
-                  >
-                    <Plus size={17} />
-                  </button>
+            {sezioniGruppo.length === 0 ? (
+              <div className="righe-pazienti">{trovati.map(rigaPaziente)}</div>
+            ) : (
+              // I gruppi ci sono: l'elenco si spezza in una sezione per gruppo,
+              // con nome e conteggio, invece dell'unica lista di sempre.
+              sezioniGruppo.map((s) => (
+                <div key={s.nome}>
+                  <div className="sotto-titolo">
+                    {s.nome} ({s.pazienti.length})
+                  </div>
+                  <div className="righe-pazienti">{s.pazienti.map(rigaPaziente)}</div>
                 </div>
-              ))}
-            </div>
+              ))
+            )}
           </div>
 
           {trovati.length === 0 && (

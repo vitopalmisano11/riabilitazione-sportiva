@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { FileDown, Pencil, Trash2 } from 'lucide-react'
 import type {
   Fase,
+  Gruppo,
   Patologia,
   PazienteDettaglio,
   PazienteInput
@@ -54,6 +55,7 @@ export default function AnagraficaPaziente({
     { etichetta: 'E-mail', valore: paziente.email },
     { etichetta: 'Lavoro / Hobby', valore: paziente.lavoro },
     { etichetta: 'Sport', valore: paziente.sport },
+    { etichetta: 'Gruppo', valore: paziente.gruppo_nome },
     { etichetta: 'Diagnosi', valore: paziente.diagnosi },
     { etichetta: 'Inviato da', valore: paziente.inviato_da },
     { etichetta: 'Tipo di intervento', valore: paziente.tipo_intervento },
@@ -178,6 +180,8 @@ export function ModaleDatiPaziente({
   const [patologiaId, setPatologiaId] = useState<number | ''>('')
   const [faseId, setFaseId] = useState<number | ''>('')
   const [fasi, setFasi] = useState<Fase[]>([])
+  const [gruppoId, setGruppoId] = useState<number | ''>(paziente?.gruppo_id ?? '')
+  const [gruppi, setGruppi] = useState<Gruppo[]>([])
 
   useEffect(() => {
     if (patologiaId === '') {
@@ -186,6 +190,13 @@ export function ModaleDatiPaziente({
     }
     void window.api.fasi.list(patologiaId).then(setFasi)
   }, [patologiaId])
+
+  // Il gruppo compare sempre, anche modificando un paziente esistente: a
+  // differenza della patologia non ha effetti a cascata da gestire, quindi
+  // l'elenco serve qui una volta sola, senza passarlo da fuori.
+  useEffect(() => {
+    void window.api.gruppi.list().then(setGruppi)
+  }, [])
 
   const campo =
     (k: keyof typeof form) =>
@@ -211,7 +222,8 @@ export function ModaleDatiPaziente({
       precauzioni: vuotoNull(form.precauzioni),
       tipo_intervento: vuotoNull(form.tipo_intervento),
       data_intervento: form.data_intervento || null,
-      arto_operato: form.arto_operato === '' ? null : (form.arto_operato as 'dx' | 'sx')
+      arto_operato: form.arto_operato === '' ? null : (form.arto_operato as 'dx' | 'sx'),
+      gruppo_id: gruppoId === '' ? null : gruppoId
     }
     try {
       if (nuovo) {
@@ -275,14 +287,26 @@ export function ModaleDatiPaziente({
           </label>
         </div>
 
-        <label>
-          Sport
-          <input
-            placeholder="es. Calcio (portiere)"
-            value={form.sport}
-            onChange={campo('sport')}
-          />
-        </label>
+        <div className="form-row-2">
+          <label>
+            Sport
+            <input
+              placeholder="es. Calcio (portiere)"
+              value={form.sport}
+              onChange={campo('sport')}
+            />
+          </label>
+          <label>
+            Gruppo
+            <SceltaConRicerca
+              voci={gruppi}
+              valore={gruppoId}
+              segnaposto="— nessun gruppo —"
+              vuoto="— nessun gruppo —"
+              onCambia={setGruppoId}
+            />
+          </label>
+        </div>
 
         <div className="sotto-titolo">Quadro clinico</div>
 
