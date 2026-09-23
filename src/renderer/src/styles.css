@@ -2826,6 +2826,32 @@ details[open] > :not(summary) {
   object-fit: contain;
 }
 
+/* ---- Ritaglio quadrato della foto ---- */
+
+.ritaglio-cornice {
+  position: relative;
+  overflow: hidden;
+  margin: 0 auto;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--pannello);
+  touch-action: none;
+  cursor: grab;
+}
+
+.ritaglio-cornice:active {
+  cursor: grabbing;
+}
+
+.ritaglio-cornice img {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  max-width: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
 /* ---- Anteprima della seduta ---- */
 
 .modal-lg {

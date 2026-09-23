@@ -16,6 +16,7 @@ import { chiedi } from '../components/Conferma'
 import CategorieEsercizi from '../components/CategorieEsercizi'
 import SceltaConRicerca from '../components/SceltaConRicerca'
 import ImmagineEsercizio from '../components/ImmagineEsercizio'
+import RitaglioImmagine from '../components/RitaglioImmagine'
 import { errMsg } from '../lib'
 import type { Dosaggio } from '../../../shared/dosaggio'
 import {
@@ -100,6 +101,9 @@ export default function EserciziPage(): React.JSX.Element {
   const [filtroCategoria, setFiltroCategoria] = useState<number | ''>('')
   const [form, setForm] = useState<FormState | null>(null)
   const [immagineAperta, setImmagineAperta] = useState<EsercizioConCategoria | null>(null)
+  // L'immagine (appena scelta da file, o gia' presente nell'esercizio) in
+  // attesa di essere ritagliata: null quando la finestra di ritaglio e' chiusa.
+  const [inRitaglio, setInRitaglio] = useState<string | null>(null)
   // La nota tecnica e' lunga quanto serve: scritta nella tabella, allargava la
   // riga e sfasava tutta la griglia. Sta dietro a un punto interrogativo e
   // compare passandoci sopra, in un cartellino che galleggia sopra la pagina
@@ -250,14 +254,21 @@ export default function EserciziPage(): React.JSX.Element {
     }
   }
 
+  // Scegliere il file apre subito il ritaglio: si salva nel form solo il
+  // risultato gia' ritagliato, non la foto intera appena caricata.
   const scegliImmagine = async (): Promise<void> => {
     if (!form) return
     try {
       const dataUrl = await window.api.scegliImmagine()
-      if (dataUrl) setForm({ ...form, immagine: dataUrl, immagineCambiata: true })
+      if (dataUrl) setInRitaglio(dataUrl)
     } catch (e) {
       toastErrore(errMsg(e))
     }
+  }
+
+  const confermaRitaglio = (dataUrlRitagliata: string): void => {
+    setForm((f) => (f ? { ...f, immagine: dataUrlRitagliata, immagineCambiata: true } : f))
+    setInRitaglio(null)
   }
 
   const archivia = async (e: EsercizioConCategoria): Promise<void> => {
@@ -626,6 +637,7 @@ export default function EserciziPage(): React.JSX.Element {
                   <img className="immagine-anteprima" src={form.immagine} alt="" />
                   <div className="campo-immagine-azioni">
                     <button onClick={() => void scegliImmagine()}>Sostituisci…</button>
+                    <button onClick={() => setInRitaglio(form.immagine)}>Ritaglia di nuovo…</button>
                     <button
                       className="danger"
                       onClick={() => setForm({ ...form, immagine: null, immagineCambiata: true })}
@@ -674,6 +686,14 @@ export default function EserciziPage(): React.JSX.Element {
           esercizioId={immagineAperta.id}
           nome={immagineAperta.nome}
           onClose={() => setImmagineAperta(null)}
+        />
+      )}
+
+      {inRitaglio && (
+        <RitaglioImmagine
+          src={inRitaglio}
+          onConferma={confermaRitaglio}
+          onAnnulla={() => setInRitaglio(null)}
         />
       )}
     </div>
