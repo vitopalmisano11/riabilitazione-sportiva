@@ -287,7 +287,7 @@ export function generaHtml(
   .schede { margin-bottom: 10px; }
   .scheda-es { display: flex; gap: 12px; border: 1px solid #dfe4ea; border-radius: 5px;
                padding: 9px 11px; margin-bottom: 8px; page-break-inside: avoid; }
-  .scheda-es .foto { flex: 0 0 150px; height: 110px; background: #f2f3f5; border-radius: 4px;
+  .scheda-es .foto { flex: 0 0 150px; height: 110px; background: #fff; border-radius: 4px;
                      overflow: hidden; }
   .scheda-es .foto img { width: 100%; height: 100%; object-fit: contain; display: block; }
   /* Il numero sta in una colonna sua: dentro la riga del nome, tutto quello che
