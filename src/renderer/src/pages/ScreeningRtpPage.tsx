@@ -519,7 +519,7 @@ function Esecuzione({
   if (!dati) return <p className="hint">Caricamento…</p>
 
   return (
-    <div className="page">
+    <div className="page pagina-compila-screening">
       <header className="page-header builder-header">
         <h2>
           {dati.sessione.paziente_cognome} {dati.sessione.paziente_nome}

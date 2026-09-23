@@ -463,6 +463,21 @@ body {
   background: transparent;
 }
 
+/* Nella compilazione di uno screening la lista di test e' lunga e si scorre
+   spesso: la barra sempre visibile a fianco distraeva. Solo li', resta
+   invisibile finche' non si passa il mouse sul riquadro che scorre. */
+.content:has(.pagina-compila-screening)::-webkit-scrollbar-thumb {
+  background: transparent;
+}
+
+.content:has(.pagina-compila-screening):hover::-webkit-scrollbar-thumb {
+  background: #cec4b4;
+}
+
+.content:has(.pagina-compila-screening):hover::-webkit-scrollbar-thumb:hover {
+  background: #b8ac98;
+}
+
 /* Con il testo ingrandito le caselle e i pulsanti chiedono piu' spazio del
    riquadro che li contiene, e senza queste due righe uscivano fuori invece di
    stringersi: le caselle hanno una larghezza minima loro (quella del "size"
@@ -2530,6 +2545,7 @@ details[open] > :not(summary) {
    differenza finche' non si apre. */
 .menu-scelta-bottone {
   width: 100%;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2546,6 +2562,17 @@ details[open] > :not(summary) {
   background: var(--campo);
   color: inherit;
   border-color: var(--border-forte);
+}
+
+/* Con un nome scelto lungo (es. un protocollo), il testo si tronca con i
+   puntini invece di allargare il bottone: senza min-width:0 uno span dentro
+   a un bottone "flex" non si restringe mai sotto la sua larghezza naturale,
+   e trascinava con se' tutta la riga e la finestra. */
+.menu-scelta-bottone > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .menu-scelta-bottone svg {
@@ -5110,18 +5137,23 @@ input[type='checkbox'].interruttore:focus-visible {
   padding-top: 0;
 }
 
+/* Una fascia colorata come i sotto-titoli delle liste, non piu' solo una
+   riga sottile sotto al nome: fra tanti test uno via l'altro, il nome di
+   quello che si sta compilando si trova a colpo d'occhio. */
 .voce-testata {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding-bottom: 8px;
+  padding: 6px 10px;
   margin-bottom: 8px;
-  border-bottom: 1px solid var(--border);
+  background: var(--intestazione);
+  border-radius: var(--radius-sm);
 }
 
 .voce-nome {
   font-size: 16px;
   font-weight: 600;
+  color: var(--intestazione-testo-forte);
 }
 
 .misura-riga {
