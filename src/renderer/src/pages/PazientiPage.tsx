@@ -87,6 +87,12 @@ export default function PazientiPage({
   const [filtroStato, setFiltroStato] = useState<'' | 'trattamento' | 'concluso'>('')
   const [patologie, setPatologie] = useState<Patologia[]>([])
   const [nuovo, setNuovo] = useState(false)
+  // Quale linguetta e' aperta nella scheda del paziente: vive qui e non dentro
+  // SchedaPaziente perche' aprire una seduta smonta quel componente (la pagina
+  // passa a mostrare SedutaBuilder al suo posto). Se stesse li' dentro, tornando
+  // dalla seduta la scheda ripartirebbe sempre dal quadro invece di restare sul
+  // diario da cui si era partiti.
+  const [scheda, setScheda] = useState<SchedaAperta>('quadro')
   const [builder, setBuilder] = useState<{
     sedutaId: number | null
     duplicaDa?: number
@@ -133,6 +139,7 @@ export default function PazientiPage({
   // di un paziente sotto il nome di un altro.
   useEffect(() => {
     if (apriPaziente == null) return
+    setScheda('quadro')
     setBuilder(
       apriPaziente.nuova
         ? { sedutaId: null, dataIniziale: apriPaziente.data, daFuori: true }
@@ -178,6 +185,7 @@ export default function PazientiPage({
   // scheda. E' il gesto piu' ripetuto della giornata.
   const nuovaSedutaPer = (pazienteId: number): void => {
     setSelId(pazienteId)
+    setScheda('diario')
     setBuilder({ sedutaId: null })
   }
 
@@ -250,14 +258,25 @@ export default function PazientiPage({
           key={sel.id}
           paziente={sel}
           patologie={patologie}
+          scheda={scheda}
+          onSchedaChange={setScheda}
           onChanged={load}
           onDeleted={() => {
             setSelId(null)
             void load()
           }}
-          onNuovaSeduta={() => setBuilder({ sedutaId: null })}
-          onApriSeduta={(id) => setBuilder({ sedutaId: id })}
-          onDuplicaSeduta={(id) => setBuilder({ sedutaId: null, duplicaDa: id })}
+          onNuovaSeduta={() => {
+            setScheda('diario')
+            setBuilder({ sedutaId: null })
+          }}
+          onApriSeduta={(id) => {
+            setScheda('diario')
+            setBuilder({ sedutaId: id })
+          }}
+          onDuplicaSeduta={(id) => {
+            setScheda('diario')
+            setBuilder({ sedutaId: null, duplicaDa: id })
+          }}
         />
       ) : (
         <section className="card step-card elenco-pazienti">
@@ -346,7 +365,14 @@ export default function PazientiPage({
             )}
             <div className="righe-pazienti">
               {trovati.map((p) => (
-                <div key={p.id} className="riga-paziente" onClick={() => setSelId(p.id)}>
+                <div
+                  key={p.id}
+                  className="riga-paziente"
+                  onClick={() => {
+                    setSelId(p.id)
+                    setScheda('quadro')
+                  }}
+                >
                   <span className="nome-paziente-riga">
                     {p.cognome} {p.nome}
                   </span>
@@ -425,6 +451,8 @@ const SCHEDE_PAZIENTE: { key: SchedaAperta; label: string }[] = [
 function SchedaPaziente({
   paziente,
   patologie,
+  scheda,
+  onSchedaChange,
   onChanged,
   onDeleted,
   onNuovaSeduta,
@@ -433,6 +461,12 @@ function SchedaPaziente({
 }: {
   paziente: PazienteDettaglio
   patologie: Patologia[]
+  // Quale linguetta e' aperta: vive nel componente sopra (PazientiPage), non
+  // qui, perche' aprire una seduta smonta questo componente. Se lo stato
+  // fosse qui dentro, tornando dalla seduta la scheda ripartirebbe sempre dal
+  // quadro invece di restare sulla linguetta da cui si era partiti.
+  scheda: SchedaAperta
+  onSchedaChange: (s: SchedaAperta) => void
   onChanged: () => Promise<void> | void
   onDeleted: () => void
   onNuovaSeduta: () => void
@@ -440,11 +474,6 @@ function SchedaPaziente({
   onDuplicaSeduta: (id: number) => void
 }): React.JSX.Element {
   const [fasi, setFasi] = useState<Fase[]>([])
-  // La scheda si apre sul quadro: e' la domanda con cui si apre un paziente,
-  // "sta migliorando?", prima ancora del diario di oggi. L'anamnesi e la
-  // valutazione si riempiono alla prima visita e poi si consultano di rado,
-  // quindi stanno dietro alla loro linguetta invece di allungare la pagina.
-  const [scheda, setScheda] = useState<SchedaAperta>('quadro')
   // Serve solo a sapere se c'e' una seduta da riprendere e quale.
   const [ultimaSeduta, setUltimaSeduta] = useState<number | null>(null)
 
@@ -542,7 +571,7 @@ function SchedaPaziente({
             <button
               key={t.key}
               className={scheda === t.key ? 'active' : ''}
-              onClick={() => setScheda(t.key)}
+              onClick={() => onSchedaChange(t.key)}
             >
               {t.label}
               {t.key === 'diario' && daFare > 0 && <span className="pallino-conta">{daFare}</span>}

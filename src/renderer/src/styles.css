@@ -5098,12 +5098,16 @@ input[type='checkbox'].interruttore:focus-visible {
 /* Compilazione di uno screening: un blocco per test, dentro una tabellina per
    misura. Le caselle sono strette perche' contengono numeri, non frasi. */
 .voce-test {
-  border-top: 1px solid var(--bg);
-  padding: 12px 0;
+  /* Prima era var(--bg): un beige chiarissimo su sfondo bianco, quasi
+     invisibile. Con piu' test in fila non si capiva dove finiva l'uno e
+     cominciava l'altro. */
+  border-top: 2px solid var(--border);
+  padding: 14px 0;
 }
 
 .voce-test:first-of-type {
   border-top: none;
+  padding-top: 0;
 }
 
 .voce-testata {
@@ -5112,7 +5116,7 @@ input[type='checkbox'].interruttore:focus-visible {
   gap: 8px;
   padding-bottom: 8px;
   margin-bottom: 8px;
-  border-bottom: 1px solid var(--bg);
+  border-bottom: 1px solid var(--border);
 }
 
 .voce-nome {
