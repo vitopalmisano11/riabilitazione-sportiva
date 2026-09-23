@@ -1484,7 +1484,12 @@ button.danger:hover:not(:disabled) {
 
 /* Le tabelle dei test con piu' prove (es. drop jump, CMJ) scorrono spesso: la
    barra sempre visibile a fianco delle caselle distraeva mentre si scriveva.
-   Solo qui, resta nascosta finche' non ci si passa sopra col mouse. */
+   Solo qui, resta nascosta finche' non ci si passa sopra col mouse, e c'e'
+   un po' di spazio sotto alle caselle prima che cominci la barra. */
+.voce-test .tabella-scorre {
+  padding-bottom: 10px;
+}
+
 .voce-test .tabella-scorre::-webkit-scrollbar-thumb {
   background: transparent;
 }
@@ -5197,7 +5202,7 @@ input[type='checkbox'].interruttore:focus-visible {
 .tabella-misura td {
   /* Meno spazio fra una prova e l'altra: con test a tante prove (drop jump,
      CMJ...) la tabella scorreva quasi sempre, anche con poche colonne. */
-  padding: 2px 3px 2px 0;
+  padding: 2px 1px 2px 0;
   text-align: left;
   font-size: 13px;
   font-weight: 400;
