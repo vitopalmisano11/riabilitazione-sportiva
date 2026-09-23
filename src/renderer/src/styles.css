@@ -1482,6 +1482,14 @@ button.danger:hover:not(:disabled) {
   min-width: 820px;
 }
 
+/* La tabella di un test (Prova 1, Prova 2...) ha poche colonne strette: i
+   640px di minimo, pensati per tabelle con tante colonne, allargavano molto
+   le poche caselle invece di tenerle vicine. Qui la larghezza segue solo il
+   contenuto, e scorre soltanto quando le prove sono davvero tante. */
+.tabella-scorre > .tabella-misura {
+  min-width: 0;
+}
+
 /* Le tabelle dei test con piu' prove (es. drop jump, CMJ) scorrono spesso: la
    barra sempre visibile a fianco delle caselle distraeva mentre si scriveva.
    Solo qui, resta nascosta finche' non ci si passa sopra col mouse, e c'e'
