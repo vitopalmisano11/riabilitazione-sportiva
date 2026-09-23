@@ -1482,6 +1482,21 @@ button.danger:hover:not(:disabled) {
   min-width: 820px;
 }
 
+/* Le tabelle dei test con piu' prove (es. drop jump, CMJ) scorrono spesso: la
+   barra sempre visibile a fianco delle caselle distraeva mentre si scriveva.
+   Solo qui, resta nascosta finche' non ci si passa sopra col mouse. */
+.voce-test .tabella-scorre::-webkit-scrollbar-thumb {
+  background: transparent;
+}
+
+.voce-test .tabella-scorre:hover::-webkit-scrollbar-thumb {
+  background: #cec4b4;
+}
+
+.voce-test .tabella-scorre:hover::-webkit-scrollbar-thumb:hover {
+  background: #b8ac98;
+}
+
 .data-table {
   width: 100%;
   border-collapse: collapse;
@@ -2546,9 +2561,13 @@ details[open] > :not(summary) {
 .menu-scelta-bottone {
   width: 100%;
   min-width: 0;
-  display: flex;
+  /* Griglia e non flex: con flex, il testo lungo e la freccetta potevano
+     finire su due righe invece di restare affiancati con il testo troncato.
+     La colonna del testo e' minmax(0, 1fr): puo' restringersi fino a 0, cosa
+     che una colonna "1fr" da sola non farebbe mai da sola. */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
   text-align: left;
   font-weight: 400;
@@ -2565,9 +2584,9 @@ details[open] > :not(summary) {
 }
 
 /* Con un nome scelto lungo (es. un protocollo), il testo si tronca con i
-   puntini invece di allargare il bottone: senza min-width:0 uno span dentro
-   a un bottone "flex" non si restringe mai sotto la sua larghezza naturale,
-   e trascinava con se' tutta la riga e la finestra. */
+   puntini invece di allargare il bottone: senza min-width:0 una colonna di
+   griglia non si restringe mai sotto la larghezza naturale del suo
+   contenuto, e trascinava con se' tutta la riga e la finestra. */
 .menu-scelta-bottone > span {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -5176,7 +5195,9 @@ input[type='checkbox'].interruttore:focus-visible {
 
 .tabella-misura th,
 .tabella-misura td {
-  padding: 2px 6px 2px 0;
+  /* Meno spazio fra una prova e l'altra: con test a tante prove (drop jump,
+     CMJ...) la tabella scorreva quasi sempre, anche con poche colonne. */
+  padding: 2px 3px 2px 0;
   text-align: left;
   font-size: 13px;
   font-weight: 400;
@@ -5189,8 +5210,8 @@ input[type='checkbox'].interruttore:focus-visible {
 }
 
 .tabella-misura input {
-  width: 78px;
-  padding: 6px 8px;
+  width: 66px;
+  padding: 6px 6px;
   text-align: right;
 }
 

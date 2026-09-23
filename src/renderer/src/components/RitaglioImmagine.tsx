@@ -11,9 +11,20 @@ interface Props {
   src: string
   onConferma: (dataUrlRitagliata: string) => void
   onAnnulla: () => void
+  // Cliccando fuori dal riquadro si annulla il ritaglio, ma non ci si ferma
+  // li': e' lo stesso gesto di cliccare fuori dalla finestra sotto, e deve
+  // chiuderla (salvando) come farebbe lei. Il pulsante "Annulla" invece
+  // annulla solo il ritaglio, restando nella finestra sotto a modificare
+  // altro.
+  onCliccaFuori?: () => void
 }
 
-export default function RitaglioImmagine({ src, onConferma, onAnnulla }: Props): React.JSX.Element {
+export default function RitaglioImmagine({
+  src,
+  onConferma,
+  onAnnulla,
+  onCliccaFuori
+}: Props): React.JSX.Element {
   const imgRef = useRef<HTMLImageElement>(null)
   const [pronta, setPronta] = useState(false)
   // scalaBase = lo zoom minimo che copre la cornice senza lasciare bordi.
@@ -94,7 +105,13 @@ export default function RitaglioImmagine({ src, onConferma, onAnnulla }: Props):
   }
 
   return (
-    <div className="modal-overlay" onClick={onAnnulla}>
+    <div
+      className="modal-overlay"
+      onClick={() => {
+        onAnnulla()
+        onCliccaFuori?.()
+      }}
+    >
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <h3>Ritaglia la foto</h3>
         <p className="modal-testo">Trascina la foto per inquadrarla, e usa il cursore per lo zoom.</p>

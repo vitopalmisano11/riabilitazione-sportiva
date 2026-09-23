@@ -189,6 +189,16 @@ export default function EserciziPage(): React.JSX.Element {
     }
   }
 
+  // Cliccando fuori dalla finestra si salva, come nel resto della
+  // configurazione: si butta via solo un esercizio nuovo ancora senza nome.
+  // Usata sia dallo sfondo della finestra sia da quello del ritaglio foto,
+  // che sta sopra e altrimenti intercetterebbe il clic da solo.
+  const chiudiCliccandoFuori = (): void => {
+    if (!form) return
+    if (form.id == null && !form.nome.trim()) setForm(null)
+    else void salva()
+  }
+
   // Nome e dosaggio si salvano insieme: sono due domande sulla stessa cosa.
   // Il dosaggio di un esercizio della libreria, nella forma che sanno leggere
   // le funzioni condivise.
@@ -506,13 +516,7 @@ export default function EserciziPage(): React.JSX.Element {
         // Cliccando fuori si salva, come nel resto della configurazione: si
         // butta via solo un esercizio nuovo ancora senza nome. "Annulla" resta
         // il modo per uscire senza salvare.
-        <div
-          className="modal-overlay"
-          onClick={() => {
-            if (form.id == null && !form.nome.trim()) setForm(null)
-            else void salva()
-          }}
-        >
+        <div className="modal-overlay" onClick={chiudiCliccandoFuori}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h3>{form.id == null ? 'Nuovo esercizio' : 'Modifica esercizio'}</h3>
             <label>
@@ -694,6 +698,7 @@ export default function EserciziPage(): React.JSX.Element {
           src={inRitaglio}
           onConferma={confermaRitaglio}
           onAnnulla={() => setInRitaglio(null)}
+          onCliccaFuori={chiudiCliccandoFuori}
         />
       )}
     </div>
