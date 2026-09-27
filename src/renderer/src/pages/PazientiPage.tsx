@@ -426,7 +426,7 @@ export default function PazientiPage({
               // I gruppi ci sono: l'elenco si spezza in una sezione per gruppo,
               // con nome e conteggio, invece dell'unica lista di sempre.
               sezioniGruppo.map((s) => (
-                <div key={s.nome}>
+                <div key={s.nome} className="blocco-gruppo-pazienti">
                   <div className="sotto-titolo">
                     {s.nome} ({s.pazienti.length})
                   </div>

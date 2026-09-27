@@ -3819,6 +3819,14 @@ input[type='checkbox'].interruttore:focus-visible {
   padding: 4px;
 }
 
+/* Un gruppo dopo l'altro nell'elenco pazienti: senza uno stacco si leggeva
+   come un'unica lista lunga, col nome del gruppo perso in mezzo alle righe. */
+.blocco-gruppo-pazienti + .blocco-gruppo-pazienti {
+  margin-top: 20px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
 /* ---- La lista dei pazienti, larga e a colonne ---- */
 .lista-larga .elenco-pazienti {
   width: 100%;
