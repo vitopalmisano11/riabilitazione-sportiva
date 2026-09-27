@@ -228,7 +228,11 @@ export type PazienteCreateInput = PazienteInput & {
 }
 
 export interface SedutaEsercizioInput {
-  esercizio_id: number
+  // null = esercizio "al volo": non viene dalla libreria, vale solo nome_libero.
+  esercizio_id: number | null
+  // Il nome scritto sul momento, per un esercizio che non e' in libreria.
+  // Valorizzato solo quando esercizio_id e' null.
+  nome_libero: string | null
   serie: string | null
   cluster: string | null
   ripetizioni: string | null
@@ -372,8 +376,10 @@ export interface SedutaRiepilogo {
 }
 
 export type SedutaEsercizioDettaglio = Omit<SedutaEsercizioInput, 'sezioneIndex'> & {
+  // Sempre presente: e.nome per un esercizio di libreria, nome_libero per uno al volo.
   nome: string
-  categoria_nome: string
+  // null per un esercizio al volo: non ha una categoria.
+  categoria_nome: string | null
   unita_carico: string | null
   link: string | null
   ha_immagine: 0 | 1
@@ -895,7 +901,7 @@ export interface AnteprimaScheda {
 
 export interface EsercizioScheda {
   nome: string
-  categoria_nome: string
+  categoria_nome: string | null
   serie: string | null
   cluster: string | null
   ripetizioni: string | null

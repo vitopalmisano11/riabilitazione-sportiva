@@ -86,15 +86,16 @@ function leggiSeduta(
   }
   const esercizi = db
     .prepare(
-      `SELECT e.nome, c.nome AS categoria_nome, e.unita_carico,
+      `SELECT COALESCE(e.nome, se.nome_libero) AS nome, c.nome AS categoria_nome,
+              e.unita_carico,
               se.serie, se.cluster, se.ripetizioni,
               se.carico, se.recupero_cluster, se.recupero,
               se.nota, se.seduta_sezione_id${
                 illustrata ? ', e.nota_tecnica, e.link, e.immagine' : ''
               }
        FROM seduta_esercizi se
-       JOIN esercizi e ON e.id = se.esercizio_id
-       JOIN categorie c ON c.id = e.categoria_id
+       LEFT JOIN esercizi e ON e.id = se.esercizio_id
+       LEFT JOIN categorie c ON c.id = e.categoria_id
        WHERE se.seduta_id = ? ORDER BY se.ordine, se.id`
     )
     .all(id) as RigaEsercizio[]

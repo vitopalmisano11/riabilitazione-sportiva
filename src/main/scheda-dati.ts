@@ -7,7 +7,9 @@ import { getDb } from './db'
 
 export interface EsercizioScheda {
   nome: string
-  categoria_nome: string
+  // null per un esercizio "al volo" (scritto solo per questa seduta): non ha
+  // una categoria di libreria.
+  categoria_nome: string | null
   serie: string | null
   cluster: string | null
   ripetizioni: string | null
@@ -49,12 +51,13 @@ export function datiScheda(sedutaId: number): SchedaPaziente {
 
   const esercizi = db
     .prepare(
-      `SELECT e.nome, c.nome AS categoria_nome, e.unita_carico,
+      `SELECT COALESCE(e.nome, se.nome_libero) AS nome, c.nome AS categoria_nome,
+              e.unita_carico,
               se.serie, se.cluster, se.ripetizioni, se.carico, se.recupero_cluster,
               se.recupero, se.nota, se.seduta_sezione_id
        FROM seduta_esercizi se
-       JOIN esercizi e ON e.id = se.esercizio_id
-       JOIN categorie c ON c.id = e.categoria_id
+       LEFT JOIN esercizi e ON e.id = se.esercizio_id
+       LEFT JOIN categorie c ON c.id = e.categoria_id
        WHERE se.seduta_id = ?
        ORDER BY se.ordine, se.id`
     )

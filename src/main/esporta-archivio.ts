@@ -200,13 +200,14 @@ export function esportaArchivio(cartella: string): string {
   scriviCsv(
     join(dest, 'sedute.csv'),
     q(`SELECT p.cognome, p.nome, s.data, f.nome AS fase, sez.nome AS sezione,
-              e.nome AS esercizio, c.nome AS categoria, se.serie, se.cluster, se.ripetizioni,
+              COALESCE(e.nome, se.nome_libero) AS esercizio, c.nome AS categoria,
+              se.serie, se.cluster, se.ripetizioni,
               se.carico, se.recupero_cluster, se.recupero, se.nota, s.note AS note_seduta
        FROM seduta_esercizi se
        JOIN sedute s ON s.id = se.seduta_id
        JOIN pazienti p ON p.id = s.paziente_id
-       JOIN esercizi e ON e.id = se.esercizio_id
-       JOIN categorie c ON c.id = e.categoria_id
+       LEFT JOIN esercizi e ON e.id = se.esercizio_id
+       LEFT JOIN categorie c ON c.id = e.categoria_id
        LEFT JOIN fasi f ON f.id = s.fase_id
        LEFT JOIN seduta_sezioni sez ON sez.id = se.seduta_sezione_id
        ORDER BY p.cognome, p.nome, s.data, se.ordine, se.id`),

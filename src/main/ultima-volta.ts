@@ -30,6 +30,10 @@ export function ultimaVoltaPerPaziente(
          FROM seduta_esercizi se
          JOIN sedute s ON s.id = se.seduta_id
          WHERE s.paziente_id = ?
+           -- un esercizio "al volo" non ha una libreria da cui ricavare uno
+           -- storico: non e' detto che due righe con lo stesso nome siano lo
+           -- stesso esercizio, quindi restano fuori da questa lettura.
+           AND se.esercizio_id IS NOT NULL
            -- le sedute programmate nei giorni che verranno non le ha ancora
            -- fatte, e la seduta che si sta modificando non e' "l'ultima volta"
            AND s.data <= COALESCE(?, date('now', 'localtime'))

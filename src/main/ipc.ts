@@ -1243,15 +1243,16 @@ export function registerIpc(): void {
       (s, i) => Number(insSez.run(sedutaId, s.sezione_id, s.nome.trim(), i).lastInsertRowid)
     )
     const insEs = db.prepare(
-      `INSERT INTO seduta_esercizi (seduta_id, esercizio_id, serie, cluster, ripetizioni,
-                                    rir, carico, recupero_cluster, recupero, nota, ordine,
-                                    seduta_sezione_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO seduta_esercizi (seduta_id, esercizio_id, nome_libero, serie, cluster,
+                                    ripetizioni, rir, carico, recupero_cluster, recupero, nota,
+                                    ordine, seduta_sezione_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     input.esercizi.forEach((e, i) =>
       insEs.run(
         sedutaId,
         e.esercizio_id,
+        e.nome_libero,
         e.serie,
         e.cluster,
         e.ripetizioni,
@@ -1352,14 +1353,15 @@ export function registerIpc(): void {
       .all(id) as { id: number; sezione_id: number | null; nome: string }[]
     const esercizi = db
       .prepare(
-        `SELECT se.esercizio_id, e.nome, c.nome AS categoria_nome, e.link,
+        `SELECT se.esercizio_id, se.nome_libero,
+                COALESCE(e.nome, se.nome_libero) AS nome, c.nome AS categoria_nome, e.link,
                 e.unita_carico,
                 (e.immagine IS NOT NULL) AS ha_immagine,
                 se.serie, se.cluster, se.ripetizioni, se.rir, se.carico, se.recupero_cluster,
                 se.recupero, se.nota, se.seduta_sezione_id
          FROM seduta_esercizi se
-         JOIN esercizi e ON e.id = se.esercizio_id
-         JOIN categorie c ON c.id = e.categoria_id
+         LEFT JOIN esercizi e ON e.id = se.esercizio_id
+         LEFT JOIN categorie c ON c.id = e.categoria_id
          WHERE se.seduta_id = ?
          ORDER BY se.ordine, se.id`
       )
@@ -1391,6 +1393,15 @@ export function registerIpc(): void {
     validaOra(input.ora, "L'orario della seduta")
     validaScala010(input.dolore, 'Il dolore')
     validaScala010(input.sforzo, 'Lo sforzo percepito')
+    // Ogni riga viene dalla libreria (esercizio_id) oppure e' scritta al volo
+    // per questa seduta (nome_libero): mai tutte e due, mai nessuna delle due.
+    for (const e of input.esercizi) {
+      if ((e.esercizio_id == null) === (e.nome_libero == null)) {
+        throw new Error(
+          "Un esercizio della seduta non ha ne' un esercizio di libreria ne' un nome: riprova."
+        )
+      }
+    }
   }
 
   handle('sedute:create', (input: SedutaInput) => {
@@ -1435,12 +1446,13 @@ export function registerIpc(): void {
       .all(origineId) as { id: number; sezione_id: number | null; nome: string }[]
     const esercizi = db
       .prepare(
-        `SELECT esercizio_id, serie, cluster, ripetizioni, rir, carico, recupero_cluster,
-                recupero, nota, seduta_sezione_id
+        `SELECT esercizio_id, nome_libero, serie, cluster, ripetizioni, rir, carico,
+                recupero_cluster, recupero, nota, seduta_sezione_id
          FROM seduta_esercizi WHERE seduta_id = ? ORDER BY ordine, id`
       )
       .all(origineId) as {
-      esercizio_id: number
+      esercizio_id: number | null
+      nome_libero: string | null
       serie: string | null
       cluster: string | null
       ripetizioni: string | null
@@ -1483,6 +1495,7 @@ export function registerIpc(): void {
           sezioni: sezioni.map((z) => ({ sezione_id: z.sezione_id, nome: z.nome })),
           esercizi: esercizi.map((e) => ({
             esercizio_id: e.esercizio_id,
+            nome_libero: e.nome_libero,
             serie: e.serie,
             cluster: e.cluster,
             ripetizioni: e.ripetizioni,

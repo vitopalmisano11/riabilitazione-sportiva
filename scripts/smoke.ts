@@ -84,7 +84,7 @@ db.pragma('foreign_keys = ON')
 
 runMigrations(db)
 runMigrations(db) // idempotente
-assert.equal(db.pragma('user_version', { simple: true }), 49)
+assert.equal(db.pragma('user_version', { simple: true }), 50)
 
 const count = (table: string): number =>
   (db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n
@@ -1188,6 +1188,104 @@ assert.equal(
     ).n,
     3
   )
+}
+
+// --- Esercizio "al volo": un nome scritto solo per questa seduta, senza
+//     passare dalla libreria ---
+{
+  const c = getDb()
+  const ins = (sql: string, ...a: unknown[]): number =>
+    Number(c.prepare(sql).run(...a).lastInsertRowid)
+
+  const pzV = ins("INSERT INTO pazienti (nome, cognome) VALUES ('Vito', 'Alvolo')")
+  const catV = ins("INSERT INTO categorie (nome) VALUES ('Cat al volo')")
+  const esV = ins('INSERT INTO esercizi (nome, categoria_id) VALUES (?, ?)', 'Affondo laterale', catV)
+  const sedV = ins("INSERT INTO sedute (paziente_id, data) VALUES (?, '2026-09-15')", pzV)
+
+  // il vincolo CHECK impone esattamente uno tra esercizio_id e nome_libero:
+  // ne' tutti e due ne' nessuno dei due
+  assert.throws(
+    () =>
+      c
+        .prepare(
+          'INSERT INTO seduta_esercizi (seduta_id, esercizio_id, nome_libero, ordine) VALUES (?, NULL, NULL, 0)'
+        )
+        .run(sedV),
+    /CHECK constraint/
+  )
+  assert.throws(
+    () =>
+      c
+        .prepare(
+          "INSERT INTO seduta_esercizi (seduta_id, esercizio_id, nome_libero, ordine) VALUES (?, ?, 'Doppio', 0)"
+        )
+        .run(sedV, esV),
+    /CHECK constraint/
+  )
+
+  // una riga di libreria normale...
+  ins(
+    "INSERT INTO seduta_esercizi (seduta_id, esercizio_id, serie, ripetizioni, ordine) VALUES (?, ?, '3', '10', 0)",
+    sedV,
+    esV
+  )
+  // ...e una "al volo": niente esercizio_id, solo il nome scritto li' per li'
+  ins(
+    "INSERT INTO seduta_esercizi (seduta_id, esercizio_id, nome_libero, serie, ripetizioni, ordine) VALUES (?, NULL, ?, '4', '12', 1)",
+    sedV,
+    'Slancio con elastico rosso'
+  )
+
+  type RigaLetta = {
+    esercizio_id: number | null
+    nome_libero: string | null
+    nome: string
+    categoria_nome: string | null
+  }
+  // il canale IPC non si puo' chiamare da qui: si ripete la lettura che fa
+  // sedute:get, con lo stesso LEFT JOIN (non piu' un JOIN rigido) e la stessa
+  // COALESCE del nome fra libreria e nome_libero
+  const leggi = (sedutaId: number): RigaLetta[] =>
+    c
+      .prepare(
+        `SELECT se.esercizio_id, se.nome_libero, COALESCE(e.nome, se.nome_libero) AS nome,
+                c2.nome AS categoria_nome
+         FROM seduta_esercizi se
+         LEFT JOIN esercizi e ON e.id = se.esercizio_id
+         LEFT JOIN categorie c2 ON c2.id = e.categoria_id
+         WHERE se.seduta_id = ? ORDER BY se.ordine, se.id`
+      )
+      .all(sedutaId) as RigaLetta[]
+
+  const righe = leggi(sedV)
+  assert.equal(righe.length, 2)
+  assert.equal(righe[0].nome, 'Affondo laterale')
+  assert.equal(righe[0].categoria_nome, 'Cat al volo')
+  assert.equal(righe[1].esercizio_id, null)
+  assert.equal(righe[1].nome_libero, 'Slancio con elastico rosso')
+  assert.equal(righe[1].nome, 'Slancio con elastico rosso')
+  // un esercizio al volo non ha categoria: sparisce, non rompe la lettura
+  assert.equal(righe[1].categoria_nome, null)
+
+  // programmando la seduta su un'altra data (come fa sedute:programma), la
+  // riga al volo deve seguirla col suo nome
+  const nuova = ins(
+    'INSERT INTO sedute (paziente_id, data, fase_id, note) SELECT paziente_id, ?, fase_id, note FROM sedute WHERE id = ?',
+    '2026-09-22',
+    sedV
+  )
+  ins(
+    `INSERT INTO seduta_esercizi (seduta_id, esercizio_id, nome_libero, serie, ripetizioni, carico, recupero, nota, ordine)
+     SELECT ?, esercizio_id, nome_libero, serie, ripetizioni, carico, recupero, nota, ordine
+     FROM seduta_esercizi WHERE seduta_id = ?`,
+    nuova,
+    sedV
+  )
+  const copia = leggi(nuova)
+  assert.equal(copia.length, 2)
+  assert.equal(copia[0].nome, 'Affondo laterale')
+  assert.equal(copia[1].esercizio_id, null)
+  assert.equal(copia[1].nome, 'Slancio con elastico rosso')
 }
 
 // --- Cestino: eliminare un paziente si puo' disfare ---

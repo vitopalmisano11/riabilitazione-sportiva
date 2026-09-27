@@ -2166,6 +2166,25 @@ details[open] > :not(summary) {
   margin-bottom: 10px;
 }
 
+/* Il pulsante per l'esercizio "al volo": largo quanto il resto del pannello,
+   cosi' si vede come un'azione a se' e non come una riga della lista sotto. */
+.btn-al-volo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  justify-content: flex-start;
+  color: var(--accent);
+  border-color: var(--accent);
+  border-style: dashed;
+  margin-bottom: 10px;
+  text-align: left;
+}
+
+.btn-al-volo:hover:not(:disabled) {
+  background: var(--accent-soft);
+}
+
 .esercizi-proposti {
   list-style: none;
   margin: 0;

@@ -44,10 +44,16 @@ interface Props {
   onClose: (salvata: boolean) => void
 }
 
+// Una riga della seduta in costruzione. chiaveVolo e' una chiave locale, mai
+// salvata e mai vista dal database: serve solo a dare alla lista di React
+// qualcosa di stabile per le righe "al volo" (esercizio_id null), che
+// altrimenti sarebbero tutte indistinguibili l'una dall'altra.
+type RigaBuilder = SedutaEsercizioDettaglio & { chiaveVolo?: number }
+
 interface SezioneBuilder {
   sezione_id: number | null
   nome: string
-  righe: SedutaEsercizioDettaglio[]
+  righe: RigaBuilder[]
 }
 
 // Quello che si sta componendo, messo da parte cosi' com'e'.
@@ -104,6 +110,22 @@ export default function SedutaBuilder({
   // Ctrl+Z: com'erano le sezioni prima di ogni cambiamento (un esercizio
   // aggiunto o tolto, una sezione tolta, un riordino), dal piu' recente.
   const storia = useRef<{ sezioni: SezioneBuilder[]; cosa: string }[]>([])
+  // Contatore per le chiavi locali delle righe "al volo" (sempre negative,
+  // cosi' non si confondono mai con un esercizio_id vero).
+  const contatoreVolo = useRef(0)
+  const chiaveVoloNuova = (): number => --contatoreVolo.current
+
+  // Le sezioni lette dall'archivio (o da una seduta da duplicare) hanno righe
+  // "al volo" gia' salvate ma senza una chiave locale: gliene si assegna una
+  // qui, una volta sola, invece che a ogni render.
+  const assegnaChiavi = (
+    sezioniLette: { sezione_id: number | null; nome: string; esercizi: SedutaEsercizioDettaglio[] }[]
+  ): SezioneBuilder[] =>
+    sezioniLette.map((sz) => ({
+      sezione_id: sz.sezione_id,
+      nome: sz.nome,
+      righe: sz.esercizi.map((r) => (r.esercizio_id == null ? { ...r, chiaveVolo: chiaveVoloNuova() } : r))
+    }))
   const [obiettivi, setObiettivi] = useState<Obiettivo[]>([])
   const [raggiunti, setRaggiunti] = useState<number[]>([])
   const [templateCats, setTemplateCats] = useState<Record<number, number[]>>({})
@@ -163,12 +185,12 @@ export default function SedutaBuilder({
             .precedente(paziente.id, sedutaId, s.data)
             .then(setPrecedente)
             .catch(() => undefined)
-          setSezioni(s.sezioni.map((sz) => ({ ...sz, righe: sz.esercizi })))
+          setSezioni(assegnaChiavi(s.sezioni))
           fase = s.fase_id
           faseN = s.fase_nome
         } else if (duplicaDa != null) {
           const s = await window.api.sedute.get(duplicaDa)
-          setSezioni(s.sezioni.map((sz) => ({ ...sz, righe: sz.esercizi })))
+          setSezioni(assegnaChiavi(s.sezioni))
           setFocus(s.focus ?? '')
         }
         setFaseId(fase)
@@ -277,14 +299,17 @@ export default function SedutaBuilder({
   // prevedono (la pliometria estensiva), oppure su una riga che un dosaggio a
   // cluster ce l'ha gia' — cosi' una seduta vecchia resta modificabile anche se
   // nel frattempo la categoria e' cambiata.
-  const mostraCluster = (r: { categoria_nome: string; cluster: string | null }): boolean =>
+  // Un esercizio "al volo" non ha categoria (categoria_nome null): non
+  // corrisponde a nessuna categoria configurata, quindi niente cluster/RIR a
+  // meno che la riga non li abbia gia' un valore scritto (vedi sopra).
+  const mostraCluster = (r: { categoria_nome: string | null; cluster: string | null }): boolean =>
     (r.cluster ?? '') !== '' ||
     categorie.some((c) => c.nome === r.categoria_nome && c.dosaggio_cluster === 1)
 
   // La casellina del RIR compare dove la categoria la prevede, e comunque dove
   // un numero c'e' gia': una seduta vecchia deve restare modificabile anche se
   // nel frattempo la spunta e' stata tolta.
-  const mostraRir = (r: { categoria_nome: string; rir: string | null }): boolean =>
+  const mostraRir = (r: { categoria_nome: string | null; rir: string | null }): boolean =>
     (r.rir ?? '') !== '' ||
     categorie.some((c) => c.nome === r.categoria_nome && c.dosaggio_rir === 1)
 
@@ -344,8 +369,9 @@ export default function SedutaBuilder({
     modificaSezioni(
       sezioni.map((s, i) => {
         if (i !== idx || s.righe.some((r) => r.esercizio_id === e.id)) return s
-        const riga = {
+        const riga: RigaBuilder = {
           esercizio_id: e.id,
+          nome_libero: null,
           nome: e.nome,
           categoria_nome: e.categoria_nome,
           unita_carico: e.unita_carico,
@@ -369,6 +395,42 @@ export default function SedutaBuilder({
         return { ...s, righe }
       }),
       `aggiunto ${e.nome}`
+    )
+  }
+
+  // Un esercizio "al volo": una variante scritta li' per li', che vale solo
+  // per questa seduta. Non tocca la libreria e non ha categoria, dosaggi di
+  // default, foto o link: solo il nome, e i campi della riga (serie,
+  // ripetizioni, carico...) restano da compilare come per tutti gli altri.
+  const aggiungiAlVolo = (idx: number, nomeGrezzo: string): void => {
+    const nome = nomeGrezzo.trim()
+    if (!nome) return
+    modificaSezioni(
+      sezioni.map((s, i) => {
+        if (i !== idx) return s
+        const riga: RigaBuilder = {
+          esercizio_id: null,
+          nome_libero: nome,
+          nome,
+          categoria_nome: null,
+          unita_carico: null,
+          serie: null,
+          cluster: null,
+          ripetizioni: null,
+          rir: null,
+          carico: null,
+          recupero_cluster: null,
+          recupero: null,
+          nota: null,
+          link: null,
+          ha_immagine: 0,
+          chiaveVolo: chiaveVoloNuova()
+        }
+        // Nessun raggruppamento per categoria: un esercizio al volo non ne ha
+        // una, quindi finisce semplicemente in fondo alla sezione.
+        return { ...s, righe: [...s.righe, riga] }
+      }),
+      `aggiunto ${nome} (solo per questa seduta)`
     )
   }
 
@@ -596,6 +658,7 @@ export default function SedutaBuilder({
       esercizi: sezioni.flatMap((s, i) =>
         s.righe.map((r) => ({
           esercizio_id: r.esercizio_id,
+          nome_libero: r.nome_libero,
           serie: r.serie?.trim() || null,
           cluster: r.cluster?.trim() || null,
           ripetizioni: r.ripetizioni?.trim() || null,
@@ -787,8 +850,12 @@ export default function SedutaBuilder({
       )}
 
       {sezioni.map((s, idxSez) => {
-        const ricerca = (ricerche[idxSez] ?? '').trim().toLowerCase()
+        const testoRicerca = (ricerche[idxSez] ?? '').trim()
+        const ricerca = testoRicerca.toLowerCase()
         const inSezione = new Set(s.righe.map((r) => r.esercizio_id))
+        // Se quello che hai scritto non e' gia' il nome di un esercizio della
+        // libreria, si puo' aggiungerlo cosi' com'e', solo per questa seduta.
+        const corrispondeInLibreria = libreria.some((e) => e.nome.toLowerCase() === ricerca)
         // Cercando si trova per nome, ma anche per categoria: spesso non si
         // ha in mente un esercizio precurso ("mi serve qualcosa di
         // propriocettiva"), si ha in mente il tipo di lavoro.
@@ -871,13 +938,18 @@ export default function SedutaBuilder({
               <ul className="righe-seduta">
                 {s.righe.map((r, idxRiga) => {
                   const dndRiga = contRiga(`${idxSez}:${idxRiga}`)
+                  // In una variabile a parte, cosi' il tipo resta "number" (non
+                  // "number | null") anche dentro le funzioni piu' sotto: un
+                  // esercizio al volo non ce l'ha, e quel blocco per lui non si
+                  // mostra proprio.
+                  const idEsercizio = r.esercizio_id
                   // Gli esercizi della stessa categoria restano vicini perche'
                   // e' li' che vengono inseriti, ma senza scriverne il nome: con
                   // categorie fini ("Rinforzo quadricipite", "Rinforzo
                   // hamstring") le intestazioni erano piu' delle righe.
                   return (
                   <li
-                    key={r.esercizio_id}
+                    key={r.esercizio_id ?? r.chiaveVolo}
                     {...dndRiga}
                     {...presaRiga(`${idxSez}:${idxRiga}`)}
                     className={dndRiga.className}
@@ -901,7 +973,9 @@ export default function SedutaBuilder({
                             className="icona-esercizio"
                             title="Vedi immagine"
                             onClick={() =>
-                              setImmagineAperta({ id: r.esercizio_id, nome: r.nome })
+                              // Il pulsante compare solo con ha_immagine === 1, cosa vera
+                              // solo per un esercizio di libreria: qui esercizio_id c'e' sempre.
+                              setImmagineAperta({ id: r.esercizio_id!, nome: r.nome })
                             }
                           >
                             <ImageIcon size={16} />
@@ -991,22 +1065,25 @@ export default function SedutaBuilder({
                         li rimette in riga tutti insieme, poi si ritocca — e da
                         quel momento la riga sparisce, perche' quei numeri sono
                         gia' li' sopra. */}
-                    {ultime[r.esercizio_id] &&
-                      !ricopiate.includes(`${idxSez}:${r.esercizio_id}`) &&
-                      testoUltima(r, ultime[r.esercizio_id]) !== '' && (
+                    {/* Un esercizio "al volo" non ha uno storico: niente da
+                        ricopiare. */}
+                    {idEsercizio != null &&
+                      ultime[idEsercizio] &&
+                      !ricopiate.includes(`${idxSez}:${idEsercizio}`) &&
+                      testoUltima(r, ultime[idEsercizio]) !== '' && (
                         <div className="ultima-volta">
                           <span className="ultima-quando">
-                            l&apos;ultima volta, {formatData(ultime[r.esercizio_id].data)}:
+                            l&apos;ultima volta, {formatData(ultime[idEsercizio].data)}:
                           </span>
                           <span className="ultima-dose">
-                            {testoUltima(r, ultime[r.esercizio_id])}
+                            {testoUltima(r, ultime[idEsercizio])}
                           </span>
                           <button
                             className="btn-piccolo"
                             title="Rimetti questi numeri nella riga"
                             onClick={() => {
-                              ricopiaUltima(idxSez, idxRiga, ultime[r.esercizio_id])
-                              setRicopiate([...ricopiate, `${idxSez}:${r.esercizio_id}`])
+                              ricopiaUltima(idxSez, idxRiga, ultime[idEsercizio])
+                              setRicopiate([...ricopiate, `${idxSez}:${idEsercizio}`])
                             }}
                           >
                             <CornerDownLeft size={14} /> Ricopia
@@ -1022,7 +1099,10 @@ export default function SedutaBuilder({
             {sezioneApertaPerAggiungere === idxSez && (
             <div className="aggiungi-area">
               <div className="testata-aggiungi">
-                <span className="hint">Scegli un esercizio da aggiungere a “{s.nome}”</span>
+                <span className="hint">
+                  Scegli un esercizio da aggiungere a “{s.nome}”
+                  <Aiuto testo="Non trovi l'esercizio che ti serve? Scrivi il suo nome nella casella e aggiungilo con il pulsante che compare sotto: resta solo per questa seduta, senza salvarlo in libreria." />
+                </span>
                 <button title="Chiudi" onClick={() => setApriAggiungi(null)}>
                   <X size={16} />
                 </button>
@@ -1039,6 +1119,19 @@ export default function SedutaBuilder({
                 value={ricerche[idxSez] ?? ''}
                 onChange={(e) => setRicerche({ ...ricerche, [idxSez]: e.target.value })}
               />
+              {/* L'esercizio "al volo": una variante scritta li' per li', che
+                  non e' in libreria e non ci finisce nemmeno lei. */}
+              {testoRicerca !== '' && !corrispondeInLibreria && (
+                <button
+                  className="btn-al-volo"
+                  onClick={() => {
+                    aggiungiAlVolo(idxSez, testoRicerca)
+                    setRicerche({ ...ricerche, [idxSez]: '' })
+                  }}
+                >
+                  <Plus size={16} /> Aggiungi «{testoRicerca}» come esercizio solo per questa seduta
+                </button>
+              )}
               {daProporre.length > 0 ? (
                 <ul className="esercizi-proposti">
                   {daProporre.map((e) => (

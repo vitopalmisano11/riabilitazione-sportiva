@@ -42,7 +42,9 @@ export interface DatiSedutaExport {
     nome: string | null // null = esercizi senza sezione (sedute v1)
     esercizi: {
       nome: string
-      categoria_nome: string
+      // null per un esercizio "al volo" (scritto solo per quella seduta):
+      // non ha una categoria di libreria. Non compare in stampa comunque.
+      categoria_nome: string | null
       unita_carico: string | null
       serie: string | null
       cluster: string | null

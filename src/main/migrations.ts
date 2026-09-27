@@ -1217,6 +1217,47 @@ export const MIGRATIONS: string[] = [
   );
 
   ALTER TABLE pazienti ADD COLUMN gruppo_id INTEGER REFERENCES gruppi(id);
+  `,
+
+  // 50 - l'esercizio "al volo": una variante inventata li' per li', che serve
+  //      solo per quella seduta e non va salvata in libreria. La riga tiene il
+  //      suo nome (nome_libero) invece di un rimando alla libreria: niente
+  //      categoria, dosaggi di default, foto o link, che restano cose della
+  //      libreria vera. Esattamente uno dei due tra esercizio_id e nome_libero
+  //      e' valorizzato, mai tutti e due e mai nessuno dei due (come per
+  //      test_id/questionario_id in screening_voci).
+  //
+  //      SQLite non permette di togliere un NOT NULL con ALTER COLUMN: si
+  //      ricrea la tabella e si travasano i dati, come gia' fatto per
+  //      valutazione_movimenti alla migrazione 42.
+  `
+  CREATE TABLE seduta_esercizi_nuova (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    seduta_id INTEGER NOT NULL REFERENCES sedute(id) ON DELETE CASCADE,
+    esercizio_id INTEGER REFERENCES esercizi(id),
+    nome_libero TEXT,
+    serie TEXT,
+    ripetizioni TEXT,
+    carico TEXT,
+    nota TEXT,
+    ordine INTEGER NOT NULL DEFAULT 0,
+    recupero TEXT,
+    seduta_sezione_id INTEGER REFERENCES seduta_sezioni(id) ON DELETE SET NULL,
+    cluster TEXT,
+    recupero_cluster TEXT,
+    rir TEXT,
+    CHECK ((esercizio_id IS NULL) <> (nome_libero IS NULL))
+  );
+  INSERT INTO seduta_esercizi_nuova
+    (id, seduta_id, esercizio_id, serie, ripetizioni, carico, nota, ordine,
+     recupero, seduta_sezione_id, cluster, recupero_cluster, rir)
+    SELECT id, seduta_id, esercizio_id, serie, ripetizioni, carico, nota, ordine,
+           recupero, seduta_sezione_id, cluster, recupero_cluster, rir
+    FROM seduta_esercizi;
+  DROP TABLE seduta_esercizi;
+  ALTER TABLE seduta_esercizi_nuova RENAME TO seduta_esercizi;
+
+  CREATE INDEX idx_seduta_esercizi_seduta ON seduta_esercizi(seduta_id);
   `
 ]
 
