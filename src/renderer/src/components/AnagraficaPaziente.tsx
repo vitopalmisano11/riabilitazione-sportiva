@@ -56,7 +56,6 @@ export default function AnagraficaPaziente({
     { etichetta: 'E-mail', valore: paziente.email },
     { etichetta: 'Lavoro / Hobby', valore: paziente.lavoro },
     { etichetta: 'Sport', valore: paziente.sport },
-    { etichetta: 'Gruppo', valore: paziente.gruppo_nome },
     { etichetta: 'Diagnosi', valore: paziente.diagnosi },
     { etichetta: 'Inviato da', valore: paziente.inviato_da },
     { etichetta: 'Tipo di intervento', valore: paziente.tipo_intervento },
