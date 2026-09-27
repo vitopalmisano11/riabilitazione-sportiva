@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import Modale from './Modale'
 import { errMsg } from '../lib'
 
 // Mostra a schermo intero l'immagine di un esercizio. L'immagine non arriva
@@ -33,8 +34,7 @@ export default function ImmagineEsercizio({
   }, [esercizioId])
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+    <Modale onConferma={onClose}>
         <h3>{nome}</h3>
         {errore ? (
           <p className="auth-error">{errore}</p>
@@ -48,7 +48,6 @@ export default function ImmagineEsercizio({
             Chiudi
           </button>
         </div>
-      </div>
-    </div>
+    </Modale>
   )
 }

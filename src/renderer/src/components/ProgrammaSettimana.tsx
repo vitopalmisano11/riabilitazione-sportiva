@@ -3,6 +3,7 @@ import { CalendarPlus, X } from 'lucide-react'
 import type { SedutaRiepilogo } from '../../../shared/types'
 import { toast, toastErrore } from './Toast'
 import SceltaConRicerca from './SceltaConRicerca'
+import Modale from './Modale'
 import { errMsg, formatData, oggiIso } from '../lib'
 
 // Programmare piu' sedute in una volta.
@@ -60,9 +61,13 @@ export default function ProgrammaSettimana({
     }
   }
 
+  // Invio e clic fuori valgono come il pulsante "primary" (Crea), ma solo se
+  // c'e' almeno una data scelta (come il suo "disabled"); altrimenti chiudono
+  // e basta, senza programmare nulla.
+  const confermaAttuale = (): void | Promise<void> => (date.length > 0 ? crea() : onChiudi(0))
+
   return (
-    <div className="modal-overlay" onClick={() => onChiudi(0)}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+    <Modale onConferma={confermaAttuale}>
         <h3>Programma più sedute</h3>
 
         <label>
@@ -125,7 +130,6 @@ export default function ProgrammaSettimana({
             Crea {date.length === 1 ? 'la seduta' : `le ${date.length} sedute`}
           </button>
         </div>
-      </div>
-    </div>
+    </Modale>
   )
 }

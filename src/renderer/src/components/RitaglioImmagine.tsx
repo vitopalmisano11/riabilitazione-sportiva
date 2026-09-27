@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import Modale from './Modale'
 
 // Ritaglio quadrato stile "foto profilo": l'immagine copre sempre tutta la
 // cornice (come un cover), si trascina per scegliere l'inquadratura e uno
@@ -104,15 +105,18 @@ export default function RitaglioImmagine({
     onConferma(canvas.toDataURL('image/jpeg', 0.85))
   }
 
+  // Clic fuori (e Invio) qui annullano solo il ritaglio, non lo confermano:
+  // e' lo stesso gesto di cliccare fuori dalla finestra sotto, e la cascina
+  // fino a chiuderla salvando come farebbe lei (onCliccaFuori). Confermare un
+  // ritaglio non ancora sistemato con un clic o un Invio finiti li' per
+  // sbaglio sarebbe piu' rischioso che annullarlo.
+  const annullaECascata = (): void => {
+    onAnnulla()
+    onCliccaFuori?.()
+  }
+
   return (
-    <div
-      className="modal-overlay"
-      onClick={() => {
-        onAnnulla()
-        onCliccaFuori?.()
-      }}
-    >
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+    <Modale onConferma={annullaECascata}>
         <h3>Ritaglia la foto</h3>
         <p className="modal-testo">Trascina la foto per inquadrarla, e usa il cursore per lo zoom.</p>
         <div
@@ -155,7 +159,6 @@ export default function RitaglioImmagine({
             Usa questa foto
           </button>
         </div>
-      </div>
-    </div>
+    </Modale>
   )
 }

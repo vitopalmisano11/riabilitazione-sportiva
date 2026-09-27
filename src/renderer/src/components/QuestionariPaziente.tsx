@@ -8,6 +8,7 @@ import type {
 } from '../../../shared/types'
 import { toastErrore } from './Toast'
 import { chiedi } from './Conferma'
+import Modale from './Modale'
 import { errMsg, formatData } from '../lib'
 import CompilaQuestionario from './CompilaQuestionario'
 
@@ -138,14 +139,15 @@ export default function QuestionariPaziente({
       )}
 
       {scelta && (
-        <div
-          className="modal-overlay"
-          onClick={() => {
+        // Niente pulsante "primary" da confermare: si sceglie cliccando la
+        // categoria o il questionario. Invio e clic fuori chiudono e basta.
+        <Modale
+          className="modal-sm"
+          onConferma={() => {
             setScelta(false)
             setCatScelta(null)
           }}
         >
-          <div className="modal modal-sm" onClick={(e) => e.stopPropagation()}>
             {catScelta == null ? (
               <>
                 <h3>Quale categoria?</h3>
@@ -195,8 +197,7 @@ export default function QuestionariPaziente({
                 Annulla
               </button>
             </div>
-          </div>
-        </div>
+        </Modale>
       )}
 
       {aperto && (

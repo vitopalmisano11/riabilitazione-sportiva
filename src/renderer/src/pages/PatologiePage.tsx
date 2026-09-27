@@ -14,6 +14,7 @@ import Aiuto from '../components/Aiuto'
 import { useRiordinoSalvato } from '../riordino'
 import { toastErrore } from '../components/Toast'
 import { chiedi } from '../components/Conferma'
+import Modale from '../components/Modale'
 import { errMsg } from '../lib'
 
 type Tab = 'struttura' | 'obiettivi' | 'test'
@@ -329,8 +330,9 @@ function NuovaVoceModal({
   const [nome, setNome] = useState('')
 
   return (
-    <div className="modal-overlay" onClick={onAnnulla}>
-      <div className="modal modal-sm" onClick={(e) => e.stopPropagation()}>
+    // Cliccando fuori (o premendo Invio) si crea la voce; se il nome e'
+    // ancora vuoto si chiude e basta, come "Annulla".
+    <Modale className="modal-sm" onConferma={() => (nome.trim() ? onConferma(nome) : onAnnulla())}>
         <h3>{titolo}</h3>
         <label>
           {etichetta}
@@ -340,7 +342,10 @@ function NuovaVoceModal({
             value={nome}
             onChange={(e) => setNome(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && nome.trim()) onConferma(nome)
+              if (e.key === 'Enter' && nome.trim()) {
+                e.preventDefault()
+                onConferma(nome)
+              }
               if (e.key === 'Escape') onAnnulla()
             }}
           />
@@ -351,8 +356,7 @@ function NuovaVoceModal({
             Aggiungi
           </button>
         </div>
-      </div>
-    </div>
+    </Modale>
   )
 }
 

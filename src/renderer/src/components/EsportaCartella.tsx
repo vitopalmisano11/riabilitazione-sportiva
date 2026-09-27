@@ -3,6 +3,7 @@ import { Download, Eye } from 'lucide-react'
 import Aiuto from './Aiuto'
 import type { PazienteDettaglio, SezioneCartella, TipoRelazione } from '../../../shared/types'
 import { toast, toastErrore } from './Toast'
+import Modale from './Modale'
 import { errMsg } from '../lib'
 
 // Stampa della cartella del paziente da consegnare al medico o al paziente
@@ -111,8 +112,7 @@ export default function EsportaCartella({
   }
 
   return (
-    <div className="modal-overlay" onClick={onChiudi}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+    <Modale onConferma={onChiudi}>
         <h3>
           Cartella di {paziente.cognome} {paziente.nome}
         </h3>
@@ -186,7 +186,6 @@ export default function EsportaCartella({
         <div className="modal-actions">
           <button onClick={onChiudi}>Chiudi</button>
         </div>
-      </div>
-    </div>
+    </Modale>
   )
 }

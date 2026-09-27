@@ -1,4 +1,5 @@
 import { X } from 'lucide-react'
+import Modale from './Modale'
 
 // La guida della sezione "Dati e backup".
 //
@@ -10,8 +11,7 @@ import { X } from 'lucide-react'
 // giorno.
 export default function GuidaDati({ onChiudi }: { onChiudi: () => void }): React.JSX.Element {
   return (
-    <div className="modal-overlay" onClick={onChiudi}>
-      <div className="modal modal-lg guida-dati" onClick={(e) => e.stopPropagation()}>
+    <Modale className="modal-lg guida-dati" onConferma={onChiudi}>
         <div className="card-header-row">
           <h3>Come vengono conservati i tuoi dati</h3>
           <button title="Chiudi" onClick={onChiudi}>
@@ -128,7 +128,6 @@ export default function GuidaDati({ onChiudi }: { onChiudi: () => void }): React
             Ho capito
           </button>
         </div>
-      </div>
-    </div>
+    </Modale>
   )
 }

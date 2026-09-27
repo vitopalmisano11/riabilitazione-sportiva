@@ -3,6 +3,7 @@ import { Plus, X } from 'lucide-react'
 import type { PazienteDettaglio, SedutaRiepilogo } from '../../../shared/types'
 import { toast, toastErrore } from './Toast'
 import SceltaConRicerca from './SceltaConRicerca'
+import Modale from './Modale'
 import { errMsg, formatData } from '../lib'
 
 // Aggiungere una seduta a un giorno della settimana.
@@ -74,9 +75,19 @@ export default function AggiungiAlGiorno({
     }
   }
 
+  // Invio e clic fuori valgono come il pulsante "primary" di questo momento:
+  // finche' non si e' scelto il paziente, o mentre le sue sedute stanno
+  // caricando, non c'e' un'azione sicura da fare al posto suo, e si chiude e
+  // basta. Scegliendo "da zero" o "Nuova seduta" tocca comunque cliccare,
+  // perche' aprono un'altra finestra (il costruttore della seduta), non
+  // salvano questa.
+  const confermaAttuale = (): void | Promise<void> => {
+    if (scelto != null && sue != null && sue.length > 0 && origine != null) return aggiungi()
+    onChiudi(false)
+  }
+
   return (
-    <div className="modal-overlay" onClick={() => onChiudi(false)}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+    <Modale onConferma={confermaAttuale}>
         <h3>Aggiungi una seduta — {formatData(data)}</h3>
 
         {scelto == null ? (
@@ -177,7 +188,6 @@ export default function AggiungiAlGiorno({
             )}
           </>
         )}
-      </div>
-    </div>
+    </Modale>
   )
 }

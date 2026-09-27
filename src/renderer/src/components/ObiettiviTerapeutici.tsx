@@ -3,6 +3,7 @@ import { Plus, Trash2 } from 'lucide-react'
 import type { ObiettivoTerapeutico, TermineObiettivo } from '../../../shared/types'
 import { toastErrore } from './Toast'
 import { chiedi } from './Conferma'
+import Modale from './Modale'
 import { errMsg } from '../lib'
 import { sposta, useRiordino } from '../riordino'
 import MenuScelta from './MenuScelta'
@@ -100,8 +101,7 @@ export default function ObiettiviTerapeutici({
   )
 
   return (
-    <div className="modal-overlay" onClick={onChiudi}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+    <Modale onConferma={onChiudi}>
         <h3>Obiettivi terapeutici</h3>
 
         {/* Prima degli obiettivi c'e' quello che il paziente si aspetta, con
@@ -132,7 +132,12 @@ export default function ObiettiviTerapeutici({
             value={nuovo}
             onChange={(e) => setNuovo(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') void aggiungi()
+              // Gia' gestito qui: senza preventDefault, Invio chiuderebbe
+              // anche la finestra nello stesso istante in cui si aggiunge.
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                void aggiungi()
+              }
             }}
           />
           <MenuScelta
@@ -200,7 +205,6 @@ export default function ObiettiviTerapeutici({
             Chiudi
           </button>
         </div>
-      </div>
-    </div>
+    </Modale>
   )
 }

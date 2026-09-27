@@ -4,6 +4,7 @@ import { FileText, ImageIcon, Plus, Trash2 } from 'lucide-react'
 import type { AnamnesiRemota as Dati, Bioimmagine, RispostaSiNo } from '../../../shared/types'
 import { toastErrore } from './Toast'
 import { chiedi } from './Conferma'
+import Modale from './Modale'
 import { useModificheInCorso } from '../modificheInCorso'
 import { errMsg, formatData } from '../lib'
 
@@ -146,8 +147,7 @@ export default function AnamnesiRemota({
   }
 
   return (
-    <div className="modal-overlay" onClick={chiudi}>
-      <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
+    <Modale className="modal-lg" onConferma={chiudi}>
         <div className="card-header-row">
           <h3>Anamnesi remota</h3>
           <span className="hint">
@@ -247,8 +247,7 @@ export default function AnamnesiRemota({
             Chiudi
           </button>
         </div>
-      </div>
-    </div>
+    </Modale>
   )
 }
 

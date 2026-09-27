@@ -14,6 +14,7 @@ import AggiungiAlGiorno from '../components/AggiungiAlGiorno'
 import type { PazienteDettaglio, SedutaSettimana } from '../../../shared/types'
 import { toastErrore } from '../components/Toast'
 import { chiedi } from '../components/Conferma'
+import Modale from '../components/Modale'
 import { errMsg, formatData, oggiIso } from '../lib'
 
 // La settimana di tutti i pazienti in una schermata.
@@ -349,8 +350,22 @@ Finisce nel cestino: puoi rimetterla a posto da Impostazioni entro un mese.`
 
       {/* Il giorno della seduta nuova, per il paziente trovato con la ricerca. */}
       {perSeduta && (
-        <div className="modal-overlay" onClick={() => setPerSeduta(null)}>
-          <div className="modal modal-sm" onClick={(e) => e.stopPropagation()}>
+        // Invio e clic fuori valgono come "Avanti", ma solo con un'altra
+        // data scelta (come il suo "disabled"); altrimenti chiudono e basta,
+        // perche' fra le piastrelle dei giorni non c'e' un giorno di default
+        // da scegliere al posto dell'utente.
+        <Modale
+          className="modal-sm"
+          onConferma={() => {
+            if (altraData === '') {
+              setPerSeduta(null)
+              return
+            }
+            setPazienteDelGiorno(perSeduta)
+            setPerSeduta(null)
+            setGiornoAperto(altraData)
+          }}
+        >
             <h3>
               Seduta di {perSeduta.cognome} {perSeduta.nome}: in che giorno?
             </h3>
@@ -389,13 +404,24 @@ Finisce nel cestino: puoi rimetterla a posto da Impostazioni entro un mese.`
             <div className="modal-actions">
               <button onClick={() => setPerSeduta(null)}>Annulla</button>
             </div>
-          </div>
-        </div>
+        </Modale>
       )}
 
       {daCopiare && (
-        <div className="modal-overlay" onClick={() => setDaCopiare(null)}>
-          <div className="modal modal-sm" onClick={(e) => e.stopPropagation()}>
+        // Stessa idea: Invio e clic fuori valgono come "Copia" solo con
+        // un'altra data scelta, altrimenti chiudono senza copiare nulla.
+        <Modale
+          className="modal-sm"
+          onConferma={() => {
+            if (altraData === '') {
+              setDaCopiare(null)
+              return
+            }
+            const s = daCopiare
+            setDaCopiare(null)
+            onCopiaSeduta(s.paziente_id, s.id, altraData)
+          }}
+        >
             <h3>In che giorno la copi?</h3>
             <p className="modal-testo">
               La seduta di {daCopiare.paziente} del {formatData(daCopiare.data)}: si apre una seduta
@@ -437,8 +463,7 @@ Finisce nel cestino: puoi rimetterla a posto da Impostazioni entro un mese.`
             <div className="modal-actions">
               <button onClick={() => setDaCopiare(null)}>Annulla</button>
             </div>
-          </div>
-        </div>
+        </Modale>
       )}
 
       {giornoAperto && (

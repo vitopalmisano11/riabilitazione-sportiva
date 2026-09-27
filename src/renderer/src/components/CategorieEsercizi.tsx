@@ -5,6 +5,7 @@ import Aiuto from './Aiuto'
 import SceltaConRicerca from './SceltaConRicerca'
 import { toastErrore } from './Toast'
 import { chiedi } from './Conferma'
+import Modale from './Modale'
 import { errMsg } from '../lib'
 
 // Le categorie degli esercizi: la seconda linguetta della libreria.
@@ -326,16 +327,15 @@ export default function CategorieEsercizi({
       )}
 
       {form && (
-        // Cliccando fuori si salva; si butta via solo una categoria nuova
-        // ancora senza nome. "Annulla" resta per uscire senza salvare.
-        <div
-          className="modal-overlay"
-          onClick={() => {
+        // Cliccando fuori (o premendo Invio) si salva; si butta via solo una
+        // categoria nuova ancora senza nome. "Annulla" resta per uscire senza
+        // salvare.
+        <Modale
+          onConferma={() => {
             if (form.id == null && !form.nome.trim()) setForm(null)
             else void salva()
           }}
         >
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h3>
               {form.id == null
                 ? form.padre == null
@@ -350,7 +350,12 @@ export default function CategorieEsercizi({
                 value={form.nome}
                 onChange={(e) => setForm({ ...form, nome: e.target.value })}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') void salva()
+                  // Gia' gestito qui: senza preventDefault, Invio arriverebbe
+                  // anche alla finestra sopra e salverebbe due volte.
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    void salva()
+                  }
                 }}
               />
             </label>
@@ -382,8 +387,7 @@ export default function CategorieEsercizi({
                 Salva
               </button>
             </div>
-          </div>
-        </div>
+        </Modale>
       )}
     </div>
   )

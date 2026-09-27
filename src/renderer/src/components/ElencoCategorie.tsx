@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Pencil, Plus, X } from 'lucide-react'
 import { toastErrore } from './Toast'
 import { chiedi } from './Conferma'
+import Modale from './Modale'
 import { errMsg } from '../lib'
 import { useRiordinoSalvato } from '../riordino'
 
@@ -151,8 +152,12 @@ export default function ElencoCategorie({
       )}
 
       {nuovaAperta && (
-        <div className="modal-overlay" onClick={() => setNuovaAperta(false)}>
-          <div className="modal modal-sm" onClick={(e) => e.stopPropagation()}>
+        // Cliccando fuori (o premendo Invio) si crea la categoria; se il nome
+        // e' ancora vuoto si chiude e basta, come "Annulla".
+        <Modale
+          className="modal-sm"
+          onConferma={() => (nome.trim() ? crea() : setNuovaAperta(false))}
+        >
             <h3>{etichettaNuova}</h3>
             <label>
               Nome della categoria
@@ -162,7 +167,10 @@ export default function ElencoCategorie({
                 value={nome}
                 onChange={(e) => setNome(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') crea()
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    crea()
+                  }
                   if (e.key === 'Escape') setNuovaAperta(false)
                 }}
               />
@@ -173,8 +181,7 @@ export default function ElencoCategorie({
                 Crea
               </button>
             </div>
-          </div>
-        </div>
+        </Modale>
       )}
     </section>
   )

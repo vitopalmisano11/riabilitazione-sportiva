@@ -6,6 +6,7 @@ import type {
 } from '../../../shared/types'
 import { toast, toastErrore } from './Toast'
 import ScalaPallini from './ScalaPallini'
+import Modale from './Modale'
 import { errMsg, formatData, oggiIso } from '../lib'
 
 // Lo schermo è girato verso il paziente, che legge le domande, ma a cliccare è
@@ -85,9 +86,18 @@ export default function CompilaQuestionario({
     }
   }
 
+  // Invio e clic fuori salvano come farebbe "Salva", ma solo se si puo'
+  // davvero salvare (come il pulsante, disabilitato se manca qualche
+  // risposta): altrimenti si limitano a chiudere, senza mostrare errori per un
+  // clic finito fuori dalla finestra per sbaglio. In sola lettura chiudono e
+  // basta, non c'e' niente da salvare.
+  const confermaAttuale = (): void | Promise<void> => {
+    if (!soloLettura && conId.length > 0 && mancanti === 0) return salva()
+    onChiudi(null)
+  }
+
   return (
-    <div className="modal-overlay" onClick={() => onChiudi(null)}>
-      <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
+    <Modale className="modal-lg" onConferma={confermaAttuale}>
         <div className="card-header-row">
           <h3>{dati.questionario.nome}</h3>
           {soloLettura ? (
@@ -186,8 +196,7 @@ export default function CompilaQuestionario({
             </button>
           )}
         </div>
-      </div>
-    </div>
+    </Modale>
   )
 }
 

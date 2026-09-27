@@ -36,6 +36,7 @@ import ObiettiviFase from '../components/ObiettiviFase'
 import QuadroPaziente from '../components/QuadroPaziente'
 import { toast, toastErrore } from '../components/Toast'
 import { chiedi } from '../components/Conferma'
+import Modale from '../components/Modale'
 import { errMsg, formatData, oggiIso } from '../lib'
 import { useScorciatoie } from '../scorciatoie'
 
@@ -820,8 +821,7 @@ function TestModal({
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+    <Modale onConferma={onClose}>
         <h3>Test di avanzamento — {paziente.nome} {paziente.cognome}</h3>
         <p className="modal-testo">
           Checklist di supporto per valutare il passaggio di fase: spunta i test eseguiti e
@@ -858,8 +858,7 @@ function TestModal({
             Chiudi
           </button>
         </div>
-      </div>
-    </div>
+    </Modale>
   )
 }
 
@@ -1072,8 +1071,9 @@ function DiarioCard({
       )}
 
       {periodo && (
-        <div className="modal-overlay" onClick={() => setPeriodo(null)}>
-          <div className="modal modal-sm" onClick={(e) => e.stopPropagation()}>
+        // Invio e clic fuori valgono come il pulsante "primary" (Esporta
+        // PDF): non c'e' nulla da perdere, e' solo l'esportazione di un file.
+        <Modale className="modal-sm" onConferma={() => void esportaPeriodo('pdf')}>
             <h3>Esporta storico sedute</h3>
             <div className="form-row-2">
               <label>
@@ -1100,8 +1100,7 @@ function DiarioCard({
                 Esporta PDF
               </button>
             </div>
-          </div>
-        </div>
+        </Modale>
       )}
 
       {anteprima != null && (
@@ -1160,8 +1159,7 @@ function SchedaIllustrata({
     )
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
+    <Modale className="modal-lg" onConferma={onClose}>
         <h3>Scheda illustrata per il paziente</h3>
         {errore ? (
           <p className="auth-error">{errore}</p>
@@ -1187,7 +1185,6 @@ function SchedaIllustrata({
             Chiudi
           </button>
         </div>
-      </div>
-    </div>
+    </Modale>
   )
 }

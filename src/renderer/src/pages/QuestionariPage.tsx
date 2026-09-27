@@ -11,6 +11,7 @@ import type {
 } from '../../../shared/types'
 import { toast, toastErrore } from '../components/Toast'
 import { chiedi } from '../components/Conferma'
+import Modale from '../components/Modale'
 import ElencoCategorie from '../components/ElencoCategorie'
 import Aiuto from '../components/Aiuto'
 import { errMsg } from '../lib'
@@ -274,8 +275,12 @@ function ElencoQuestionari({
       )}
 
       {nuovoAperto && (
-        <div className="modal-overlay" onClick={() => setNuovoAperto(false)}>
-          <div className="modal modal-sm" onClick={(e) => e.stopPropagation()}>
+        // Cliccando fuori (o premendo Invio) si crea il questionario; se il
+        // nome e' ancora vuoto si chiude e basta, come "Annulla".
+        <Modale
+          className="modal-sm"
+          onConferma={() => (nome.trim() ? crea() : setNuovoAperto(false))}
+        >
             <h3>Nuovo questionario</h3>
             <label>
               Nome del questionario
@@ -285,7 +290,10 @@ function ElencoQuestionari({
                 value={nome}
                 onChange={(e) => setNome(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') crea()
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    crea()
+                  }
                   if (e.key === 'Escape') setNuovoAperto(false)
                 }}
               />
@@ -296,8 +304,7 @@ function ElencoQuestionari({
                 Crea
               </button>
             </div>
-          </div>
-        </div>
+        </Modale>
       )}
     </section>
   )

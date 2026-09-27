@@ -21,6 +21,7 @@ import type {
 } from '../../../shared/types'
 import { toast, toastErrore } from '../components/Toast'
 import { chiedi } from '../components/Conferma'
+import Modale from '../components/Modale'
 import CompilaQuestionario from '../components/CompilaQuestionario'
 import { RisultatoCluster } from '../components/PunteggioCluster'
 import MenuScelta from '../components/MenuScelta'
@@ -295,9 +296,13 @@ function SceltaConfronto({
     }
   }
 
+  // Invio e clic fuori aprono il report come farebbe il pulsante "primary",
+  // ma solo se c'e' almeno uno screening spuntato (come il suo "disabled");
+  // altrimenti chiudono e basta.
+  const confermaAttuale = (): void | Promise<void> => (scelti.length > 0 ? apri() : onChiudi())
+
   return (
-    <div className="modal-overlay" onClick={onChiudi}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+    <Modale onConferma={confermaAttuale}>
         <h3>Quali screening mettere a confronto?</h3>
         <p className="modal-testo">
           Il più recente fra quelli spuntati è quello che si legge nelle tabelle; gli altri
@@ -328,8 +333,7 @@ function SceltaConfronto({
             <FileText size={16} /> Apri il report
           </button>
         </div>
-      </div>
-    </div>
+    </Modale>
   )
 }
 
@@ -362,9 +366,18 @@ function NuovoScreening({
     }
   }
 
+  // Invio e clic fuori valgono come "Comincia", ma solo quando paziente e
+  // protocollo sono scelti (come il suo "disabled"); altrimenti chiudono e
+  // basta, senza creare uno screening vuoto.
+  const confermaAttuale = (): void | Promise<void> =>
+    pazienteId !== '' && protocolloId !== '' ? crea() : onAnnulla()
+
   return (
-    <div className="modal-overlay modal-overlay-contenuto" onClick={onAnnulla}>
-      <div className="modal modal-nuovo-screening" onClick={(e) => e.stopPropagation()}>
+    <Modale
+      overlayClassName="modal-overlay-contenuto"
+      className="modal-nuovo-screening"
+      onConferma={confermaAttuale}
+    >
         <h3>Nuovo screening</h3>
         {protocolli.length === 0 && (
           <p className="hint">
@@ -411,8 +424,7 @@ function NuovoScreening({
             Comincia
           </button>
         </div>
-      </div>
-    </div>
+    </Modale>
   )
 }
 

@@ -17,6 +17,7 @@ import CategorieEsercizi from '../components/CategorieEsercizi'
 import SceltaConRicerca from '../components/SceltaConRicerca'
 import ImmagineEsercizio from '../components/ImmagineEsercizio'
 import RitaglioImmagine from '../components/RitaglioImmagine'
+import Modale from '../components/Modale'
 import { errMsg } from '../lib'
 import type { Dosaggio } from '../../../shared/dosaggio'
 import {
@@ -513,11 +514,10 @@ export default function EserciziPage(): React.JSX.Element {
       )}
 
       {form && (
-        // Cliccando fuori si salva, come nel resto della configurazione: si
-        // butta via solo un esercizio nuovo ancora senza nome. "Annulla" resta
-        // il modo per uscire senza salvare.
-        <div className="modal-overlay" onClick={chiudiCliccandoFuori}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
+        // Cliccando fuori (o premendo Invio) si salva, come nel resto della
+        // configurazione: si butta via solo un esercizio nuovo ancora senza
+        // nome. "Annulla" resta il modo per uscire senza salvare.
+        <Modale onConferma={chiudiCliccandoFuori}>
             <h3>{form.id == null ? 'Nuovo esercizio' : 'Modifica esercizio'}</h3>
             <label>
               Nome *
@@ -672,8 +672,7 @@ export default function EserciziPage(): React.JSX.Element {
                 Salva
               </button>
             </div>
-          </div>
-        </div>
+        </Modale>
       )}
 
       {bolla && (

@@ -10,6 +10,7 @@ import type {
 } from '../../../shared/types'
 import { toastErrore } from './Toast'
 import { chiedi } from './Conferma'
+import Modale from './Modale'
 import { useModificheInCorso } from '../modificheInCorso'
 import { errMsg } from '../lib'
 import { sposta, useRiordino } from '../riordino'
@@ -180,8 +181,7 @@ export default function AnamnesiProssima({
       aggiorna({ [k]: e.target.value || null } as Partial<Dati>)
 
   return (
-    <div className="modal-overlay" onClick={chiudi}>
-      <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
+    <Modale className="modal-lg" onConferma={chiudi}>
         <div className="card-header-row">
           <h3>Anamnesi prossima</h3>
           <span className="hint">
@@ -354,8 +354,7 @@ export default function AnamnesiProssima({
             Chiudi
           </button>
         </div>
-      </div>
-    </div>
+    </Modale>
   )
 }
 
@@ -556,8 +555,10 @@ function Grafici({
       )}
 
       {inArrivo && (
-        <div className="modal-overlay" onClick={() => setInArrivo(null)}>
-          <div className="modal modal-sm" onClick={(e) => e.stopPropagation()}>
+        <Modale
+          className="modal-sm"
+          onConferma={() => (inArrivo.data ? confermaPunto() : setInArrivo(null))}
+        >
             <h3>Nuova misurazione</h3>
             <p className="modal-testo">
               Sintomo {inArrivo.sintomo + 1} —{' '}
@@ -592,8 +593,7 @@ function Grafici({
                 Aggiungi
               </button>
             </div>
-          </div>
-        </div>
+        </Modale>
       )}
 
       <div className="form-row-2">

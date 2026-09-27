@@ -17,6 +17,7 @@ import type {
 } from '../../../shared/types'
 import { toast, toastErrore } from './Toast'
 import { chiedi } from './Conferma'
+import Modale from './Modale'
 import ScalaPallini from './ScalaPallini'
 import Aiuto from './Aiuto'
 import { errMsg, formatData, oggiIso } from '../lib'
@@ -165,8 +166,9 @@ export default function ValutazionePaziente({
       )}
 
       {scelta != null && (
-        <div className="modal-overlay" onClick={() => setScelta(null)}>
-          <div className="modal modal-sm" onClick={(e) => e.stopPropagation()}>
+        // Niente pulsante "primary" da confermare qui: si sceglie cliccando
+        // direttamente il distretto. Invio e clic fuori chiudono e basta.
+        <Modale className="modal-sm" onConferma={() => setScelta(null)}>
             <h3>Quale distretto valuti?</h3>
             <p className="modal-testo">
               {scelta.length > 0
@@ -196,8 +198,7 @@ export default function ValutazionePaziente({
             <div className="modal-actions">
               <button onClick={() => setScelta(null)}>Annulla</button>
             </div>
-          </div>
-        </div>
+        </Modale>
       )}
 
       {aperta && (

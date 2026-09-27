@@ -10,6 +10,7 @@ import type {
 import { toast, toastErrore } from './Toast'
 import { chiedi } from './Conferma'
 import SceltaConRicerca from './SceltaConRicerca'
+import Modale from './Modale'
 import { errMsg, daQuando, eta, formatData } from '../lib'
 import EsportaCartella from './EsportaCartella'
 
@@ -245,9 +246,21 @@ export function ModaleDatiPaziente({
 
   const anni = eta(form.data_nascita)
 
+  // Creando un paziente nuovo, se non ha ancora un nome un clic fuori (o
+  // Invio) chiude e basta, come farebbe "Annulla": non ha senso salvare un
+  // paziente senza nome ne' mostrare un errore per un clic finito fuori dalla
+  // finestra per sbaglio. Con nome e cognome gia' scritti, o modificando un
+  // paziente che li ha gia', si salva come premendo "Salva"/"Crea paziente".
+  const chiudiCliccandoFuori = (): void | Promise<void> => {
+    if (nuovo && !form.nome.trim() && !form.cognome.trim()) {
+      onChiudi(false)
+      return
+    }
+    return salva()
+  }
+
   return (
-    <div className="modal-overlay" onClick={() => onChiudi(false)}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+    <Modale onConferma={chiudiCliccandoFuori}>
         <h3>{nuovo ? 'Nuovo paziente' : 'Dati del paziente'}</h3>
 
         <div className="form-row-2">
@@ -414,7 +427,6 @@ export function ModaleDatiPaziente({
             {nuovo ? 'Crea paziente' : 'Salva'}
           </button>
         </div>
-      </div>
-    </div>
+    </Modale>
   )
 }
