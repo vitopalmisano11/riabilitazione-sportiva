@@ -3,7 +3,8 @@
 //
 //   - Invio salva e chiude,
 //   - un clic sull'overlay (fuori dalla card) chiude salvando quello che c'e',
-//     non lo butta via.
+//     non lo butta via (ma solo se il clic comincia e finisce fuori: vedi
+//     useClicSulFondo).
 //
 // Le due cose chiamano la STESSA funzione apposta: un clic accidentale fuori
 // dalla finestra non deve mai fare qualcosa di diverso (o di piu' rischioso)
@@ -15,6 +16,8 @@
 // Le finestre di sola lettura, o quelle i cui campi si salvano gia' da soli
 // (onBlur), passano semplicemente la funzione che chiude e basta: guarda
 // com'e' usato nei singoli file.
+import { useClicSulFondo } from '../clicSulFondo'
+
 export default function Modale({
   onConferma,
   className,
@@ -47,10 +50,12 @@ export default function Modale({
     void onConferma()
   }
 
+  const sulFondo = useClicSulFondo(() => void onConferma())
+
   return (
     <div
       className={['modal-overlay', overlayClassName].filter(Boolean).join(' ')}
-      onClick={() => void onConferma()}
+      {...sulFondo}
     >
       <div
         className={['modal', className].filter(Boolean).join(' ')}

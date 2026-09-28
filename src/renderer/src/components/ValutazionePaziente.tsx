@@ -18,6 +18,7 @@ import type {
 import { toast, toastErrore } from './Toast'
 import { chiedi } from './Conferma'
 import Modale from './Modale'
+import { useClicSulFondo } from '../clicSulFondo'
 import ScalaPallini from './ScalaPallini'
 import Aiuto from './Aiuto'
 import { errMsg, formatData, oggiIso } from '../lib'
@@ -247,6 +248,7 @@ function SchedaValutazione({
     if (modificato && !(await chiedi('Hai modifiche non salvate. Vuoi uscire lo stesso?'))) return
     onChiudi(false)
   }
+  const sulFondo = useClicSulFondo(() => void chiudi())
 
   useEffect(() => {
     void (async () => {
@@ -433,7 +435,7 @@ function SchedaValutazione({
   }
 
   return (
-    <div className="modal-overlay" onClick={() => void chiudi()}>
+    <div className="modal-overlay" {...sulFondo}>
       <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
         <div className="card-header-row">
           <h3>{soloLettura ? 'Valutazione obiettiva' : 'Valutazione obiettiva — modifica'}</h3>

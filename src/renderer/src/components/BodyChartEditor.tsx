@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useModificheInCorso, type Salva } from '../modificheInCorso'
 import { Trash2 } from 'lucide-react'
+import { useClicSulFondo } from '../clicSulFondo'
 import type { BodyChartCompleta, SegnoBodyChart, TipoSegno } from '../../../shared/types'
 import { toast, toastErrore } from './Toast'
 import { chiedi } from './Conferma'
@@ -50,6 +51,7 @@ export default function BodyChartEditor({
     if (modificato && !(await chiedi('Hai modifiche non salvate. Vuoi uscire lo stesso?'))) return
     onChiudi(false)
   }
+  const sulFondo = useClicSulFondo(() => void chiudi())
   // trascinamento in corso: quale segno e su quale figura
   const trascina = useRef<{ chiave: string; riquadro: DOMRect } | null>(null)
 
@@ -140,7 +142,7 @@ export default function BodyChartEditor({
       .map((s) => ({ ...s, selezionato: !soloLettura && s.chiave === selezione }))
 
   return (
-    <div className="modal-overlay" onClick={() => void chiudi()}>
+    <div className="modal-overlay" {...sulFondo}>
       <div
         className="modal modal-lg"
         onClick={(e) => e.stopPropagation()}

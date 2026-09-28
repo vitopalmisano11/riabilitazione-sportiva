@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { AlertTriangle } from 'lucide-react'
+import { useClicSulFondo } from '../clicSulFondo'
 
 // Le domande dell'app ("elimino davvero?", "esco senza salvare?").
 //
@@ -47,6 +48,12 @@ export default function ConfermaHost(): React.JSX.Element | null {
     }
   }, [])
 
+  // Un clic sul fondo e' "no", come Annulla.
+  const sulFondo = useClicSulFondo(() => {
+    stato?.rispondi(false)
+    setStato(null)
+  })
+
   if (!stato) return null
 
   const chiudi = (ok: boolean): void => {
@@ -56,7 +63,7 @@ export default function ConfermaHost(): React.JSX.Element | null {
 
   const { d } = stato
   return (
-    <div className="modal-overlay" onClick={() => chiudi(false)}>
+    <div className="modal-overlay" {...sulFondo}>
       <div className="modal modal-sm modal-domanda" onClick={(e) => e.stopPropagation()}>
         <div className="testata-domanda">
           {d.pericolo && <AlertTriangle size={20} className="icona-pericolo" />}
