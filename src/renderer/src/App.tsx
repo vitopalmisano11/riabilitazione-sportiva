@@ -254,10 +254,6 @@ export default function App(): React.JSX.Element {
     return <AuthGate onUnlocked={() => setSbloccata(true)} />
   }
 
-  if (bloccata) {
-    return <SchermoBloccato onSbloccato={() => setBloccata(false)} />
-  }
-
   return (
     <div className="app">
       <aside className="sidebar">
@@ -377,6 +373,11 @@ export default function App(): React.JSX.Element {
       </main>
       <ConfermaHost />
       <ToastHost />
+      {/* Overlay, non un ramo che sostituisce l'app: sotto restano montati
+          l'editor aperto e il suo stato. Sbloccando si ritrova tutto com'era,
+          invece di rimontare l'app da zero e perdere quello che non e' ancora
+          salvato (una body chart, una valutazione, uno screening). */}
+      {bloccata && <SchermoBloccato onSbloccato={() => setBloccata(false)} />}
     </div>
   )
 }
