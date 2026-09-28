@@ -9,7 +9,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import Database from 'better-sqlite3-multiple-ciphers'
-import { runMigrations } from '../src/main/migrations'
+import { MIGRATIONS, runMigrations, VERSIONE_SCHEMA } from '../src/main/migrations'
 import { generaDocx, generaHtml } from '../src/main/export-doc'
 import {
   cambiaPasswordAuth,
@@ -424,6 +424,59 @@ const senzaFoto = generaHtml(pazExport, [seduteExport[0]], true)
 assert.ok(
   senzaFoto.includes('<div class="scheda-es">') && !senzaFoto.includes('<div class="foto">')
 )
+
+// --- Migrazioni: archivio piu' nuovo del programma, e copia prima di aggiornare ---
+{
+  const versione = (d: Database.Database): number => d.pragma('user_version', { simple: true }) as number
+
+  // Un archivio di una versione piu' recente non si apre e non si tocca.
+  const nuovo = new Database(':memory:')
+  runMigrations(nuovo)
+  nuovo.exec('CREATE TABLE dal_futuro (x INTEGER)')
+  nuovo.pragma(`user_version = ${VERSIONE_SCHEMA + 3}`)
+  assert.throws(() => runMigrations(nuovo), /versione più recente/)
+  assert.equal(versione(nuovo), VERSIONE_SCHEMA + 3)
+  nuovo.close()
+
+  // Un archivio nuovo (versione 0) non ha niente da proteggere: nessuna copia.
+  const chiamate: number[] = []
+  const vuoto = new Database(':memory:')
+  runMigrations(vuoto, (v) => chiamate.push(v))
+  assert.equal(chiamate.length, 0)
+  assert.equal(versione(vuoto), VERSIONE_SCHEMA)
+
+  // Uno gia' aggiornato non ne ha bisogno.
+  runMigrations(vuoto, (v) => chiamate.push(v))
+  assert.equal(chiamate.length, 0)
+
+  // Con una migrazione da applicare, la copia si chiama una volta, prima, con la versione di partenza.
+  MIGRATIONS.push('CREATE TABLE prova_aggiornamento (x INTEGER)')
+  try {
+    let esisteAllaCopia: boolean | null = null
+    runMigrations(vuoto, (v) => {
+      chiamate.push(v)
+      esisteAllaCopia = vuoto.prepare("SELECT 1 FROM sqlite_master WHERE name = 'prova_aggiornamento'").get() !== undefined
+    })
+    assert.deepEqual(chiamate, [VERSIONE_SCHEMA])
+    assert.equal(esisteAllaCopia, false, 'la copia va fatta prima della migrazione')
+    assert.equal(versione(vuoto), VERSIONE_SCHEMA + 1)
+
+    // Se la copia non riesce, la migrazione non parte e l'archivio resta com'era.
+    MIGRATIONS.push('CREATE TABLE seconda_prova (x INTEGER)')
+    assert.throws(
+      () =>
+        runMigrations(vuoto, () => {
+          throw new Error('disco pieno')
+        }),
+      /disco pieno/
+    )
+    assert.equal(versione(vuoto), VERSIONE_SCHEMA + 1)
+    assert.equal(vuoto.prepare("SELECT 1 FROM sqlite_master WHERE name = 'seconda_prova'").get(), undefined)
+  } finally {
+    MIGRATIONS.length = VERSIONE_SCHEMA
+    vuoto.close()
+  }
+}
 
 // --- Autenticazione e cifratura ---
 const dirAuth = mkdtempSync(join(tmpdir(), 'riab-auth-'))
@@ -2349,6 +2402,24 @@ initDb(join(dirCartella, 'cartella.db'), dekHex)
 }
 closeDb()
 rmSync(dirCartella, { recursive: true, force: true })
+
+// initDb davanti a un archivio piu' nuovo: errore chiaro, e il file non resta agganciato.
+{
+  const dirN = mkdtempSync(join(tmpdir(), 'riab-nuovo-'))
+  const dbN = join(dirN, 'n.db')
+  const dekN = 'ab'.repeat(32)
+  initDb(dbN, dekN)
+  closeDb()
+  const raw = new Database(dbN)
+  raw.pragma("cipher='sqlcipher'")
+  raw.pragma(`key='${dekN}'`)
+  raw.pragma(`user_version = ${VERSIONE_SCHEMA + 2}`)
+  raw.close()
+  assert.throws(() => initDb(dbN, dekN), /versione più recente/)
+  assert.throws(() => getDb(), /non inizializzato/)
+  rmSync(dirN, { recursive: true, force: true }) // su Windows fallirebbe se restasse aperto
+  assert.ok(!existsSync(dirN))
+}
 
 void (async () => {
   const docxBuf = await generaDocx(pazExport, seduteExport)

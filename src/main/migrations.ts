@@ -1261,8 +1261,33 @@ export const MIGRATIONS: string[] = [
   `
 ]
 
-export function runMigrations(db: Database.Database): void {
+// Quante migrazioni conosce questo programma: e' anche il "formato" piu' nuovo
+// di archivio che sa aprire.
+export const VERSIONE_SCHEMA = MIGRATIONS.length
+
+// `primaDiMigrare` si chiama una volta sola, prima della prima migrazione da
+// applicare, con la versione da cui si parte: e' il momento di mettere da parte
+// una copia dell'archivio com'e', perche' le migrazioni non si annullano. Non
+// si chiama per un archivio nuovo (versione 0): non c'e' niente da proteggere.
+export function runMigrations(
+  db: Database.Database,
+  primaDiMigrare?: (versione: number) => void
+): void {
   const current = db.pragma('user_version', { simple: true }) as number
+
+  // Un archivio scritto da una versione piu' recente ha colonne e regole che
+  // questo programma non conosce: aprirlo lo farebbe scrivere righe incomplete
+  // senza dare nessun errore. Meglio non toccarlo.
+  if (current > MIGRATIONS.length) {
+    throw new Error(
+      'Questo archivio è stato salvato da una versione più recente del programma. ' +
+        'Aggiorna il programma prima di aprirlo: così non si rovina niente. ' +
+        `(formato ${current}, questo programma arriva al ${MIGRATIONS.length})`
+    )
+  }
+
+  if (current > 0 && current < MIGRATIONS.length) primaDiMigrare?.(current)
+
   for (let i = current; i < MIGRATIONS.length; i++) {
     db.transaction(() => {
       db.exec(MIGRATIONS[i])

@@ -18,6 +18,7 @@ import {
 } from 'fs'
 import { join, sep } from 'path'
 import { apriAltroDb, closeDb, getDb, riapriDb } from './db'
+import { VERSIONE_SCHEMA } from './migrations'
 import {
   cartellaBackup,
   backupAttivo,
@@ -47,10 +48,14 @@ function nomeCartella(prefisso = ''): string {
 // Solo le cartelle create da noi. Senza questo controllo, puntando le copie a
 // una cartella che contiene gia' altra roba, la rotazione cancellerebbe i
 // documenti dell'utente credendoli vecchi backup.
-const NOME_BACKUP = /^(?:[a-z-]+_)?\d{4}-\d{2}-\d{2}_\d{4}$/
+const NOME_BACKUP = /^(?:[a-z0-9-]+_)?\d{4}-\d{2}-\d{2}_\d{4}$/
 
-export function elencoBackup(): VoceBackup[] {
-  const dir = cartellaBackup()
+// Le copie fatte prima di aggiornare l'archivio: si tengono le ultime poche, a
+// parte, senza toglier posto alle copie di tutti i giorni.
+const PREFISSO_MIGRAZIONE = 'prima-della-migrazione-'
+const MIGRAZIONI_DA_TENERE = 3
+
+export function elencoBackup(dir = cartellaBackup()): VoceBackup[] {
   if (!existsSync(dir)) return []
   return readdirSync(dir, { withFileTypes: true })
     .filter((v) => v.isDirectory() && NOME_BACKUP.test(v.name))
@@ -59,19 +64,29 @@ export function elencoBackup(): VoceBackup[] {
       const dimensione = existsSync(percorso) ? statSync(percorso).size : 0
       return { nome: v.name, quando: statSync(join(dir, v.name)).mtime.toISOString(), dimensione }
     })
-    .sort((a, b) => b.nome.localeCompare(a.nome))
+    // Dalla piu' recente. Il nome finisce sempre con la data e l'ora: e' quella a
+    // decidere, non il prefisso ("prima-della-migrazione-v9" verrebbe dopo "v10").
+    .sort((a, b) => b.nome.slice(-15).localeCompare(a.nome.slice(-15)) || b.nome.localeCompare(a.nome))
 }
 
-// Toglie le copie piu' vecchie oltre il numero da tenere.
-function ruota(): void {
-  const tenere = backupDaTenere()
-  const dir = cartellaBackup()
-  for (const v of elencoBackup().slice(tenere)) {
+// Toglie le copie piu' vecchie oltre il numero da tenere. Le copie di tutti i
+// giorni si contano da sole: quelle "prima di..." hanno un nome che le mette in
+// testa all'elenco e, contate insieme, toglierebbero posto a quelle vere.
+// Quelle prima di un ripristino non si buttano mai; quelle prima di una
+// migrazione si tengono nelle ultime poche.
+function ruota(dir = cartellaBackup()): void {
+  const tutte = elencoBackup(dir)
+  const normali = tutte.filter((v) => !v.nome.startsWith('prima-'))
+  for (const v of normali.slice(backupDaTenere())) {
+    rmSync(join(dir, v.nome), { recursive: true, force: true })
+  }
+  const migrazioni = tutte.filter((v) => v.nome.startsWith(PREFISSO_MIGRAZIONE))
+  for (const v of migrazioni.slice(MIGRAZIONI_DA_TENERE)) {
     rmSync(join(dir, v.nome), { recursive: true, force: true })
   }
 }
 
-export function eseguiBackup(prefisso = ''): string {
+export function eseguiBackup(prefisso = '', cartellaDestinazione = cartellaBackup()): string {
   const origine = cartellaDati()
   const db = join(origine, DB)
   if (!existsSync(db)) throw new Error('Non c’è ancora un archivio da copiare.')
@@ -83,13 +98,43 @@ export function eseguiBackup(prefisso = ''): string {
     // database non aperto: il file e' comunque coerente
   }
 
-  const dest = join(cartellaBackup(), nomeCartella(prefisso))
+  const dest = join(cartellaDestinazione, nomeCartella(prefisso))
   mkdirSync(dest, { recursive: true })
   copyFileSync(db, join(dest, DB))
   const auth = join(origine, AUTH)
   if (existsSync(auth)) copyFileSync(auth, join(dest, AUTH))
-  ruota()
+  ruota(cartellaDestinazione)
   return dest
+}
+
+// La copia da fare prima di applicare le migrazioni di un aggiornamento.
+//
+// Le migrazioni cambiano lo schema dell'archivio e non si annullano. La copia
+// del giorno si fa dopo l'accesso, cioe' dopo la migrazione, e quella di chiusura
+// sostituisce la copia di oggi: senza questa, l'unica copia con l'archivio
+// com'era prima potrebbe essere di giorni fa. Va fatta anche con le copie
+// automatiche spente: non e' una copia di routine, e' la rete di sicurezza
+// dell'aggiornamento.
+//
+// Se la cartella scelta per le copie non si raggiunge (una chiavetta staccata,
+// OneDrive non ancora pronto) si ripiega su quella di default dentro all'archivio,
+// perche' non si puo' cambiare cartella prima di essere entrati. Se non riesce
+// nemmeno quella, l'aggiornamento non parte: l'archivio resta com'era.
+export function copiaPrimaDellaMigrazione(versione: number): void {
+  const prefisso = `${PREFISSO_MIGRAZIONE}v${versione}_`
+  try {
+    eseguiBackup(prefisso)
+  } catch {
+    try {
+      eseguiBackup(prefisso, join(cartellaDati(), 'Backup'))
+    } catch (e) {
+      throw new Error(
+        `Il programma deve aggiornare l'archivio e prima ne fa una copia di sicurezza, ma non ci riesce: ${
+          e instanceof Error ? e.message : String(e)
+        }. L'archivio non è stato toccato.`
+      )
+    }
+  }
 }
 
 // Copia dell'archivio in una cartella scelta dall'utente: una chiavetta, un
@@ -195,6 +240,17 @@ function ispeziona(percorsoDb: string): EsitoControllo {
   let conn: ReturnType<typeof apriAltroDb> | null = null
   try {
     conn = apriAltroDb(percorsoDb)
+    // Una copia fatta da una versione piu' recente non si aprirebbe piu' dopo
+    // il ripristino: meglio dirlo prima, quando l'archivio in uso e' ancora al
+    // suo posto.
+    const versione = conn.pragma('user_version', { simple: true }) as number
+    if (versione > VERSIONE_SCHEMA) {
+      return {
+        ok: false,
+        messaggio:
+          'Questa copia è stata fatta da una versione più recente del programma: aggiorna il programma per poterla usare.'
+      }
+    }
     const male = conn.pragma('integrity_check', { simple: true })
     if (male !== 'ok') {
       return { ok: false, messaggio: `Il database di questa copia è danneggiato (${male}).` }

@@ -7,7 +7,8 @@ import {
   migraDaUserData,
   posizioneFinestra
 } from './impostazioni'
-import { backupDiChiusura } from './backup'
+import { backupDiChiusura, copiaPrimaDellaMigrazione } from './backup'
+import { impostaCopiaPrimaDelleMigrazioni } from './db'
 import { barraDisegnata } from './finestre'
 import icona from '../../resources/icon.png?asset'
 
@@ -120,6 +121,8 @@ app.on('web-contents-created', (_evento, contenuti) => {
 })
 
 app.whenReady().then(() => {
+  // Prima di ogni aggiornamento dello schema dell'archivio, una copia com'era.
+  impostaCopiaPrimaDelleMigrazioni(copiaPrimaDellaMigrazione)
   // Sposta db e auth dalla vecchia posizione (userData) alla cartella dati, se serve.
   migraDaUserData()
   // Il database viene aperto solo dopo il login (vedi handler auth:* in ipc.ts).

@@ -225,6 +225,7 @@ export default function PannelloBackup(): React.JSX.Element {
                 <span className="seduta-meta">
                   {peso(c.dimensione)}
                   {c.nome.startsWith('prima-del-ripristino') && ' · prima di un ripristino'}
+                  {c.nome.startsWith('prima-della-migrazione') && ' · prima di un aggiornamento'}
                 </span>
                 {esiti[c.nome] === 'attesa' && <span className="esito-copia">Controllo in corso…</span>}
                 {typeof esiti[c.nome] === 'object' && (

@@ -28,10 +28,11 @@ import {
 import { join } from 'node:path'
 import { MIGRATIONS } from '../src/main/migrations'
 import { setupAuth } from '../src/main/auth'
-import { closeDb, getDb, initDb } from '../src/main/db'
+import { apriAltroDb, closeDb, getDb, impostaCopiaPrimaDelleMigrazioni, initDb } from '../src/main/db'
 import { impostaCartellaBackup, impostaCartellaDati } from '../src/main/impostazioni'
 import {
   controllaBackup,
+  copiaPrimaDellaMigrazione,
   elencoBackup,
   eseguiBackup,
   eseguiRipristino
@@ -272,6 +273,75 @@ function prove(): void {
     initDb(dbApp, dekHex)
     assert.equal(getDb().pragma('user_version', { simple: true }), MIGRATIONS.length)
     assert.deepEqual(pazienti(), ['Anziani'])
+  })
+
+  // 14 — prima di aggiornare l'archivio se ne mette da parte una copia com'era
+  impostaCopiaPrimaDelleMigrazioni(copiaPrimaDellaMigrazione)
+  const partenza = Math.max(1, MIGRATIONS.length - 3)
+  let nomeCopiaMigrazione = ''
+  controllo('aprendo un archivio da aggiornare resta una copia com’era prima', () => {
+    closeDb()
+    for (const f of [DB, `${DB}-wal`, `${DB}-shm`]) rmSync(join(dati, f), { force: true })
+    archivioVecchio(dbApp, dekHex, partenza)
+    initDb(dbApp, dekHex)
+    assert.equal(getDb().pragma('user_version', { simple: true }), MIGRATIONS.length)
+    const fatte = elencoBackup().filter((v) => v.nome.startsWith(`prima-della-migrazione-v${partenza}_`))
+    assert.equal(fatte.length, 1, 'doveva esserci una copia prima della migrazione')
+    nomeCopiaMigrazione = fatte[0].nome
+    // la copia e' quella di prima: lo schema di partenza, con il paziente dentro
+    const copia = apriAltroDb(join(copie, nomeCopiaMigrazione, DB))
+    try {
+      assert.equal(copia.pragma('user_version', { simple: true }), partenza)
+      assert.equal((copia.prepare('SELECT COUNT(*) AS n FROM pazienti').get() as { n: number }).n, 1)
+    } finally {
+      copia.close()
+    }
+    assert.ok(existsSync(join(copie, nomeCopiaMigrazione, AUTH)), 'servono anche le chiavi')
+  })
+
+  controllo('riaprendo l’archivio già aggiornato non si fa un’altra copia', () => {
+    closeDb()
+    initDb(dbApp, dekHex)
+    assert.equal(
+      elencoBackup().filter((v) => v.nome.startsWith('prima-della-migrazione-')).length,
+      1
+    )
+  })
+
+  controllo('le copie prima di un aggiornamento si tengono nelle ultime tre, a parte', () => {
+    for (let g = 1; g <= 5; g++) {
+      const dir = cartellaCopia(`prima-della-migrazione-v${g * 9}_2020-02-0${g}_0900`)
+      copyFileSync(dbApp, join(dir, DB))
+      copyFileSync(authApp, join(dir, AUTH))
+    }
+    const normaliPrima = elencoBackup().filter((v) => !v.nome.startsWith('prima-')).length
+    eseguiBackup() // ogni copia fa la sua rotazione
+    const migrazioni = elencoBackup().filter((v) => v.nome.startsWith('prima-della-migrazione-'))
+    assert.equal(migrazioni.length, 3)
+    // le tre piu' recenti per data, non per numero di versione nel nome
+    assert.ok(migrazioni.some((v) => v.nome === nomeCopiaMigrazione))
+    assert.ok(migrazioni.some((v) => v.nome.endsWith('2020-02-05_0900')))
+    assert.ok(migrazioni.some((v) => v.nome.endsWith('2020-02-04_0900')))
+    // le copie di tutti i giorni non ci hanno rimesso posto
+    assert.ok(elencoBackup().filter((v) => !v.nome.startsWith('prima-')).length >= normaliPrima)
+  })
+
+  // 15 — una copia di una versione piu' recente non si ripristina
+  controllo('una copia di una versione più recente si rifiuta, e l’archivio resta com’era', () => {
+    const futura = cartellaCopia('2020-03-01_0900')
+    archivioVecchio(join(futura, DB), dekHex, MIGRATIONS.length)
+    const raw = new Database(join(futura, DB))
+    raw.pragma("cipher='sqlcipher'")
+    raw.pragma(`key='${dekHex}'`)
+    raw.pragma(`user_version = ${MIGRATIONS.length + 4}`)
+    raw.close()
+    copyFileSync(authApp, join(futura, AUTH))
+    const esito = controllaBackup('2020-03-01_0900')
+    assert.equal(esito.ok, false)
+    assert.match(esito.messaggio, /versione più recente/)
+    const prima = pazienti()
+    assert.throws(() => eseguiRipristino('2020-03-01_0900'), /versione più recente/)
+    assert.deepEqual(pazienti(), prima)
   })
 }
 

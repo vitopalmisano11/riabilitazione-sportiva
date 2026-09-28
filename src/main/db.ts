@@ -5,6 +5,14 @@ import { runMigrations } from './migrations'
 let db: Database.Database | null = null
 let dekCorrente: string | null = null
 
+// Chi sa dove mettere le copie (backup.ts, che dipende da Electron) si registra
+// qui: questo file resta libero da Electron e si prova con Node.
+let copiaPrimaDelleMigrazioni: ((versione: number) => void) | null = null
+
+export function impostaCopiaPrimaDelleMigrazioni(fn: (versione: number) => void): void {
+  copiaPrimaDelleMigrazioni = fn
+}
+
 const HEADER_PLAINTEXT = 'SQLite format 3\u0000'
 
 export function isPlaintextDb(path: string): boolean {
@@ -36,12 +44,23 @@ export function initDb(path: string, dekHex: string): void {
     cifraEsistente(path, dekHex)
   }
   const conn = new Database(path)
-  conn.pragma(`cipher='sqlcipher'`)
-  conn.pragma(`key='${dekHex}'`)
-  conn.prepare('SELECT count(*) FROM sqlite_master').get() // verifica la chiave
-  conn.pragma('journal_mode = WAL')
-  conn.pragma('foreign_keys = ON')
-  runMigrations(conn)
+  try {
+    conn.pragma(`cipher='sqlcipher'`)
+    conn.pragma(`key='${dekHex}'`)
+    conn.prepare('SELECT count(*) FROM sqlite_master').get() // verifica la chiave
+    conn.pragma('journal_mode = WAL')
+    conn.pragma('foreign_keys = ON')
+    runMigrations(conn, (versione) => {
+      // le ultime scritture devono stare nel file che si copia, non nel giornale
+      conn.pragma('wal_checkpoint(TRUNCATE)')
+      copiaPrimaDelleMigrazioni?.(versione)
+    })
+  } catch (e) {
+    // Password sbagliata, archivio troppo nuovo, copia non riuscita: la
+    // connessione non deve restare appesa al file.
+    conn.close()
+    throw e
+  }
   db = conn
   dekCorrente = dekHex
 }
