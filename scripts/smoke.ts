@@ -2495,6 +2495,29 @@ initDb(join(dirCartella, 'cartella.db'), dekHex)
   assert.ok(readFileSync(join(cartellaCsv, 'sedute.csv'), 'utf-8').includes('Plank'))
   rmSync(dirCsv, { recursive: true, force: true })
 
+  // Un testo che comincia con = + - @ Excel lo eseguirebbe come formula: un
+  // apostrofo davanti lo lascia testo. I numeri e il resto non cambiano.
+  {
+    const c = getDb()
+    c.prepare('INSERT INTO pazienti (nome, cognome, diagnosi, lavoro, sport) VALUES (?, ?, ?, ?, ?)').run(
+      'Formula',
+      'Prova',
+      '=HYPERLINK("http://esempio.it","clicca")',
+      '-dolore al mattino',
+      'Nuoto'
+    )
+    const dirF = mkdtempSync(join(tmpdir(), 'riab-csv-formule-'))
+    const csvF = readFileSync(join(esportaArchivio(dirF), 'pazienti.csv'), 'utf-8')
+    assert.ok(csvF.includes(`"'=HYPERLINK(""http://esempio.it"",""clicca"")"`), 'la formula resta testo')
+    assert.ok(csvF.includes("'-dolore al mattino"))
+    assert.ok(csvF.includes('Prova;Formula;'), 'il testo normale non cambia')
+    assert.ok(!/;=HYPERLINK/.test(csvF), 'nessuna cella comincia con =')
+    // 'Verdi;Giulia' e la data non hanno subito niente
+    assert.ok(csvF.includes('Verdi;Giulia'))
+    c.prepare("DELETE FROM pazienti WHERE cognome = 'Prova' AND nome = 'Formula'").run()
+    rmSync(dirF, { recursive: true, force: true })
+  }
+
   // --- Dosaggio a cluster: dalla categoria fino alla scheda ---
   // La serie si spezza in blocchi con una pausa breve dentro. La categoria dice
   // solo se i campi si vedono; quello che si stampa dipende dai numeri salvati.

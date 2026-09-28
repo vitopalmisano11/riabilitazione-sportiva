@@ -18,7 +18,13 @@ type Riga = Record<string, unknown>
 // il testo che contiene il separatore, le virgolette o un a capo.
 function cella(v: unknown): string {
   if (v == null) return ''
-  const s = String(v)
+  let s = String(v)
+  // Un testo che comincia con = + - o @ (o con un tab) Excel lo prende per una
+  // formula e la esegue all'apertura: una nota scritta cosi' (o copiata da
+  // fuori) potrebbe leggere altri file o chiamare un indirizzo. Un apostrofo
+  // davanti la rende un testo qualunque. I numeri veri (-5) non sono testo e
+  // restano numeri.
+  if (typeof v === 'string' && /^[=+\-@\t]/.test(s)) s = `'${s}`
   return /[";\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
 }
 
@@ -47,6 +53,9 @@ Questi file sono tabelle in formato CSV: si aprono con un doppio clic in Excel
   valutazioni.csv    una riga per movimento di ogni valutazione obiettiva
   questionari.csv    i questionari compilati, con punteggi ed esito
   screening.csv      i valori misurati negli screening
+
+Se un testo comincia con = + - o @ trovi un apostrofo davanti: serve a far
+restare testo quello che Excel altrimenti eseguirebbe come formula.
 
 Attenzione: contengono dati sanitari. Tienili dove tieni le cartelle dei
 pazienti, e non lasciarli su una chiavetta che gira.
