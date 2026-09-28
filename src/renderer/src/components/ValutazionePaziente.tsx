@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { ArrowDown, ArrowUp, Check, Copy, Eye, Minus, Pencil, Plus, Trash2 } from 'lucide-react'
 import type {
   Andamento,
@@ -23,7 +23,7 @@ import ScalaPallini from './ScalaPallini'
 import Aiuto from './Aiuto'
 import { errMsg, formatData, oggiIso } from '../lib'
 import { useScorciatoie } from '../scorciatoie'
-import { useModificheInCorso, type Salva } from '../modificheInCorso'
+import { useSalvaUscendo } from '../salvaUscendo'
 import { GRUPPI } from '../pages/DistrettiPage'
 
 const ANDAMENTI: { valore: Andamento; etichetta: string; icona: React.JSX.Element }[] = [
@@ -233,20 +233,19 @@ function SchedaValutazione({
   const [dati, setDati] = useState<ValutazioneCompleta | null>(null)
   const [librerie, setLibrerie] = useState<DistrettoCompleto[]>([])
   const [modificato, setModificato] = useState(false)
-  // chiudendo il programma a valutazione non salvata, si salva
-  const salvaAllaChiusura = useRef<Salva | null>(null)
-  useModificheInCorso(!soloLettura && modificato, 'valutazione', salvaAllaChiusura)
+  // Chiudendo il programma, o uscendo da questa scheda, a valutazione non
+  // salvata: si salva da sola.
+  const salvaAllaChiusura = useSalvaUscendo(!soloLettura && modificato)
 
   useScorciatoie([
     { tasto: 'Escape', azione: () => void chiudi() },
     { tasto: 's', ctrl: true, azione: () => void salva(), attiva: !soloLettura && modificato }
   ])
 
-  // Come nella body chart: un clic fuori dalla finestra non deve buttare via
-  // una valutazione appena compilata.
-  const chiudi = async (): Promise<void> => {
-    if (modificato && !(await chiedi('Hai modifiche non salvate. Vuoi uscire lo stesso?'))) return
-    onChiudi(false)
+  // Un clic fuori dalla finestra la chiude: quello che c'era di non salvato
+  // si salva da solo (vedi useSalvaUscendo sopra).
+  const chiudi = (): void => {
+    onChiudi(modificato)
   }
   const sulFondo = useClicSulFondo(() => void chiudi())
 

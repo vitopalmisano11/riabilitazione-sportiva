@@ -112,30 +112,17 @@ export default function PazientiPage({
     void window.api.gruppi.list().then(setGruppi)
   }, [])
 
-  // Lo stato del builder letto dentro l'effetto senza farlo scattare: se fosse
-  // fra le dipendenze, chiudere una seduta chiuderebbe anche la scheda.
-  const builderAperto = useRef(builder)
-  builderAperto.current = builder
-
   // Premendo "Pazienti" nel menu si torna all'elenco da qualunque
   // punto, anche dalla costruzione di una seduta. Per una seduta nuova non si
   // perde niente: la bozza e' gia' messa da parte e viene riproposta. Per una
-  // seduta gia' salvata che si stava modificando, invece, si chiede prima.
+  // seduta gia' salvata che si stava modificando, SedutaBuilder si salva da
+  // solo smontandosi (vedi useSalvaUscendo li' dentro): non c'e' piu' niente
+  // da chiedere prima di uscire.
   useEffect(() => {
     if (tornaAllElenco === 0) return
-    const aperto = builderAperto.current
-    const esci = (): void => {
-      setBuilder(null)
-      setSelId(null)
-      void load()
-    }
-    if (aperto?.sedutaId != null) {
-      void chiedi('Stai modificando una seduta. Esci senza salvare?').then((ok) => {
-        if (ok) esci()
-      })
-    } else {
-      esci()
-    }
+    setBuilder(null)
+    setSelId(null)
+    void load()
   }, [tornaAllElenco])
 
   // Arrivando da un'altra sezione si apre la scheda chiesta. Se era rimasta

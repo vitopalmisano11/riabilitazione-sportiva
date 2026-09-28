@@ -11,9 +11,10 @@ import type {
 import { toastErrore } from './Toast'
 import { chiedi } from './Conferma'
 import Modale from './Modale'
-import { chiediUscita, useModificheInCorso, type Salva } from '../modificheInCorso'
+import { chiediUscita } from '../modificheInCorso'
 import { errMsg, oggiIso } from '../lib'
 import { sposta, useRiordino } from '../riordino'
+import { useSalvaUscendo } from '../salvaUscendo'
 import GraficoAndamento, { COLORI, type Selezione } from './GraficoAndamento'
 import ScalaPallini from './ScalaPallini'
 import {
@@ -81,8 +82,7 @@ export default function AnamnesiProssima({
   const [stato, setStato] = useState<'fermo' | 'salvo' | 'salvato' | 'errore'>('fermo')
   // Il salvataggio aspetta un secondo e mezzo dall'ultima lettera: chiudendo
   // il programma in quel mezzo, quello che resta si salva subito.
-  const salvaAllaChiusura = useRef<Salva | null>(null)
-  useModificheInCorso(stato === 'salvo' || stato === 'errore', 'anamnesi', salvaAllaChiusura)
+  const salvaAllaChiusura = useSalvaUscendo(stato === 'salvo' || stato === 'errore')
   const [sintomoAttivo, setSintomoAttivo] = useState(0)
   const [attivita, setAttivita] = useState<AttivitaPartecipazione | null>(null)
   const attesa = useRef<ReturnType<typeof setTimeout> | null>(null)

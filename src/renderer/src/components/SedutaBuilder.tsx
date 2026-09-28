@@ -29,7 +29,7 @@ import Aiuto from './Aiuto'
 import DiarioSeduta, { UltimaVoltaSeduta } from './DiarioSeduta'
 import { errMsg, formatData, oggiIso } from '../lib'
 import { scorciatoieBloccate, useScorciatoie } from '../scorciatoie'
-import { useModificheInCorso, type Salva } from '../modificheInCorso'
+import { useSalvaUscendo } from '../salvaUscendo'
 import { sposta, useRiordino } from '../riordino'
 import { caricoTesto, recuperoTesto, rirTesto, volumeTesto } from '../../../shared/dosaggio'
 
@@ -635,18 +635,19 @@ export default function SedutaBuilder({
   }, [pronto])
   const modificata = sedutaId != null && firmaAperta != null && firma !== firmaAperta
 
-  // Chiudendo il programma con la seduta a meta' di una modifica, si salva.
-  const salvaAllaChiusura = useRef<Salva | null>(null)
-  useModificheInCorso(modificata, 'seduta', salvaAllaChiusura)
+  // Chiudendo il programma, o uscendo da questa scheda, con la seduta a meta'
+  // di una modifica: si salva da sola.
+  const salvaAllaChiusura = useSalvaUscendo(modificata)
   salvaAllaChiusura.current = () => salva()
 
   // Esc annulla, Ctrl+S salva: la seduta si compila con la tastiera, senza
   // tornare col mouse in fondo alla finestra.
-  // Annullando si decide cosa farne: buttarla via subito, o tenerla per
-  // riprenderla. Chiedere qui e' meglio che ritrovarsela proposta domani senza
-  // averlo voluto.
+  // Su una seduta gia' salvata che si sta modificando non c'e' niente da
+  // chiedere: uscendo si salva da sola (vedi useSalvaUscendo sopra). Resta da
+  // decidere solo per una seduta NUOVA, mai salvata: buttarla via subito, o
+  // tenerla in bozza per riprenderla. Chiedere qui e' meglio che ritrovarsela
+  // proposta domani senza averlo voluto.
   const annulla = async (): Promise<void> => {
-    if (modificata && !(await chiedi('Hai modifiche non salvate. Vuoi uscire lo stesso?'))) return
     if (
       sedutaId == null &&
       (totaleEsercizi > 0 ||

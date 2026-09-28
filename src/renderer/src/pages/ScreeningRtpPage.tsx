@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   ChevronLeft,
   ChevronRight,
@@ -25,7 +25,7 @@ import Modale from '../components/Modale'
 import CompilaQuestionario from '../components/CompilaQuestionario'
 import { RisultatoCluster } from '../components/PunteggioCluster'
 import MenuScelta from '../components/MenuScelta'
-import { useModificheInCorso, type Salva } from '../modificheInCorso'
+import { useSalvaUscendo } from '../salvaUscendo'
 import { errMsg, formatData, oggiIso } from '../lib'
 
 // Esecuzione di uno screening: si sceglie il paziente e uno dei protocolli
@@ -448,9 +448,9 @@ function Esecuzione({
   const [compila, setCompila] = useState<number | null>(null)
   // Il punteggio del cluster sui valori salvati; null se il protocollo non ne ha.
   const [risultato, setRisultato] = useState<RisultatoPunteggio | null>(null)
-  // chiudendo il programma con valori non salvati, si salvano
-  const salvaAllaChiusura = useRef<Salva | null>(null)
-  useModificheInCorso(modificato, 'screening', salvaAllaChiusura)
+  // Chiudendo il programma, o uscendo da questa scheda, con valori non
+  // salvati: si salvano da soli.
+  const salvaAllaChiusura = useSalvaUscendo(modificato)
 
   const aggiornaPunteggio = useCallback((): void => {
     window.api.screeningSvolti
@@ -504,8 +504,9 @@ function Esecuzione({
     }
   }
 
-  const indietro = async (): Promise<void> => {
-    if (modificato && !(await chiedi('Ci sono valori non salvati. Uscire lo stesso?'))) return
+  // I valori non salvati si salvano da soli uscendo (vedi useSalvaUscendo
+  // sopra): qui si torna indietro e basta.
+  const indietro = (): void => {
     onIndietro()
   }
 

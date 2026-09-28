@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { useModificheInCorso, type Salva } from '../modificheInCorso'
+import { useSalvaUscendo } from '../salvaUscendo'
 import { Trash2 } from 'lucide-react'
 import { useClicSulFondo } from '../clicSulFondo'
 import type { BodyChartCompleta, SegnoBodyChart, TipoSegno } from '../../../shared/types'
 import { toast, toastErrore } from './Toast'
-import { chiedi } from './Conferma'
 import { errMsg } from '../lib'
 import { useScorciatoie } from '../scorciatoie'
 import FiguraChart, { SEGNI, viste, type SegnoDisegnato } from './FiguraUmana'
@@ -34,9 +33,9 @@ export default function BodyChartEditor({
   const [strumento, setStrumento] = useState<TipoSegno>('dolore')
   const [selezione, setSelezione] = useState<string | null>(null)
   const [modificato, setModificato] = useState(false)
-  // chiudendo il programma con segni non salvati, si salvano
-  const salvaAllaChiusura = useRef<Salva | null>(null)
-  useModificheInCorso(!soloLettura && modificato, 'body chart', salvaAllaChiusura)
+  // Chiudendo il programma, o uscendo da questa scheda, con segni non
+  // salvati: si salvano da soli.
+  const salvaAllaChiusura = useSalvaUscendo(!soloLettura && modificato)
 
   // Esc chiude, Ctrl+S salva: sono le due cose che si fanno di continuo qui
   // dentro.
@@ -45,11 +44,12 @@ export default function BodyChartEditor({
     { tasto: 's', ctrl: true, azione: () => void salva(), attiva: !soloLettura && modificato }
   ])
 
-  // Un clic fuori dalla finestra la chiude: senza questa domanda i segni appena
-  // messi sparirebbero senza dire niente.
-  const chiudi = async (): Promise<void> => {
-    if (modificato && !(await chiedi('Hai modifiche non salvate. Vuoi uscire lo stesso?'))) return
-    onChiudi(false)
+  // Un clic fuori dalla finestra la chiude. Se c'erano segni non ancora
+  // salvati si salvano da soli (vedi useSalvaUscendo sopra): al genitore si
+  // dice se c'era qualcosa da salvare, cosi' non cancella una scheda appena
+  // creata che in realta' e' stata riempita.
+  const chiudi = (): void => {
+    onChiudi(modificato)
   }
   const sulFondo = useClicSulFondo(() => void chiudi())
   // trascinamento in corso: quale segno e su quale figura

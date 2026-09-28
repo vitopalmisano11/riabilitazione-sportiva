@@ -5,8 +5,9 @@ import type { AnamnesiRemota as Dati, Bioimmagine, RispostaSiNo } from '../../..
 import { toastErrore } from './Toast'
 import { chiedi } from './Conferma'
 import Modale from './Modale'
-import { chiediUscita, useModificheInCorso, type Salva } from '../modificheInCorso'
+import { chiediUscita } from '../modificheInCorso'
 import { errMsg, formatData } from '../lib'
+import { useSalvaUscendo } from '../salvaUscendo'
 
 const ATTESA_SALVATAGGIO = 1500
 
@@ -53,8 +54,7 @@ export default function AnamnesiRemota({
   const [stato, setStato] = useState<'fermo' | 'salvo' | 'salvato' | 'errore'>('fermo')
   // Il salvataggio aspetta un secondo e mezzo dall'ultima lettera: chiudendo
   // il programma in quel mezzo, quello che resta si salva subito.
-  const salvaAllaChiusura = useRef<Salva | null>(null)
-  useModificheInCorso(stato === 'salvo' || stato === 'errore', 'anamnesi', salvaAllaChiusura)
+  const salvaAllaChiusura = useSalvaUscendo(stato === 'salvo' || stato === 'errore')
   const attesa = useRef<ReturnType<typeof setTimeout> | null>(null)
   const daSalvare = useRef<Dati | null>(null)
 
