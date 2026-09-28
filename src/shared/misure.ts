@@ -66,14 +66,20 @@ export function valoreDi(
   valori: RigaValore[],
   misura: MisuraTest,
   tutte: MisuraTest[],
-  lato: 'dx' | 'sx' | null
+  lato: 'dx' | 'sx' | null,
+  visitate: number[] = []
 ): number | null {
   if (misura.calcolo != null && misura.calcolo_a != null && misura.calcolo_b != null) {
+    // Un giro chiuso (A da B, B da A) non ha un valore: si ferma qui invece di
+    // girare senza fine. Il salvataggio non li lascia piu' fare, ma i dati
+    // scritti prima potrebbero averli.
+    if (misura.id != null && visitate.includes(misura.id)) return null
+    const dietro = misura.id == null ? visitate : [...visitate, misura.id]
     const a = tutte.find((m) => m.id === misura.calcolo_a)
     const b = tutte.find((m) => m.id === misura.calcolo_b)
     return combina(
-      a ? valoreDi(valori, a, tutte, lato) : null,
-      b ? valoreDi(valori, b, tutte, lato) : null,
+      a ? valoreDi(valori, a, tutte, lato, dietro) : null,
+      b ? valoreDi(valori, b, tutte, lato, dietro) : null,
       misura.calcolo
     )
   }

@@ -731,7 +731,9 @@ function FonteMisura({
   valore: number | null
   onScegli: (v: number | null) => void
 }): React.JSX.Element {
-  const scelte = misure.filter((m) => m.id != null && m.id !== escludi)
+  // Una misura calcolata non fa da fonte a un'altra: due che si citano a
+  // vicenda non avrebbero un valore da nessuna parte.
+  const scelte = misure.filter((m) => m.id != null && m.id !== escludi && m.calcolo == null)
   if (scelte.length === 0) {
     return <span className="hint">salva prima le misure da usare nel calcolo</span>
   }

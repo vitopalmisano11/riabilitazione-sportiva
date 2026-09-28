@@ -112,6 +112,22 @@ function riscriviMisure(db: Db, testId: number, misure: MisuraTest[]): void {
   // Le fonti di un calcolo devono essere misure di questo test gia' salvate:
   // un riferimento a una misura appena aggiunta non avrebbe ancora un id.
   const idsValidi = new Set(misure.map((m) => m.id).filter((x): x is number => x != null))
+  // Una misura calcolata non puo' fare da fonte a un'altra: A che cita B che
+  // cita A non ha un valore da nessuna parte, e la lettura non finirebbe mai.
+  const calcolate = new Map(
+    misure.filter((m) => m.id != null && m.calcolo != null).map((m) => [m.id as number, m])
+  )
+  for (const m of misure) {
+    if (m.calcolo == null) continue
+    for (const fonte of [m.calcolo_a, m.calcolo_b]) {
+      const citata = fonte == null ? undefined : calcolate.get(fonte)
+      if (citata && fonte !== m.id) {
+        throw new Error(
+          `La misura "${m.nome.trim() || 'senza nome'}" si ottiene da "${citata.nome.trim() || 'senza nome'}", che a sua volta è calcolata: come fonti servono misure registrate a mano.`
+        )
+      }
+    }
+  }
   misure.forEach((m, i) => {
     // senza soglia la direzione non ha significato
     const direzione = m.cutoff == null ? null : (m.cutoff_direzione ?? 'min')

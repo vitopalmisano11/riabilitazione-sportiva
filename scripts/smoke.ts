@@ -35,6 +35,8 @@ import { andamentoDolorePerPaziente } from '../src/main/andamento-dolore'
 import { leggiProfilo, righeProfilo, salvaProfilo } from '../src/main/profilo'
 import { generaCartella, generaRelazione, SEZIONI } from '../src/main/export-cartella'
 import { esportaArchivio } from '../src/main/esporta-archivio'
+import { leggiTest, salvaTest } from '../src/main/test-valutazione'
+import { valoreDi } from '../src/shared/misure'
 import {
   elencoCestino,
   eliminaConCestino,
@@ -2066,6 +2068,54 @@ assert.equal(
   )
   assert.equal(calcolaPunteggio(sessioneSenza), null)
   assert.ok(!generaReportScreening([sessioneSenza]).html.includes('class="punteggio"'))
+}
+
+// --- Misure calcolate: niente giri chiusi ---
+{
+  const db = getDb()
+  const t = Number(
+    db.prepare("INSERT INTO test_valutazione (nome, prove) VALUES ('Salto prova', 1)").run().lastInsertRowid
+  )
+  const m = (id: number | null, nome: string, extra: object = {}): never =>
+    ({
+      id, nome, unita: null, per_prova: 1, riassunto: 'migliore', calcolo: null, calcolo_a: null,
+      calcolo_b: null, riferimento: null, cutoff: null, cutoff_direzione: null, ...extra
+    }) as never
+  const leggi = (): ReturnType<typeof leggiTest> => leggiTest(t)
+  salvaTest({ ...leggi(), misure: [m(null, 'CMJ'), m(null, 'SJ')] })
+  const [cmj, sj] = leggi().misure
+  // un rapporto fra due misure registrate si salva e si legge
+  salvaTest({
+    ...leggi(),
+    misure: [cmj, sj, m(null, 'EUR', { calcolo: 'rapporto', calcolo_a: cmj.id, calcolo_b: sj.id })]
+  })
+  const eur = leggi().misure.find((x) => x.nome === 'EUR')
+  assert.equal(eur?.calcolo_a, cmj.id)
+  const valori = [
+    { misura_id: cmj.id as number, lato: null, prova: 1, valore: 30 },
+    { misura_id: sj.id as number, lato: null, prova: 1, valore: 20 }
+  ]
+  assert.equal(valoreDi(valori, eur!, leggi().misure, null), 1.5)
+  // una calcolata come fonte di un'altra: errore chiaro, niente e' cambiato
+  assert.throws(
+    () =>
+      salvaTest({
+        ...leggi(),
+        misure: [
+          cmj,
+          sj,
+          eur!,
+          m(null, 'Doppia', { calcolo: 'differenza', calcolo_a: eur!.id, calcolo_b: sj.id })
+        ]
+      }),
+    /a sua volta è calcolata/
+  )
+  assert.equal(leggi().misure.length, 3)
+  // due misure che si citano a vicenda (scritte prima di questo controllo):
+  // la lettura si ferma invece di girare senza fine
+  const a = { ...cmj, calcolo: 'rapporto' as const, calcolo_a: sj.id, calcolo_b: sj.id }
+  const b = { ...sj, calcolo: 'rapporto' as const, calcolo_a: cmj.id, calcolo_b: cmj.id }
+  assert.equal(valoreDi(valori, a, [a, b], null), null)
 }
 
 getDb().close()
