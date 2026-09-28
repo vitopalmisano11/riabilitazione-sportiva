@@ -325,6 +325,9 @@ export function registerIpc(): void {
   ipcMain.on('impostazioni:temaSubito', (e) => {
     e.returnValue = { tema: tema(), scuro: scuroAdesso(), barraScura: barraScura() }
   })
+  // Il controllo periodico degli orari (modalita' scura a orari fissi) non ha
+  // fretta: risponde in modo asincrono e non ferma la pagina.
+  ipcMain.handle('impostazioni:temaOra', () => ({ scuro: scuroAdesso() }))
   handle('impostazioni:cambiaCartellaExport', async () => {
     const { canceled, filePaths } = await dialog.showOpenDialog({
       title: "Scegli la cartella di destinazione per l'export",

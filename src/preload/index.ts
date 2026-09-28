@@ -57,16 +57,19 @@ try {
 
   // Con la modalita' scura a orari fissi la pagina deve cambiare da sola
   // all'ora giusta, anche restando aperta: si ricontrolla ogni minuto.
+  // Risposta asincrona: quella immediata di sopra serve solo prima del primo
+  // disegno, ma ogni minuto in ogni finestra fermerebbe la pagina per niente.
   setInterval(() => {
     if (!pagina) return
-    try {
-      const ora = ipcRenderer.sendSync('impostazioni:temaSubito') as { scuro: boolean }
-      const d = pagina.documentElement.dataset
-      if (ora.scuro && d.scuro !== 'si') d.scuro = 'si'
-      if (!ora.scuro && d.scuro === 'si') delete d.scuro
-    } catch {
-      // un minuto dopo si riprova
-    }
+    void (ipcRenderer.invoke('impostazioni:temaOra') as Promise<{ scuro: boolean }>)
+      .then((ora) => {
+        const d = pagina.documentElement.dataset
+        if (ora.scuro && d.scuro !== 'si') d.scuro = 'si'
+        if (!ora.scuro && d.scuro === 'si') delete d.scuro
+      })
+      .catch(() => {
+        // un minuto dopo si riprova
+      })
   }, 60_000)
 } catch {
   // senza risposta resta il tema di partenza: non e' un motivo per non aprire
