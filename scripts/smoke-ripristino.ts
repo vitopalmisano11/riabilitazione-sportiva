@@ -326,7 +326,21 @@ function prove(): void {
     assert.ok(elencoBackup().filter((v) => !v.nome.startsWith('prima-')).length >= normaliPrima)
   })
 
-  // 15 — una copia di una versione piu' recente non si ripristina
+  controllo('le copie prima di un ripristino si tengono nelle ultime cinque', () => {
+    for (let g = 1; g <= 7; g++) {
+      const dir = cartellaCopia(`prima-del-ripristino_2020-04-0${g}_0900`)
+      copyFileSync(dbApp, join(dir, DB))
+      copyFileSync(authApp, join(dir, AUTH))
+    }
+    eseguiBackup()
+    const ripristini = elencoBackup().filter((v) => v.nome.startsWith('prima-del-ripristino_'))
+    assert.equal(ripristini.length, 5)
+    // restano le piu' recenti: la piu' vecchia e' andata
+    assert.ok(!ripristini.some((v) => v.nome.endsWith('2020-04-01_0900')))
+    assert.ok(ripristini.some((v) => v.nome.endsWith('2020-04-07_0900')))
+  })
+
+  // 15 — una copia di una versione piu' recente non si ripristina
   controllo('una copia di una versione più recente si rifiuta, e l’archivio resta com’era', () => {
     const futura = cartellaCopia('2020-03-01_0900')
     archivioVecchio(join(futura, DB), dekHex, MIGRATIONS.length)

@@ -55,6 +55,12 @@ const NOME_BACKUP = /^(?:[a-z0-9-]+_)?\d{4}-\d{2}-\d{2}_\d{4}$/
 const PREFISSO_MIGRAZIONE = 'prima-della-migrazione-'
 const MIGRAZIONI_DA_TENERE = 3
 
+// La copia fatta prima di un ripristino e' l'unico modo di tornare indietro se si
+// ripristina la copia sbagliata: se ne tengono di piu', ma non per sempre, perche'
+// ognuna e' un archivio intero.
+const PREFISSO_RIPRISTINO = 'prima-del-ripristino_'
+const RIPRISTINI_DA_TENERE = 5
+
 export function elencoBackup(dir = cartellaBackup()): VoceBackup[] {
   if (!existsSync(dir)) return []
   return readdirSync(dir, { withFileTypes: true })
@@ -72,8 +78,8 @@ export function elencoBackup(dir = cartellaBackup()): VoceBackup[] {
 // Toglie le copie piu' vecchie oltre il numero da tenere. Le copie di tutti i
 // giorni si contano da sole: quelle "prima di..." hanno un nome che le mette in
 // testa all'elenco e, contate insieme, toglierebbero posto a quelle vere.
-// Quelle prima di un ripristino non si buttano mai; quelle prima di una
-// migrazione si tengono nelle ultime poche.
+// Quelle prima di un ripristino e quelle prima di una migrazione si tengono
+// nelle ultime poche, ognuna per conto suo.
 function ruota(dir = cartellaBackup()): void {
   const tutte = elencoBackup(dir)
   const normali = tutte.filter((v) => !v.nome.startsWith('prima-'))
@@ -82,6 +88,10 @@ function ruota(dir = cartellaBackup()): void {
   }
   const migrazioni = tutte.filter((v) => v.nome.startsWith(PREFISSO_MIGRAZIONE))
   for (const v of migrazioni.slice(MIGRAZIONI_DA_TENERE)) {
+    rmSync(join(dir, v.nome), { recursive: true, force: true })
+  }
+  const ripristini = tutte.filter((v) => v.nome.startsWith(PREFISSO_RIPRISTINO))
+  for (const v of ripristini.slice(RIPRISTINI_DA_TENERE)) {
     rmSync(join(dir, v.nome), { recursive: true, force: true })
   }
 }
@@ -323,7 +333,7 @@ export function eseguiRipristino(nome: string): void {
   const sorgente = join(cartellaBackup(), nome)
   // Rete di sicurezza: lo stato di adesso, prima di cambiarlo. Va fatto mentre
   // il database e' ancora aperto, perche' serve il checkpoint del giornale.
-  eseguiBackup('prima-del-ripristino_')
+  eseguiBackup(PREFISSO_RIPRISTINO)
 
   const dest = cartellaDati()
   const dbNuovo = join(dest, `${DB}.nuovo`)
