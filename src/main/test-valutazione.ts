@@ -3,6 +3,7 @@
 // restano, i nuovi si inseriscono, gli spariti si eliminano), cosi' i dati che
 // un domani citeranno una misura continueranno a puntare a quella giusta.
 import { getDb } from './db'
+import { validaLink } from './validazione'
 import type {
   MisuraTest,
   ParametroTest,
@@ -36,6 +37,7 @@ export function leggiTest(id: number): TestValutazioneCompleto {
 }
 
 export function salvaTest(dati: TestValutazioneCompleto): void {
+  validaLink(dati.test.link, 'Il link del test')
   const db = getDb()
   const id = dati.test.id
 

@@ -112,6 +112,8 @@ import {
   erroreSenzaDatiNelRegistro,
   richiedeTesto,
   validaData,
+  validaImmagine,
+  validaLink,
   validaNumeroPositivo,
   validaOra,
   validaScala010
@@ -870,8 +872,9 @@ export function registerIpc(): void {
       )
       .all()
   )
-  handle('esercizi:create', (data: EsercizioInput) =>
-    Number(
+  handle('esercizi:create', (data: EsercizioInput) => {
+    validaLink(data.link, 'Il link del video')
+    return Number(
       getDb()
         .prepare(
           `INSERT INTO esercizi (nome, categoria_id, serie_default, cluster_default,
@@ -883,10 +886,11 @@ export function registerIpc(): void {
                    @recupero_cluster_default,
                    @recupero_default, @nota_tecnica, @link)`
         )
-        .run({ ...data, nome: data.nome.trim() }).lastInsertRowid
+        .run({ ...data, nome: data.nome.trim(), link: data.link?.trim() || null }).lastInsertRowid
     )
-  )
+  })
   handle('esercizi:update', (id: number, data: EsercizioInput) => {
+    validaLink(data.link, 'Il link del video')
     getDb()
       .prepare(
         `UPDATE esercizi SET nome = @nome, categoria_id = @categoria_id,
@@ -899,7 +903,7 @@ export function registerIpc(): void {
          nota_tecnica = @nota_tecnica, link = @link
          WHERE id = @id`
       )
-      .run({ ...data, nome: data.nome.trim(), id })
+      .run({ ...data, nome: data.nome.trim(), link: data.link?.trim() || null, id })
   })
   handle('esercizi:setArchiviato', (id: number, archiviato: boolean) => {
     getDb().prepare('UPDATE esercizi SET archiviato = ? WHERE id = ?').run(archiviato ? 1 : 0, id)
@@ -937,6 +941,7 @@ export function registerIpc(): void {
     if (dataUrl != null && dataUrl.length > IMG_PESO_MAX) {
       throw new Error('Immagine troppo pesante.')
     }
+    validaImmagine(dataUrl)
     getDb().prepare('UPDATE esercizi SET immagine = ? WHERE id = ?').run(dataUrl, id)
   })
 

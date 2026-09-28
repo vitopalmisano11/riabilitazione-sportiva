@@ -31,6 +31,28 @@ export function testoErrorePerRegistro(errore: unknown): string {
     .join('\n')
 }
 
+// Un link che si apre nel browser: solo http e https. Un altro schema
+// (javascript:, file:) finirebbe nei fogli stampati e nei link cliccabili.
+export const LINK_WEB = /^https?:\/\/\S+$/i
+
+// Il link e' facoltativo: vuoto va bene.
+export function validaLink(valore: string | null | undefined, etichetta: string): void {
+  if (valore == null || valore.trim() === '') return
+  if (!LINK_WEB.test(valore.trim())) {
+    throw new Error(`${etichetta} deve cominciare con http:// o https:// e non avere spazi.`)
+  }
+}
+
+// Le foto che finiscono nel database e poi nei fogli stampati: solo immagini
+// vere, come le produce il programma (data URL in base64).
+const FORMATO_IMMAGINE = /^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/]+={0,2}$/
+
+export function validaImmagine(dataUrl: string | null): void {
+  if (dataUrl != null && !FORMATO_IMMAGINE.test(dataUrl)) {
+    throw new Error('L’immagine non è in un formato valido.')
+  }
+}
+
 export function richiedeTesto(valore: string, etichetta: string): void {
   if (!valore.trim()) throw new Error(`${etichetta} non può essere vuoto.`)
 }

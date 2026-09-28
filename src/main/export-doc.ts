@@ -2,6 +2,7 @@
 // Nessuna dipendenza da Electron: testabile con Node (vedi scripts/smoke.ts).
 import { coloriTema } from '../shared/temi'
 import { righeProfilo } from './profilo'
+import { LINK_WEB } from './validazione'
 import {
   caricoTesto,
   intensitaTesto,
@@ -70,7 +71,12 @@ function formatData(iso: string): string {
 }
 
 function esc(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  // anche le virgolette: esc() finisce dentro agli attributi (href, src)
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
 }
 
 function infoPaziente(p: DatiPazienteExport): string[] {
@@ -200,7 +206,7 @@ export function generaHtml(
                     : ''
                 }
                 ${e.nota ? `<div class="nota-es">${esc(e.nota)}</div>` : ''}
-                ${e.link ? `<a class="video" href="${esc(e.link)}">Guarda il video</a>` : ''}
+                ${e.link && LINK_WEB.test(e.link) ? `<a class="video" href="${esc(e.link)}">Guarda il video</a>` : ''}
               </div>
             </div>
           </div>`

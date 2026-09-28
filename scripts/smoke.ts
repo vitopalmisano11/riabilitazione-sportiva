@@ -66,7 +66,13 @@ import {
   scriviTemporaneo,
   usaCartellaTemporanei
 } from '../src/main/temporanei'
-import { erroreSenzaDatiNelRegistro, testoErrorePerRegistro } from '../src/main/validazione'
+import {
+  erroreSenzaDatiNelRegistro,
+  LINK_WEB,
+  testoErrorePerRegistro,
+  validaImmagine,
+  validaLink
+} from '../src/main/validazione'
 import { generaReportScreening } from '../src/main/report-screening'
 import { coloriBarra, conBarra } from '../src/main/finestre'
 import { relazioneAnamnesi } from '../src/main/relazione-anamnesi'
@@ -386,7 +392,8 @@ assert.ok(html.includes('3 × 10'))
 assert.ok(html.includes('60 kg · RIR 2'), 'carico e RIR nella stessa colonna')
 // il cluster: 4 x (3 x 2), e i due recuperi separati dalla barra
 assert.ok(html.includes('4 × (3 × 2)'), 'volume a cluster')
-assert.ok(html.includes(`15" / 2'`), 'recuperi a cluster nella colonna')
+// (le virgolette nel testo si scrivono &quot;: sullo schermo e' lo stesso segno)
+assert.ok(html.includes(`15&quot; / 2'`), 'recuperi a cluster nella colonna')
 // La scheda normale non porta mai foto, spiegazioni o link, anche se
 // l'esercizio li ha: e' quella corta per chi sa gia' cosa fare.
 assert.ok(!html.includes('<div class="scheda-es">'))
@@ -424,6 +431,35 @@ assert.ok(illustrata.includes('1 min'), 'il valore del recupero')
 assert.ok(illustrata.includes('<span class="num">1</span>'))
 assert.ok(illustrata.includes('<span class="num">2</span>'))
 assert.ok(illustrata.includes('href="https://www.youtube.com/watch?v=abc"'))
+// un link che non e' web (javascript:, file:) non diventa cliccabile, e le
+// virgolette dentro un attributo non lo chiudono prima del tempo
+{
+  const es0 = conFoto[0].sezioni[0].esercizi[0]
+  const cattivi = generaHtml(
+    pazExport,
+    [
+      {
+        ...conFoto[0],
+        sezioni: [
+          {
+            nome: 'A casa',
+            esercizi: [
+              { ...es0, link: 'javascript:alert(1)' },
+              { ...es0, nome: 'Squat', link: 'https://a.it/x"onmouseover="alert(1)' },
+              { ...es0, nome: 'Foto', immagine: 'x" onerror="alert(1)' }
+            ]
+          }
+        ]
+      }
+    ],
+    true
+  )
+  assert.ok(!cattivi.includes('href="javascript'), 'un link javascript non e\' cliccabile')
+  assert.ok(!cattivi.includes('"onmouseover="'), 'le virgolette non chiudono l\'attributo')
+  assert.ok(!cattivi.includes('" onerror="'), 'nemmeno nell\'immagine')
+  assert.ok(cattivi.includes('x&quot;onmouseover=&quot;'), 'le virgolette del link diventano testo')
+  assert.ok(cattivi.includes('x&quot; onerror=&quot;'), 'e quelle dell\'immagine')
+}
 // il riquadro della foto resta anche dove la foto manca: i cartelli della
 // stessa riga devono restare allineati
 assert.equal(illustrata.split('<div class="foto">').length - 1, 2)
@@ -519,6 +555,26 @@ const provaTemporanei = (async (): Promise<void> => {
   ripulisciTemporanei() // e non da' errore se e' gia' vuota
   rmSync(dirT, { recursive: true, force: true })
 })()
+
+// Link e immagini: solo web (http/https) e immagini vere, sia in ingresso sia nei fogli stampati.
+{
+  validaLink(null, 'Il link')
+  validaLink('', 'Il link')
+  validaLink('   ', 'Il link')
+  validaLink('https://www.youtube.com/watch?v=abc', 'Il link')
+  validaLink(' HTTP://esempio.it/x ', 'Il link')
+  for (const cattivo of ['javascript:alert(1)', 'file:///C:/Windows/win.ini', 'www.esempio.it', 'https://a b']) {
+    assert.throws(() => validaLink(cattivo, 'Il link'), /http:\/\/ o https:\/\//, cattivo)
+  }
+  assert.ok(LINK_WEB.test('https://esempio.it') && !LINK_WEB.test('javascript:alert(1)'))
+
+  validaImmagine(null)
+  validaImmagine('data:image/png;base64,iVBORw0KGgo=')
+  validaImmagine('data:image/jpeg;base64,/9j/4AAQSkZJRg==')
+  for (const cattiva of ['data:text/html;base64,PHNjcmlwdD4=', 'https://esempio.it/a.png', 'x" onerror="alert(1)', '']) {
+    assert.throws(() => validaImmagine(cattiva), /formato valido/, cattiva)
+  }
+}
 
 // Registro degli errori: chi usa il programma legge il nome del file, il registro no
 // (il nome di un referto dice di chi e').
