@@ -12,7 +12,7 @@ import { toastErrore } from './Toast'
 import { chiedi } from './Conferma'
 import Modale from './Modale'
 import { chiediUscita, useModificheInCorso, type Salva } from '../modificheInCorso'
-import { errMsg } from '../lib'
+import { errMsg, oggiIso } from '../lib'
 import { sposta, useRiordino } from '../riordino'
 import GraficoAndamento, { COLORI, type Selezione } from './GraficoAndamento'
 import ScalaPallini from './ScalaPallini'
@@ -424,7 +424,7 @@ function Grafici({
     }
     setInArrivo({
       sintomo: indice,
-      data: new Date().toISOString().slice(0, 10),
+      data: oggiIso(),
       dolore: punto.dolore
     })
   }

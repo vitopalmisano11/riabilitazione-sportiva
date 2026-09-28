@@ -11,6 +11,7 @@
 import { mkdirSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { getDb } from './db'
+import { oggiIso } from './export-cartella'
 
 type Riga = Record<string, unknown>
 
@@ -66,7 +67,7 @@ che l'app fa da sola (database + chiavi). Questa e' una copia da leggere.
 
 export function esportaArchivio(cartella: string): string {
   const db = getDb()
-  const oggi = new Date().toISOString().slice(0, 10)
+  const oggi = oggiIso()
   const dest = join(cartella, `archivio_riabilitazione_${oggi}`)
   mkdirSync(dest, { recursive: true })
 

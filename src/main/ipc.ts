@@ -1209,7 +1209,7 @@ export function registerIpc(): void {
       getDb()
         .prepare(
           `INSERT OR IGNORE INTO paziente_obiettivi (paziente_id, obiettivo_id, raggiunto_il)
-           VALUES (?, ?, date('now'))`
+           VALUES (?, ?, date('now', 'localtime'))`
         )
         .run(pazienteId, obiettivoId)
     } else {
@@ -2054,7 +2054,7 @@ export function registerIpc(): void {
       .get(pazienteId) as { next: number }
     const ins = db.prepare(
       `INSERT INTO bioimmagini (paziente_id, nome, tipo, contenuto, data, ordine)
-       VALUES (?, ?, ?, ?, date('now'), ?)`
+       VALUES (?, ?, ?, ?, date('now', 'localtime'), ?)`
     )
     let aggiunti = 0
     for (const percorso of filePaths) {
