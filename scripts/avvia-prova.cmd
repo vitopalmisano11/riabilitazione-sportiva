@@ -19,6 +19,9 @@ echo.
 echo   NON chiudere questa finestra nera mentre usi l app.
 echo   Per spegnere tutto: chiudi l app, poi chiudi questa finestra.
 echo.
+rem Questa e' la versione che si usa tutti i giorni, con i dati veri: niente
+rem strumenti da sviluppatore (vedi src/main/index.ts).
+set "RIAB_PROVA=1"
 call npm run dev
 echo.
 echo   Versione di prova chiusa. Puoi chiudere questa finestra.

@@ -110,7 +110,11 @@ app.on('web-contents-created', (_evento, contenuti) => {
   // nell'app installata: da li' si legge e si cambia tutto quello che la pagina
   // ha in mano, saltando l'interfaccia. Vale per ogni finestra, compresa quella
   // della scheda, che sta aperta davanti al paziente.
-  if (app.isPackaged) {
+  //
+  // Lo stesso vale per la versione di prova (scripts/avvia-prova.cmd), che si usa
+  // tutti i giorni con i dati veri: il lanciatore lo dice con RIAB_PROVA. Chi
+  // lavora al programma con `npm run dev` continua ad averli.
+  if (app.isPackaged || process.env['RIAB_PROVA'] === '1') {
     contenuti.on('devtools-opened', () => contenuti.closeDevTools())
   }
 
