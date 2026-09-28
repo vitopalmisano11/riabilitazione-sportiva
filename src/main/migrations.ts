@@ -1258,6 +1258,17 @@ export const MIGRATIONS: string[] = [
   ALTER TABLE seduta_esercizi_nuova RENAME TO seduta_esercizi;
 
   CREATE INDEX idx_seduta_esercizi_seduta ON seduta_esercizi(seduta_id);
+  `,
+
+  // 51 - tre indici che mancavano. Sono tutte ricerche che l'app fa di continuo
+  //      (i valori dei segni di una seduta, i punteggi di un questionario, le
+  //      sedute di un giorno o di un periodo): senza indice il database legge
+  //      l'intera tabella, e con gli anni di sedute si sente.
+  `
+  CREATE INDEX IF NOT EXISTS idx_segno_valori_seduta ON segno_valori(seduta_id);
+  CREATE INDEX IF NOT EXISTS idx_compilazione_punteggi_compilazione
+    ON compilazione_punteggi(compilazione_id);
+  CREATE INDEX IF NOT EXISTS idx_sedute_data ON sedute(data);
   `
 ]
 

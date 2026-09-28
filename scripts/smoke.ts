@@ -101,7 +101,14 @@ db.pragma('foreign_keys = ON')
 
 runMigrations(db)
 runMigrations(db) // idempotente
-assert.equal(db.pragma('user_version', { simple: true }), 50)
+assert.equal(db.pragma('user_version', { simple: true }), 51)
+// gli indici delle ricerche frequenti ci sono
+for (const indice of ['idx_segno_valori_seduta', 'idx_compilazione_punteggi_compilazione', 'idx_sedute_data']) {
+  assert.ok(
+    db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = ?").get(indice),
+    indice
+  )
+}
 
 const count = (table: string): number =>
   (db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n
