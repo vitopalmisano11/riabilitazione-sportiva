@@ -137,19 +137,24 @@ export function useRiordino<K extends Chiave>(
 
   // Il rettangolo "di riposo" di un elemento: dove sta per come e' messa la
   // pagina, ignorando lo scivolamento che lo sta ancora animando dallo scambio
-  // di prima. getBoundingClientRect() darebbe invece la posizione visiva di
-  // quel momento — che durante l'animazione cambia a ogni fotogramma, anche a
-  // mouse fermo — e la soglia sotto avrebbe sbattuto avanti e indietro.
+  // di prima. getBoundingClientRect() darebbe la posizione visiva di quel
+  // momento — che durante l'animazione cambia a ogni fotogramma, anche a
+  // mouse fermo — e la soglia sotto avrebbe sbattuto avanti e indietro: qui si
+  // annulla prima lo scivolamento in corso, cosi' la misura torna quella vera.
+  //
+  // La versione precedente ricostruiva la posizione a mano da offsetTop e
+  // dallo scroll del genitore posizionato (offsetParent), assumendo che fosse
+  // lui a scorrere. In una pagina lunga (tanti esercizi in una seduta) non e'
+  // detto: lo scroll vero sta piu' in alto nell'albero, offsetParent resta
+  // fermo, e il conto usciva di centinaia di pixel — sempre nello stesso
+  // verso, quindi il confronto con la posizione del mouse uno dei due versi
+  // di trascinamento non lo passava mai. getBoundingClientRect() e' gia'
+  // corretto rispetto allo scroll qualunque sia l'antenato che scorre.
   const rettangoloDiRiposo = (el: HTMLElement): { top: number; left: number; width: number; height: number } => {
-    const genitore = el.offsetParent as HTMLElement | null
-    if (!genitore) return el.getBoundingClientRect()
-    const base = genitore.getBoundingClientRect()
-    return {
-      top: base.top + el.offsetTop - genitore.scrollTop,
-      left: base.left + el.offsetLeft - genitore.scrollLeft,
-      width: el.offsetWidth,
-      height: el.offsetHeight
-    }
+    scivolate.current.get(el)?.cancel()
+    scivolate.current.delete(el)
+    const r = el.getBoundingClientRect()
+    return { top: r.top, left: r.left, width: r.width, height: r.height }
   }
 
   // Lo scambio avviene solo dopo aver superato la meta' dell'elemento sotto al
