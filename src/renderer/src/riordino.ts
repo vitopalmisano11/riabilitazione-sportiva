@@ -88,7 +88,19 @@ export function useRiordino<K extends Chiave>(
 
   // Subito dopo che la pagina si e' ridisegnata: ogni elemento che ha cambiato
   // posto riparte da dov'era e scivola fino a dov'e' adesso.
+  //
+  // E' anche il punto giusto per riaprire lo scambio successivo: prima si
+  // riapriva con un requestAnimationFrame, un timer che scatta comunque, anche
+  // se React non ha ancora ridisegnato la pagina con l'ordine nuovo. Chi
+  // riordina un elenco tenendo lo stato in una variabile normale (non nel
+  // riferimento di useRiordinoSalvato) leggeva percio' l'ordine vecchio, e uno
+  // scambio ne annullava un altro appena fatto: trascinando in fretta capitava
+  // spesso, e piu' spesso andando verso il basso (il gesto naturale e' piu'
+  // veloce di quello verso l'alto). Un effetto di layout, invece, scatta
+  // sempre dopo che React ha davvero ridisegnato: aspettarlo vuol dire
+  // aspettare l'ordine giusto.
   useLayoutEffect(() => {
+    nelFrame.current = false
     const prima = misure.current
     misure.current = null
     if (!prima) return
@@ -117,6 +129,7 @@ export function useRiordino<K extends Chiave>(
     presoOra.current = null
     primoSpostamento.current = true
     spostatoQualcosa.current = false
+    nelFrame.current = false
     setPreso(null)
     setAbilitato(null)
     if (eraSpostato) onFine?.()
@@ -213,10 +226,9 @@ export function useRiordino<K extends Chiave>(
         spostatoQualcosa.current = true
         presoOra.current = chiave
         setPreso(chiave)
+        // Si riapre nell'effetto di layout qui sopra, dopo che la pagina si e'
+        // davvero ridisegnata con questo spostamento.
         nelFrame.current = true
-        requestAnimationFrame(() => {
-          nelFrame.current = false
-        })
       },
       onDrop: (e) => {
         if (presoOra.current == null) return
