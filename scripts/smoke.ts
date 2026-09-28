@@ -66,7 +66,7 @@ import { relazioneValutazione } from '../src/main/relazione-valutazione'
 import { calcolaPunteggio } from '../src/main/screening-punteggio'
 import { sedutaPrecedente } from '../src/main/seduta-precedente'
 import { nellaFascia } from '../src/shared/orari'
-import { copyFileSync, existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { daQuando } from '../src/renderer/src/lib'
 import {
   caricoTesto,
@@ -2008,6 +2008,47 @@ writeFileSync(join(dirA, 'riabilitazione.db'), 'altro-db')
 assert.throws(() => spostaFileDati(dirA, dirB), /contiene già/)
 rmSync(dirA, { recursive: true, force: true })
 rmSync(dirB, { recursive: true, force: true })
+
+// Una destinazione con dentro anche solo un pezzo di un altro archivio (le
+// chiavi, o un giornale) non si accetta, e non si sposta niente: un database
+// con le chiavi sbagliate non si aprirebbe piu'.
+for (const pezzo of ['auth.json', 'riabilitazione.db-wal', 'riabilitazione.db-shm']) {
+  const da = mkdtempSync(join(tmpdir(), 'riab-cartella-da-'))
+  const a = mkdtempSync(join(tmpdir(), 'riab-cartella-a-'))
+  writeFileSync(join(da, 'riabilitazione.db'), 'db-mio')
+  writeFileSync(join(da, 'auth.json'), '{"mio":true}')
+  writeFileSync(join(a, pezzo), 'di-un-altro')
+  assert.throws(() => spostaFileDati(da, a), /file di un archivio/, pezzo)
+  assert.equal(readFileSync(join(da, 'riabilitazione.db'), 'utf-8'), 'db-mio')
+  assert.equal(readFileSync(join(da, 'auth.json'), 'utf-8'), '{"mio":true}')
+  assert.ok(!existsSync(join(a, 'riabilitazione.db')), 'niente deve essere stato spostato')
+  assert.equal(readFileSync(join(a, pezzo), 'utf-8'), 'di-un-altro', 'il file di un altro non si tocca')
+  rmSync(da, { recursive: true, force: true })
+  rmSync(a, { recursive: true, force: true })
+}
+
+// Se un file non si sposta, quelli gia' spostati tornano al loro posto.
+{
+  const da = mkdtempSync(join(tmpdir(), 'riab-cartella-da-'))
+  const a = mkdtempSync(join(tmpdir(), 'riab-cartella-a-'))
+  writeFileSync(join(da, 'riabilitazione.db'), 'db-mio')
+  writeFileSync(join(da, 'riabilitazione.db-wal'), 'wal-mio')
+  writeFileSync(join(da, 'auth.json'), '{"mio":true}')
+  let mossi = 0
+  const cheSiRompe = (origine: string, dest: string): void => {
+    if (origine.endsWith('auth.json')) throw new Error('file bloccato')
+    mossi++
+    renameSync(origine, dest)
+  }
+  assert.throws(() => spostaFileDati(da, a, cheSiRompe), /file bloccato/)
+  assert.ok(mossi >= 2, 'il database e il giornale erano già stati spostati')
+  assert.equal(readFileSync(join(da, 'riabilitazione.db'), 'utf-8'), 'db-mio')
+  assert.equal(readFileSync(join(da, 'riabilitazione.db-wal'), 'utf-8'), 'wal-mio')
+  assert.equal(readFileSync(join(da, 'auth.json'), 'utf-8'), '{"mio":true}')
+  assert.deepEqual(readdirSync(a), [], 'la destinazione deve essere tornata vuota')
+  rmSync(da, { recursive: true, force: true })
+  rmSync(a, { recursive: true, force: true })
+}
 
 // --- Cartella completa del paziente ---
 // Le query della cartella toccano quasi tutte le tabelle: qui si semina un

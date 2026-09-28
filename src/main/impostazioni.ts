@@ -13,6 +13,7 @@ import { existsSync, mkdirSync, readFileSync } from 'fs'
 import { join } from 'path'
 import { spostaFileDati } from './file-dati'
 import { leggiJsonPerScrivere, scriviAtomico } from './scrittura'
+import { registraErrore } from './registro'
 import { nellaFascia } from '../shared/orari'
 
 interface Impostazioni {
@@ -242,6 +243,13 @@ export function migraDaUserData(): void {
   const legacy = join(app.getPath('userData'), 'riabilitazione.db')
   const dest = cartellaDati()
   if (existsSync(legacy) && !existsSync(join(dest, 'riabilitazione.db'))) {
-    spostaFileDati(app.getPath('userData'), dest)
+    try {
+      spostaFileDati(app.getPath('userData'), dest)
+    } catch (e) {
+      // Succede all'avvio, prima di qualunque finestra: un errore qui non
+      // dev'essere quello che impedisce al programma di aprirsi. Se la
+      // destinazione non e' libera i vecchi file restano dove sono, intatti.
+      registraErrore('migraDaUserData', e)
+    }
   }
 }
