@@ -2339,7 +2339,11 @@ details[open] > :not(summary) {
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 10px;
+  /* Stesso stacco della riga fra i blocchi della scheda (.scheda { gap:
+     var(--spazio) }): su finestra stretta, quando le linguette e i pulsanti
+     vanno a capo su due righe, restavano piu' vicini fra loro di quanto lo
+     sono i pulsanti dal contenuto sotto. */
+  gap: var(--spazio);
 }
 
 .barra-scheda .config-tabs {
