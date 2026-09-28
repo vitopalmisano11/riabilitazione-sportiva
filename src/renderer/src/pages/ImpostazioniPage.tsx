@@ -554,7 +554,7 @@ function SchedaRecupero(): React.JSX.Element {
             />
           </label>
           <label>
-            Risposta (almeno 4 caratteri)
+            Risposta (almeno 8 caratteri: meglio una frase che una parola)
             <input type="password" value={risposta} onChange={(e) => setRisposta(e.target.value)} />
           </label>
           <label>

@@ -2039,6 +2039,15 @@ assert.equal(recoverAuth(authPath, recoveryKey, 'password-numero-tre'), dekHex)
 // maiuscole e spazi, e la chiave di recupero resta valida
 assert.equal(domandaAuth(authPath), null)
 assert.throws(() => impostaDomandaAuth(authPath, 'sbagliata', 'Primo cane?', 'Fido'), /Password errata/)
+// una risposta corta si indovina troppo in fretta: si rifiuta, e non cambia niente
+assert.throws(
+  () => impostaDomandaAuth(authPath, 'password-numero-tre', 'Nome del primo cane?', 'Fido'),
+  /almeno 8 caratteri/
+)
+assert.throws(
+  () => impostaDomandaAuth(authPath, 'password-numero-tre', 'Nome del primo cane?', '  Fido   '),
+  /almeno 8 caratteri/
+)
 impostaDomandaAuth(authPath, 'password-numero-tre', 'Nome del primo cane?', 'Fido Bello')
 assert.equal(domandaAuth(authPath), 'Nome del primo cane?')
 assert.throws(() => recoverDomandaAuth(authPath, 'Rex', 'password-quattro'), /Risposta sbagliata/)

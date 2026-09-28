@@ -170,7 +170,14 @@ export function impostaDomandaAuth(
   const d = domanda.trim()
   const r = normalizzaRisposta(risposta)
   if (d === '') throw new Error('Scrivi la domanda.')
-  if (r.length < 4) throw new Error('La risposta deve avere almeno 4 caratteri.')
+  // Chi ottiene il database e auth.json (per esempio da una copia in OneDrive)
+  // puo' provare risposte all'infinito, senza che nessuno se ne accorga: una
+  // parola sola si trova in poche ore, una frase che solo chi la scrive conosce no.
+  if (r.length < 8) {
+    throw new Error(
+      'La risposta deve avere almeno 8 caratteri: una parola sola si indovina troppo in fretta. Meglio una frase che sai solo tu.'
+    )
+  }
   file.dq = { domanda: d, chiave: wrap(dek, r, file.kdf) }
   scriviAtomico(authPath, JSON.stringify(file, null, 2))
 }

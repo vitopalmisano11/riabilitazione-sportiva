@@ -35,6 +35,16 @@ export default function PannelloBackup(): React.JSX.Element {
     void carica().catch((e) => toastErrore(errMsg(e)))
   }, [carica])
 
+  // La domanda di recupero apre l'archivio come la password: se le copie stanno
+  // online, chi le ottenesse potrebbe provare a indovinarne la risposta.
+  const [conDomanda, setConDomanda] = useState(false)
+  useEffect(() => {
+    window.api.auth
+      .domanda()
+      .then((d) => setConDomanda(d != null))
+      .catch(() => undefined)
+  }, [])
+
   if (!info) return <p className="hint">Caricamento…</p>
 
   const run = async (fn: () => Promise<unknown>): Promise<void> => {
@@ -123,6 +133,14 @@ export default function PannelloBackup(): React.JSX.Element {
         <span className="esito-copia esito-buono">
           <Cloud size={15} /> Queste copie finiscono anche online, in OneDrive: se il computer si
           rompe, i dati non si perdono.
+        </span>
+      )}
+      {info.inOneDrive && conDomanda && (
+        <span className="esito-copia esito-guasto">
+          <CircleAlert size={15} /> Hai una domanda di recupero, e le copie stanno online: chi
+          si procurasse quelle copie potrebbe provare a indovinare la risposta quante volte vuole.
+          Se preferisci, toglila da Impostazioni, in «Recupero della password»: la chiave di
+          recupero basta.
         </span>
       )}
 
