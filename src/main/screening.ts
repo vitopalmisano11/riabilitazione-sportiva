@@ -11,20 +11,9 @@
 // eliminato. Le sezioni e le voci non ancora salvate hanno un id negativo,
 // assegnato dall'interfaccia, che qui si traduce nel vero id.
 import { getDb } from './db'
+import { eliminaMancanti } from './figli'
 import type { ProtocolloScreeningCompleto } from '../shared/types'
 import { leggiPunteggioProtocollo, salvaPunteggioProtocollo } from './screening-punteggio'
-
-function eliminaMancanti(
-  db: ReturnType<typeof getDb>,
-  tabella: string,
-  colonnaPadre: string,
-  padreId: number,
-  daTenere: number[]
-): void {
-  const segnaposto = daTenere.map(() => '?').join(', ')
-  const dove = daTenere.length > 0 ? ` AND id NOT IN (${segnaposto})` : ''
-  db.prepare(`DELETE FROM ${tabella} WHERE ${colonnaPadre} = ?${dove}`).run(padreId, ...daTenere)
-}
 
 export function leggiProtocollo(id: number): ProtocolloScreeningCompleto {
   const db = getDb()

@@ -9,6 +9,8 @@
 // Le body chart si ridisegnano con gli stessi tracciati dell'app
 // (src/shared/figure.ts): nel documento appaiono come le hai segnate.
 import { getDb } from './db'
+import { esc } from './html'
+import { etaInAnni } from '../shared/eta'
 import { COLORI_SINTOMI } from '../shared/sintomi'
 import { coloriTema } from '../shared/temi'
 import { intestazioneHtml } from './export-doc'
@@ -101,14 +103,6 @@ export interface Cartella {
 
 // ---- utilità ----
 
-function esc(s: unknown): string {
-  return String(s ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-}
-
 function data(iso: string | null): string {
   if (!iso) return ''
   const [y, m, d] = iso.split('-')
@@ -116,15 +110,8 @@ function data(iso: string | null): string {
 }
 
 function eta(nascita: string | null): string {
-  if (!nascita) return ''
-  const n = new Date(nascita)
-  if (Number.isNaN(n.getTime())) return ''
-  const o = new Date()
-  let anni = o.getFullYear() - n.getFullYear()
-  const compiuto =
-    o.getMonth() > n.getMonth() || (o.getMonth() === n.getMonth() && o.getDate() >= n.getDate())
-  if (!compiuto) anni -= 1
-  return anni >= 0 ? ` (${anni} anni)` : ''
+  const anni = etaInAnni(nascita)
+  return anni == null ? '' : ` (${anni} anni)`
 }
 
 function pieno(v: unknown): boolean {

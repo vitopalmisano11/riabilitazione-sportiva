@@ -1,6 +1,7 @@
 // Generazione documenti (HTML per il PDF, docx per Word) da dati già letti.
 // Nessuna dipendenza da Electron: testabile con Node (vedi scripts/smoke.ts).
 import { coloriTema } from '../shared/temi'
+import { esc } from './html'
 import { righeProfilo } from './profilo'
 import { LINK_WEB } from './validazione'
 import {
@@ -68,15 +69,6 @@ export interface DatiSedutaExport {
 function formatData(iso: string): string {
   const [y, m, d] = iso.split('-')
   return d && m && y ? `${d}/${m}/${y}` : iso
-}
-
-function esc(s: string): string {
-  // anche le virgolette: esc() finisce dentro agli attributi (href, src)
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
 }
 
 function infoPaziente(p: DatiPazienteExport): string[] {

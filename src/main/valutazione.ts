@@ -4,6 +4,7 @@
 // del distretto e' in blocco: gli elementi con id restano quelli, cosi' le
 // valutazioni gia' fatte continuano a puntare al movimento giusto.
 import { getDb } from './db'
+import { eliminaMancanti } from './figli'
 import { validaData } from './validazione'
 import type {
   Distretto,
@@ -35,13 +36,6 @@ export function leggiDistretto(id: number): DistrettoCompleto {
   return { distretto, movimenti, test }
 }
 
-// Elimina i figli spariti, poi aggiorna o inserisce quelli rimasti.
-function eliminaMancanti(db: Db, tabella: string, distrettoId: number, ids: number[]): void {
-  const segnaposto = ids.map(() => '?').join(', ')
-  const dove = ids.length > 0 ? ` AND id NOT IN (${segnaposto})` : ''
-  db.prepare(`DELETE FROM ${tabella} WHERE distretto_id = ?${dove}`).run(distrettoId, ...ids)
-}
-
 export function salvaDistretto(dati: DistrettoCompleto): void {
   const db = getDb()
   const id = dati.distretto.id
@@ -56,6 +50,7 @@ export function salvaDistretto(dati: DistrettoCompleto): void {
     eliminaMancanti(
       db,
       'distretto_movimenti',
+      'distretto_id',
       id,
       dati.movimenti.map((m) => m.id).filter((x): x is number => x != null && x > 0)
     )
@@ -73,6 +68,7 @@ export function salvaDistretto(dati: DistrettoCompleto): void {
     eliminaMancanti(
       db,
       'distretto_test',
+      'distretto_id',
       id,
       dati.test.map((t) => t.id).filter((x): x is number => x != null && x > 0)
     )

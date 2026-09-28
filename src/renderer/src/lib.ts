@@ -1,3 +1,5 @@
+import { etaInAnni } from '../../shared/eta'
+
 // Ripulisce i messaggi d'errore che arrivano via IPC dal prefisso tecnico di Electron.
 export function errMsg(e: unknown): string {
   const m = e instanceof Error ? e.message : String(e)
@@ -70,14 +72,5 @@ export function daQuando(data: string | null, riferimento?: Date): string | null
 }
 
 export function eta(dataNascita: string | null): number | null {
-  if (!dataNascita) return null
-  const nato = mezzanotteLocale(dataNascita)
-  if (Number.isNaN(nato.getTime())) return null
-  const oggi = new Date()
-  let anni = oggi.getFullYear() - nato.getFullYear()
-  const compiuto =
-    oggi.getMonth() > nato.getMonth() ||
-    (oggi.getMonth() === nato.getMonth() && oggi.getDate() >= nato.getDate())
-  if (!compiuto) anni -= 1
-  return anni >= 0 ? anni : null
+  return etaInAnni(dataNascita)
 }

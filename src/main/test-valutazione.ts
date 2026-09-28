@@ -3,6 +3,7 @@
 // restano, i nuovi si inseriscono, gli spariti si eliminano), cosi' i dati che
 // un domani citeranno una misura continueranno a puntare a quella giusta.
 import { getDb } from './db'
+import { eliminaMancanti } from './figli'
 import { validaLink } from './validazione'
 import type {
   MisuraTest,
@@ -66,17 +67,11 @@ export function salvaTest(dati: TestValutazioneCompleto): void {
 
 type Db = ReturnType<typeof getDb>
 
-// Elimina i figli non piu' presenti, poi inserisce/aggiorna quelli rimasti.
-function eliminaMancanti(db: Db, tabella: string, testId: number, ids: number[]): void {
-  const segnaposto = ids.map(() => '?').join(', ')
-  const dove = ids.length > 0 ? ` AND id NOT IN (${segnaposto})` : ''
-  db.prepare(`DELETE FROM ${tabella} WHERE test_id = ?${dove}`).run(testId, ...ids)
-}
-
 function riscriviParametri(db: Db, testId: number, parametri: ParametroTest[]): void {
   eliminaMancanti(
     db,
     'test_parametri',
+    'test_id',
     testId,
     parametri.map((p) => p.id).filter((x): x is number => x != null)
   )
@@ -96,6 +91,7 @@ function riscriviMisure(db: Db, testId: number, misure: MisuraTest[]): void {
   eliminaMancanti(
     db,
     'test_misure',
+    'test_id',
     testId,
     misure.map((m) => m.id).filter((x): x is number => x != null)
   )

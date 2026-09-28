@@ -2,6 +2,7 @@
 // Il calcolo sta qui, nel processo principale, e non nell'interfaccia: cosi' il
 // risultato memorizzato e' sempre quello prodotto dalle regole configurate.
 import { getDb } from './db'
+import { eliminaMancanti } from './figli'
 import { validaData } from './validazione'
 import type {
   CompilazioneInput,
@@ -193,18 +194,6 @@ export function salvaQuestionario(dati: QuestionarioCompleto): void {
       }
     })
   })()
-}
-
-function eliminaMancanti(
-  db: ReturnType<typeof getDb>,
-  tabella: string,
-  colonnaPadre: string,
-  padreId: number,
-  daTenere: number[]
-): void {
-  const segnaposto = daTenere.map(() => '?').join(', ')
-  const dove = daTenere.length > 0 ? ` AND id NOT IN (${segnaposto})` : ''
-  db.prepare(`DELETE FROM ${tabella} WHERE ${colonnaPadre} = ?${dove}`).run(padreId, ...daTenere)
 }
 
 // ---- Calcolo di punteggi e fascia ----

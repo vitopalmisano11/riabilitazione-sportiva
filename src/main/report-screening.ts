@@ -9,19 +9,12 @@
 // davvero. Niente fascia di popolazione: non abbiamo un archivio di atleti a
 // cui confrontarsi e un riferimento inventato sarebbe peggio di nessuno.
 import { getDb } from './db'
+import { esc } from './html'
 import { coloriTema } from '../shared/temi'
 import { intestazioneHtml } from './export-doc'
 import { asimmetria, esito, lsi, valoreDi, type RigaValore } from '../shared/misure'
 import type { MisuraTest, RisultatoPunteggio } from '../shared/types'
 import { calcolaPunteggio } from './screening-punteggio'
-
-function esc(s: unknown): string {
-  return String(s ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-}
 
 function data(iso: string | null): string {
   if (!iso) return ''

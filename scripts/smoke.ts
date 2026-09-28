@@ -37,6 +37,7 @@ import { generaCartella, generaRelazione, SEZIONI } from '../src/main/export-car
 import { esportaArchivio } from '../src/main/esporta-archivio'
 import { leggiTest, salvaTest } from '../src/main/test-valutazione'
 import { valoreDi } from '../src/shared/misure'
+import { etaInAnni } from '../src/shared/eta'
 import {
   elencoCestino,
   eliminaConCestino,
@@ -2083,6 +2084,14 @@ assert.equal(
   assert.equal(calcolaPunteggio(sessioneSenza), null)
   assert.ok(!generaReportScreening([sessioneSenza]).html.includes('class="punteggio"'))
 }
+
+// --- Eta': si calcola sul giorno di calendario, uguale ovunque ---
+assert.equal(etaInAnni('1990-05-10', new Date(2026, 4, 9)), 35) // il giorno prima del compleanno
+assert.equal(etaInAnni('1990-05-10', new Date(2026, 4, 10)), 36) // il giorno stesso
+assert.equal(etaInAnni('1990-05-10T00:00:00', new Date(2026, 4, 10)), 36)
+assert.equal(etaInAnni(null), null)
+assert.equal(etaInAnni('non una data'), null)
+assert.equal(etaInAnni('2999-01-01'), null) // nato nel futuro: nessuna eta'
 
 // --- Misure calcolate: niente giri chiusi ---
 {
