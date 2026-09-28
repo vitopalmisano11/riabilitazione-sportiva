@@ -207,11 +207,18 @@ export function registerIpc(): void {
     // una copia al giorno, appena si entra: conserva com'era l'archivio prima
     // della sessione, anche se quella precedente e' finita male
     backupSeServe()
+    // Il cestino tiene un mese, e la pulizia si fa a ogni accesso: prima era
+    // solo alla creazione dell'archivio, quando il cestino e' vuoto, e le voci
+    // (con dentro anche i referti dei pazienti eliminati) restavano per sempre.
+    // Dopo la copia del giorno: quella conserva l'archivio com'era prima di
+    // qualunque cambiamento della sessione.
+    ripuliscilCestino()
   })
   handle('auth:recover', (recoveryKey: string, nuovaPassword: string) => {
     if (nuovaPassword.length < 8) throw new Error('La password deve avere almeno 8 caratteri.')
     const dekHex = recoverAuth(authPath(), recoveryKey, nuovaPassword)
     initDb(dbPath(), dekHex)
+    ripuliscilCestino()
   })
   handle('auth:cambiaPassword', (vecchia: string, nuova: string) => {
     if (nuova.length < 8) throw new Error('La nuova password deve avere almeno 8 caratteri.')
@@ -226,6 +233,7 @@ export function registerIpc(): void {
     if (nuovaPassword.length < 8) throw new Error('La password deve avere almeno 8 caratteri.')
     const dekHex = recoverDomandaAuth(authPath(), risposta, nuovaPassword)
     initDb(dbPath(), dekHex)
+    ripuliscilCestino()
   })
 
   // ---- Copie di sicurezza ----

@@ -39,6 +39,7 @@ import {
   elencoCestino,
   eliminaConCestino,
   ripristina,
+  ripuliscilCestino,
   svuotaCestino
 } from '../src/main/cestino'
 import { duplicaValutazione, leggiValutazione, salvaValutazione } from '../src/main/valutazione'
@@ -1464,6 +1465,35 @@ assert.equal(
     () => ripristina(elencoCestino()[0].id),
     (e: unknown) =>
       e instanceof Error && e.message.includes('una patologia') && !e.message.includes('FOREIGN KEY')
+  )
+  svuotaCestino()
+}
+
+// --- Cestino: tiene un mese, poi le voci se ne vanno ---
+// La pulizia parte a ogni accesso: le voci piu' vecchie di 30 giorni si buttano,
+// quelle piu' recenti restano e si possono ancora rimettere a posto.
+{
+  const c = getDb()
+  const giorniFa = (n: number): string => new Date(Date.now() - n * 24 * 60 * 60 * 1000).toISOString()
+  const metti = (etichetta: string, quando: string): void => {
+    c.prepare('INSERT INTO cestino (tipo, etichetta, quando, contenuto) VALUES (?, ?, ?, ?)').run(
+      'Prova',
+      etichetta,
+      quando,
+      '[]'
+    )
+  }
+  svuotaCestino()
+  metti('di due mesi fa', giorniFa(60))
+  metti('di 31 giorni fa', giorniFa(31))
+  metti('di 29 giorni fa', giorniFa(29))
+  metti('di ieri', giorniFa(1))
+  ripuliscilCestino()
+  assert.deepEqual(
+    elencoCestino()
+      .map((v) => v.etichetta)
+      .sort(),
+    ['di 29 giorni fa', 'di ieri']
   )
   svuotaCestino()
 }
