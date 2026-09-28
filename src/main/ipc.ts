@@ -796,9 +796,14 @@ export function registerIpc(): void {
 
   // ---- Categorie ----
   // In ordine alfabetico: le categorie sono tante e si cercano per nome, e un
-  // ordine deciso a mano andava tenuto aggiornato a ogni aggiunta.
+  // ordine deciso a mano andava tenuto aggiornato a ogni aggiunta. L'ordine lo
+  // decide qui, non nella query: COLLATE NOCASE dell'SQL confonde le lettere
+  // accentate (es. "Mobilità" finiva fuori posto), mentre localeCompare
+  // conosce le regole dell'italiano.
   handle('categorie:list', () =>
-    getDb().prepare('SELECT * FROM categorie ORDER BY nome COLLATE NOCASE').all()
+    (getDb().prepare('SELECT * FROM categorie').all() as { nome: string }[]).sort((a, b) =>
+      a.nome.localeCompare(b.nome, 'it')
+    )
   )
   handle('categorie:create', (nome: string) => {
     const db = getDb()
