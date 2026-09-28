@@ -2,6 +2,35 @@
 // database: l'interfaccia gia' li impedisce, ma un handler IPC e' comunque un
 // confine del programma, e va difeso anche se oggi solo l'app stessa lo chiama.
 
+// Un errore che chi usa il programma legge per intero (magari con il nome di un
+// file, che dice di chi e') ma che nel registro degli errori entra solo con la
+// versione senza quei dati (vedi registro.ts).
+export function erroreSenzaDatiNelRegistro(messaggio: string, perRegistro: string): Error {
+  return Object.assign(new Error(messaggio), { perRegistro })
+}
+
+// Gli errori del sistema citano il percorso intero del file (open 'C:\Docs\Rossi.pdf'),
+// e il nome di un file dice spesso di chi e'. Nel registro i percorsi tra virgolette
+// (con una barra dentro) diventano "…".
+function senzaPercorsi(testo: string): string {
+  return testo
+    .replace(/'[^'\n]*[\\/][^'\n]*'/g, "'…'")
+    .replace(/"[^"\n]*[\\/][^"\n]*"/g, '"…"')
+}
+
+// Cosa scrivere nel registro per un errore: la versione senza dati se l'errore
+// ne porta una, altrimenti il suo testo senza i percorsi. Le righe della
+// traccia ("at ...") restano com'e': sono il codice del programma, non dati.
+export function testoErrorePerRegistro(errore: unknown): string {
+  const perRegistro = (errore as { perRegistro?: unknown } | null)?.perRegistro
+  if (typeof perRegistro === 'string') return perRegistro
+  if (!(errore instanceof Error)) return senzaPercorsi(String(errore))
+  return (errore.stack || errore.message)
+    .split('\n')
+    .map((riga) => (/^\s+at\s/.test(riga) ? riga : senzaPercorsi(riga)))
+    .join('\n')
+}
+
 export function richiedeTesto(valore: string, etichetta: string): void {
   if (!valore.trim()) throw new Error(`${etichetta} non può essere vuoto.`)
 }

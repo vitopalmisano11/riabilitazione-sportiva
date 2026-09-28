@@ -10,6 +10,7 @@
 import { app } from 'electron'
 import { appendFileSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'fs'
 import { join } from 'path'
+import { testoErrorePerRegistro } from './validazione'
 
 const PESO_MAX = 512 * 1024
 
@@ -28,7 +29,7 @@ export function registraErrore(operazione: string, errore: unknown): void {
       const testo = readFileSync(file, 'utf-8')
       writeFileSync(file, testo.slice(-PESO_MAX / 2), 'utf-8')
     }
-    const messaggio = errore instanceof Error ? errore.stack || errore.message : String(errore)
+    const messaggio = testoErrorePerRegistro(errore)
     const riga = `[${new Date().toISOString()}] ${operazione}\n${messaggio}\n\n`
     appendFileSync(file, riga, 'utf-8')
   } catch {

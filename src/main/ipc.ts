@@ -109,6 +109,7 @@ import { andamentoDolorePerPaziente } from './andamento-dolore'
 import { sedutaPrecedente } from './seduta-precedente'
 import { leggiProfilo, salvaProfilo } from './profilo'
 import {
+  erroreSenzaDatiNelRegistro,
   richiedeTesto,
   validaData,
   validaNumeroPositivo,
@@ -2049,21 +2050,38 @@ export function registerIpc(): void {
       const pdf = percorso.toLowerCase().endsWith('.pdf')
       let tipo: string
       let dataUrl: string
-      if (pdf) {
-        const buf = readFileSync(percorso)
-        if (buf.length > BIO_PESO_MAX) {
-          throw new Error(`"${nome}" e' troppo pesante (oltre 12 MB).`)
+      // Il nome del file dice quasi sempre di chi e' il referto ("Rossi_Mario_RM
+      // ginocchio.pdf"): chi usa il programma lo legge nell'errore, ma nel
+      // registro degli errori non deve finire. Vale anche per gli errori del
+      // sistema, che citano il percorso intero.
+      try {
+        if (pdf) {
+          const buf = readFileSync(percorso)
+          if (buf.length > BIO_PESO_MAX) {
+            throw erroreSenzaDatiNelRegistro(
+              `"${nome}" e' troppo pesante (oltre 12 MB).`,
+              'Referto troppo pesante.'
+            )
+          }
+          tipo = 'application/pdf'
+          dataUrl = `data:application/pdf;base64,${buf.toString('base64')}`
+        } else {
+          // le foto si rimpiccioliscono: un referto fotografato col telefono
+          // arriva a diversi megabyte e farebbe crescere l'archivio senza motivo
+          let img = nativeImage.createFromPath(percorso)
+          if (img.isEmpty()) {
+            throw erroreSenzaDatiNelRegistro(`"${nome}" non e' leggibile.`, 'Referto non leggibile.')
+          }
+          if (img.getSize().width > 1600) img = img.resize({ width: 1600, quality: 'good' })
+          tipo = 'image/jpeg'
+          dataUrl = `data:image/jpeg;base64,${img.toJPEG(82).toString('base64')}`
         }
-        tipo = 'application/pdf'
-        dataUrl = `data:application/pdf;base64,${buf.toString('base64')}`
-      } else {
-        // le foto si rimpiccioliscono: un referto fotografato col telefono
-        // arriva a diversi megabyte e farebbe crescere l'archivio senza motivo
-        let img = nativeImage.createFromPath(percorso)
-        if (img.isEmpty()) throw new Error(`"${nome}" non e' leggibile.`)
-        if (img.getSize().width > 1600) img = img.resize({ width: 1600, quality: 'good' })
-        tipo = 'image/jpeg'
-        dataUrl = `data:image/jpeg;base64,${img.toJPEG(82).toString('base64')}`
+      } catch (e) {
+        if (e instanceof Error && 'perRegistro' in e) throw e
+        throw erroreSenzaDatiNelRegistro(
+          `Non riesco a leggere "${nome}".`,
+          'Referto non leggibile o non accessibile.'
+        )
       }
       ins.run(pazienteId, nome, tipo, dataUrl, next + aggiunti)
       aggiunti++

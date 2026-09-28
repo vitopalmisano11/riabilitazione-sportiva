@@ -66,6 +66,7 @@ import {
   scriviTemporaneo,
   usaCartellaTemporanei
 } from '../src/main/temporanei'
+import { erroreSenzaDatiNelRegistro, testoErrorePerRegistro } from '../src/main/validazione'
 import { generaReportScreening } from '../src/main/report-screening'
 import { coloriBarra, conBarra } from '../src/main/finestre'
 import { relazioneAnamnesi } from '../src/main/relazione-anamnesi'
@@ -518,6 +519,23 @@ const provaTemporanei = (async (): Promise<void> => {
   ripulisciTemporanei() // e non da' errore se e' gia' vuota
   rmSync(dirT, { recursive: true, force: true })
 })()
+
+// Registro degli errori: chi usa il programma legge il nome del file, il registro no
+// (il nome di un referto dice di chi e').
+{
+  const e = erroreSenzaDatiNelRegistro('"Rossi_Mario_RM.pdf" e\' troppo pesante.', 'Referto troppo pesante.')
+  assert.ok(e.message.includes('Rossi_Mario'), 'l\'utente deve poter leggere il nome')
+  assert.equal(testoErrorePerRegistro(e), 'Referto troppo pesante.')
+
+  // gli errori del sistema citano il percorso intero
+  const sistema = new Error("ENOENT: no such file or directory, open 'C:\\Docs\\Rossi_Mario_ginocchio.pdf'")
+  const testo = testoErrorePerRegistro(sistema)
+  assert.ok(!testo.includes('Rossi') && !testo.includes('ginocchio'), testo)
+  assert.ok(testo.includes("open '…'") && testo.includes('ENOENT'))
+  assert.ok(/\n\s+at /.test(testo), 'la traccia del programma resta')
+  assert.equal(testoErrorePerRegistro('fallito "D:/Pazienti/Verdi.docx"'), 'fallito "…"')
+  assert.equal(testoErrorePerRegistro(new Error('UNIQUE constraint failed: patologie.nome')).startsWith('Error: UNIQUE constraint failed: patologie.nome'), true)
+}
 
 // Scrittura atomica: il file c'e' intero, si sostituisce, e non resta niente accanto.
 {

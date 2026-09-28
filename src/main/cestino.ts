@@ -15,6 +15,7 @@
 // (PRAGMA foreign_key_list): cosi' una tabella aggiunta domani finisce nel
 // cestino senza che nessuno debba ricordarsi di aggiornare un elenco.
 import { getDb } from './db'
+import { erroreSenzaDatiNelRegistro } from './validazione'
 
 const GIORNI_IN_CESTINO = 30
 
@@ -206,8 +207,11 @@ export function ripristina(idCestino: number): void {
 
   const mancano = mancanti(db, foto, idCestino)
   if (mancano.length > 0) {
-    throw new Error(
-      `Non si può rimettere a posto adesso: ${mancano.join('; ')}. La voce resta nel cestino, non si perde niente.`
+    // Il messaggio cita i nomi delle voci ("Rossi Mia"): chi usa il programma li
+    // legge, il registro degli errori no.
+    throw erroreSenzaDatiNelRegistro(
+      `Non si può rimettere a posto adesso: ${mancano.join('; ')}. La voce resta nel cestino, non si perde niente.`,
+      'Ripristino dal cestino: manca un elemento a cui la voce era collegata.'
     )
   }
 
