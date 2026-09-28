@@ -256,13 +256,26 @@ export function useRiordinoSalvato<T extends { id: number }>(
 ): { ordine: T[]; contenitore: (i: number) => PropsContenitore; presa: (i: number) => PropsPresa } {
   const [provvisorio, setProvvisorio] = useState<T[] | null>(null)
   const ordine = provvisorio ?? voci
+  // L'ordine dell'ultimo spostamento, aggiornato subito e non al ridisegno:
+  // trascinando veloce due spostamenti possono arrivare prima che la pagina si
+  // sia ridisegnata, e leggere `ordine` (fermo all'ultimo disegno) ne farebbe
+  // perdere uno, anche l'ultimo, che e' quello che si salva.
+  const ultimo = useRef<T[] | null>(null)
 
   const { contenitore, presa } = useRiordino<number>(
-    (da, a) => setProvvisorio(sposta(ordine, da, a)),
+    (da, a) => {
+      const nuovo = sposta(ultimo.current ?? ordine, da, a)
+      ultimo.current = nuovo
+      setProvvisorio(nuovo)
+    },
     () => {
+      const ids = (ultimo.current ?? ordine).map((v) => v.id)
       // L'ordine provvisorio resta finche' l'archivio non ha risposto: toglierlo
       // prima farebbe rimbalzare l'elenco all'ordine di partenza per un istante.
-      void Promise.resolve(salva(ordine.map((v) => v.id))).finally(() => setProvvisorio(null))
+      void Promise.resolve(salva(ids)).finally(() => {
+        ultimo.current = null
+        setProvvisorio(null)
+      })
     }
   )
 

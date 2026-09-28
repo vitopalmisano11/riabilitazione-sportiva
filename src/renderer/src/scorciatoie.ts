@@ -38,6 +38,10 @@ export function scorciatoieBloccate(): boolean {
   return bloccato
 }
 
+// L'effetto non ha elenco di dipendenze apposta: le azioni sono funzioni nuove a
+// ogni disegno, e vanno ricollegate ogni volta per vedere lo stato di adesso.
+// Ascoltare l'evento costa quasi niente; una scorciatoia che salva i dati di
+// ieri sarebbe molto peggio.
 export function useScorciatoie(scorciatoie: Scorciatoia[]): void {
   useEffect(() => {
     const gestisci = (e: KeyboardEvent): void => {
