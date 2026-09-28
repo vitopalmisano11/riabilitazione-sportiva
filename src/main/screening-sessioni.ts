@@ -172,7 +172,3 @@ export function collegaCompilazione(
     )
     .run(sessioneId, questionarioId, compilazioneId)
 }
-
-export function eliminaScreening(id: number): void {
-  getDb().prepare('DELETE FROM screening_sessioni WHERE id = ?').run(id)
-}
