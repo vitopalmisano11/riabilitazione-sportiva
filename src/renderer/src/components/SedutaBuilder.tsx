@@ -29,6 +29,7 @@ import Aiuto from './Aiuto'
 import DiarioSeduta, { UltimaVoltaSeduta } from './DiarioSeduta'
 import { errMsg, formatData, oggiIso } from '../lib'
 import { useScorciatoie } from '../scorciatoie'
+import { useModificheInCorso } from '../modificheInCorso'
 import { sposta, useRiordino } from '../riordino'
 import { caricoTesto, recuperoTesto, rirTesto, volumeTesto } from '../../../shared/dosaggio'
 
@@ -592,12 +593,43 @@ export default function SedutaBuilder({
     trattamento
   ])
 
+  // Una seduta gia' salvata non ha bozza: quello che si cambia vive solo qui
+  // dentro. Si confronta lo stato di adesso con quello di quando e' stata
+  // aperta, cosi' non serve segnare "modificato" in ogni singolo campo.
+  const firma = JSON.stringify([
+    data,
+    ora,
+    faseId,
+    focus,
+    dolore,
+    sforzo,
+    misure,
+    note,
+    riferitoAndamento,
+    riferito,
+    tecnicaIds,
+    trattamento,
+    sezioni
+  ])
+  const [firmaAperta, setFirmaAperta] = useState<string | null>(null)
+  useEffect(() => {
+    if (pronto) setFirmaAperta((prima) => prima ?? firma)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pronto])
+  const modificata = sedutaId != null && firmaAperta != null && firma !== firmaAperta
+
+  // Chiudendo il programma con la seduta a meta' di una modifica, si salva.
+  const salvaAllaChiusura = useRef<(() => Promise<void>) | null>(null)
+  useModificheInCorso(modificata, 'seduta', salvaAllaChiusura)
+  salvaAllaChiusura.current = () => salva()
+
   // Esc annulla, Ctrl+S salva: la seduta si compila con la tastiera, senza
   // tornare col mouse in fondo alla finestra.
   // Annullando si decide cosa farne: buttarla via subito, o tenerla per
   // riprenderla. Chiedere qui e' meglio che ritrovarsela proposta domani senza
   // averlo voluto.
   const annulla = async (): Promise<void> => {
+    if (modificata && !(await chiedi('Hai modifiche non salvate. Vuoi uscire lo stesso?'))) return
     if (
       sedutaId == null &&
       (totaleEsercizi > 0 ||
