@@ -567,7 +567,14 @@ function SchedaPaziente({
   // ad Avanzata, mai a una fase del campo, che e' un percorso parallelo.
   const fasiPalestra = fasi.filter((f) => f.campo !== 1)
   const idxFase = fasiPalestra.findIndex((f) => f.id === paziente.fase_corrente_id)
-  const prossima = idxFase >= 0 ? fasiPalestra[idxFase + 1] : fasiPalestra[0]
+  // Se la fase corrente non e' nell'elenco (una fase del campo rimasta da prima)
+  // non si sa da dove ripartire: niente "Avanza", si sceglie dall'elenco.
+  const faseFuoriElenco = paziente.fase_corrente_id != null && idxFase < 0
+  const prossima = faseFuoriElenco
+    ? undefined
+    : idxFase >= 0
+      ? fasiPalestra[idxFase + 1]
+      : fasiPalestra[0]
 
   const avanza = async (): Promise<void> => {
     if (!prossima) return
@@ -684,7 +691,9 @@ function SchedaPaziente({
           <label className="field campo-fase">
             Fase corrente
             <SceltaConRicerca
-              voci={fasi.map((f) => ({ id: f.id, nome: f.nome }))}
+              voci={fasi
+                .filter((f) => f.campo !== 1 || f.id === paziente.fase_corrente_id)
+                .map((f) => ({ id: f.id, nome: f.nome }))}
               valore={paziente.fase_corrente_id ?? ''}
               disabled={paziente.patologia_id == null}
               segnaposto="— non impostata —"
@@ -692,15 +701,21 @@ function SchedaPaziente({
               onCambia={(id) => void setFase(id === '' ? null : id)}
             />
           </label>
-          {paziente.patologia_id != null && fasi.length > 0 && (
+          {paziente.patologia_id != null && fasiPalestra.length > 0 && (
             <label className="field campo-avanza">
-              {idxFase >= 0 ? `Fase ${idxFase + 1} di ${fasi.length}` : 'Nessuna fase impostata'}
+              {idxFase >= 0
+                ? `Fase ${idxFase + 1} di ${fasiPalestra.length}`
+                : faseFuoriElenco
+                  ? 'Fase fuori dal percorso'
+                  : 'Nessuna fase impostata'}
               <button disabled={!prossima} onClick={() => void avanza()}>
                 {paziente.fase_corrente_id == null
                   ? 'Imposta prima fase'
-                  : prossima
-                    ? `Avanza a "${prossima.nome}" →`
-                    : 'Ultima fase raggiunta'}
+                  : faseFuoriElenco
+                    ? 'Scegli una fase di palestra'
+                    : prossima
+                      ? `Avanza a "${prossima.nome}" →`
+                      : 'Ultima fase raggiunta'}
               </button>
             </label>
           )}

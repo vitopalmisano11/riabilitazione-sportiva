@@ -409,11 +409,13 @@ export function ModaleDatiPaziente({
                   onChange={(e) => setFaseId(e.target.value === '' ? '' : Number(e.target.value))}
                 >
                   <option value="">— non impostata —</option>
-                  {fasi.map((f) => (
-                    <option key={f.id} value={f.id}>
-                      {f.nome}
-                    </option>
-                  ))}
+                  {fasi
+                    .filter((f) => f.campo !== 1)
+                    .map((f) => (
+                      <option key={f.id} value={f.id}>
+                        {f.nome}
+                      </option>
+                    ))}
                 </select>
               </label>
             </div>

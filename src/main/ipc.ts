@@ -968,11 +968,18 @@ export function registerIpc(): void {
   function checkFaseCoerente(patologiaId: number | null, faseId: number | null): void {
     if (faseId == null) return
     if (patologiaId == null) throw new Error('Imposta prima la patologia del paziente.')
-    const fase = getDb().prepare('SELECT patologia_id FROM fasi WHERE id = ?').get(faseId) as
-      | { patologia_id: number }
-      | undefined
+    const fase = getDb()
+      .prepare('SELECT patologia_id, campo FROM fasi WHERE id = ?')
+      .get(faseId) as { patologia_id: number; campo: number } | undefined
     if (!fase || fase.patologia_id !== patologiaId) {
       throw new Error('La fase selezionata non appartiene alla patologia del paziente.')
+    }
+    // Il campo e' un percorso parallelo: la fase corrente e' sempre di palestra,
+    // altrimenti "Avanza" non saprebbe da dove ripartire.
+    if (fase.campo === 1) {
+      throw new Error(
+        'Una fase del campo non si imposta come fase corrente: il campo si sceglie sulla singola seduta.'
+      )
     }
   }
 
