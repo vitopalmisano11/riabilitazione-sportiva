@@ -25,6 +25,7 @@ import SchermoBloccato from './components/SchermoBloccato'
 import ToastHost, { toastErrore } from './components/Toast'
 import ConfermaHost from './components/Conferma'
 import { errMsg, oggiIso } from './lib'
+import { bloccaScorciatoie } from './scorciatoie'
 import type { Tema } from '../../shared/temi'
 
 type Sezione =
@@ -110,6 +111,14 @@ export default function App(): React.JSX.Element {
   // torna alla schermata della password. Il database resta aperto — si chiede
   // solo di riconoscersi — cosi' rientrare e' immediato e non si perde niente.
   const [bloccata, setBloccata] = useState(false)
+
+  // Le scorciatoie ascoltano tutta la finestra: bloccate anche loro (vedi
+  // scorciatoie.ts), altrimenti Esc o Ctrl+S davanti al blocco agirebbero
+  // sull'editor che c'e' sotto.
+  useEffect(() => {
+    bloccaScorciatoie(bloccata)
+    return () => bloccaScorciatoie(false)
+  }, [bloccata])
 
   useEffect(() => {
     if (!sbloccata || bloccata) return
@@ -256,7 +265,9 @@ export default function App(): React.JSX.Element {
 
   return (
     <div className="app">
-      <aside className="sidebar">
+      {/* Con lo schermo bloccato l'app sotto non si raggiunge: ne' con il mouse,
+          ne' con Tab. Resta montata (il lavoro non si perde), ma inerte. */}
+      <aside className="sidebar" inert={bloccata}>
         <h1>
           <span className="logo-badge">
             <HeartPulse size={20} />
@@ -322,7 +333,7 @@ export default function App(): React.JSX.Element {
           </button>
         </div>
       </aside>
-      <main className="content">
+      <main className="content" inert={bloccata}>
         {/* la chiave cambia con la sezione: la pagina nuova entra con la sua
             dissolvenza */}
         <div key={sezione} className="entrata-pagina">

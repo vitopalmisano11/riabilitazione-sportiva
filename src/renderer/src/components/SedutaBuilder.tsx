@@ -28,7 +28,7 @@ import ImmagineEsercizio from './ImmagineEsercizio'
 import Aiuto from './Aiuto'
 import DiarioSeduta, { UltimaVoltaSeduta } from './DiarioSeduta'
 import { errMsg, formatData, oggiIso } from '../lib'
-import { useScorciatoie } from '../scorciatoie'
+import { scorciatoieBloccate, useScorciatoie } from '../scorciatoie'
 import { useModificheInCorso, type Salva } from '../modificheInCorso'
 import { sposta, useRiordino } from '../riordino'
 import { caricoTesto, recuperoTesto, rirTesto, volumeTesto } from '../../../shared/dosaggio'
@@ -355,6 +355,7 @@ export default function SedutaBuilder({
   // come sempre; fuori dalle caselle annulla l'ultimo cambiamento della seduta.
   useEffect(() => {
     const tasto = (e: KeyboardEvent): void => {
+      if (scorciatoieBloccate()) return
       if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.key.toLowerCase() !== 'z') return
       const el = e.target as HTMLElement | null
       const tag = el?.tagName

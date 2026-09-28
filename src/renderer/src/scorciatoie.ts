@@ -23,9 +23,25 @@ export interface Scorciatoia {
   attiva?: boolean
 }
 
+// Con lo schermo bloccato l'app resta montata sotto alla richiesta della
+// password (cosi' non si perde niente), ma le scorciatoie ascoltano tutta la
+// finestra: un Esc o un Ctrl+S battuto davanti al blocco avrebbe chiuso o salvato
+// l'editor che c'e' sotto, senza che chi e' li' possa vederlo. Finche' e' vero,
+// nessuna scorciatoia scatta.
+let bloccato = false
+
+export function bloccaScorciatoie(valore: boolean): void {
+  bloccato = valore
+}
+
+export function scorciatoieBloccate(): boolean {
+  return bloccato
+}
+
 export function useScorciatoie(scorciatoie: Scorciatoia[]): void {
   useEffect(() => {
     const gestisci = (e: KeyboardEvent): void => {
+      if (bloccato) return
       for (const s of scorciatoie) {
         if (s.attiva === false) continue
         if (s.tasto.toLowerCase() !== e.key.toLowerCase()) continue
