@@ -1344,6 +1344,52 @@ assert.equal(
   assert.equal(contati('SELECT COUNT(*) AS n FROM sedute WHERE id = ?', sedC), 0)
 }
 
+// --- Cestino: il paziente e la sua patologia sono stati eliminati tutti e due ---
+// Rimettere a posto il paziente per primo non puo' riuscire: la sua patologia
+// non c'e'. Deve dire cosa fare (non "impossibile eliminare"), lasciare tutto
+// com'era, e funzionare una volta rimessa a posto la patologia.
+{
+  const c = getDb()
+  const ins = (sql: string, ...a: unknown[]): number =>
+    Number(c.prepare(sql).run(...a).lastInsertRowid)
+  const contati = (sql: string, ...a: unknown[]): number =>
+    (c.prepare(sql).get(...a) as { n: number }).n
+  const patM = ins("INSERT INTO patologie (nome) VALUES ('Patologia sparita')")
+  const pzM = ins("INSERT INTO pazienti (nome, cognome, patologia_id) VALUES ('Mia', 'Rossi', ?)", patM)
+  eliminaConCestino('pazienti', pzM, 'Paziente', 'Rossi Mia')
+  eliminaConCestino('patologie', patM, 'Patologia', 'Patologia sparita')
+
+  const vocePz = elencoCestino().find((v) => v.etichetta === 'Rossi Mia')!
+  const vocePat = elencoCestino().find((v) => v.etichetta === 'Patologia sparita')!
+  assert.throws(
+    () => ripristina(vocePz.id),
+    (e: unknown) =>
+      e instanceof Error &&
+      e.message.includes('Patologia sparita') &&
+      !e.message.includes('FOREIGN KEY') &&
+      !e.message.includes('eliminare')
+  )
+  // niente a meta': il paziente non e' tornato e la voce e' ancora li'
+  assert.equal(contati('SELECT COUNT(*) AS n FROM pazienti WHERE id = ?', pzM), 0)
+  assert.equal(elencoCestino().length, 2)
+
+  ripristina(vocePat.id)
+  ripristina(vocePz.id)
+  assert.equal(contati('SELECT COUNT(*) AS n FROM pazienti WHERE id = ? AND patologia_id = ?', pzM, patM), 1)
+  assert.equal(elencoCestino().length, 0)
+
+  // se la patologia e' sparita anche dal cestino, lo si dice senza girarci intorno
+  eliminaConCestino('pazienti', pzM, 'Paziente', 'Rossi Mia')
+  eliminaConCestino('patologie', patM, 'Patologia', 'Patologia sparita')
+  svuotaCestino(elencoCestino().find((v) => v.etichetta === 'Patologia sparita')!.id)
+  assert.throws(
+    () => ripristina(elencoCestino()[0].id),
+    (e: unknown) =>
+      e instanceof Error && e.message.includes('una patologia') && !e.message.includes('FOREIGN KEY')
+  )
+  svuotaCestino()
+}
+
 // --- Cestino: anche la libreria si recupera ---
 // Una sezione e' citata dalle sedute gia' fatte con un legame ON DELETE SET
 // NULL: quelle righe non vengono cancellate, quindi non devono nemmeno finire

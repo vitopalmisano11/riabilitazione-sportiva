@@ -115,6 +115,87 @@ export function elencoCestino(): VoceCestino[] {
   }))
 }
 
+// Come si chiama, in parole semplici, la cosa che manca.
+const COSA_MANCA: Record<string, string> = {
+  patologie: 'una patologia',
+  fasi: 'una fase',
+  gruppi: 'un gruppo',
+  esercizi: 'un esercizio',
+  categorie: 'una categoria di esercizi',
+  tecniche: 'una tecnica',
+  questionari: 'un questionario',
+  test_valutazione: 'un test',
+  distretti: 'un distretto',
+  pazienti: 'un paziente',
+  sedute: 'una seduta'
+}
+
+// Cosa la fotografia si aspetta di ritrovare e non c'e' piu'. Una riga rimessa
+// a posto porta con se' i suoi collegamenti (la fase di un paziente, l'esercizio
+// di una seduta): se nel frattempo quella cosa e' stata eliminata, il database
+// rifiuterebbe l'inserimento. Meglio scoprirlo prima, e dire cosa fare.
+function mancanti(db: Db, foto: Fotografia[], idCestino: number): string[] {
+  // Quello che la stessa fotografia rimette a posto non manca: arriva insieme.
+  const riportato = new Set<string>()
+  for (const { tabella, righe } of foto) {
+    for (const r of righe) if (typeof r.id === 'number') riportato.add(`${tabella}:${r.id}`)
+  }
+
+  const esiste = new Map<string, boolean>()
+  const cerca = (tabella: string, colonna: string, valore: unknown): boolean => {
+    const chiave = `${tabella}:${colonna}:${String(valore)}`
+    let trovato = esiste.get(chiave)
+    if (trovato === undefined) {
+      trovato = db.prepare(`SELECT 1 FROM ${tabella} WHERE ${colonna} = ?`).get(valore) !== undefined
+      esiste.set(chiave, trovato)
+    }
+    return trovato
+  }
+
+  const persi = new Map<string, { tabella: string; colonna: string; valore: unknown }>()
+  for (const { tabella, righe } of foto) {
+    const legami = db.pragma(`foreign_key_list('${tabella}')`) as {
+      table: string
+      from: string
+      to: string | null
+    }[]
+    for (const riga of righe) {
+      for (const l of legami) {
+        const valore = riga[l.from]
+        if (valore == null) continue
+        const colonna = l.to ?? 'id'
+        if (colonna === 'id' && riportato.has(`${l.table}:${String(valore)}`)) continue
+        if (cerca(l.table, colonna, valore)) continue
+        persi.set(`${l.table}:${colonna}:${String(valore)}`, { tabella: l.table, colonna, valore })
+      }
+    }
+  }
+  if (persi.size === 0) return []
+
+  // Se la cosa che manca e' nel cestino anch'essa, si dice qual e': basta
+  // rimetterla a posto per prima.
+  const altre = (
+    db.prepare('SELECT tipo, etichetta, contenuto FROM cestino WHERE id <> ?').all(idCestino) as {
+      tipo: string
+      etichetta: string
+      contenuto: string
+    }[]
+  ).map((v) => ({ tipo: v.tipo, etichetta: v.etichetta, foto: JSON.parse(v.contenuto) as Fotografia[] }))
+
+  const messaggi = new Set<string>()
+  for (const p of persi.values()) {
+    const nelCestino = altre.find((v) =>
+      v.foto.some((f) => f.tabella === p.tabella && f.righe.some((r) => r[p.colonna] === p.valore))
+    )
+    messaggi.add(
+      nelCestino
+        ? `prima rimetti a posto «${nelCestino.etichetta}» (${nelCestino.tipo}), che sta nel cestino`
+        : `${COSA_MANCA[p.tabella] ?? 'un elemento collegato'} a cui era legato non c’è più e non è nel cestino`
+    )
+  }
+  return [...messaggi]
+}
+
 export function ripristina(idCestino: number): void {
   const db = getDb()
   const voce = db.prepare('SELECT contenuto FROM cestino WHERE id = ?').get(idCestino) as
@@ -123,18 +204,36 @@ export function ripristina(idCestino: number): void {
   if (!voce) throw new Error('Questa voce del cestino non c’è più.')
   const foto = JSON.parse(voce.contenuto) as Fotografia[]
 
-  db.transaction(() => {
-    for (const { tabella, righe } of foto) {
-      for (const riga of righe) {
-        const colonne = Object.keys(riga)
-        db.prepare(
-          `INSERT INTO ${tabella} (${colonne.join(', ')})
-           VALUES (${colonne.map((c) => '@' + c).join(', ')})`
-        ).run(riga)
+  const mancano = mancanti(db, foto, idCestino)
+  if (mancano.length > 0) {
+    throw new Error(
+      `Non si può rimettere a posto adesso: ${mancano.join('; ')}. La voce resta nel cestino, non si perde niente.`
+    )
+  }
+
+  try {
+    db.transaction(() => {
+      for (const { tabella, righe } of foto) {
+        for (const riga of righe) {
+          const colonne = Object.keys(riga)
+          db.prepare(
+            `INSERT INTO ${tabella} (${colonne.join(', ')})
+             VALUES (${colonne.map((c) => '@' + c).join(', ')})`
+          ).run(riga)
+        }
       }
+      db.prepare('DELETE FROM cestino WHERE id = ?').run(idCestino)
+    })()
+  } catch (e) {
+    // Un legame rotto che il controllo sopra non ha visto: il messaggio
+    // generico di ipc.ts parlerebbe di "eliminare", qui si sta rimettendo a posto.
+    if (e instanceof Error && e.message.includes('FOREIGN KEY constraint failed')) {
+      throw new Error(
+        'Non si può rimettere a posto: manca qualcosa a cui questa voce era collegata. La voce resta nel cestino.'
+      )
     }
-    db.prepare('DELETE FROM cestino WHERE id = ?').run(idCestino)
-  })()
+    throw e
+  }
 }
 
 export function svuotaCestino(idCestino?: number): void {
