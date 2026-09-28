@@ -2591,6 +2591,12 @@ initDb(join(dirCartella, 'cartella.db'), dekHex)
     const csvCl = readFileSync(join(esportaArchivio(dirCl), 'sedute.csv'), 'utf-8')
     assert.ok(csvCl.includes('cluster_per_serie'), 'colonna dei cluster')
     assert.ok(csvCl.includes('Balzi a piedi pari'))
+    // e i valori ci sono davvero: la colonna con il titolo giusto ma vuota non basta
+    const righeCl = csvCl.replace(/^﻿/, '').split('\r\n')
+    const intestazioneCl = righeCl[0].split(';')
+    const rigaBalzi = righeCl.find((r) => r.includes('Balzi a piedi pari'))?.split(';') ?? []
+    assert.equal(rigaBalzi[intestazioneCl.indexOf('cluster_per_serie')], '3')
+    assert.equal(rigaBalzi[intestazioneCl.indexOf('recupero_tra_i_cluster')], '"15"""')
     rmSync(dirCl, { recursive: true, force: true })
   }
 
