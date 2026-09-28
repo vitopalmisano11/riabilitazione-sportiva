@@ -60,6 +60,12 @@ import {
 } from '../src/main/questionari'
 import { spostaFileDati } from '../src/main/file-dati'
 import { leggiJsonPerScrivere, scriviAtomico } from '../src/main/scrittura'
+import {
+  eliminaTemporaneo,
+  ripulisciTemporanei,
+  scriviTemporaneo,
+  usaCartellaTemporanei
+} from '../src/main/temporanei'
 import { generaReportScreening } from '../src/main/report-screening'
 import { coloriBarra, conBarra } from '../src/main/finestre'
 import { relazioneAnamnesi } from '../src/main/relazione-anamnesi'
@@ -491,6 +497,27 @@ runMigrations(plain)
 plain.prepare('INSERT INTO categorie (nome) VALUES (?)').run('Rinforzo')
 plain.close()
 assert.ok(isPlaintextDb(dbPath))
+
+// File temporanei con dati dei pazienti: cartella loro, nome casuale, si tolgono.
+const provaTemporanei = (async (): Promise<void> => {
+  // cartella sua: la prova finisce quando lo script e' gia' arrivato in fondo
+  const dirT = mkdtempSync(join(tmpdir(), 'riab-temporanei-'))
+  usaCartellaTemporanei(dirT)
+  const a = await scriviTemporaneo('.pdf', Buffer.from('%PDF-referto-di-Mario-Rossi'))
+  const b = await scriviTemporaneo('.html', '<p>anteprima</p>')
+  assert.ok(a.startsWith(dirT) && b.startsWith(dirT), 'stanno nella cartella dei temporanei')
+  assert.ok(a.endsWith('.pdf') && b.endsWith('.html'))
+  assert.ok(!/Mario|Rossi|referto/i.test(a), 'il nome non deve raccontare di chi e\'')
+  assert.notEqual(a, await scriviTemporaneo('.pdf', Buffer.from('x')), 'i nomi sono diversi ogni volta')
+  assert.equal(readFileSync(a, 'utf-8'), '%PDF-referto-di-Mario-Rossi')
+  assert.equal(eliminaTemporaneo(a), true)
+  assert.ok(!existsSync(a))
+  assert.equal(eliminaTemporaneo(a), true, 'togliere un file che non c\'e\' piu\' non e\' un errore')
+  ripulisciTemporanei()
+  assert.deepEqual(readdirSync(dirT), [], 'la pulizia toglie tutto')
+  ripulisciTemporanei() // e non da' errore se e' gia' vuota
+  rmSync(dirT, { recursive: true, force: true })
+})()
 
 // Scrittura atomica: il file c'e' intero, si sostituisce, e non resta niente accanto.
 {
@@ -2493,6 +2520,7 @@ rmSync(dirCartella, { recursive: true, force: true })
 }
 
 void (async () => {
+  await provaTemporanei
   const docxBuf = await generaDocx(pazExport, seduteExport)
   assert.ok(docxBuf.length > 1000 && docxBuf[0] === 0x50 && docxBuf[1] === 0x4b) // magic 'PK' (zip)
   console.log('Smoke test OK: migrazioni, vincoli, export e cifratura funzionano.')

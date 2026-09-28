@@ -1,9 +1,10 @@
 // Export sedute in PDF (via finestra nascosta + printToPDF) e Word (docx).
-import { app, BrowserWindow, dialog, shell } from 'electron'
+import { BrowserWindow, dialog, shell } from 'electron'
 import icona from '../../resources/icon.png?asset'
-import { unlink, writeFile } from 'fs/promises'
+import { writeFile } from 'fs/promises'
 import { dirname, join } from 'path'
 import { getDb } from './db'
+import { eliminaTemporaneoPresto, scriviTemporaneo } from './temporanei'
 import { cartellaExport, impostaCartellaExport } from './impostazioni'
 import {
   componiCartella,
@@ -116,8 +117,7 @@ function slug(s: string): string {
 }
 
 async function htmlToPdf(html: string, destPath: string): Promise<void> {
-  const tmp = join(app.getPath('temp'), `riab-export-${Date.now()}.html`)
-  await writeFile(tmp, html, 'utf-8')
+  const tmp = await scriviTemporaneo('.html', html)
   const win = new BrowserWindow({ show: false, webPreferences: { sandbox: true } })
   try {
     await win.loadFile(tmp)
@@ -128,7 +128,7 @@ async function htmlToPdf(html: string, destPath: string): Promise<void> {
     await writeFile(destPath, buf)
   } finally {
     win.destroy()
-    void unlink(tmp).catch(() => undefined)
+    eliminaTemporaneoPresto(tmp)
   }
 }
 
@@ -231,8 +231,10 @@ export async function apriAnteprimaCartella(
 ): Promise<void> {
   const html = generaCartella(pazienteId, sezioni)
   const { cognome, nome } = componiCartella(pazienteId, sezioni)
-  const tmp = join(app.getPath('temp'), `riab-anteprima-${pazienteId}-${Date.now()}.html`)
-  await writeFile(tmp, conBarra(html, `Anteprima — ${cognome} ${nome}`, coloriBarraAdesso()), 'utf-8')
+  const tmp = await scriviTemporaneo(
+    '.html',
+    conBarra(html, `Anteprima — ${cognome} ${nome}`, coloriBarraAdesso())
+  )
 
   const gia = anteprimeAperte.get(pazienteId)
   if (gia && !gia.isDestroyed()) {
@@ -240,7 +242,7 @@ export async function apriAnteprimaCartella(
     // accumulano una sopra l'altra
     await gia.loadFile(tmp)
     gia.focus()
-    void unlink(tmp).catch(() => undefined)
+    eliminaTemporaneoPresto(tmp)
     return
   }
 
@@ -259,7 +261,7 @@ export async function apriAnteprimaCartella(
   win.on('closed', () => anteprimeAperte.delete(pazienteId))
   anteprimeAperte.set(pazienteId, win)
   await win.loadFile(tmp)
-  void unlink(tmp).catch(() => undefined)
+  eliminaTemporaneoPresto(tmp)
 }
 
 export async function esportaCartella(
@@ -302,14 +304,16 @@ export async function apriAnteprimaRelazione(
   const { cognome, nome } = nomiPaziente(pazienteId, tipo)
   const titolo = `${NOME_RELAZIONE[tipo].titolo} — ${cognome} ${nome}`
   const chiave = `${tipo}-${pazienteId}`
-  const tmp = join(app.getPath('temp'), `riab-relazione-${chiave}-${Date.now()}.html`)
-  await writeFile(tmp, conBarra(generaRelazione(pazienteId, tipo), titolo, coloriBarraAdesso()), 'utf-8')
+  const tmp = await scriviTemporaneo(
+    '.html',
+    conBarra(generaRelazione(pazienteId, tipo), titolo, coloriBarraAdesso())
+  )
 
   const gia = relazioniAperte.get(chiave)
   if (gia && !gia.isDestroyed()) {
     await gia.loadFile(tmp)
     gia.focus()
-    void unlink(tmp).catch(() => undefined)
+    eliminaTemporaneoPresto(tmp)
     return
   }
   const win = new BrowserWindow({
@@ -327,7 +331,7 @@ export async function apriAnteprimaRelazione(
   win.on('closed', () => relazioniAperte.delete(chiave))
   relazioniAperte.set(chiave, win)
   await win.loadFile(tmp)
-  void unlink(tmp).catch(() => undefined)
+  eliminaTemporaneoPresto(tmp)
 }
 
 export async function esportaRelazione(
@@ -361,14 +365,16 @@ const reportAperti = new Map<number, BrowserWindow>()
 export async function apriAnteprimaReport(sessioneIds: number[]): Promise<void> {
   const r = generaReportScreening(sessioneIds)
   const sessioneId = sessioneIds[sessioneIds.length - 1]
-  const tmp = join(app.getPath('temp'), `riab-report-${sessioneId}-${Date.now()}.html`)
-  await writeFile(tmp, conBarra(r.html, `Report — ${r.cognome} ${r.nome}`, coloriBarraAdesso()), 'utf-8')
+  const tmp = await scriviTemporaneo(
+    '.html',
+    conBarra(r.html, `Report — ${r.cognome} ${r.nome}`, coloriBarraAdesso())
+  )
 
   const gia = reportAperti.get(sessioneId)
   if (gia && !gia.isDestroyed()) {
     await gia.loadFile(tmp)
     gia.focus()
-    void unlink(tmp).catch(() => undefined)
+    eliminaTemporaneoPresto(tmp)
     return
   }
   const win = new BrowserWindow({
@@ -386,7 +392,7 @@ export async function apriAnteprimaReport(sessioneIds: number[]): Promise<void> 
   win.on('closed', () => reportAperti.delete(sessioneId))
   reportAperti.set(sessioneId, win)
   await win.loadFile(tmp)
-  void unlink(tmp).catch(() => undefined)
+  eliminaTemporaneoPresto(tmp)
 }
 
 export async function esportaReport(sessioneIds: number[]): Promise<string | null> {

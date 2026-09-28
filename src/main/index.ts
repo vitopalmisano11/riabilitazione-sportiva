@@ -10,6 +10,7 @@ import {
 import { backupDiChiusura, copiaPrimaDellaMigrazione } from './backup'
 import { impostaCopiaPrimaDelleMigrazioni } from './db'
 import { barraDisegnata } from './finestre'
+import { ripulisciTemporanei, usaCartellaTemporanei } from './temporanei'
 import icona from '../../resources/icon.png?asset'
 
 // In sviluppo l'app tiene dati e cache propri: le prove — comprese le migrazioni,
@@ -17,6 +18,14 @@ import icona from '../../resources/icon.png?asset'
 if (!app.isPackaged) {
   app.setPath('userData', `${app.getPath('userData')} (dev)`)
 }
+
+// I file in chiaro che servono per un momento (un referto da aprire, l'anteprima
+// di una cartella) stanno tutti qui, e non in %TEMP% alla rinfusa. Anche qui la
+// versione di prova ha la sua, per non cancellare i file dell'altra mentre e'
+// aperta.
+usaCartellaTemporanei(
+  join(app.getPath('temp'), app.isPackaged ? 'riabilitazione-sportiva' : 'riabilitazione-sportiva (dev)')
+)
 
 function createWindow(): void {
   const salvata = posizioneFinestra()
@@ -123,6 +132,9 @@ app.on('web-contents-created', (_evento, contenuti) => {
 app.whenReady().then(() => {
   // Prima di ogni aggiornamento dello schema dell'archivio, una copia com'era.
   impostaCopiaPrimaDelleMigrazioni(copiaPrimaDellaMigrazione)
+  // Resti di una chiusura andata male: un referto rimasto aperto altrove, o
+  // un'anteprima non cancellata.
+  ripulisciTemporanei()
   // Sposta db e auth dalla vecchia posizione (userData) alla cartella dati, se serve.
   migraDaUserData()
   // Il database viene aperto solo dopo il login (vedi handler auth:* in ipc.ts).
@@ -138,6 +150,9 @@ app.whenReady().then(() => {
 // appena fatto e non solo com'era l'archivio all'accesso.
 app.on('before-quit', () => {
   backupDiChiusura()
+  // Quello che un altro programma tiene ancora aperto resta: lo toglie il
+  // prossimo avvio.
+  ripulisciTemporanei()
 })
 
 app.on('window-all-closed', () => {

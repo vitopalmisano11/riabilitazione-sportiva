@@ -1,7 +1,6 @@
-import { app, BrowserWindow, dialog, ipcMain, nativeImage, shell } from 'electron'
+import { BrowserWindow, dialog, ipcMain, nativeImage, shell } from 'electron'
 import { basename, join } from 'path'
 import { readFileSync } from 'fs'
-import { writeFile } from 'fs/promises'
 import { closeDb, controllaArchivio, getDb, initDb, riapriDb } from './db'
 import {
   cartellaBackup,
@@ -33,6 +32,7 @@ import {
   tema
 } from './impostazioni'
 import { spostaFileDati } from './file-dati'
+import { eliminaTemporaneo, eliminaTemporaneoPresto, scriviTemporaneo } from './temporanei'
 import { apriScheda } from './scheda'
 import { datiScheda } from './scheda-dati'
 import { esportaArchivio } from './esporta-archivio'
@@ -2078,9 +2078,18 @@ export function registerIpc(): void {
     if (!riga) throw new Error('Referto non trovato.')
     const base64 = riga.contenuto.slice(riga.contenuto.indexOf(',') + 1)
     const estensione = riga.tipo === 'application/pdf' ? '.pdf' : '.jpg'
-    const tmp = join(app.getPath('temp'), `referto-${id}${estensione}`)
-    await writeFile(tmp, Buffer.from(base64, 'base64'))
-    void shell.openPath(tmp)
+    // Per mostrarlo a un altro programma il referto esce per un momento dal
+    // database cifrato: in una cartella sua, con un nome casuale, e da
+    // cancellare. Il programma che lo apre lo tiene aperto, quindi il primo
+    // tentativo e' dopo un minuto e poi si riprova; quello che resta lo
+    // tolgono la chiusura e il prossimo avvio.
+    const tmp = await scriviTemporaneo(estensione, Buffer.from(base64, 'base64'))
+    const errore = await shell.openPath(tmp)
+    if (errore) {
+      eliminaTemporaneo(tmp)
+      throw new Error('Sul computer non c’è un programma che apra questo referto.')
+    }
+    eliminaTemporaneoPresto(tmp, 60_000)
   })
 
   handle('bioimmagini:delete', (id: number) => {
