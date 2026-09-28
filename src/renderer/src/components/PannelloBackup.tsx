@@ -84,12 +84,17 @@ export default function PannelloBackup(): React.JSX.Element {
 
   const ripristina = async (nome: string): Promise<void> => {
     if (
-      !(await chiedi(
-        `Riportare l'archivio a com'era il ${quando(nome)}?\n\n` +
+      !(await chiedi({
+        titolo: 'Ripristinare questa copia?',
+        testo:
+          `Riportare l'archivio a com'era il ${quando(nome)}?\n\n` +
           'Tutto quello che hai aggiunto dopo quella data sparirà dall’app.\n' +
           'Prima di procedere viene fatta una copia dello stato attuale, così è comunque recuperabile.\n\n' +
-          "L'app si riavvierà e dovrai rientrare con la password."
-      ))
+          "L'app si riavvierà e dovrai rientrare con la password.",
+        // è l'azione che sostituisce l'archivio: rossa, come "Elimina"
+        conferma: 'Ripristina',
+        pericolo: true
+      }))
     ) {
       return
     }
