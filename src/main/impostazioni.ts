@@ -9,9 +9,10 @@ import {
   temaValido,
   type Tema
 } from '../shared/temi'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
+import { existsSync, mkdirSync, readFileSync } from 'fs'
 import { join } from 'path'
 import { spostaFileDati } from './file-dati'
+import { leggiJsonPerScrivere, scriviAtomico } from './scrittura'
 import { nellaFascia } from '../shared/orari'
 
 interface Impostazioni {
@@ -46,7 +47,10 @@ function leggi(): Impostazioni {
 }
 
 function salva(patch: Impostazioni): void {
-  writeFileSync(percorsoFile(), JSON.stringify({ ...leggi(), ...patch }, null, 2))
+  // Per riscrivere si legge il file com'e' davvero: se non si legge, ci si
+  // ferma con un errore invece di scriverlo con dentro solo questa modifica.
+  const attuali = leggiJsonPerScrivere<Impostazioni>(percorsoFile())
+  scriviAtomico(percorsoFile(), JSON.stringify({ ...attuali, ...patch }, null, 2))
 }
 
 // In sviluppo il default è una cartella a parte, per non lavorare sui dati veri.

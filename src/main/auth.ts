@@ -9,7 +9,8 @@
 // chiave, non la sostituisce.
 // Nessuna dipendenza da Electron: testabile con Node (vedi scripts/smoke.ts).
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'crypto'
-import { existsSync, readFileSync, writeFileSync } from 'fs'
+import { existsSync, readFileSync } from 'fs'
+import { scriviAtomico } from './scrittura'
 
 const SCRYPT_PARAMS = { N: 32768, r: 8, p: 1 }
 const SCRYPT_MAXMEM = 128 * 1024 * 1024
@@ -101,7 +102,7 @@ export function setupAuth(
     pw: wrap(dek, password, kdf),
     rk: wrap(dek, rkSegreto, kdf)
   }
-  writeFileSync(authPath, JSON.stringify(file, null, 2))
+  scriviAtomico(authPath, JSON.stringify(file, null, 2))
   return { dekHex: dek.toString('hex'), recoveryKey: formatRecovery(rkSegreto) }
 }
 
@@ -128,7 +129,7 @@ export function recoverAuth(
     throw new Error('Chiave di recupero non valida.')
   }
   file.pw = wrap(dek, nuovaPassword, file.kdf)
-  writeFileSync(authPath, JSON.stringify(file, null, 2))
+  scriviAtomico(authPath, JSON.stringify(file, null, 2))
   return dek.toString('hex')
 }
 
@@ -145,7 +146,7 @@ export function cambiaPasswordAuth(
     throw new Error('Password attuale errata.')
   }
   file.pw = wrap(dek, nuovaPassword, file.kdf)
-  writeFileSync(authPath, JSON.stringify(file, null, 2))
+  scriviAtomico(authPath, JSON.stringify(file, null, 2))
 }
 
 export function domandaAuth(authPath: string): string | null {
@@ -171,7 +172,7 @@ export function impostaDomandaAuth(
   if (d === '') throw new Error('Scrivi la domanda.')
   if (r.length < 4) throw new Error('La risposta deve avere almeno 4 caratteri.')
   file.dq = { domanda: d, chiave: wrap(dek, r, file.kdf) }
-  writeFileSync(authPath, JSON.stringify(file, null, 2))
+  scriviAtomico(authPath, JSON.stringify(file, null, 2))
 }
 
 export function togliDomandaAuth(authPath: string, password: string): void {
@@ -182,7 +183,7 @@ export function togliDomandaAuth(authPath: string, password: string): void {
     throw new Error('Password errata.')
   }
   delete file.dq
-  writeFileSync(authPath, JSON.stringify(file, null, 2))
+  scriviAtomico(authPath, JSON.stringify(file, null, 2))
 }
 
 // Sblocca con la risposta alla domanda e imposta una nuova password.
@@ -200,6 +201,6 @@ export function recoverDomandaAuth(
     throw new Error('Risposta sbagliata.')
   }
   file.pw = wrap(dek, nuovaPassword, file.kdf)
-  writeFileSync(authPath, JSON.stringify(file, null, 2))
+  scriviAtomico(authPath, JSON.stringify(file, null, 2))
   return dek.toString('hex')
 }

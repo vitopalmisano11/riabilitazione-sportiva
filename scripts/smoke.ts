@@ -58,6 +58,7 @@ import {
   salvaQuestionario
 } from '../src/main/questionari'
 import { spostaFileDati } from '../src/main/file-dati'
+import { leggiJsonPerScrivere, scriviAtomico } from '../src/main/scrittura'
 import { generaReportScreening } from '../src/main/report-screening'
 import { coloriBarra, conBarra } from '../src/main/finestre'
 import { relazioneAnamnesi } from '../src/main/relazione-anamnesi'
@@ -65,7 +66,7 @@ import { relazioneValutazione } from '../src/main/relazione-valutazione'
 import { calcolaPunteggio } from '../src/main/screening-punteggio'
 import { sedutaPrecedente } from '../src/main/seduta-precedente'
 import { nellaFascia } from '../src/shared/orari'
-import { copyFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { daQuando } from '../src/renderer/src/lib'
 import {
   caricoTesto,
@@ -436,6 +437,30 @@ runMigrations(plain)
 plain.prepare('INSERT INTO categorie (nome) VALUES (?)').run('Rinforzo')
 plain.close()
 assert.ok(isPlaintextDb(dbPath))
+
+// Scrittura atomica: il file c'e' intero, si sostituisce, e non resta niente accanto.
+{
+  const f = join(dirAuth, 'prova-atomica.json')
+  scriviAtomico(f, '{"a":1}')
+  assert.equal(readFileSync(f, 'utf-8'), '{"a":1}')
+  scriviAtomico(f, '{"a":2,"lungo":"' + 'x'.repeat(50000) + '"}')
+  assert.equal((JSON.parse(readFileSync(f, 'utf-8')) as { a: number }).a, 2)
+  assert.ok(!existsSync(`${f}.tmp`), 'il file provvisorio non deve restare')
+  // un resto di una scrittura interrotta non disturba la successiva
+  writeFileSync(`${f}.tmp`, '{"tagliato":')
+  scriviAtomico(f, '{"a":3}')
+  assert.equal(readFileSync(f, 'utf-8'), '{"a":3}')
+  assert.ok(!readdirSync(dirAuth).some((n) => n.endsWith('.tmp')))
+
+  // Riscrivere partendo da un file: assente = vuoto, illeggibile = errore (mai "vuoto").
+  assert.deepEqual(leggiJsonPerScrivere(f), { a: 3 })
+  rmSync(f)
+  assert.deepEqual(leggiJsonPerScrivere(f), {})
+  writeFileSync(f, '{"cartellaDati":"D:\\Pazienti","tema')
+  assert.throws(() => leggiJsonPerScrivere(f), /non lo modifico/)
+  assert.equal(readFileSync(f, 'utf-8').includes('Pazienti'), true, 'il file rovinato non si tocca')
+  rmSync(f)
+}
 
 const { dekHex, recoveryKey } = setupAuth(authPath, 'password-segreta')
 assert.equal(loginAuth(authPath, 'password-segreta'), dekHex)

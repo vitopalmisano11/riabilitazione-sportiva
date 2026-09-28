@@ -65,13 +65,18 @@ function createWindow(): void {
       // Da massimizzata si registra la misura "normale": e' quella a cui
       // tornerebbe la finestra, e serve per la volta dopo.
       const b = win.getNormalBounds()
-      impostaPosizioneFinestra({
-        x: b.x,
-        y: b.y,
-        larghezza: b.width,
-        altezza: b.height,
-        massimizzata: win.isMaximized()
-      })
+      try {
+        impostaPosizioneFinestra({
+          x: b.x,
+          y: b.y,
+          larghezza: b.width,
+          altezza: b.height,
+          massimizzata: win.isMaximized()
+        })
+      } catch {
+        // Dove sta la finestra non vale un errore in mezzo al lavoro: se il
+        // file delle impostazioni non si legge, la posizione non si ricorda.
+      }
     }, 500)
   }
   win.on('resize', ricorda)
