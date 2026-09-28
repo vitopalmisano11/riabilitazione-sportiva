@@ -4,6 +4,7 @@
 // del distretto e' in blocco: gli elementi con id restano quelli, cosi' le
 // valutazioni gia' fatte continuano a puntare al movimento giusto.
 import { getDb } from './db'
+import { validaData } from './validazione'
 import type {
   Distretto,
   DistrettoCompleto,
@@ -126,6 +127,7 @@ export function leggiValutazione(id: number): ValutazioneCompleta {
 // note, carico e capacita') non si copiano: sono il racconto di quel giorno, e
 // ricopiarli vorrebbe dire ritrovarseli firmati come nuovi.
 export function duplicaValutazione(id: number, data: string): number {
+  validaData(data, 'La data della valutazione', { obbligatoria: true })
   const db = getDb()
   const sorgente = leggiValutazione(id)
   return db.transaction(() => {
@@ -153,6 +155,7 @@ export function duplicaValutazione(id: number, data: string): number {
 }
 
 export function salvaValutazione(dati: ValutazioneCompleta): void {
+  validaData(dati.valutazione.data, 'La data della valutazione', { obbligatoria: true })
   const db = getDb()
   const id = dati.valutazione.id
 

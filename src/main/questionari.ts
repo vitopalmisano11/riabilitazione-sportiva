@@ -2,6 +2,7 @@
 // Il calcolo sta qui, nel processo principale, e non nell'interfaccia: cosi' il
 // risultato memorizzato e' sempre quello prodotto dalle regole configurate.
 import { getDb } from './db'
+import { validaData } from './validazione'
 import type {
   CompilazioneInput,
   DomandaQuestionario,
@@ -348,6 +349,7 @@ export function elencoCompilazioni(pazienteId: number): Record<string, unknown>[
 // vale piu' niente. Il questionario di partenza non cambia: per usarne un
 // altro se ne compila uno nuovo.
 export function aggiornaCompilazione(id: number, dati: CompilazioneInput): void {
+  validaData(dati.data, 'La data della compilazione', { obbligatoria: true })
   const db = getDb()
   const riga = db
     .prepare('SELECT questionario_id FROM paziente_questionari WHERE id = ?')
@@ -373,6 +375,7 @@ export function aggiornaCompilazione(id: number, dati: CompilazioneInput): void 
 }
 
 export function salvaCompilazione(dati: CompilazioneInput): number {
+  validaData(dati.data, 'La data della compilazione', { obbligatoria: true })
   const db = getDb()
   const { punteggi, fascia } = calcola(dati.questionario_id, dati.risposte)
   return db.transaction(() => {

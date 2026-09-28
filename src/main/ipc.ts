@@ -1457,6 +1457,7 @@ export function registerIpc(): void {
   // il giorno stesso apre quella del giorno e cambia i due esercizi che vuole.
   handle('sedute:programma', (origineId: number, date: string[], ora: string | null = null) => {
     validaOra(ora, "L'orario della seduta")
+    for (const data of date) validaData(data, 'La data della seduta', { obbligatoria: true })
     const db = getDb()
     const sorgente = db.prepare('SELECT * FROM sedute WHERE id = ?').get(origineId) as
       | { paziente_id: number; fase_id: number | null; focus: string | null; note: string | null }
@@ -2150,14 +2151,16 @@ export function registerIpc(): void {
       .all(id)
     return { chart, segni }
   })
-  handle('bodyChart:create', (pazienteId: number, data: string, tipo: TipoChart) =>
-    Number(
+  handle('bodyChart:create', (pazienteId: number, data: string, tipo: TipoChart) => {
+    validaData(data, 'La data della body chart', { obbligatoria: true })
+    return Number(
       getDb()
         .prepare('INSERT INTO body_chart (paziente_id, data, tipo) VALUES (?, ?, ?)')
         .run(pazienteId, data, tipo === 'piede' ? 'piede' : 'corpo').lastInsertRowid
     )
-  )
+  })
   handle('bodyChart:salva', (dati: BodyChartCompleta) => {
+    validaData(dati.chart.data, 'La data della body chart', { obbligatoria: true })
     const db = getDb()
     db.transaction(() => {
       db.prepare('UPDATE body_chart SET data = ?, note = ? WHERE id = ?').run(

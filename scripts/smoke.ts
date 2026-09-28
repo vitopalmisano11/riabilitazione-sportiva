@@ -773,6 +773,10 @@ assert.equal(
     note: 'prima stesura',
     risposte: rispondi([1, 2])
   })
+  assert.throws(
+    () => salvaCompilazione({ paziente_id: pazQ, questionario_id: qId, data: '', note: null, risposte: rispondi([1, 2]) }),
+    /Manca la data|non è una data valida/
+  )
   const leggi = (): { fascia: string | null; note: string | null; data: string } =>
     getDb().prepare('SELECT fascia, note, data FROM paziente_questionari WHERE id = ?')
       .get(compId) as { fascia: string | null; note: string | null; data: string }
@@ -989,6 +993,9 @@ assert.equal(
     testId
   )
 
+  // una data che non esiste non si salva: niente valutazione con la data sbagliata
+  assert.throws(() => duplicaValutazione(primaId, '2026-02-30'), /non è una data valida/)
+  assert.throws(() => duplicaValutazione(primaId, 'domani'), /non è una data valida/)
   const copiaId = duplicaValutazione(primaId, '2026-10-01')
   const copia = leggiValutazione(copiaId)
   assert.equal(copia.valutazione.data, '2026-10-01')
