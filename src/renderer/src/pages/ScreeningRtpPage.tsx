@@ -25,7 +25,7 @@ import Modale from '../components/Modale'
 import CompilaQuestionario from '../components/CompilaQuestionario'
 import { RisultatoCluster } from '../components/PunteggioCluster'
 import MenuScelta from '../components/MenuScelta'
-import { useModificheInCorso } from '../modificheInCorso'
+import { useModificheInCorso, type Salva } from '../modificheInCorso'
 import { errMsg, formatData, oggiIso } from '../lib'
 
 // Esecuzione di uno screening: si sceglie il paziente e uno dei protocolli
@@ -449,7 +449,7 @@ function Esecuzione({
   // Il punteggio del cluster sui valori salvati; null se il protocollo non ne ha.
   const [risultato, setRisultato] = useState<RisultatoPunteggio | null>(null)
   // chiudendo il programma con valori non salvati, si salvano
-  const salvaAllaChiusura = useRef<(() => Promise<void>) | null>(null)
+  const salvaAllaChiusura = useRef<Salva | null>(null)
   useModificheInCorso(modificato, 'screening', salvaAllaChiusura)
 
   const aggiornaPunteggio = useCallback((): void => {
@@ -478,7 +478,7 @@ function Esecuzione({
   }, [id])
 
   salvaAllaChiusura.current = () => salva()
-  const salva = async (): Promise<void> => {
+  const salva = async (): Promise<boolean> => {
     const daSalvare: ValoreScreening[] = []
     for (const [k, testo] of Object.entries(valori)) {
       const numero = Number(testo.replace(',', '.'))
@@ -497,8 +497,10 @@ function Esecuzione({
       aggiornaPunteggio()
       await onSalvato()
       toast('Screening salvato.')
+      return true
     } catch (e) {
       toastErrore(errMsg(e))
+      return false
     }
   }
 

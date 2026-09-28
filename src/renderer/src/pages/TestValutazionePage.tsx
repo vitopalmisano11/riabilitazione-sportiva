@@ -328,15 +328,17 @@ function EditorTest({
   const aggiornaTest = (patch: Partial<TestValutazioneCompleto['test']>): void =>
     aggiorna({ test: { ...dati.test, ...patch } })
 
-  const salva = async (): Promise<void> => {
+  const salva = async (): Promise<boolean> => {
     try {
       await window.api.testValutazione.salva(dati)
       setDati(await window.api.testValutazione.get(id))
       setModificato(false)
       await onChanged()
       toast('Test salvato.')
+      return true
     } catch (e) {
       toastErrore(errMsg(e))
+      return false
     }
   }
   salvaUscendo.current = salva

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useModificheInCorso } from '../modificheInCorso'
+import { useModificheInCorso, type Salva } from '../modificheInCorso'
 import { Trash2 } from 'lucide-react'
 import type { BodyChartCompleta, SegnoBodyChart, TipoSegno } from '../../../shared/types'
 import { toast, toastErrore } from './Toast'
@@ -34,7 +34,7 @@ export default function BodyChartEditor({
   const [selezione, setSelezione] = useState<string | null>(null)
   const [modificato, setModificato] = useState(false)
   // chiudendo il programma con segni non salvati, si salvano
-  const salvaAllaChiusura = useRef<(() => Promise<void>) | null>(null)
+  const salvaAllaChiusura = useRef<Salva | null>(null)
   useModificheInCorso(!soloLettura && modificato, 'body chart', salvaAllaChiusura)
 
   // Esc chiude, Ctrl+S salva: sono le due cose che si fanno di continuo qui
@@ -119,7 +119,7 @@ export default function BodyChartEditor({
   }
 
   salvaAllaChiusura.current = () => salva()
-  const salva = async (): Promise<void> => {
+  const salva = async (): Promise<boolean> => {
     try {
       await window.api.bodyChart.salva({
         chart: { ...dati.chart, data, note: note.trim() || null },
@@ -127,8 +127,10 @@ export default function BodyChartEditor({
       })
       toast('Body chart salvata.')
       onChiudi(true)
+      return true
     } catch (e) {
       toastErrore(errMsg(e))
+      return false
     }
   }
 

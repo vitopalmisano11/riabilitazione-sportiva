@@ -5,7 +5,7 @@ import type { AnamnesiRemota as Dati, Bioimmagine, RispostaSiNo } from '../../..
 import { toastErrore } from './Toast'
 import { chiedi } from './Conferma'
 import Modale from './Modale'
-import { useModificheInCorso } from '../modificheInCorso'
+import { chiediUscita, useModificheInCorso, type Salva } from '../modificheInCorso'
 import { errMsg, formatData } from '../lib'
 
 const ATTESA_SALVATAGGIO = 1500
@@ -50,11 +50,11 @@ export default function AnamnesiRemota({
 }): React.JSX.Element {
   const [dati, setDati] = useState<Dati | null>(null)
   const [referti, setReferti] = useState<Bioimmagine[]>([])
-  const [stato, setStato] = useState<'fermo' | 'salvo' | 'salvato'>('fermo')
+  const [stato, setStato] = useState<'fermo' | 'salvo' | 'salvato' | 'errore'>('fermo')
   // Il salvataggio aspetta un secondo e mezzo dall'ultima lettera: chiudendo
   // il programma in quel mezzo, quello che resta si salva subito.
-  const salvaAllaChiusura = useRef<(() => Promise<void>) | null>(null)
-  useModificheInCorso(stato === 'salvo', 'anamnesi', salvaAllaChiusura)
+  const salvaAllaChiusura = useRef<Salva | null>(null)
+  useModificheInCorso(stato === 'salvo' || stato === 'errore', 'anamnesi', salvaAllaChiusura)
   const attesa = useRef<ReturnType<typeof setTimeout> | null>(null)
   const daSalvare = useRef<Dati | null>(null)
 
@@ -84,17 +84,21 @@ export default function AnamnesiRemota({
   }, [pazienteId, caricaReferti])
 
   salvaAllaChiusura.current = () => salvaSubito()
-  const salvaSubito = async (): Promise<void> => {
+  const salvaSubito = async (): Promise<boolean> => {
     const d = daSalvare.current
-    if (!d) return
+    if (!d) return true
     daSalvare.current = null
     setStato('salvo')
     try {
       await window.api.anamnesi.salvaRemota(pazienteId, d)
       setStato('salvato')
+      return true
     } catch (e) {
-      setStato('fermo')
+      // si rimette in attesa, salvo che nel frattempo si sia scritto di piu' recente
+      daSalvare.current ??= d
+      setStato('errore')
       toastErrore(errMsg(e))
+      return false
     }
   }
 
@@ -119,7 +123,9 @@ export default function AnamnesiRemota({
 
   const chiudi = (): void => {
     if (attesa.current) clearTimeout(attesa.current)
-    void salvaSubito().then(onChiudi)
+    void salvaSubito().then(async (ok) => {
+      if (ok || (await chiediUscita())) onChiudi()
+    })
   }
 
   const testo =
@@ -151,7 +157,13 @@ export default function AnamnesiRemota({
         <div className="card-header-row">
           <h3>Anamnesi remota</h3>
           <span className="hint">
-            {stato === 'salvo' ? 'Salvataggio…' : stato === 'salvato' ? 'Salvato' : ''}
+            {stato === 'salvo'
+              ? 'Salvataggio…'
+              : stato === 'salvato'
+                ? 'Salvato'
+                : stato === 'errore'
+                  ? 'Non salvato'
+                  : ''}
           </span>
         </div>
 

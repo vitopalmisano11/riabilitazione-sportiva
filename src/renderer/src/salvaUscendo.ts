@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
-import { useModificheInCorso } from './modificheInCorso'
+import { useModificheInCorso, type Salva } from './modificheInCorso'
+import { toastErrore } from './components/Toast'
 
 // Salvare uscendo, nelle schede della configurazione.
 //
@@ -17,8 +18,8 @@ const EVENTO = 'configurazione-salvata-uscendo'
 
 export function useSalvaUscendo(
   modificato: boolean
-): React.MutableRefObject<(() => Promise<void>) | null> {
-  const salva = useRef<(() => Promise<void>) | null>(null)
+): React.MutableRefObject<Salva | null> {
+  const salva = useRef<Salva | null>(null)
   const daSalvare = useRef(modificato)
   daSalvare.current = modificato
   // anche chiudendo il programma
@@ -29,7 +30,17 @@ export function useSalvaUscendo(
       if (!daSalvare.current || !salva.current) return
       // L'elenco che compare al posto dell'editor si e' gia' caricato: quando
       // il salvataggio finisce glielo si dice, cosi' si rilegge.
-      void salva.current().then(() => window.dispatchEvent(new Event(EVENTO)))
+      // L'editor non c'e' piu': se non riesce a salvare non si puo' riprovare, e
+      // il minimo e' dirlo, invece di lasciar credere che sia andato tutto bene.
+      const perso = (): void =>
+        toastErrore('Le ultime modifiche non sono state salvate: la scheda si è chiusa prima.')
+      salva
+        .current()
+        .then((ok) => {
+          if (ok === false) perso()
+          window.dispatchEvent(new Event(EVENTO))
+        })
+        .catch(perso)
     },
     []
   )

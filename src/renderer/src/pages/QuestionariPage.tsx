@@ -337,7 +337,7 @@ function EditorQuestionario({
     setModificato(true)
   }
 
-  const salva = async (): Promise<void> => {
+  const salva = async (): Promise<boolean> => {
     try {
       await window.api.questionari.salva(dati)
       const fresco = await window.api.questionari.get(id)
@@ -345,8 +345,10 @@ function EditorQuestionario({
       setModificato(false)
       await onChanged()
       toast('Questionario salvato.')
+      return true
     } catch (e) {
       toastErrore(errMsg(e))
+      return false
     }
   }
   salvaUscendo.current = salva

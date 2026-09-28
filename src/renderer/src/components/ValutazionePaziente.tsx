@@ -22,7 +22,7 @@ import ScalaPallini from './ScalaPallini'
 import Aiuto from './Aiuto'
 import { errMsg, formatData, oggiIso } from '../lib'
 import { useScorciatoie } from '../scorciatoie'
-import { useModificheInCorso } from '../modificheInCorso'
+import { useModificheInCorso, type Salva } from '../modificheInCorso'
 import { GRUPPI } from '../pages/DistrettiPage'
 
 const ANDAMENTI: { valore: Andamento; etichetta: string; icona: React.JSX.Element }[] = [
@@ -233,7 +233,7 @@ function SchedaValutazione({
   const [librerie, setLibrerie] = useState<DistrettoCompleto[]>([])
   const [modificato, setModificato] = useState(false)
   // chiudendo il programma a valutazione non salvata, si salva
-  const salvaAllaChiusura = useRef<(() => Promise<void>) | null>(null)
+  const salvaAllaChiusura = useRef<Salva | null>(null)
   useModificheInCorso(!soloLettura && modificato, 'valutazione', salvaAllaChiusura)
 
   useScorciatoie([
@@ -420,13 +420,15 @@ function SchedaValutazione({
   }
 
   salvaAllaChiusura.current = () => salva()
-  const salva = async (): Promise<void> => {
+  const salva = async (): Promise<boolean> => {
     try {
       await window.api.valutazioni.salva(dati)
       toast('Valutazione salvata.')
       onChiudi(true)
+      return true
     } catch (e) {
       toastErrore(errMsg(e))
+      return false
     }
   }
 

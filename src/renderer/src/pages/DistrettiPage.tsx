@@ -269,15 +269,17 @@ function EditorDistretto({
     setModificato(true)
   }
 
-  const salva = async (): Promise<void> => {
+  const salva = async (): Promise<boolean> => {
     try {
       await window.api.distretti.salva(dati)
       setDati(await window.api.distretti.get(id))
       setModificato(false)
       await onChanged()
       toast('Distretto salvato.')
+      return true
     } catch (e) {
       toastErrore(errMsg(e))
+      return false
     }
   }
   salvaUscendo.current = salva

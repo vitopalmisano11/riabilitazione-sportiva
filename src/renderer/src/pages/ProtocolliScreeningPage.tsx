@@ -325,15 +325,17 @@ function Editor({
   const cambiaSezione = (i: number, patch: Partial<SezioneScreening>): void =>
     aggiorna(dati.sezioni.map((s, k) => (k === i ? { ...s, ...patch } : s)))
 
-  const salva = async (): Promise<void> => {
+  const salva = async (): Promise<boolean> => {
     try {
       await window.api.screening.salva(dati)
       setDati(await window.api.screening.get(id))
       setModificato(false)
       await onSalvato()
       toast('Protocollo salvato.')
+      return true
     } catch (e) {
       toastErrore(errMsg(e))
+      return false
     }
   }
   salvaUscendo.current = salva

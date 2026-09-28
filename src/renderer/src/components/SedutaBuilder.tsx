@@ -29,7 +29,7 @@ import Aiuto from './Aiuto'
 import DiarioSeduta, { UltimaVoltaSeduta } from './DiarioSeduta'
 import { errMsg, formatData, oggiIso } from '../lib'
 import { useScorciatoie } from '../scorciatoie'
-import { useModificheInCorso } from '../modificheInCorso'
+import { useModificheInCorso, type Salva } from '../modificheInCorso'
 import { sposta, useRiordino } from '../riordino'
 import { caricoTesto, recuperoTesto, rirTesto, volumeTesto } from '../../../shared/dosaggio'
 
@@ -552,6 +552,9 @@ export default function SedutaBuilder({
     setNuovaSezione('')
   }
 
+  // Vero dopo che un salvataggio della bozza e' fallito e finche' non ne riesce uno.
+  const bozzaInErrore = useRef(false)
+
   // La bozza si mette da parte da sola mentre componi, un secondo dopo l'ultima
   // modifica: se l'app si chiude, alla riapertura la ritrovi. Vale solo per le
   // sedute nuove — quelle gia' salvate sono gia' al sicuro nel loro posto.
@@ -573,7 +576,20 @@ export default function SedutaBuilder({
       sezioni
     }
     const attesa = setTimeout(() => {
-      void window.api.bozze.salva(paziente.id, JSON.stringify(bozza)).catch(() => undefined)
+      window.api.bozze
+        .salva(paziente.id, JSON.stringify(bozza))
+        .then(() => {
+          bozzaInErrore.current = false
+        })
+        .catch((e) => {
+          // Una volta sola finche' non torna a funzionare: un avviso a ogni
+          // secondo mentre si scrive sarebbe peggio del problema.
+          if (bozzaInErrore.current) return
+          bozzaInErrore.current = true
+          toastErrore(
+            `La bozza non si sta salvando (${errMsg(e)}). Se il programma si chiude adesso, questa seduta va persa: salvala appena puoi.`
+          )
+        })
     }, 1000)
     return () => clearTimeout(attesa)
   }, [
@@ -619,7 +635,7 @@ export default function SedutaBuilder({
   const modificata = sedutaId != null && firmaAperta != null && firma !== firmaAperta
 
   // Chiudendo il programma con la seduta a meta' di una modifica, si salva.
-  const salvaAllaChiusura = useRef<(() => Promise<void>) | null>(null)
+  const salvaAllaChiusura = useRef<Salva | null>(null)
   useModificheInCorso(modificata, 'seduta', salvaAllaChiusura)
   salvaAllaChiusura.current = () => salva()
 
@@ -650,10 +666,10 @@ export default function SedutaBuilder({
     { tasto: 's', ctrl: true, azione: () => void salva() }
   ])
 
-  const salva = async (): Promise<void> => {
+  const salva = async (): Promise<boolean> => {
     if (!data) {
       toastErrore('Imposta la data della seduta.')
-      return
+      return false
     }
     // Una seduta di sole tecniche e' una seduta vera: basta che ci sia
     // qualcosa — esercizi, trattamento, cosa riferisce o le note.
@@ -666,7 +682,7 @@ export default function SedutaBuilder({
       note.trim() !== ''
     if (!qualcosa) {
       toastErrore('La seduta è vuota: scrivi cosa riferisce, il trattamento o aggiungi un esercizio.')
-      return
+      return false
     }
     const input: SedutaInput = {
       paziente_id: paziente.id,
@@ -712,8 +728,10 @@ export default function SedutaBuilder({
       // niente: la seduta di prima era salvata benissimo.
       await window.api.bozze.elimina(paziente.id).catch(() => undefined)
       onClose(true)
+      return true
     } catch (e) {
       toastErrore(errMsg(e))
+      return false
     }
   }
 

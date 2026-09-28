@@ -11,7 +11,7 @@ import type {
 import { toastErrore } from './Toast'
 import { chiedi } from './Conferma'
 import Modale from './Modale'
-import { useModificheInCorso } from '../modificheInCorso'
+import { chiediUscita, useModificheInCorso, type Salva } from '../modificheInCorso'
 import { errMsg } from '../lib'
 import { sposta, useRiordino } from '../riordino'
 import GraficoAndamento, { COLORI, type Selezione } from './GraficoAndamento'
@@ -78,11 +78,11 @@ export default function AnamnesiProssima({
   onChiudi: () => void
 }): React.JSX.Element {
   const [dati, setDati] = useState<Dati | null>(null)
-  const [stato, setStato] = useState<'fermo' | 'salvo' | 'salvato'>('fermo')
+  const [stato, setStato] = useState<'fermo' | 'salvo' | 'salvato' | 'errore'>('fermo')
   // Il salvataggio aspetta un secondo e mezzo dall'ultima lettera: chiudendo
   // il programma in quel mezzo, quello che resta si salva subito.
-  const salvaAllaChiusura = useRef<(() => Promise<void>) | null>(null)
-  useModificheInCorso(stato === 'salvo', 'anamnesi', salvaAllaChiusura)
+  const salvaAllaChiusura = useRef<Salva | null>(null)
+  useModificheInCorso(stato === 'salvo' || stato === 'errore', 'anamnesi', salvaAllaChiusura)
   const [sintomoAttivo, setSintomoAttivo] = useState(0)
   const [attivita, setAttivita] = useState<AttivitaPartecipazione | null>(null)
   const attesa = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -102,10 +102,10 @@ export default function AnamnesiProssima({
 
   // Salva quel che c'e' in sospeso: alla chiusura non si aspetta il timer.
   salvaAllaChiusura.current = () => salvaSubito()
-  const salvaSubito = async (): Promise<void> => {
+  const salvaSubito = async (): Promise<boolean> => {
     const d = daSalvare.current
     const a = attivitaDaSalvare.current
-    if (!d && !a) return
+    if (!d && !a) return true
     daSalvare.current = null
     attivitaDaSalvare.current = null
     setStato('salvo')
@@ -113,9 +113,16 @@ export default function AnamnesiProssima({
       if (d) await window.api.anamnesi.salva(pazienteId, d)
       if (a) await window.api.anamnesi.salvaAttivita(pazienteId, a)
       setStato('salvato')
+      return true
     } catch (e) {
-      setStato('fermo')
+      // Quello che non e' andato si rimette in attesa (a meno che nel frattempo
+      // si sia scritto altro, che e' piu' nuovo): chiudendo, o al prossimo
+      // tentativo, si riprova, invece di darlo per salvato.
+      daSalvare.current ??= d
+      attivitaDaSalvare.current ??= a
+      setStato('errore')
       toastErrore(errMsg(e))
+      return false
     }
   }
 
@@ -172,7 +179,9 @@ export default function AnamnesiProssima({
 
   const chiudi = (): void => {
     if (attesa.current) clearTimeout(attesa.current)
-    void salvaSubito().then(onChiudi)
+    void salvaSubito().then(async (ok) => {
+      if (ok || (await chiediUscita())) onChiudi()
+    })
   }
 
   const campo =
@@ -185,7 +194,13 @@ export default function AnamnesiProssima({
         <div className="card-header-row">
           <h3>Anamnesi prossima</h3>
           <span className="hint">
-            {stato === 'salvo' ? 'Salvataggio…' : stato === 'salvato' ? 'Salvato' : ''}
+            {stato === 'salvo'
+              ? 'Salvataggio…'
+              : stato === 'salvato'
+                ? 'Salvato'
+                : stato === 'errore'
+                  ? 'Non salvato'
+                  : ''}
           </span>
         </div>
 
