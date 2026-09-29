@@ -1,38 +1,24 @@
 import type { TipoChart, TipoSegno, Vista, VistaCorpo, VistaPiede } from '../../../shared/types'
 import { PIEDE_ALTEZZA, PIEDE_LARGHEZZA } from '../../../shared/figure-piede'
 import SagomaPiede, { VISTE_PIEDE } from './FiguraPiede'
-import {
-  ALTEZZA,
-  BRACCIO,
-  DETTAGLI_FRONTE,
-  DETTAGLI_PROFILO,
-  DETTAGLI_RETRO,
-  GAMBA,
-  LARGHEZZA,
-  PIEDE,
-  PROFILO_BRACCIO,
-  PROFILO_GAMBA,
-  PROFILO_PIEDE,
-  PROFILO_TRONCO,
-  TESTA_FRONTE,
-  TESTA_PROFILO,
-  TRONCO,
-  type Forma,
-  type Linea
-} from '../../../shared/figure'
+import { ALTEZZA, LARGHEZZA } from '../../../shared/figure'
+import immagineDavanti from '../../../../resources/bodychart/davanti.png'
+import immagineDietro from '../../../../resources/bodychart/dietro.png'
+import immagineLatoDestro from '../../../../resources/bodychart/lato-destro.png'
+import immagineLatoSinistro from '../../../../resources/bodychart/lato-sinistro.png'
 
-// Figure disegnate in vettoriale sul modello della body chart di riferimento:
-// contorno sottile su fondo bianco, corpo maschile atletico, con le linee
-// anatomiche interne che servono a orientarsi (clavicole, pettorali, ombelico,
-// pieghe inguinali davanti; colonna, scapole, piega glutea, cavo popliteo
-// dietro).
-//
-// Proporzioni: otto teste. Mento a una testa, ombelico al 38%, inguine a meta'
-// altezza, ginocchio al 72%, caviglia al 95%.
-//
-// Di fronte e di spalle il corpo e' simmetrico: si disegna la meta' destra e la
-// si specchia. Il contorno e' aperto sull'asse centrale, quindi tracciandolo non
-// compare nessuna linea in mezzo al corpo, e il riempimento chiude da solo.
+// Il corpo intero e' una foto/illustrazione fornita dall'utente (una per
+// vista, ritagliata dall'immagine unica che ha mandato), non piu' un disegno
+// vettoriale: si vede com'era nella foto, e le posizioni dei segni restano
+// giuste perche' si registrano come frazioni 0..1 del riquadro della figura,
+// non come punti assoluti. Il piede resta disegnato in vettoriale (nessuna
+// foto e' stata fornita per quello).
+const IMMAGINE_CORPO: Record<VistaCorpo, string> = {
+  fronte: immagineDavanti,
+  retro: immagineDietro,
+  destra: immagineLatoDestro,
+  sinistra: immagineLatoSinistro
+}
 
 export { ALTEZZA, LARGHEZZA }
 
@@ -62,90 +48,8 @@ export const SEGNI: { valore: TipoSegno; etichetta: string }[] = [
   { valore: 'parestesie', etichetta: 'Parestesie' }
 ]
 
-// Il corpo e' composto di parti (testa, collo, tronco, braccia, gambe, piedi)
-// che si sovrappongono. Disegnandole prima tutte con un tratto spesso del
-// colore del contorno e poi tutte riempite di bianco, resta il solo contorno
-// esterno dell'unione: fra le parti non compaiono giunzioni, e dove il braccio
-// si stacca dal tronco il suo profilo si vede da solo.
-//
-// Misure antropometriche di un uomo di 180 cm riportate in scala su un'altezza
-// di 638 punti: spalle 40 cm, torace 30, vita 27, fianchi 33, coscia 17,
-// ginocchio 11, polpaccio 12, caviglia 7.
-
-function Forme({ forme }: { forme: Forma[] }): React.JSX.Element {
-  return (
-    <>
-      {forme.map((f, i) =>
-        f.tipo === 'ellisse' ? (
-          <ellipse key={i} cx={f.cx} cy={f.cy} rx={f.rx} ry={f.ry} />
-        ) : (
-          <path key={i} d={f.d} />
-        )
-      )}
-    </>
-  )
-}
-
-function TestaCollo({ profilo }: { profilo: boolean }): React.JSX.Element {
-  return <Forme forme={profilo ? TESTA_PROFILO : TESTA_FRONTE} />
-}
-
-function Parti({ profilo }: { profilo: boolean }): React.JSX.Element {
-  const specchiaX = `translate(${LARGHEZZA} 0) scale(-1 1)`
-  if (profilo) {
-    return (
-      <>
-        <TestaCollo profilo />
-        <path d={PROFILO_TRONCO} />
-        <path d={PROFILO_BRACCIO} />
-        <path d={PROFILO_GAMBA} />
-        <path d={PROFILO_PIEDE} />
-      </>
-    )
-  }
-  return (
-    <>
-      <TestaCollo profilo={false} />
-      <path d={TRONCO} />
-      <path d={GAMBA} />
-      <path d={GAMBA} transform={specchiaX} />
-      <path d={PIEDE} />
-      <path d={PIEDE} transform={specchiaX} />
-      <path d={BRACCIO} />
-      <path d={BRACCIO} transform={specchiaX} />
-    </>
-  )
-}
-
-// Linee anatomiche interne, una per vista.
-function Dettagli({ linee }: { linee: Linea[] }): React.JSX.Element {
-  return (
-    <g className="corpo-riferimento">
-      {linee.map((l, i) => (
-        <path key={i} d={l.d} strokeDasharray={l.tratteggio} />
-      ))}
-    </g>
-  )
-}
-
 function Sagoma({ vista }: { vista: VistaCorpo }): React.JSX.Element {
-  const profilo = vista === 'sinistra' || vista === 'destra'
-  // il lato destro e' lo stesso profilo, specchiato
-  const specchia = vista === 'destra' ? `translate(${LARGHEZZA} 0) scale(-1 1)` : undefined
-
-  return (
-    <g transform={specchia}>
-      <g className="corpo-bordo">
-        <Parti profilo={profilo} />
-      </g>
-      <g className="corpo-pieno">
-        <Parti profilo={profilo} />
-      </g>
-      {vista === 'fronte' && <Dettagli linee={DETTAGLI_FRONTE} />}
-      {vista === 'retro' && <Dettagli linee={DETTAGLI_RETRO} />}
-      {profilo && <Dettagli linee={DETTAGLI_PROFILO} />}
-    </g>
-  )
+  return <image href={IMMAGINE_CORPO[vista]} x={0} y={0} width={LARGHEZZA} height={ALTEZZA} />
 }
 
 // --- simboli ---

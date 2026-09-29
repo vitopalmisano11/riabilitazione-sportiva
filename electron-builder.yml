@@ -4,6 +4,7 @@ directories:
   output: dist
 files:
   - out/**
+  - resources/**
   - '!src/**'
 win:
   target:

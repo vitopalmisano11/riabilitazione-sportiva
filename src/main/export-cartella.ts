@@ -6,8 +6,13 @@
 // separati dal formato serve a mostrare in anteprima esattamente il documento
 // che poi si salva.
 //
-// Le body chart si ridisegnano con gli stessi tracciati dell'app
-// (src/shared/figure.ts): nel documento appaiono come le hai segnate.
+// Il corpo intero, nella body chart, e' la stessa foto che si vede nell'app
+// (una per vista): qui si incolla nell'SVG come immagine, incorporata nel
+// file cosi' il PDF resta un unico documento. Il piede resta disegnato in
+// vettoriale (src/shared/figure-piede.ts): nessuna foto e' stata fornita per
+// quello, e nel documento appare come lo hai segnato.
+import { readFileSync } from 'fs'
+import { join } from 'path'
 import { getDb } from './db'
 import { esc } from './html'
 import { etaInAnni } from '../shared/eta'
@@ -30,25 +35,7 @@ import {
   RIFERIMENTI_PROFILO,
   type Ellisse
 } from '../shared/figure-piede'
-import {
-  ALTEZZA,
-  BRACCIO,
-  GAMBA,
-  LARGHEZZA,
-  PIEDE,
-  PROFILO_BRACCIO,
-  PROFILO_GAMBA,
-  PROFILO_PIEDE,
-  PROFILO_TRONCO,
-  DETTAGLI_FRONTE,
-  DETTAGLI_PROFILO,
-  DETTAGLI_RETRO,
-  TESTA_FRONTE,
-  TESTA_PROFILO,
-  TRONCO,
-  type Forma,
-  type Linea
-} from '../shared/figure'
+import { ALTEZZA, LARGHEZZA } from '../shared/figure'
 import type { SezioneCartella, TipoRelazione } from '../shared/types'
 import { relazioneAnamnesi, type ParagrafoRelazione } from './relazione-anamnesi'
 import { relazioneValutazione } from './relazione-valutazione'
@@ -230,16 +217,6 @@ const VISTE_DI: Record<string, string[]> = {
   piede: ['dorso', 'pianta', 'esterno', 'interno']
 }
 
-function forme(f: Forma[]): string {
-  return f
-    .map((x) =>
-      x.tipo === 'ellisse'
-        ? `<ellipse cx="${x.cx}" cy="${x.cy}" rx="${x.rx}" ry="${x.ry}"/>`
-        : `<path d="${x.d}"/>`
-    )
-    .join('')
-}
-
 // Il numero dell'intensita' accanto al segno: nel foglio stampato non c'e' modo
 // di passarci sopra col mouse, e senza il numero il segno dice dove ma non
 // quanto.
@@ -360,28 +337,20 @@ function figuraPiedeSvg(vista: string, segni: SegnoRiga[]): string {
   </svg>`
 }
 
+// Le quattro foto, gia' incorporate come base64: cosi' il PDF resta un unico
+// file e non dipende da percorsi esterni che potrebbero non esistere piu'.
+// Il percorso si calcola da __dirname (non un import): risalendo di due
+// cartelle si arriva alla radice del progetto sia da src/main (in sviluppo e
+// nelle prove), sia da out/main (nel programma installato).
+const cartellaBodychart = join(__dirname, '../../resources/bodychart')
+const IMMAGINE_CORPO_BASE64: Record<string, string> = {
+  fronte: readFileSync(join(cartellaBodychart, 'davanti.png')).toString('base64'),
+  retro: readFileSync(join(cartellaBodychart, 'dietro.png')).toString('base64'),
+  destra: readFileSync(join(cartellaBodychart, 'lato-destro.png')).toString('base64'),
+  sinistra: readFileSync(join(cartellaBodychart, 'lato-sinistro.png')).toString('base64')
+}
+
 function figuraSvg(vista: string, segni: SegnoRiga[]): string {
-  const profilo = vista === 'sinistra' || vista === 'destra'
-  const parti = profilo
-    ? forme(TESTA_PROFILO) +
-      `<path d="${PROFILO_TRONCO}"/><path d="${PROFILO_BRACCIO}"/>` +
-      `<path d="${PROFILO_GAMBA}"/><path d="${PROFILO_PIEDE}"/>`
-    : forme(TESTA_FRONTE) +
-      `<path d="${TRONCO}"/>` +
-      [GAMBA, PIEDE, BRACCIO]
-        .map(
-          (d) =>
-            `<path d="${d}"/><path d="${d}" transform="translate(${LARGHEZZA} 0) scale(-1 1)"/>`
-        )
-        .join('')
-  const specchia = vista === 'destra' ? ` transform="translate(${LARGHEZZA} 0) scale(-1 1)"` : ''
-
-  const linee: Linea[] =
-    vista === 'fronte' ? DETTAGLI_FRONTE : vista === 'retro' ? DETTAGLI_RETRO : DETTAGLI_PROFILO
-  const dettagli = `<g class="dettagli">${linee
-    .map((l) => `<path d="${l.d}"${l.tratteggio ? ` stroke-dasharray="${l.tratteggio}"` : ''}/>`)
-    .join('')}</g>`
-
   const marchi = segni
     .filter((s) => s.vista === vista)
     .map(
@@ -395,7 +364,7 @@ function figuraSvg(vista: string, segni: SegnoRiga[]): string {
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${LARGHEZZA} ${ALTEZZA}">
     <style>${STILE_FIGURA}</style>
-    <g${specchia}><g class="bordo">${parti}</g><g class="pieno">${parti}</g>${dettagli}</g>
+    <image href="data:image/png;base64,${IMMAGINE_CORPO_BASE64[vista]}" x="0" y="0" width="${LARGHEZZA}" height="${ALTEZZA}"/>
     ${marchi}
   </svg>`
 }
