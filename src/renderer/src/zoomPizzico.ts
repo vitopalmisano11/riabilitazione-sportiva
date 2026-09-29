@@ -30,5 +30,17 @@ export function useZoomPizzico<T extends HTMLElement>(): {
     return () => el.removeEventListener('wheel', alGesto)
   }, [])
 
+  // Un clic fuori dall'immagine ingrandita la riporta alla misura normale: i
+  // segni gia' messi restano, perche' quello che si tocca qui e' solo lo zoom,
+  // non i dati della body chart.
+  useEffect(() => {
+    if (scala <= 1) return
+    const fuori = (e: PointerEvent): void => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setScala(1)
+    }
+    document.addEventListener('pointerdown', fuori, { capture: true })
+    return () => document.removeEventListener('pointerdown', fuori, { capture: true })
+  }, [scala])
+
   return { ref, scala, ingrandita: scala > 1.01 }
 }

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ClipboardList, Eye, FileClock, Pencil, Trash2 } from 'lucide-react'
-import type { BodyChartRiepilogo, PazienteDettaglio, TipoChart } from '../../../shared/types'
+import type { BodyChartRiepilogo, PazienteDettaglio } from '../../../shared/types'
 import { toastErrore } from './Toast'
 import { chiedi } from './Conferma'
 import { errMsg, formatData, oggiIso } from '../lib'
@@ -40,12 +40,10 @@ export default function AnamnesiPaziente({
   // ma se si chiude senza salvare niente viene tolta: un clic per sbaglio non
   // deve lasciare schede vuote da ripulire.
   const appenaCreata = useRef<number | null>(null)
-  const [menuNuova, setMenuNuova] = useState(false)
 
-  const nuova = async (tipo: TipoChart): Promise<void> => {
-    setMenuNuova(false)
+  const nuova = async (): Promise<void> => {
     try {
-      const id = await window.api.bodyChart.create(paziente.id, oggiIso(), tipo)
+      const id = await window.api.bodyChart.create(paziente.id, oggiIso(), 'corpo')
       appenaCreata.current = id
       await load()
       setAperta({ id, soloLettura: false })
@@ -83,27 +81,9 @@ export default function AnamnesiPaziente({
               una cronologia di modifiche come diceva la freccia all'indietro. */}
           <FileClock size={24} />
         </button>
-        {/* Le body chart sono piu' d'una: il corpo intero per il quadro
-            generale, il piede quando il problema e' li' e serve segnare in
-            piccolo. Si sceglie qui, perche' cambia le figure su cui si segna. */}
-        <span className="menu-wrapper">
-          <button
-            className="btn-sagoma"
-            title="Nuova body chart"
-            onClick={() => setMenuNuova(!menuNuova)}
-          >
-            <SagomaIcona size={24} />
-          </button>
-          {menuNuova && (
-            <>
-              <div className="menu-chiudi" onClick={() => setMenuNuova(false)} />
-              <div className="menu-tendina">
-                <button onClick={() => void nuova('corpo')}>Corpo intero</button>
-                <button onClick={() => void nuova('piede')}>Piede e caviglia</button>
-              </div>
-            </>
-          )}
-        </span>
+        <button className="btn-sagoma" title="Nuova body chart" onClick={() => void nuova()}>
+          <SagomaIcona size={24} />
+        </button>
         <button
           className="btn-sagoma"
           title="Obiettivi terapeutici"
