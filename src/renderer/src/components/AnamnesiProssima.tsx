@@ -14,6 +14,7 @@ import Modale from './Modale'
 import { chiediUscita } from '../modificheInCorso'
 import { errMsg, oggiIso } from '../lib'
 import { sposta, useRiordino } from '../riordino'
+import { useScorciatoie } from '../scorciatoie'
 import { useSalvaUscendo } from '../salvaUscendo'
 import GraficoAndamento, { COLORI, type Selezione } from './GraficoAndamento'
 import ScalaPallini from './ScalaPallini'
@@ -83,6 +84,7 @@ export default function AnamnesiProssima({
   // Il salvataggio aspetta un secondo e mezzo dall'ultima lettera: chiudendo
   // il programma in quel mezzo, quello che resta si salva subito.
   const salvaAllaChiusura = useSalvaUscendo(stato === 'salvo' || stato === 'errore')
+  useScorciatoie([{ tasto: 'Escape', azione: () => chiudi() }])
   const [sintomoAttivo, setSintomoAttivo] = useState(0)
   const [attivita, setAttivita] = useState<AttivitaPartecipazione | null>(null)
   const attesa = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -153,6 +155,15 @@ export default function AnamnesiProssima({
     }
   }, [pazienteId])
 
+  // Definita prima del controllo sul caricamento qui sotto: la scorciatoia Esc
+  // e' gia' collegata mentre i dati stanno ancora arrivando, e deve trovarla.
+  const chiudi = (): void => {
+    if (attesa.current) clearTimeout(attesa.current)
+    void salvaSubito().then(async (ok) => {
+      if (ok || (await chiediUscita())) onChiudi()
+    })
+  }
+
   if (!dati) {
     return (
       <div className="modal-overlay">
@@ -175,13 +186,6 @@ export default function AnamnesiProssima({
     setAttivita(nuovo)
     attivitaDaSalvare.current = nuovo
     programmaSalvataggio()
-  }
-
-  const chiudi = (): void => {
-    if (attesa.current) clearTimeout(attesa.current)
-    void salvaSubito().then(async (ok) => {
-      if (ok || (await chiediUscita())) onChiudi()
-    })
   }
 
   const campo =

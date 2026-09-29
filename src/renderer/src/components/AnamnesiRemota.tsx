@@ -7,6 +7,7 @@ import { chiedi } from './Conferma'
 import Modale from './Modale'
 import { chiediUscita } from '../modificheInCorso'
 import { errMsg, formatData } from '../lib'
+import { useScorciatoie } from '../scorciatoie'
 import { useSalvaUscendo } from '../salvaUscendo'
 
 const ATTESA_SALVATAGGIO = 1500
@@ -55,6 +56,7 @@ export default function AnamnesiRemota({
   // Il salvataggio aspetta un secondo e mezzo dall'ultima lettera: chiudendo
   // il programma in quel mezzo, quello che resta si salva subito.
   const salvaAllaChiusura = useSalvaUscendo(stato === 'salvo' || stato === 'errore')
+  useScorciatoie([{ tasto: 'Escape', azione: () => chiudi() }])
   const attesa = useRef<ReturnType<typeof setTimeout> | null>(null)
   const daSalvare = useRef<Dati | null>(null)
 
@@ -102,6 +104,15 @@ export default function AnamnesiRemota({
     }
   }
 
+  // Definita prima del controllo sul caricamento qui sotto: la scorciatoia Esc
+  // e' gia' collegata mentre i dati stanno ancora arrivando, e deve trovarla.
+  const chiudi = (): void => {
+    if (attesa.current) clearTimeout(attesa.current)
+    void salvaSubito().then(async (ok) => {
+      if (ok || (await chiediUscita())) onChiudi()
+    })
+  }
+
   if (!dati) {
     return (
       <div className="modal-overlay">
@@ -119,13 +130,6 @@ export default function AnamnesiRemota({
     setStato('salvo')
     if (attesa.current) clearTimeout(attesa.current)
     attesa.current = setTimeout(() => void salvaSubito(), ATTESA_SALVATAGGIO)
-  }
-
-  const chiudi = (): void => {
-    if (attesa.current) clearTimeout(attesa.current)
-    void salvaSubito().then(async (ok) => {
-      if (ok || (await chiediUscita())) onChiudi()
-    })
   }
 
   const testo =

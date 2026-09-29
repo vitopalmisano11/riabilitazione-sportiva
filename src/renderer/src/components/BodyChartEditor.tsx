@@ -6,7 +6,7 @@ import { useZoomPizzico } from '../zoomPizzico'
 import type { BodyChartCompleta, SegnoBodyChart, TipoSegno, Vista } from '../../../shared/types'
 import { toast, toastErrore } from './Toast'
 import { errMsg } from '../lib'
-import { useScorciatoie } from '../scorciatoie'
+import { scorciatoieBloccate, useScorciatoie } from '../scorciatoie'
 import FiguraChart, { SEGNI, viste, type SegnoDisegnato } from './FiguraUmana'
 
 // I segni in memoria hanno una chiave stabile: l'id del database non c'e'
@@ -101,6 +101,30 @@ export default function BodyChartEditor({
     setSelezione(null)
     setModificato(true)
   }
+
+  // Ctrl+Z dentro a una casella di testo (Note, Intensita') annulla quello che
+  // si e' scritto, come sempre; fuori dalle caselle toglie l'ultimo segno
+  // messo sulla figura. Un ascoltatore a parte, non la scorciatoia qui sopra:
+  // quella con Ctrl scatta anche dentro alle caselle, e qui non deve.
+  useEffect(() => {
+    const tasto = (e: KeyboardEvent): void => {
+      if (soloLettura || scorciatoieBloccate()) return
+      if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.key.toLowerCase() !== 'z') return
+      const el = e.target as HTMLElement | null
+      const tag = el?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el?.isContentEditable) return
+      e.preventDefault()
+      if (segni.length === 0) {
+        toast('Niente da annullare.')
+        return
+      }
+      setSegni(segni.slice(0, -1))
+      setSelezione(null)
+      setModificato(true)
+    }
+    window.addEventListener('keydown', tasto)
+    return () => window.removeEventListener('keydown', tasto)
+  })
 
   // Trascinamento: si segue il puntatore finche' non viene rilasciato.
   const prendi = (chiave: string, e: React.PointerEvent<SVGGElement>): void => {

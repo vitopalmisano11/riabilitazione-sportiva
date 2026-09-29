@@ -6,6 +6,7 @@ import { chiedi } from './Conferma'
 import Modale from './Modale'
 import { errMsg } from '../lib'
 import { sposta, useRiordino } from '../riordino'
+import { useScorciatoie } from '../scorciatoie'
 import MenuScelta from './MenuScelta'
 
 // Obiettivi concordati col paziente. L'elenco si presenta gia' diviso per
@@ -43,6 +44,11 @@ export default function ObiettiviTerapeutici({
       .then((t) => setAspettative(t ?? ''))
       .catch((e) => toastErrore(errMsg(e)))
   }, [carica, pazienteId])
+
+  // Qui non c'e' niente in sospeso da salvare alla chiusura: il testo si
+  // salva uscendo dalla casella e il menu appena si sceglie (vedi sopra),
+  // quindi Esc puo' chiudere direttamente.
+  useScorciatoie([{ tasto: 'Escape', azione: onChiudi }])
 
   const aggiungi = async (): Promise<void> => {
     const testo = nuovo.trim()
