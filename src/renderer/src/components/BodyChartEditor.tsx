@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useSalvaUscendo } from '../salvaUscendo'
 import { Trash2 } from 'lucide-react'
 import { useClicSulFondo } from '../clicSulFondo'
-import type { BodyChartCompleta, SegnoBodyChart, TipoSegno } from '../../../shared/types'
+import { useZoomPizzico } from '../zoomPizzico'
+import type { BodyChartCompleta, SegnoBodyChart, TipoSegno, Vista } from '../../../shared/types'
 import { toast, toastErrore } from './Toast'
 import { errMsg } from '../lib'
 import { useScorciatoie } from '../scorciatoie'
@@ -231,16 +232,15 @@ export default function BodyChartEditor({
         {/* Le viste dipendono dal tipo di chart: corpo intero o piede. */}
         <div className={`corpi${dati.chart.tipo === 'piede' ? ' corpi-piede' : ''}`}>
           {viste(dati.chart.tipo).map((v) => (
-            <div key={v.valore} className="corpo-riquadro">
-              <FiguraChart
-                vista={v.valore}
-                segni={disegnati(v.valore)}
-                attivo={!soloLettura}
-                onClicCorpo={soloLettura ? undefined : (x, y) => aggiungi(v.valore, x, y)}
-                onPrendiSegno={prendi}
-              />
-              <span className="corpo-etichetta">{v.etichetta}</span>
-            </div>
+            <RiquadroVista
+              key={v.valore}
+              vista={v.valore}
+              etichetta={v.etichetta}
+              segni={disegnati(v.valore)}
+              attivo={!soloLettura}
+              onClicCorpo={soloLettura ? undefined : (x, y) => aggiungi(v.valore, x, y)}
+              onPrendiSegno={prendi}
+            />
           ))}
         </div>
 
@@ -266,6 +266,40 @@ export default function BodyChartEditor({
           )}
         </div>
       </div>
+    </div>
+  )
+}
+
+// Un riquadro con la sua figura: lo zoom e' suo, non della finestra intera,
+// cosi' si puo' ingrandire un lato senza toccare gli altri.
+function RiquadroVista({
+  vista,
+  etichetta,
+  segni,
+  attivo,
+  onClicCorpo,
+  onPrendiSegno
+}: {
+  vista: Vista
+  etichetta: string
+  segni: SegnoDisegnato[]
+  attivo: boolean
+  onClicCorpo?: (x: number, y: number) => void
+  onPrendiSegno: (chiave: string, e: React.PointerEvent<SVGGElement>) => void
+}): React.JSX.Element {
+  const { ref, scala, ingrandita } = useZoomPizzico<HTMLDivElement>()
+  return (
+    <div ref={ref} className={`corpo-riquadro${ingrandita ? ' zoomata' : ''}`}>
+      <div className="corpo-zoom" style={{ transform: `scale(${scala})` }}>
+        <FiguraChart
+          vista={vista}
+          segni={segni}
+          attivo={attivo}
+          onClicCorpo={onClicCorpo}
+          onPrendiSegno={onPrendiSegno}
+        />
+      </div>
+      <span className="corpo-etichetta">{etichetta}</span>
     </div>
   )
 }

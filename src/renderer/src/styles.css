@@ -4135,6 +4135,18 @@ input[type='checkbox'].interruttore:focus-visible {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 8px;
+  /* ingrandendo con un pizzico sul pad la figura deve poter sporgere sopra
+     alle altre, non restare tagliata dentro al suo riquadro */
+  position: relative;
+  overflow: visible;
+}
+
+.corpo-riquadro.zoomata {
+  z-index: 5;
+}
+
+.corpo-zoom {
+  transform-origin: center center;
 }
 
 .corpo-etichetta {
