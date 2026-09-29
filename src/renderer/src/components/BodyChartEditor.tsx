@@ -45,6 +45,32 @@ export default function BodyChartEditor({
     { tasto: 's', ctrl: true, azione: () => void salva(), attiva: !soloLettura && modificato }
   ])
 
+  // Ctrl+Z dentro a una casella di testo (Note, Intensita') annulla quello che
+  // si e' scritto, come sempre; fuori dalle caselle toglie l'ultimo segno
+  // messo sulla figura. Un ascoltatore a parte, non la scorciatoia qui sopra:
+  // quella con Ctrl scatta anche dentro alle caselle, e qui non deve.
+  // Sta sopra il controllo sul caricamento: un hook dopo un return anticipato
+  // cambia il numero di hook fra un disegno e l'altro, e la pagina va in bianco.
+  useEffect(() => {
+    const tasto = (e: KeyboardEvent): void => {
+      if (soloLettura || scorciatoieBloccate()) return
+      if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.key.toLowerCase() !== 'z') return
+      const el = e.target as HTMLElement | null
+      const tag = el?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el?.isContentEditable) return
+      e.preventDefault()
+      if (segni.length === 0) {
+        toast('Niente da annullare.')
+        return
+      }
+      setSegni(segni.slice(0, -1))
+      setSelezione(null)
+      setModificato(true)
+    }
+    window.addEventListener('keydown', tasto)
+    return () => window.removeEventListener('keydown', tasto)
+  })
+
   // Un clic fuori dalla finestra la chiude. Se c'erano segni non ancora
   // salvati si salvano da soli (vedi useSalvaUscendo sopra): al genitore si
   // dice se c'era qualcosa da salvare, cosi' non cancella una scheda appena
@@ -101,30 +127,6 @@ export default function BodyChartEditor({
     setSelezione(null)
     setModificato(true)
   }
-
-  // Ctrl+Z dentro a una casella di testo (Note, Intensita') annulla quello che
-  // si e' scritto, come sempre; fuori dalle caselle toglie l'ultimo segno
-  // messo sulla figura. Un ascoltatore a parte, non la scorciatoia qui sopra:
-  // quella con Ctrl scatta anche dentro alle caselle, e qui non deve.
-  useEffect(() => {
-    const tasto = (e: KeyboardEvent): void => {
-      if (soloLettura || scorciatoieBloccate()) return
-      if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.key.toLowerCase() !== 'z') return
-      const el = e.target as HTMLElement | null
-      const tag = el?.tagName
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el?.isContentEditable) return
-      e.preventDefault()
-      if (segni.length === 0) {
-        toast('Niente da annullare.')
-        return
-      }
-      setSegni(segni.slice(0, -1))
-      setSelezione(null)
-      setModificato(true)
-    }
-    window.addEventListener('keydown', tasto)
-    return () => window.removeEventListener('keydown', tasto)
-  })
 
   // Trascinamento: si segue il puntatore finche' non viene rilasciato.
   const prendi = (chiave: string, e: React.PointerEvent<SVGGElement>): void => {
