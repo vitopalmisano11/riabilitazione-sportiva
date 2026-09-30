@@ -6529,8 +6529,19 @@ input[type='checkbox'].interruttore:focus-visible {
   transition: transform 0.15s ease;
 }
 
-.ultima-seduta.aperta .freccia-ultima {
+.ultima-seduta.aperta .freccia-ultima,
+.sezione-comprimibile.aperta .freccia-ultima {
   transform: rotate(180deg);
+}
+
+.riga-comprimibile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sezione-comprimibile.aperta .riga-comprimibile {
+  margin-bottom: 8px;
 }
 
 .ultima-seduta.aperta .titolo-ultima {
@@ -6575,7 +6586,7 @@ textarea.cresce {
 
 .righe-ultima > div {
   display: grid;
-  grid-template-columns: 110px minmax(0, 1fr);
+  grid-template-columns: 160px minmax(0, 1fr);
   gap: 10px;
 }
 
@@ -6584,9 +6595,23 @@ textarea.cresce {
   font-size: 14px;
 }
 
+.righe-ultima dt.dt-riferiva {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0 6px;
+}
+
+.righe-ultima dt.dt-riferiva .badge-andamento {
+  margin-right: 0;
+}
+
+/* A capo dove si e' andati a capo scrivendo la nota della seduta. */
 .righe-ultima dd {
   margin: 0;
   font-size: 15px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .diario-seduta {
@@ -7060,4 +7085,11 @@ textarea.cresce {
 .scelta-recupero {
   align-self: center;
   margin-bottom: 4px;
+}
+
+/* Casella di testo che si allunga da sola quanto il testo che contiene. */
+textarea.testo-adatta {
+  field-sizing: content;
+  min-height: 3em;
+  resize: none;
 }

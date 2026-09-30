@@ -285,17 +285,25 @@ export function generaHtml(
      una foto verticale spariva mezza persona. Lo spazio che avanza resta del
      colore del fondo. */
   .schede { margin-bottom: 10px; }
-  .scheda-es { display: flex; gap: 12px; border: 1px solid #dfe4ea; border-radius: 5px;
-               padding: 9px 11px; margin-bottom: 8px; page-break-inside: avoid; }
-  .scheda-es .foto { flex: 0 0 130px; height: 130px; background: #fff; border-radius: 4px;
-                     overflow: hidden; }
-  .scheda-es .foto img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  /* Ogni esercizio e' un blocco che deve stare tutto su una pagina: il nome
+     non deve restare in fondo a una e la foto in cima alla seguente. Come
+     tabella e non come riga flessibile perche' la stampa rispetta "non
+     spezzare" sulle tabelle in modo affidabile, sulle righe flessibili no. */
+  .scheda-es { display: table; width: 100%; box-sizing: border-box; border-collapse: separate;
+               border-spacing: 0; border: 1px solid #dfe4ea; border-radius: 5px;
+               padding: 9px 11px; margin-bottom: 8px;
+               break-inside: avoid; page-break-inside: avoid; }
+  .scheda-es .foto { display: table-cell; width: 130px; height: 130px; vertical-align: top;
+                     background: #fff; border-radius: 4px; overflow: hidden; }
+  .scheda-es .foto img { width: 130px; height: 130px; object-fit: contain; display: block; }
   /* Il numero sta in una colonna sua: dentro la riga del nome, tutto quello che
      segue (dosaggio, spiegazione) partiva dal bordo del pallino e non dal nome. */
-  .scheda-es .testo { flex: 1; min-width: 0; display: flex; gap: 7px; }
-  .scheda-es .corpo { flex: 1; min-width: 0; }
+  .scheda-es .testo { display: table-cell; vertical-align: top; position: relative; }
+  .scheda-es .foto + .testo { padding-left: 12px; }
+  .scheda-es .foto + .testo .num { left: 12px; }
+  .scheda-es .corpo { padding-left: 24px; min-width: 0; }
   .scheda-es .nome { font-weight: 600; font-size: 13.5px; }
-  .scheda-es .num { flex: 0 0 auto; width: 17px; height: 17px; margin-top: 1px;
+  .scheda-es .num { position: absolute; left: 0; top: 1px; width: 17px; height: 17px;
                     border-radius: 50%; background: ${accento}; color: #fff; font-size: 10px;
                     text-align: center; line-height: 17px; }
   /* I numeri come le colonne della tabella: etichetta piccola in maiuscolo e

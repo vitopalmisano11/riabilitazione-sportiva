@@ -633,12 +633,43 @@ export default function SedutaBuilder({
     if (pronto) setFirmaAperta((prima) => prima ?? firma)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pronto])
-  const modificata = sedutaId != null && firmaAperta != null && firma !== firmaAperta
+  // Una seduta e' vera se c'e' scritto o messo qualcosa: solo tecniche,
+  // trattamento, cosa riferisce, note o esercizi.
+  const haQualcosa =
+    totaleEsercizi > 0 ||
+    tecnicaIds.length > 0 ||
+    trattamento.trim() !== '' ||
+    riferito.trim() !== '' ||
+    riferitoAndamento != null ||
+    note.trim() !== ''
+  // Una seduta nuova non ha una firma di partenza con cui confrontarsi: e'
+  // da salvare appena c'e' qualcosa dentro (e la data).
+  const modificata =
+    sedutaId != null
+      ? firmaAperta != null && firma !== firmaAperta
+      : pronto && data !== '' && haQualcosa
 
-  // Chiudendo il programma, o uscendo da questa scheda, con la seduta a meta'
-  // di una modifica: si salva da sola.
-  const salvaAllaChiusura = useSalvaUscendo(modificata)
-  salvaAllaChiusura.current = () => salva()
+  // Uscendo con Annulla/Esc la scelta l'ha gia' fatta l'utente (tenere la
+  // bozza o buttare tutto), e dopo un salvataggio non c'e' piu' niente da
+  // salvare: in questi casi lo smontaggio non deve salvare una seduta, o
+  // salvarla due volte.
+  const giaGestita = useRef(false)
+  // Se e' l'uscita a far salvare, la pagina sotto e' gia' un'altra: non le si
+  // dice "chiuso", altrimenti potrebbe riportare indietro chi ha cambiato
+  // sezione.
+  const smontata = useRef(false)
+  useEffect(
+    () => () => {
+      smontata.current = true
+    },
+    []
+  )
+
+  // Chiudendo il programma, o uscendo da questa scheda (anche cliccando in un'
+  // altra sezione), con la seduta a meta' di una modifica o appena
+  // cominciata: si salva da sola.
+  const salvaAllaChiusura = useSalvaUscendo(modificata && !giaGestita.current)
+  salvaAllaChiusura.current = () => (giaGestita.current ? Promise.resolve(true) : salva())
 
   // Esc annulla, Ctrl+S salva: la seduta si compila con la tastiera, senza
   // tornare col mouse in fondo alla finestra.
@@ -660,6 +691,7 @@ export default function SedutaBuilder({
         await window.api.bozze.elimina(paziente.id).catch(() => undefined)
       }
     }
+    giaGestita.current = true
     onClose(false)
   }
 
@@ -675,14 +707,7 @@ export default function SedutaBuilder({
     }
     // Una seduta di sole tecniche e' una seduta vera: basta che ci sia
     // qualcosa — esercizi, trattamento, cosa riferisce o le note.
-    const qualcosa =
-      totaleEsercizi > 0 ||
-      tecnicaIds.length > 0 ||
-      trattamento.trim() !== '' ||
-      riferito.trim() !== '' ||
-      riferitoAndamento != null ||
-      note.trim() !== ''
-    if (!qualcosa) {
+    if (!haQualcosa) {
       toastErrore('La seduta è vuota: scrivi cosa riferisce, il trattamento o aggiungi un esercizio.')
       return false
     }
@@ -729,7 +754,8 @@ export default function SedutaBuilder({
       // nuova successiva dello stesso paziente, anche se non si era perso
       // niente: la seduta di prima era salvata benissimo.
       await window.api.bozze.elimina(paziente.id).catch(() => undefined)
-      onClose(true)
+      giaGestita.current = true
+      if (!smontata.current) onClose(true)
       return true
     } catch (e) {
       toastErrore(errMsg(e))

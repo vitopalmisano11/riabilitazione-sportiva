@@ -451,8 +451,11 @@ function SchedaValutazione({
 
         <label>
           Ispezione, osservazione e palpazione
+          {/* In anteprima la casella cresce fino a mostrare tutto il testo:
+              da leggere non serve scorrerla dentro una finestra di due righe. */}
           <textarea
             rows={2}
+            className={soloLettura ? 'testo-adatta' : undefined}
             disabled={soloLettura}
             value={dati.valutazione.ispezione ?? ''}
             onChange={(e) => campoValutazione({ ispezione: e.target.value || null })}

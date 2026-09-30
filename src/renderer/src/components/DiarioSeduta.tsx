@@ -22,9 +22,13 @@ export const NOME_ANDAMENTO: Record<AndamentoRiferito, string> = {
 
 // La volta prima, in poche righe: si legge prima di chiedere "come va?".
 export function UltimaVoltaSeduta({
-  precedente
+  precedente,
+  apertaSeCiSonoNote = false
 }: {
   precedente: SedutaPrecedente
+  // Nel quadro del paziente e' la prima cosa che si legge: se c'e' scritto
+  // qualcosa parte gia' aperta. Dentro la seduta resta la riga sola.
+  apertaSeCiSonoNote?: boolean
 }): React.JSX.Element {
   const p = precedente
   const trattamento = [p.tecniche.join(', '), p.trattamento].filter(Boolean).join(' — ')
@@ -39,7 +43,7 @@ export function UltimaVoltaSeduta({
   ].filter(Boolean)
   const vuota = !p.riferito_andamento && !p.riferito && !trattamento && numeri.length === 0 && !p.note
   // Chiusa e' una riga sola, con l'essenziale; aperta mostra tutto.
-  const [aperta, setAperta] = useState(false)
+  const [aperta, setAperta] = useState(apertaSeCiSonoNote && !vuota)
   const inBreve = [
     p.riferito_andamento ? NOME_ANDAMENTO[p.riferito_andamento] : null,
     p.tecniche.join(', ') || null,
@@ -66,15 +70,17 @@ export function UltimaVoltaSeduta({
         <dl className="righe-ultima">
           {(p.riferito_andamento || p.riferito) && (
             <div>
-              <dt>Riferiva</dt>
-              <dd>
+              {/* L'andamento sta davanti all'etichetta, non dentro al testo:
+                  il testo scritto resta a destra e parte dal suo margine. */}
+              <dt className="dt-riferiva">
                 {p.riferito_andamento && (
                   <span className={`badge-andamento ${p.riferito_andamento}`}>
                     {NOME_ANDAMENTO[p.riferito_andamento]}
                   </span>
                 )}
-                {p.riferito}
-              </dd>
+                Riferiva
+              </dt>
+              <dd>{p.riferito}</dd>
             </div>
           )}
           {trattamento && (

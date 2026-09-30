@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { ChevronDown } from 'lucide-react'
 import type { PazienteDettaglio, PuntoAndamentoDolore, SedutaPrecedente } from '../../../shared/types'
 import { toastErrore } from './Toast'
 import { errMsg, oggiIso } from '../lib'
@@ -34,35 +35,50 @@ export default function QuadroPaziente({
       .catch((e) => toastErrore(errMsg(e)))
   }, [paziente.id])
 
+  // Il dolore parte aperto se ci sono numeri da vedere, chiuso (ma apribile)
+  // se non ce ne sono ancora; una scelta fatta col clic vince sempre.
+  const [scelta, setScelta] = useState<boolean | null>(null)
+  const doloreAperto = scelta ?? punti.length > 0
+
   return (
     <>
-      <section className="card">
-        <h3>
-          Andamento del dolore
-          <Aiuto testo="Mette insieme due numeri che hai gia' scritto altrove: il dolore segnato in fondo alle sedute e, prima ancora, i punti del grafico dall'esordio nell'anamnesi. Non si scrive niente da qui." />
-        </h3>
-        {punti.length === 0 ? (
-          <p className="hint">Non ci sono ancora numeri sul dolore.</p>
-        ) : (
-          <>
-            <GraficoDolore punti={punti} />
-            <div className="legenda-sintomi">
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                <span className="pallino" style={{ background: 'var(--text-dim)' }} /> prima
-                dell&apos;inizio
-              </span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                <span className="pallino" style={{ background: 'var(--accent)' }} /> sedute
-              </span>
-            </div>
-          </>
-        )}
-      </section>
-
       {/* La stessa "ultima volta" che si legge aprendo una seduta nuova: qui
-          si rilegge senza doverne aprire una. Niente da scrivere apposta:
-          e' la nota che si scrive gia' in fondo alla seduta. */}
-      {precedente && <UltimaVoltaSeduta precedente={precedente} />}
+          si rilegge senza doverne aprire una, ed e' la prima cosa che si vede.
+          Niente da scrivere apposta: e' la nota che si scrive gia' in fondo
+          alla seduta. */}
+      {precedente && <UltimaVoltaSeduta precedente={precedente} apertaSeCiSonoNote />}
+
+      <section className={doloreAperto ? 'card sezione-comprimibile aperta' : 'card sezione-comprimibile'}>
+        <div className="riga-comprimibile">
+          <button
+            type="button"
+            className="titolo-ultima"
+            title={doloreAperto ? 'Chiudi' : 'Apri'}
+            onClick={() => setScelta(!doloreAperto)}
+          >
+            <span className="data-ultima">Andamento del dolore</span>
+            <ChevronDown size={16} className="freccia-ultima" />
+          </button>
+          <Aiuto testo="Mette insieme due numeri che hai gia' scritto altrove: il dolore segnato in fondo alle sedute e, prima ancora, i punti del grafico dall'esordio nell'anamnesi. Non si scrive niente da qui." />
+        </div>
+        {doloreAperto &&
+          (punti.length === 0 ? (
+            <p className="hint">Non ci sono ancora numeri sul dolore.</p>
+          ) : (
+            <>
+              <GraficoDolore punti={punti} />
+              <div className="legenda-sintomi">
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <span className="pallino" style={{ background: 'var(--text-dim)' }} /> prima
+                  dell&apos;inizio
+                </span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <span className="pallino" style={{ background: 'var(--accent)' }} /> sedute
+                </span>
+              </div>
+            </>
+          ))}
+      </section>
     </>
   )
 }
