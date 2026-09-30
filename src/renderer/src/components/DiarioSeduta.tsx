@@ -70,15 +70,15 @@ export function UltimaVoltaSeduta({
         <dl className="righe-ultima">
           {(p.riferito_andamento || p.riferito) && (
             <div>
-              {/* L'andamento sta davanti all'etichetta, non dentro al testo:
+              {/* L'andamento sta accanto all'etichetta, non dentro al testo:
                   il testo scritto resta a destra e parte dal suo margine. */}
               <dt className="dt-riferiva">
+                Riferiva
                 {p.riferito_andamento && (
                   <span className={`badge-andamento ${p.riferito_andamento}`}>
                     {NOME_ANDAMENTO[p.riferito_andamento]}
                   </span>
                 )}
-                Riferiva
               </dt>
               <dd>{p.riferito}</dd>
             </div>

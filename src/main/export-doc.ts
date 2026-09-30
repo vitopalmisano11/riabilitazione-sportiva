@@ -243,6 +243,10 @@ export function generaHtml(
   .info { color: #555b66; margin: 0 0 6px; font-size: 11px; }
   h2 { font-size: 15px; border-bottom: 2px solid ${accento}; padding-bottom: 4px; margin: 18px 0 8px; }
   h2 .fase { color: ${accento}; font-weight: 600; }
+  /* Un titolo non resta mai da solo in fondo a una pagina con quello che
+     descrive sulla successiva: e' il caso del nome della sezione (es.
+     "Attivazione muscolare cervicale") separato dai suoi esercizi. */
+  h2, h3 { break-after: avoid; page-break-after: avoid; }
   h3 { font-size: 13px; margin: 16px 0 7px; color: ${accento}; }
   /* La fascetta della sezione, come nella finestra che si mostra al paziente:
      tenue, non un blocco di colore. Sulla carta il beige pieno pesava. */
