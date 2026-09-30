@@ -7093,3 +7093,8 @@ textarea.testo-adatta {
   min-height: 3em;
   resize: none;
 }
+
+/* Il giorno di oggi, portato in vista aprendo la settimana, lascia un po' d'aria sopra. */
+.giorno-settimana.oggi {
+  scroll-margin-top: 16px;
+}

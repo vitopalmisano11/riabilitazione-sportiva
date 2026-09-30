@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   CalendarDays,
   ChevronLeft,
@@ -114,12 +114,19 @@ export default function SettimanaPage({
     setLunedi(lunediDi(new Date()))
   }, [tornaAllElenco])
 
+  // Quale settimana ha gia' le sue sedute: prima di allora i giorni sono
+  // vuoti e piu' bassi, e scorrere adesso sbaglierebbe la posizione.
+  const [caricataPer, setCaricataPer] = useState<string | null>(null)
+
   const carica = useCallback((): void => {
     const domenica = new Date(lunedi)
     domenica.setDate(lunedi.getDate() + 6)
     window.api.sedute
       .settimana(iso(lunedi), iso(domenica))
-      .then(setSedute)
+      .then((r) => {
+        setSedute(r)
+        setCaricataPer(iso(lunedi))
+      })
       .catch((e) => toastErrore(errMsg(e)))
   }, [lunedi])
 
@@ -152,6 +159,16 @@ Finisce nel cestino: puoi rimetterla a posto da Impostazioni entro un mese.`
   }
 
   const oggi = oggiIso()
+  // Aprendo la settimana (o cambiandola) si arriva gia' sul giorno di oggi,
+  // senza scorrere; una volta sola per settimana, cosi' un salvataggio o un
+  // ricaricamento non riportano su mentre si sta lavorando piu' in basso.
+  const giornoOggi = useRef<HTMLDivElement | null>(null)
+  const scorsaPer = useRef<string | null>(null)
+  useEffect(() => {
+    if (caricataPer !== iso(lunedi) || scorsaPer.current === caricataPer || !giornoOggi.current) return
+    scorsaPer.current = caricataPer
+    giornoOggi.current.scrollIntoView({ block: 'start' })
+  }, [lunedi, caricataPer])
   const giorni = GIORNI.map((nome, i) => {
     const d = new Date(lunedi)
     d.setDate(lunedi.getDate() + i)
@@ -266,7 +283,11 @@ Finisce nel cestino: puoi rimetterla a posto da Impostazioni entro un mese.`
 
       <section className="card settimana-card">
         {giorni.map((g) => (
-          <div key={g.data} className={g.data === oggi ? 'giorno-settimana oggi' : 'giorno-settimana'}>
+          <div
+            key={g.data}
+            ref={g.data === oggi ? giornoOggi : undefined}
+            className={g.data === oggi ? 'giorno-settimana oggi' : 'giorno-settimana'}
+          >
             <div className="sotto-titolo">
               {g.nome} {g.numero}
               {g.data === oggi && <span className="badge">oggi</span>}
