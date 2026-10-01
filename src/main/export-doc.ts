@@ -86,8 +86,8 @@ function infoPaziente(p: DatiPazienteExport): string[] {
 // L'intestazione di chi firma, uguale in tutti i documenti: chi sei sopra,
 // come ti si trova sotto, e una riga sottile che la stacca dal contenuto. Se
 // il profilo e' vuoto non esce niente e il foglio resta come prima.
-export function intestazioneHtml(colore: string): string {
-  const { chi, dove } = righeProfilo()
+export function intestazioneHtml(colore: string, soloContatti = false): string {
+  const { chi, dove } = righeProfilo(undefined, soloContatti)
   if (chi === '' && dove === '') return ''
   return `<div class="carta-intestata">
     ${chi ? `<div class="ci-chi">${esc(chi)}</div>` : ''}
@@ -332,7 +332,7 @@ export function generaHtml(
 </style>
 </head>
 <body>
-  ${intestazioneHtml(accento)}
+  ${intestazioneHtml(accento, illustrata)}
   <h1>${esc(p.cognome)} ${esc(p.nome)}</h1>
   <p class="info">${infoPaziente(p).map(esc).join(' &nbsp;·&nbsp; ')}</p>
   ${sedHtml}

@@ -15,7 +15,8 @@ import {
   oggiIso
 } from './export-cartella'
 import { generaReportScreening } from './report-screening'
-import type { SezioneCartella } from '../shared/types'
+import { generaCertificatoHtml } from './certificato'
+import type { CertificatoInput, SezioneCartella } from '../shared/types'
 import {
   generaDocx,
   generaHtml,
@@ -352,6 +353,27 @@ export async function esportaRelazione(
   })
   if (canceled || !filePath) return null
   await htmlToPdf(generaRelazione(pazienteId, tipo), filePath)
+  impostaCartellaExport(dirname(filePath))
+  shell.showItemInFolder(filePath)
+  return filePath
+}
+
+// ---- Certificato di presenza ----
+
+export async function esportaCertificato(dati: CertificatoInput): Promise<string | null> {
+  // Prima si compone (e si controlla): se manca qualcosa l'errore arriva prima
+  // della finestra di salvataggio, non dopo.
+  const html = generaCertificatoHtml(dati)
+  const { canceled, filePath } = await dialog.showSaveDialog({
+    title: 'Salva il certificato di presenza',
+    defaultPath: join(
+      cartellaExport(),
+      `${slug(dati.paziente.cognome)}_${slug(dati.paziente.nome)}_certificato_${dati.data}.pdf`
+    ),
+    filters: [{ name: 'PDF', extensions: ['pdf'] }]
+  })
+  if (canceled || !filePath) return null
+  await htmlToPdf(html, filePath)
   impostaCartellaExport(dirname(filePath))
   shell.showItemInFolder(filePath)
   return filePath

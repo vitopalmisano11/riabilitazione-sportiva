@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { FileDown, Pencil, Trash2 } from 'lucide-react'
+import { FileCheck, FileDown, Pencil, Trash2 } from 'lucide-react'
 import type {
   Fase,
   Gruppo,
@@ -13,6 +13,7 @@ import SceltaConRicerca from './SceltaConRicerca'
 import Modale from './Modale'
 import { errMsg, daQuando, eta, formatData } from '../lib'
 import EsportaCartella from './EsportaCartella'
+import CertificatoPaziente from './CertificatoPaziente'
 
 // Dati del paziente: si leggono, non si modificano per sbaglio. Per cambiarli
 // si apre la finestra con la matita, accanto al cestino.
@@ -27,6 +28,7 @@ export default function AnagraficaPaziente({
 }): React.JSX.Element {
   const [modifica, setModifica] = useState(false)
   const [esporta, setEsporta] = useState(false)
+  const [certificato, setCertificato] = useState(false)
 
   const elimina = async (): Promise<void> => {
     if (
@@ -52,6 +54,7 @@ export default function AnagraficaPaziente({
 
   const voci: { etichetta: string; valore: string | null }[] = [
     { etichetta: 'Data di nascita', valore: nascita },
+    { etichetta: 'Codice fiscale', valore: paziente.codice_fiscale },
     { etichetta: 'Telefono', valore: paziente.telefono },
     { etichetta: 'E-mail', valore: paziente.email },
     { etichetta: 'Lavoro / Hobby', valore: paziente.lavoro },
@@ -91,6 +94,9 @@ export default function AnagraficaPaziente({
           <button title="Esporta la cartella in PDF" onClick={() => setEsporta(true)}>
             <FileDown size={18} />
           </button>
+          <button title="Certificato di presenza" onClick={() => setCertificato(true)}>
+            <FileCheck size={18} />
+          </button>
           <button title="Modifica i dati" onClick={() => setModifica(true)}>
             <Pencil size={18} />
           </button>
@@ -115,6 +121,16 @@ export default function AnagraficaPaziente({
 
       {esporta && <EsportaCartella paziente={paziente} onChiudi={() => setEsporta(false)} />}
 
+      {certificato && (
+        <CertificatoPaziente
+          paziente={paziente}
+          onChiudi={(datiCambiati) => {
+            setCertificato(false)
+            if (datiCambiati) void onChanged()
+          }}
+        />
+      )}
+
       {modifica && (
         <ModaleDatiPaziente
           paziente={paziente}
@@ -133,6 +149,7 @@ const VUOTO = {
   nome: '',
   cognome: '',
   data_nascita: '',
+  codice_fiscale: '',
   telefono: '',
   email: '',
   lavoro: '',
@@ -164,6 +181,7 @@ export function ModaleDatiPaziente({
           nome: paziente.nome,
           cognome: paziente.cognome,
           data_nascita: paziente.data_nascita ?? '',
+          codice_fiscale: paziente.codice_fiscale ?? '',
           telefono: paziente.telefono ?? '',
           email: paziente.email ?? '',
           lavoro: paziente.lavoro ?? '',
@@ -213,6 +231,7 @@ export function ModaleDatiPaziente({
       nome: form.nome,
       cognome: form.cognome,
       data_nascita: form.data_nascita || null,
+      codice_fiscale: vuotoNull(form.codice_fiscale)?.toUpperCase() ?? null,
       telefono: vuotoNull(form.telefono),
       email: vuotoNull(form.email),
       lavoro: vuotoNull(form.lavoro),
@@ -279,16 +298,27 @@ export function ModaleDatiPaziente({
             <input type="date" value={form.data_nascita} onChange={campo('data_nascita')} />
           </label>
           <label>
-            Telefono
-            <input value={form.telefono} onChange={campo('telefono')} />
+            Codice fiscale
+            <input
+              placeholder="es. RSSMRA80A01A662X"
+              value={form.codice_fiscale}
+              onChange={campo('codice_fiscale')}
+            />
           </label>
         </div>
 
         <div className="form-row-2">
           <label>
+            Telefono
+            <input value={form.telefono} onChange={campo('telefono')} />
+          </label>
+          <label>
             E-mail
             <input value={form.email} onChange={campo('email')} />
           </label>
+        </div>
+
+        <div className="form-row-2">
           <label>
             Lavoro / Hobby
             <input
@@ -297,9 +327,6 @@ export function ModaleDatiPaziente({
               onChange={campo('lavoro')}
             />
           </label>
-        </div>
-
-        <div className="form-row-2">
           <label>
             Sport
             <input
@@ -308,6 +335,9 @@ export function ModaleDatiPaziente({
               onChange={campo('sport')}
             />
           </label>
+        </div>
+
+        <div className="form-row-2">
           <label>
             Gruppo
             <SceltaConRicerca

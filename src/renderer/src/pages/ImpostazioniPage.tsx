@@ -365,6 +365,11 @@ const CAMPI_PROFILO: { chiave: keyof Profilo; etichetta: string; esempio: string
   { chiave: 'indirizzo', etichetta: 'Indirizzo', esempio: 'es. via Roma 3, Bari' },
   { chiave: 'codice_fiscale', etichetta: 'Codice fiscale', esempio: 'es. RSSMRA80A01A662X' },
   { chiave: 'partita_iva', etichetta: 'Partita IVA', esempio: 'es. 01234567890' },
+  {
+    chiave: 'numero_iscrizione',
+    etichetta: "Numero di iscrizione all'Ordine (OFI)",
+    esempio: 'es. 1234'
+  },
   { chiave: 'telefono', etichetta: 'Telefono', esempio: 'es. 333 1234567' },
   { chiave: 'email', etichetta: 'Email', esempio: 'es. studio@esempio.it' }
 ]
@@ -376,6 +381,7 @@ const PROFILO_VUOTO: Profilo = {
   indirizzo: null,
   codice_fiscale: null,
   partita_iva: null,
+  numero_iscrizione: null,
   telefono: null,
   email: null
 }
@@ -408,7 +414,13 @@ function SchedaProfilo(): React.JSX.Element {
 
   // L'anteprima e' la stessa cosa che finisce in cima al foglio: cosi' si vede
   // subito com'e' venuta, senza stampare per scoprirlo.
-  const chi = [profilo.nome, profilo.qualifica].filter(Boolean).join(' · ')
+  const chi = [
+    profilo.nome,
+    profilo.qualifica,
+    profilo.numero_iscrizione ? `Iscr. OFI n. ${profilo.numero_iscrizione}` : null
+  ]
+    .filter(Boolean)
+    .join(' · ')
   const dove = [
     profilo.studio,
     profilo.indirizzo,
@@ -425,7 +437,7 @@ function SchedaProfilo(): React.JSX.Element {
       <div className="blocco-impostazione">
         <div className="sotto-titolo">
           Chi firma i fogli
-          <Aiuto testo="Nome, qualifica, dati fiscali e contatti compaiono in cima a tutto quello che stampi: schede, cartella e report. Lascia vuoto quello che non ti serve, e non comparirà; finché è tutto vuoto i fogli escono come adesso, senza intestazione." />
+          <Aiuto testo="Nome, qualifica, numero d'iscrizione all'Ordine, dati fiscali e contatti compaiono in cima a tutto quello che stampi: schede, cartella e report; il certificato di presenza li prende da qui. Sulla scheda illustrata per il paziente restano solo nome, qualifica, numero d'iscrizione, telefono ed email. Lascia vuoto quello che non ti serve, e non comparirà; finché è tutto vuoto i fogli escono come adesso, senza intestazione." />
         </div>
         <div className="form-row-2">
           {CAMPI_PROFILO.map((c) => (

@@ -75,7 +75,7 @@ export function esportaArchivio(cartella: string): string {
 
   scriviCsv(
     join(dest, 'pazienti.csv'),
-    q(`SELECT p.cognome, p.nome, p.data_nascita, p.telefono, p.email, p.lavoro,
+    q(`SELECT p.cognome, p.nome, p.data_nascita, p.codice_fiscale, p.telefono, p.email, p.lavoro,
               p.inviato_da, p.diagnosi, p.tipo_intervento, p.data_intervento,
               p.arto_operato, pat.nome AS patologia, f.nome AS fase_corrente,
               p.stato, p.follow_up_il, p.contattato_il,
@@ -89,6 +89,7 @@ export function esportaArchivio(cartella: string): string {
       'cognome',
       'nome',
       'data_nascita',
+      'codice_fiscale',
       'telefono',
       'email',
       'lavoro',

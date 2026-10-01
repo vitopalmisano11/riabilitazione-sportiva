@@ -74,6 +74,7 @@ import {
   anteprimaSchedaIllustrata,
   esportaCartella,
   esportaRelazione,
+  esportaCertificato,
   esportaSeduta,
   esportaStorico,
   type FormatoExport
@@ -119,6 +120,7 @@ import {
   validaScala010
 } from './validazione'
 import type {
+  CertificatoInput,
   TipoChart,
   AnamnesiProssima,
   AnamnesiRemota,
@@ -1020,10 +1022,10 @@ export function registerIpc(): void {
       getDb()
         .prepare(
           `INSERT INTO pazienti
-             (nome, cognome, data_nascita, telefono, email, lavoro, inviato_da, sport, diagnosi,
+             (nome, cognome, data_nascita, codice_fiscale, telefono, email, lavoro, inviato_da, sport, diagnosi,
               tipo_intervento, data_intervento, precauzioni, patologia_id, fase_corrente_id, gruppo_id)
            VALUES
-             (@nome, @cognome, @data_nascita, @telefono, @email, @lavoro, @inviato_da, @sport, @diagnosi,
+             (@nome, @cognome, @data_nascita, @codice_fiscale, @telefono, @email, @lavoro, @inviato_da, @sport, @diagnosi,
               @tipo_intervento, @data_intervento, @precauzioni, @patologia_id, @fase_corrente_id, @gruppo_id)`
         )
         .run({ ...data, nome: data.nome.trim(), cognome: data.cognome.trim() }).lastInsertRowid
@@ -1037,7 +1039,7 @@ export function registerIpc(): void {
     getDb()
       .prepare(
         `UPDATE pazienti SET nome = @nome, cognome = @cognome,
-         data_nascita = @data_nascita, telefono = @telefono, email = @email,
+         data_nascita = @data_nascita, codice_fiscale = @codice_fiscale, telefono = @telefono, email = @email,
          lavoro = @lavoro, inviato_da = @inviato_da, sport = @sport, diagnosi = @diagnosi,
          tipo_intervento = @tipo_intervento, data_intervento = @data_intervento,
          precauzioni = @precauzioni, arto_operato = @arto_operato, gruppo_id = @gruppo_id
@@ -1302,7 +1304,7 @@ export function registerIpc(): void {
   handle('sedute:list', (pazienteId: number) =>
     getDb()
       .prepare(
-        `SELECT s.id, s.paziente_id, s.data, s.focus, s.dolore, s.sforzo, f.nome AS fase_nome,
+        `SELECT s.id, s.paziente_id, s.data, s.ora, s.focus, s.dolore, s.sforzo, f.nome AS fase_nome,
            COALESCE(f.campo, 0) AS fase_campo, s.note,
            s.riferito_andamento, s.riferito, s.trattamento,
            (SELECT GROUP_CONCAT(t.nome, ' · ')
@@ -2232,6 +2234,7 @@ export function registerIpc(): void {
   handle('esporta:relazione', (pazienteId: number, tipo: TipoRelazione) =>
     esportaRelazione(pazienteId, tipo)
   )
+  handle('esporta:certificato', (dati: CertificatoInput) => esportaCertificato(dati))
   handle('esporta:seduta', (sedutaId: number, formato: FormatoExport, illustrata?: boolean) =>
     esportaSeduta(sedutaId, formato, illustrata === true)
   )

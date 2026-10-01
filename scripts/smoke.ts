@@ -33,6 +33,7 @@ import { seduteDellaSettimana } from '../src/main/settimana'
 import { ultimaVoltaPerPaziente } from '../src/main/ultima-volta'
 import { andamentoDolorePerPaziente } from '../src/main/andamento-dolore'
 import { leggiProfilo, righeProfilo, salvaProfilo } from '../src/main/profilo'
+import { generaCertificatoHtml } from '../src/main/certificato'
 import { generaCartella, generaRelazione, SEZIONI } from '../src/main/export-cartella'
 import { esportaArchivio } from '../src/main/esporta-archivio'
 import { leggiTest, salvaTest } from '../src/main/test-valutazione'
@@ -102,7 +103,7 @@ db.pragma('foreign_keys = ON')
 
 runMigrations(db)
 runMigrations(db) // idempotente
-assert.equal(db.pragma('user_version', { simple: true }), 51)
+assert.equal(db.pragma('user_version', { simple: true }), 52)
 // gli indici delle ricerche frequenti ci sono
 for (const indice of ['idx_segno_valori_seduta', 'idx_compilazione_punteggi_compilazione', 'idx_sedute_data']) {
   assert.ok(
@@ -1195,6 +1196,7 @@ assert.equal(
     indirizzo: 'via Roma 3, Bari',
     codice_fiscale: null,
     partita_iva: '01234567890',
+    numero_iscrizione: null,
     telefono: '333 1234567',
     email: null
   })
@@ -1217,10 +1219,63 @@ assert.equal(
     indirizzo: null,
     codice_fiscale: null,
     partita_iva: null,
+    numero_iscrizione: null,
     telefono: null,
     email: null
   })
   assert.equal(righeProfilo().chi, '')
+}
+
+// --- Il certificato di presenza ---
+{
+  const base = {
+    professionista: {
+      nome: 'Dott. Mario Rossi',
+      qualifica: 'Fisioterapista',
+      numero_iscrizione: '1234',
+      indirizzo: 'via Roma 3, Bari',
+      telefono: '333 1234567',
+      email: null
+    },
+    paziente: {
+      nome: 'Anna',
+      cognome: 'Bianchi',
+      data_nascita: '1985-03-09',
+      codice_fiscale: 'bnchnn85c49a662z'
+    },
+    data: '2026-09-30',
+    ora_inizio: '10:00',
+    ora_fine: '11:30',
+    comprende_viaggio: false,
+    data_emissione: '2026-10-01'
+  }
+  const html = generaCertificatoHtml(base)
+  assert.ok(html.includes('CERTIFICATO DI PRESENZA'))
+  assert.ok(html.includes('Dott. Mario Rossi'))
+  assert.ok(html.includes('n. 1234'), "numero d'iscrizione")
+  assert.ok(html.includes('09/03/1985'), 'data di nascita in italiano')
+  assert.ok(html.includes('BNCHNN85C49A662Z'), 'codice fiscale in maiuscolo')
+  assert.ok(html.includes('dalle ore <strong>10:00</strong>'))
+  assert.ok(html.includes('alle ore <strong>11:30</strong>'))
+  assert.ok(html.includes('seduta di fisioterapia'))
+  assert.ok(html.includes('Data di emissione: <strong>01/10/2026</strong>'))
+  assert.ok(!html.includes('tempo stimato per il viaggio'))
+  assert.ok(generaCertificatoHtml({ ...base, comprende_viaggio: true }).includes('tempo stimato per il viaggio'))
+  // quello che manca ferma il foglio con una frase chiara, invece di stamparlo a meta'
+  const senza = (modifica: (c: typeof base) => void): string => {
+    const c = JSON.parse(JSON.stringify(base)) as typeof base
+    modifica(c)
+    try {
+      generaCertificatoHtml(c)
+      return ''
+    } catch (e) {
+      return (e as Error).message
+    }
+  }
+  assert.match(senza((c) => (c.professionista.numero_iscrizione = '')), /iscrizione/)
+  assert.match(senza((c) => (c.paziente.codice_fiscale = ' ')), /codice fiscale/)
+  assert.match(senza((c) => (c.ora_fine = '')), /ora di inizio/)
+  assert.match(senza((c) => (c.ora_fine = '09:00')), /dopo quella di inizio/)
 }
 
 // --- L'ultima volta che il paziente ha fatto un esercizio ---
@@ -1699,19 +1754,11 @@ assert.equal(
   // lette come ore di Greenwich mancava sempre un giorno all'appello.
   assert.equal(daQuando(giorniFa(14)), '2 settimane')
   assert.equal(daQuando(giorniFa(20)), '2 settimane')
-  // un mese e qualcosa: il mese e' quello vero del calendario, non 30 giorni
-  const unMeseE3Settimane = new Date()
-  unMeseE3Settimane.setMonth(unMeseE3Settimane.getMonth() - 1)
-  unMeseE3Settimane.setDate(unMeseE3Settimane.getDate() - 21)
+  // un mese e qualcosa: il mese e' quello vero del calendario, non 30 giorni.
+  // Con date fisse: sottrarre "un mese" e poi "21 giorni" a oggi non da' sempre
+  // tre settimane esatte, perche' i mesi hanno lunghezze diverse.
+  assert.equal(daQuando('2026-07-17', new Date(2026, 8, 7)), '1 mese e 3 settimane')
   const p2 = (x: number): string => String(x).padStart(2, '0')
-  assert.equal(
-    daQuando(
-      `${unMeseE3Settimane.getFullYear()}-${p2(unMeseE3Settimane.getMonth() + 1)}-${p2(
-        unMeseE3Settimane.getDate()
-      )}`
-    ),
-    '1 mese e 3 settimane'
-  )
   // una data nel futuro non dice niente
   const domani = new Date()
   domani.setDate(domani.getDate() + 1)

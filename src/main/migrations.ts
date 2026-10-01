@@ -1269,6 +1269,17 @@ export const MIGRATIONS: string[] = [
   CREATE INDEX IF NOT EXISTS idx_compilazione_punteggi_compilazione
     ON compilazione_punteggi(compilazione_id);
   CREATE INDEX IF NOT EXISTS idx_sedute_data ON sedute(data);
+  `,
+
+  // 52 - il certificato di presenza.
+  //
+  //      Serve il numero di iscrizione all'Ordine (OFI) di chi firma, che va
+  //      nel profilo in Impostazioni, e il codice fiscale del paziente. Sono
+  //      due caselle nuove, facoltative: chi non le compila non vede nessun
+  //      cambiamento nei fogli di prima.
+  `
+  ALTER TABLE profilo ADD COLUMN numero_iscrizione TEXT;
+  ALTER TABLE pazienti ADD COLUMN codice_fiscale TEXT;
   `
 ]
 

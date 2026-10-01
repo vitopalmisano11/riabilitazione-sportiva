@@ -121,6 +121,8 @@ export interface Paziente {
   nome: string
   cognome: string
   data_nascita: string | null
+  // Serve al certificato di presenza.
+  codice_fiscale: string | null
   telefono: string | null
   email: string | null
   lavoro: string | null
@@ -170,6 +172,7 @@ export interface PazienteInput {
   nome: string
   cognome: string
   data_nascita: string | null
+  codice_fiscale: string | null
   telefono: string | null
   email: string | null
   lavoro: string | null
@@ -329,8 +332,38 @@ export interface Profilo {
   indirizzo: string | null
   codice_fiscale: string | null
   partita_iva: string | null
+  // Numero di iscrizione all'Ordine dei Fisioterapisti (OFI): compare sul
+  // certificato di presenza e sulla scheda illustrata.
+  numero_iscrizione: string | null
   telefono: string | null
   email: string | null
+}
+
+// Tutto quello che compare sul certificato di presenza. La finestra nella
+// scheda del paziente lo compone, partendo da quello che c'e' nel profilo e
+// nella scheda e lasciando completare quello che manca.
+export interface CertificatoInput {
+  professionista: {
+    nome: string | null
+    qualifica: string | null
+    numero_iscrizione: string | null
+    indirizzo: string | null
+    telefono: string | null
+    email: string | null
+  }
+  paziente: {
+    nome: string
+    cognome: string
+    data_nascita: string | null
+    codice_fiscale: string | null
+  }
+  // Giorno e fascia oraria della seduta, "AAAA-MM-GG" e "HH:MM"
+  data: string
+  ora_inizio: string
+  ora_fine: string
+  // La fascia scritta copre anche il viaggio: lo dice il foglio.
+  comprende_viaggio: boolean
+  data_emissione: string
 }
 
 // Un punto dell'andamento del dolore nel tempo, per la linguetta "Quadro":
@@ -360,6 +393,8 @@ export interface SedutaRiepilogo {
   id: number
   paziente_id: number
   data: string
+  // Ora d'inizio, se scritta
+  ora: string | null
   focus: string | null
   dolore: number | null
   sforzo: number | null
@@ -1338,6 +1373,8 @@ export interface Api {
       al: string,
       formato: 'pdf' | 'docx'
     ): Promise<string | null>
+    // Il certificato di presenza, in PDF. Il percorso, o null se annulli.
+    certificato(dati: CertificatoInput): Promise<string | null>
   }
   questionariCategorie: {
     list(): Promise<CategoriaQuestionario[]>

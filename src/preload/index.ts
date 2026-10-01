@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { Tema } from '../shared/temi'
 import type {
+  CertificatoInput,
   TipoChart,
   AnamnesiProssima,
   AnamnesiRemota,
@@ -286,6 +287,7 @@ const api: Api = {
   },
   esporta: {
     schedaIllustrata: (sedutaId: number) => invoke('esporta:schedaIllustrata', sedutaId),
+    certificato: (dati: CertificatoInput) => invoke('esporta:certificato', dati),
     anteprimaCartella: (pazienteId: number, sezioni: SezioneCartella[]) =>
       invoke('esporta:anteprimaCartella', pazienteId, sezioni),
     anteprimaRelazione: (pazienteId: number, tipo: TipoRelazione) =>
