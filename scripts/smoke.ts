@@ -103,7 +103,7 @@ db.pragma('foreign_keys = ON')
 
 runMigrations(db)
 runMigrations(db) // idempotente
-assert.equal(db.pragma('user_version', { simple: true }), 52)
+assert.equal(db.pragma('user_version', { simple: true }), 53)
 // gli indici delle ricerche frequenti ci sono
 for (const indice of ['idx_segno_valori_seduta', 'idx_compilazione_punteggi_compilazione', 'idx_sedute_data']) {
   assert.ok(
@@ -1197,6 +1197,7 @@ assert.equal(
     codice_fiscale: null,
     partita_iva: '01234567890',
     numero_iscrizione: null,
+    iscrizione_in_scheda: 1,
     telefono: '333 1234567',
     email: null
   })
@@ -1220,8 +1221,48 @@ assert.equal(
     codice_fiscale: null,
     partita_iva: null,
     numero_iscrizione: null,
+    iscrizione_in_scheda: 1,
     telefono: null,
     email: null
+  })
+  assert.equal(righeProfilo().chi, '')
+}
+
+// --- L'iscrizione all'Ordine in cima ai fogli ---
+{
+  const profilo = {
+    nome: 'Dott. Mario Rossi',
+    qualifica: 'Fisioterapista',
+    studio: null,
+    indirizzo: 'via Roma 3, Bari',
+    codice_fiscale: null,
+    partita_iva: null,
+    numero_iscrizione: '77',
+    iscrizione_in_scheda: 1 as 0 | 1,
+    telefono: '333 1234567',
+    email: null
+  }
+  salvaProfilo(profilo)
+  // la scheda illustrata, per il paziente: solo nome e qualifica, e l'iscrizione a destra
+  const scheda = generaHtml(pazExport, seduteExport, true)
+  assert.ok(scheda.includes('Dott. Mario Rossi · Fisioterapista'))
+  assert.ok(scheda.includes('OFI di Siena n. 77'))
+  assert.ok(!scheda.includes('333 1234567'), 'niente contatti sulla scheda illustrata')
+  assert.ok(!scheda.includes('via Roma 3'))
+  // gli altri fogli tengono i contatti
+  assert.ok(generaHtml(pazExport, seduteExport).includes('333 1234567'))
+  // spenta dal profilo, l'iscrizione non compare
+  salvaProfilo({ ...profilo, iscrizione_in_scheda: 0 })
+  assert.equal(leggiProfilo().iscrizione_in_scheda, 0)
+  assert.ok(!generaHtml(pazExport, seduteExport, true).includes('OFI di Siena'))
+  salvaProfilo({
+    ...profilo,
+    nome: null,
+    qualifica: null,
+    indirizzo: null,
+    numero_iscrizione: null,
+    iscrizione_in_scheda: 1,
+    telefono: null
   })
   assert.equal(righeProfilo().chi, '')
 }
@@ -1252,7 +1293,7 @@ assert.equal(
   const html = generaCertificatoHtml(base)
   assert.ok(html.includes('CERTIFICATO DI PRESENZA'))
   assert.ok(html.includes('Dott. Mario Rossi'))
-  assert.ok(html.includes('n. 1234'), "numero d'iscrizione")
+  assert.ok(html.includes('OFI di Siena n. 1234'), "iscrizione all'OFI di Siena")
   assert.ok(html.includes('09/03/1985'), 'data di nascita in italiano')
   assert.ok(html.includes('BNCHNN85C49A662Z'), 'codice fiscale in maiuscolo')
   assert.ok(html.includes('dalle ore <strong>10:00</strong>'))

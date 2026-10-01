@@ -8,6 +8,7 @@
 import { coloriTema } from '../shared/temi'
 import type { CertificatoInput } from '../shared/types'
 import { esc } from './html'
+import { testoIscrizione } from './profilo'
 
 const ORA = /^([01]\d|2[0-3]):[0-5]\d$/
 const DATA = /^\d{4}-\d{2}-\d{2}$/
@@ -23,7 +24,7 @@ export function validaCertificato(c: CertificatoInput): void {
   const pieno = (v: string | null): boolean => (v ?? '').trim() !== ''
   if (!pieno(c.professionista.nome)) throw new Error('Manca il tuo nome e cognome.')
   if (!pieno(c.professionista.numero_iscrizione)) {
-    throw new Error("Manca il numero di iscrizione all'Ordine (OFI).")
+    throw new Error("Manca il numero di iscrizione all'OFI di Siena.")
   }
   if (!pieno(c.paziente.nome) || !pieno(c.paziente.cognome)) {
     throw new Error('Mancano nome e cognome del paziente.')
@@ -88,9 +89,7 @@ export function generaCertificatoHtml(c: CertificatoInput): string {
   <div class="intestazione">
     <div class="nome">${esc(pr.nome ?? '')}</div>
     ${(pr.qualifica ?? '').trim() ? `<div class="titolo">${esc(pr.qualifica ?? '')}</div>` : ''}
-    <div class="iscrizione">Iscritto all'Ordine dei Fisioterapisti (OFI) · n. ${esc(
-      pr.numero_iscrizione ?? ''
-    )}</div>
+    <div class="iscrizione">${esc(testoIscrizione(pr.numero_iscrizione))}</div>
     ${contatti ? `<div class="contatti">${contatti}</div>` : ''}
   </div>
 

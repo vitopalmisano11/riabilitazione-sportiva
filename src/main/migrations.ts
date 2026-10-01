@@ -1280,6 +1280,14 @@ export const MIGRATIONS: string[] = [
   `
   ALTER TABLE profilo ADD COLUMN numero_iscrizione TEXT;
   ALTER TABLE pazienti ADD COLUMN codice_fiscale TEXT;
+  `,
+
+  // 53 - scegliere se l'iscrizione all'Ordine compare sui fogli stampati.
+  //
+  //      Di partenza si': e' il comportamento che si era chiesto per le schede.
+  //      Si spegne dal profilo, in Impostazioni.
+  `
+  ALTER TABLE profilo ADD COLUMN iscrizione_in_scheda INTEGER NOT NULL DEFAULT 1;
   `
 ]
 

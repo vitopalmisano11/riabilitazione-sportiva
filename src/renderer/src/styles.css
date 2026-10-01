@@ -7098,3 +7098,18 @@ textarea.testo-adatta {
 .giorno-settimana.oggi {
   scroll-margin-top: 16px;
 }
+
+/* Nell'anteprima del foglio: l'iscrizione all'Ordine in fondo a destra della
+   riga del nome. */
+.foglio-finto .riga-chi-con-iscrizione {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+}
+
+.foglio-finto .riga-iscrizione {
+  font-size: 13px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}

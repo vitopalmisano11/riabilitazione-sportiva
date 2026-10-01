@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { FileCheck, FileDown, Pencil, Trash2 } from 'lucide-react'
+import { BadgeCheck, FileDown, Pencil, Trash2 } from 'lucide-react'
 import type {
   Fase,
   Gruppo,
@@ -95,7 +95,7 @@ export default function AnagraficaPaziente({
             <FileDown size={18} />
           </button>
           <button title="Certificato di presenza" onClick={() => setCertificato(true)}>
-            <FileCheck size={18} />
+            <BadgeCheck size={18} />
           </button>
           <button title="Modifica i dati" onClick={() => setModifica(true)}>
             <Pencil size={18} />

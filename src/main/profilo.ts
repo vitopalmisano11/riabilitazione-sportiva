@@ -18,6 +18,7 @@ const VUOTO: Profilo = {
   codice_fiscale: null,
   partita_iva: null,
   numero_iscrizione: null,
+  iscrizione_in_scheda: 1,
   telefono: null,
   email: null
 }
@@ -41,6 +42,7 @@ export function salvaProfilo(p: Profilo): void {
     .prepare(
       `UPDATE profilo SET nome = ?, qualifica = ?, studio = ?, indirizzo = ?,
                           codice_fiscale = ?, partita_iva = ?, numero_iscrizione = ?,
+                          iscrizione_in_scheda = ?,
                           telefono = ?, email = ? WHERE id = 1`
     )
     .run(
@@ -51,6 +53,7 @@ export function salvaProfilo(p: Profilo): void {
       pulito(p.codice_fiscale),
       pulito(p.partita_iva),
       pulito(p.numero_iscrizione),
+      p.iscrizione_in_scheda === 0 ? 0 : 1,
       pulito(p.telefono),
       pulito(p.email)
     )
@@ -58,33 +61,31 @@ export function salvaProfilo(p: Profilo): void {
 
 // Le due righe dell'intestazione: chi sei e come ti si trova. Tornano vuote se
 // il profilo non e' stato compilato, e allora il foglio resta com'era.
-// `soloContatti` e' per il foglio che va al paziente (la scheda illustrata):
-// bastano chi sei, il numero d'iscrizione all'Ordine e come raggiungerti, senza
-// codice fiscale, partita IVA o indirizzo dello studio.
+// `soloNome` e' per il foglio che va al paziente (la scheda illustrata): bastano
+// nome e qualifica, senza contatti, codice fiscale o partita IVA.
 export function righeProfilo(
   p: Profilo = leggiProfilo(),
-  soloContatti = false
+  soloNome = false
 ): { chi: string; dove: string } {
-  const chi = [
-    p.nome,
-    p.qualifica,
-    p.numero_iscrizione ? `Iscr. OFI n. ${p.numero_iscrizione}` : null
-  ]
-    .filter(Boolean)
-    .join(' · ')
-  const dove = (
-    soloContatti
-      ? [p.telefono, p.email]
-      : [
-          p.studio,
-          p.indirizzo,
-          p.codice_fiscale ? `C.F. ${p.codice_fiscale}` : null,
-          p.partita_iva ? `P. IVA ${p.partita_iva}` : null,
-          p.telefono,
-          p.email
-        ]
-  )
-    .filter(Boolean)
-    .join(' · ')
+  const chi = [p.nome, p.qualifica].filter(Boolean).join(' · ')
+  const dove = soloNome
+    ? ''
+    : [
+        p.studio,
+        p.indirizzo,
+        p.codice_fiscale ? `C.F. ${p.codice_fiscale}` : null,
+        p.partita_iva ? `P. IVA ${p.partita_iva}` : null,
+        p.telefono,
+        p.email
+      ]
+        .filter(Boolean)
+        .join(' · ')
   return { chi, dove }
+}
+
+// La dicitura dell'iscrizione all'Ordine, uguale sul certificato e in cima ai
+// fogli. Vuota se manca il numero.
+export function testoIscrizione(numero: string | null | undefined): string {
+  const n = (numero ?? '').trim()
+  return n === '' ? '' : `Iscritto all'OFI di Siena n. ${n}`
 }

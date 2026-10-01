@@ -358,7 +358,11 @@ function SchedaCestino(): React.JSX.Element {
 
 // Chi firma i fogli stampati: si compila una volta, e da quel momento ogni
 // documento esce con il tuo nome invece che anonimo.
-const CAMPI_PROFILO: { chiave: keyof Profilo; etichetta: string; esempio: string }[] = [
+const CAMPI_PROFILO: {
+  chiave: Exclude<keyof Profilo, 'iscrizione_in_scheda'>
+  etichetta: string
+  esempio: string
+}[] = [
   { chiave: 'nome', etichetta: 'Nome e cognome', esempio: 'es. Dott. Mario Rossi' },
   { chiave: 'qualifica', etichetta: 'Qualifica', esempio: 'es. Fisioterapista' },
   { chiave: 'studio', etichetta: 'Studio', esempio: 'es. Studio di Riabilitazione Sportiva' },
@@ -367,7 +371,7 @@ const CAMPI_PROFILO: { chiave: keyof Profilo; etichetta: string; esempio: string
   { chiave: 'partita_iva', etichetta: 'Partita IVA', esempio: 'es. 01234567890' },
   {
     chiave: 'numero_iscrizione',
-    etichetta: "Numero di iscrizione all'Ordine (OFI)",
+    etichetta: "Numero di iscrizione all'OFI di Siena",
     esempio: 'es. 1234'
   },
   { chiave: 'telefono', etichetta: 'Telefono', esempio: 'es. 333 1234567' },
@@ -382,6 +386,7 @@ const PROFILO_VUOTO: Profilo = {
   codice_fiscale: null,
   partita_iva: null,
   numero_iscrizione: null,
+  iscrizione_in_scheda: 1,
   telefono: null,
   email: null
 }
@@ -397,7 +402,7 @@ function SchedaProfilo(): React.JSX.Element {
       .catch((e) => toastErrore(errMsg(e)))
   }, [])
 
-  const cambia = (chiave: keyof Profilo, valore: string): void => {
+  const cambia = (chiave: (typeof CAMPI_PROFILO)[number]['chiave'], valore: string): void => {
     setProfilo({ ...profilo, [chiave]: valore })
     setSalvato(false)
   }
@@ -414,13 +419,10 @@ function SchedaProfilo(): React.JSX.Element {
 
   // L'anteprima e' la stessa cosa che finisce in cima al foglio: cosi' si vede
   // subito com'e' venuta, senza stampare per scoprirlo.
-  const chi = [
-    profilo.nome,
-    profilo.qualifica,
-    profilo.numero_iscrizione ? `Iscr. OFI n. ${profilo.numero_iscrizione}` : null
-  ]
-    .filter(Boolean)
-    .join(' · ')
+  const chi = [profilo.nome, profilo.qualifica].filter(Boolean).join(' · ')
+  const iscrizione = profilo.numero_iscrizione?.trim()
+    ? `Iscritto all'OFI di Siena n. ${profilo.numero_iscrizione.trim()}`
+    : ''
   const dove = [
     profilo.studio,
     profilo.indirizzo,
@@ -437,7 +439,7 @@ function SchedaProfilo(): React.JSX.Element {
       <div className="blocco-impostazione">
         <div className="sotto-titolo">
           Chi firma i fogli
-          <Aiuto testo="Nome, qualifica, numero d'iscrizione all'Ordine, dati fiscali e contatti compaiono in cima a tutto quello che stampi: schede, cartella e report; il certificato di presenza li prende da qui. Sulla scheda illustrata per il paziente restano solo nome, qualifica, numero d'iscrizione, telefono ed email. Lascia vuoto quello che non ti serve, e non comparirà; finché è tutto vuoto i fogli escono come adesso, senza intestazione." />
+          <Aiuto testo="Nome, qualifica, dati fiscali e contatti compaiono in cima a tutto quello che stampi: cartella e report; il certificato di presenza li prende da qui. Sulla scheda illustrata per il paziente restano solo nome e qualifica. Lascia vuoto quello che non ti serve, e non comparirà; finché è tutto vuoto i fogli escono come adesso, senza intestazione." />
         </div>
         <div className="form-row-2">
           {CAMPI_PROFILO.map((c) => (
@@ -453,11 +455,32 @@ function SchedaProfilo(): React.JSX.Element {
           ))}
         </div>
 
-        {(chi !== '' || dove !== '') && (
+        {/* L'iscrizione all'Ordine sta in fondo a destra della riga del nome, e
+            solo sui fogli che la prevedono: qui si decide se scriverla. Sul
+            certificato di presenza compare sempre. */}
+        <label className="checkbox-inline riga-staccata">
+          <input
+            type="checkbox"
+            checked={profilo.iscrizione_in_scheda !== 0}
+            onChange={(e) => {
+              setProfilo({ ...profilo, iscrizione_in_scheda: e.target.checked ? 1 : 0 })
+              setSalvato(false)
+            }}
+          />
+          Scrivi l&apos;iscrizione all&apos;OFI di Siena in cima ai fogli
+          <Aiuto testo="Compare in fondo a destra della riga con il tuo nome, sulle schede e sugli altri documenti. Sul certificato di presenza c'è sempre. Serve il numero di iscrizione scritto qui sopra." />
+        </label>
+
+        {(chi !== '' || dove !== '' || iscrizione !== '') && (
           <div className="anteprima-profilo">
             <span className="hint">Come esce in cima al foglio</span>
             <div className="foglio-finto">
-              {chi !== '' && <div className="riga-chi">{chi}</div>}
+              <div className="riga-chi-con-iscrizione">
+                <div className="riga-chi">{chi}</div>
+                {profilo.iscrizione_in_scheda !== 0 && iscrizione !== '' && (
+                  <div className="riga-iscrizione">{iscrizione}</div>
+                )}
+              </div>
               {dove !== '' && <div className="riga-dove">{dove}</div>}
             </div>
           </div>

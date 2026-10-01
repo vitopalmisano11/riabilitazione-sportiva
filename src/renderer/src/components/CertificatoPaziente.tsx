@@ -24,6 +24,7 @@ const PROFILO_VUOTO: Profilo = {
   codice_fiscale: null,
   partita_iva: null,
   numero_iscrizione: null,
+  iscrizione_in_scheda: 1,
   telefono: null,
   email: null
 }
@@ -270,7 +271,7 @@ export default function CertificatoPaziente({
       </div>
       <div className="form-row-2">
         <label>
-          Numero di iscrizione all&apos;Ordine (OFI)
+          Numero di iscrizione all&apos;OFI di Siena
           <input
             value={testo(profilo.numero_iscrizione)}
             onChange={(e) => cambiaProfilo('numero_iscrizione', e.target.value)}

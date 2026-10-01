@@ -2,7 +2,7 @@
 // Nessuna dipendenza da Electron: testabile con Node (vedi scripts/smoke.ts).
 import { coloriTema } from '../shared/temi'
 import { esc } from './html'
-import { righeProfilo } from './profilo'
+import { leggiProfilo, righeProfilo, testoIscrizione } from './profilo'
 import { LINK_WEB } from './validazione'
 import {
   caricoTesto,
@@ -86,17 +86,28 @@ function infoPaziente(p: DatiPazienteExport): string[] {
 // L'intestazione di chi firma, uguale in tutti i documenti: chi sei sopra,
 // come ti si trova sotto, e una riga sottile che la stacca dal contenuto. Se
 // il profilo e' vuoto non esce niente e il foglio resta come prima.
-export function intestazioneHtml(colore: string, soloContatti = false): string {
-  const { chi, dove } = righeProfilo(undefined, soloContatti)
-  if (chi === '' && dove === '') return ''
+// Sul foglio che va al paziente (`schedaPaziente`) ci sono solo nome e
+// qualifica. L'iscrizione all'Ordine sta in fondo a destra della riga del
+// nome, se nel profilo e' acceso l'interruttore.
+export function intestazioneHtml(colore: string, schedaPaziente = false): string {
+  const profilo = leggiProfilo()
+  const { chi, dove } = righeProfilo(profilo, schedaPaziente)
+  const iscrizione = profilo.iscrizione_in_scheda === 0 ? '' : testoIscrizione(profilo.numero_iscrizione)
+  if (chi === '' && dove === '' && iscrizione === '') return ''
   return `<div class="carta-intestata">
-    ${chi ? `<div class="ci-chi">${esc(chi)}</div>` : ''}
+    <div class="ci-riga">
+      <div class="ci-chi">${esc(chi)}</div>
+      ${iscrizione ? `<div class="ci-iscrizione">${esc(iscrizione)}</div>` : ''}
+    </div>
     ${dove ? `<div class="ci-dove">${esc(dove)}</div>` : ''}
   </div>
   <style>
     .carta-intestata { border-bottom: 1px solid ${colore}; padding-bottom: 5px;
                        margin-bottom: 10px; }
+    .carta-intestata .ci-riga { display: flex; justify-content: space-between;
+                                align-items: baseline; gap: 16px; }
     .carta-intestata .ci-chi { font-size: 12.5px; font-weight: 600; color: ${colore}; }
+    .carta-intestata .ci-iscrizione { font-size: 10.5px; color: #6b7280; white-space: nowrap; }
     .carta-intestata .ci-dove { font-size: 10px; color: #6b7280; margin-top: 1px; }
   </style>`
 }

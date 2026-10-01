@@ -335,6 +335,9 @@ export interface Profilo {
   // Numero di iscrizione all'Ordine dei Fisioterapisti (OFI): compare sul
   // certificato di presenza e sulla scheda illustrata.
   numero_iscrizione: string | null
+  // 1 = in cima ai fogli stampati, a destra del nome, si scrive "Iscritto
+  // all'OFI di Siena n. ...". Sul certificato compare sempre.
+  iscrizione_in_scheda: 0 | 1
   telefono: string | null
   email: string | null
 }
