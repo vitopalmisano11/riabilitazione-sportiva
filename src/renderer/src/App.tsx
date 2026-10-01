@@ -354,6 +354,11 @@ export default function App(): React.JSX.Element {
               if (tornaA) setSezione(tornaA)
               setTornaA(null)
             }}
+            onSedutaSalvata={() => {
+              setSezione('settimana')
+              setTornaA(null)
+              setApriPaziente(null)
+            }}
           />
         )}
         {sezione === 'followup' && (

@@ -59,7 +59,8 @@ function quantoFa(data: string | null): string {
 export default function PazientiPage({
   tornaAllElenco,
   apriPaziente,
-  onEsciDallaSeduta
+  onEsciDallaSeduta,
+  onSedutaSalvata
 }: {
   // Cambia ogni volta che si ripreme "Pazienti" nel menu a sinistra.
   tornaAllElenco: number
@@ -78,6 +79,8 @@ export default function PazientiPage({
   // arrivati, non nella scheda del paziente: chi stava preparando la settimana
   // vuole tornare alla settimana.
   onEsciDallaSeduta?: () => void
+  // Salvata una seduta si torna alla settimana, da qualunque parte si sia partiti.
+  onSedutaSalvata?: () => void
 }): React.JSX.Element {
   const [pazienti, setPazienti] = useState<PazienteDettaglio[]>([])
   const [selId, setSelId] = useState<number | null>(null)
@@ -262,8 +265,12 @@ export default function PazientiPage({
         onClose={(salvata) => {
           const tornaIndietro = builder.daFuori === true
           setBuilder(null)
-          if (salvata) void load()
-          if (tornaIndietro) onEsciDallaSeduta?.()
+          if (salvata) {
+            void load()
+            onSedutaSalvata?.()
+          } else if (tornaIndietro) {
+            onEsciDallaSeduta?.()
+          }
         }}
       />
     )
