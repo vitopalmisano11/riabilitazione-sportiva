@@ -425,6 +425,8 @@ function SchedaValutazione({
     try {
       await window.api.valutazioni.salva(dati)
       toast('Valutazione salvata.')
+      // gia' salvata: chiudendosi non deve salvarla una seconda volta
+      salvaAllaChiusura.current = null
       onChiudi(true)
       return true
     } catch (e) {

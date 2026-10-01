@@ -155,6 +155,8 @@ export default function BodyChartEditor({
         segni: segni.map(({ chiave: _c, ...resto }) => resto)
       })
       toast('Body chart salvata.')
+      // gia' salvata: chiudendosi non deve salvarla una seconda volta
+      salvaAllaChiusura.current = null
       onChiudi(true)
       return true
     } catch (e) {
