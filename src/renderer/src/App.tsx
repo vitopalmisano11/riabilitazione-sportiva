@@ -3,7 +3,6 @@ import {
   CalendarDays,
   CalendarClock,
   ClipboardCheck,
-  HeartPulse,
   Settings,
   SlidersHorizontal,
   Users
@@ -27,6 +26,7 @@ import ConfermaHost from './components/Conferma'
 import { errMsg, oggiIso } from './lib'
 import { bloccaScorciatoie } from './scorciatoie'
 import type { Tema } from '../../shared/temi'
+import iconaApp from '../../../resources/icon.png'
 
 type Sezione =
   | 'settimana'
@@ -269,10 +269,8 @@ export default function App(): React.JSX.Element {
           ne' con Tab. Resta montata (il lavoro non si perde), ma inerte. */}
       <aside className="sidebar" inert={bloccata}>
         <h1>
-          <span className="logo-badge">
-            <HeartPulse size={20} />
-          </span>
-          Fisioterapia
+          <img className="logo-app" src={iconaApp} alt="" />
+          Gestionale Fisioterapia
         </h1>
         <nav>
           {/* Per prima: e' la schermata del lunedi' mattina, quella che

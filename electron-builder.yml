@@ -1,5 +1,5 @@
 appId: org.palmisano.riabilitazione
-productName: Riabilitazione Sportiva
+productName: Gestionale Fisioterapia
 directories:
   output: dist
 files:
@@ -12,4 +12,4 @@ win:
 nsis:
   oneClick: true
   deleteAppDataOnUninstall: false
-  shortcutName: Riabilitazione Sportiva
+  shortcutName: Gestionale Fisioterapia

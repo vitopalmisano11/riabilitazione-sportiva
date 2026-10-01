@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { HeartPulse } from 'lucide-react'
 import { errMsg } from '../lib'
+import iconaApp from '../../../../resources/icon.png'
 
 type Modo = 'caricamento' | 'setup' | 'chiave' | 'login' | 'recupero'
 
@@ -74,12 +74,10 @@ export default function AuthGate({ onUnlocked }: { onUnlocked: () => void }): Re
   return (
     <div className="auth-screen">
       <div className="auth-card">
-        <div className="auth-logo">
-          <HeartPulse size={30} />
-        </div>
+        <img className="auth-logo-app" src={iconaApp} alt="" />
         {modo === 'setup' && (
           <>
-            <h1>Gestionale fisioterapia</h1>
+            <h1>Gestionale Fisioterapia</h1>
             <p>
               Primo avvio: scegli la password che proteggerà i dati dei pazienti. Il database
               viene cifrato con questa chiave.
@@ -144,7 +142,7 @@ export default function AuthGate({ onUnlocked }: { onUnlocked: () => void }): Re
 
         {modo === 'login' && (
           <>
-            <h1>Gestionale fisioterapia</h1>
+            <h1>Gestionale Fisioterapia</h1>
             <form
               className="auth-form"
               onSubmit={(e) => {

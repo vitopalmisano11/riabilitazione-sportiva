@@ -13,7 +13,7 @@ where npm >nul 2>&1 || (
 )
 
 echo.
-echo   Sto avviando la versione di PROVA di Riabilitazione Sportiva.
+echo   Sto avviando la versione di PROVA di Gestionale Fisioterapia.
 echo   Ci vogliono una decina di secondi: la finestra dell app si apre da sola.
 echo.
 echo   NON chiudere questa finestra nera mentre usi l app.

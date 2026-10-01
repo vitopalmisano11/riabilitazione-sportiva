@@ -39,7 +39,7 @@ function scriviCsv(percorso: string, righe: Riga[], colonne: string[]): void {
   writeFileSync(percorso, '﻿' + testo, 'utf-8')
 }
 
-const LEGGIMI = `Archivio esportato da Riabilitazione Sportiva
+const LEGGIMI = `Archivio esportato da Gestionale Fisioterapia
 ================================================
 
 Questi file sono tabelle in formato CSV: si aprono con un doppio clic in Excel
