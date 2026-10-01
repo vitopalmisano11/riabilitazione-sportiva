@@ -658,12 +658,15 @@ export default function SedutaBuilder({
   // dice "chiuso", altrimenti potrebbe riportare indietro chi ha cambiato
   // sezione.
   const smontata = useRef(false)
-  useEffect(
-    () => () => {
+  // Si rimette a false all'avvio: in sviluppo React monta, smonta e rimonta
+  // subito ogni componente, e senza questo restava "smontata" per sempre e
+  // salvando la finestra non si chiudeva piu'.
+  useEffect(() => {
+    smontata.current = false
+    return () => {
       smontata.current = true
-    },
-    []
-  )
+    }
+  }, [])
 
   // Chiudendo il programma, o uscendo da questa scheda (anche cliccando in un'
   // altra sezione), con la seduta a meta' di una modifica o appena
