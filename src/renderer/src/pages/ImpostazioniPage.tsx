@@ -420,9 +420,9 @@ function SchedaProfilo(): React.JSX.Element {
   // L'anteprima e' la stessa cosa che finisce in cima al foglio: cosi' si vede
   // subito com'e' venuta, senza stampare per scoprirlo.
   const chi = [profilo.nome, profilo.qualifica].filter(Boolean).join(' · ')
-  const iscrizione = profilo.numero_iscrizione?.trim()
-    ? `Iscritto all'OFI di Siena n. ${profilo.numero_iscrizione.trim()}`
-    : ''
+  // Nell'anteprima la riga c'e' appena si accende l'interruttore, anche prima
+  // di aver scritto il numero: cosi' si vede dove andra' a finire.
+  const iscrizione = `Iscritto all'OFI di Siena n. ${profilo.numero_iscrizione?.trim() || '…'}`
   const dove = [
     profilo.studio,
     profilo.indirizzo,
@@ -471,13 +471,13 @@ function SchedaProfilo(): React.JSX.Element {
           <Aiuto testo="Compare in fondo a destra della riga con il tuo nome, sulle schede e sugli altri documenti. Sul certificato di presenza c'è sempre. Serve il numero di iscrizione scritto qui sopra." />
         </label>
 
-        {(chi !== '' || dove !== '' || iscrizione !== '') && (
+        {(chi !== '' || dove !== '' || profilo.iscrizione_in_scheda !== 0) && (
           <div className="anteprima-profilo">
             <span className="hint">Come esce in cima al foglio</span>
             <div className="foglio-finto">
               <div className="riga-chi-con-iscrizione">
                 <div className="riga-chi">{chi}</div>
-                {profilo.iscrizione_in_scheda !== 0 && iscrizione !== '' && (
+                {profilo.iscrizione_in_scheda !== 0 && (
                   <div className="riga-iscrizione">{iscrizione}</div>
                 )}
               </div>

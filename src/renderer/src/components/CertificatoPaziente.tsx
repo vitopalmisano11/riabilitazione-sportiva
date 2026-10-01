@@ -119,10 +119,12 @@ export default function CertificatoPaziente({
         gruppo_id: paziente.gruppo_id
       }
       await window.api.pazienti.update(paziente.id, dati)
+      toast('Dati del paziente aggiornati.')
     }
     if (JSON.stringify(profilo) !== JSON.stringify(profiloPartenza)) {
       await window.api.profilo.salva(profilo)
       setProfiloPartenza(profilo)
+      toast('I tuoi dati sono salvati in Impostazioni.')
     }
     return pazienteCambiato
   }
