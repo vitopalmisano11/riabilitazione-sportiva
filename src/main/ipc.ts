@@ -74,6 +74,30 @@ import {
 } from './pazienti'
 import { archiviaTecnica, creaTecnica, elencoTecniche } from './tecniche'
 import {
+  creaFase,
+  creaObiettivo,
+  creaPatologia,
+  creaSezione,
+  creaTestAvanzamento,
+  elencoFasi,
+  elencoObiettivi,
+  elencoPatologie,
+  elencoSezioni,
+  elencoTestAvanzamento,
+  eliminaFase,
+  eliminaObiettivo,
+  eliminaPatologia,
+  eliminaSezione,
+  eliminaTestAvanzamento,
+  impostaCampo,
+  impostaCategorieSezione,
+  rinominaFase,
+  rinominaObiettivo,
+  rinominaPatologia,
+  rinominaSezione,
+  rinominaTestAvanzamento
+} from './percorso'
+import {
   aggiornaSeduta,
   creaSeduta,
   elencoSedute,
@@ -488,31 +512,14 @@ export function registerIpc(): void {
   })
 
   // ---- Patologie ----
-  handle('patologie:list', () =>
-    getDb().prepare('SELECT * FROM patologie ORDER BY ordine, nome').all()
-  )
-  handle('patologie:create', (nome: string) => {
-    const db = getDb()
-    const { next } = db
-      .prepare('SELECT COALESCE(MAX(ordine), -1) + 1 AS next FROM patologie')
-      .get() as { next: number }
-    return Number(
-      db.prepare('INSERT INTO patologie (nome, ordine) VALUES (?, ?)').run(nome.trim(), next)
-        .lastInsertRowid
-    )
-  })
+  // La logica del percorso (patologie, fasi, obiettivi, sezioni, test di
+  // avanzamento) sta in percorso.ts: qui solo i canali.
+  handle('patologie:list', () => elencoPatologie())
+  handle('patologie:create', (nome: string) => creaPatologia(nome))
   handle('patologie:reorder', (ids: number[]) => riordina('patologie', ids))
-  // Poche patologie hanno un percorso al campo: l'interruttore sta qui, cosi'
-  // tutte le altre non vedono mai la parola "campo".
-  handle('patologie:setCampo', (id: number, attivo: boolean) => {
-    getDb().prepare('UPDATE patologie SET ha_campo = ? WHERE id = ?').run(attivo ? 1 : 0, id)
-  })
-  handle('patologie:update', (id: number, nome: string) => {
-    getDb().prepare('UPDATE patologie SET nome = ? WHERE id = ?').run(nome.trim(), id)
-  })
-  handle('patologie:delete', (id: number) => {
-    eliminaConCestino('patologie', id, 'Patologia', nomeDi('patologie', id))
-  })
+  handle('patologie:setCampo', (id: number, attivo: boolean) => impostaCampo(id, attivo))
+  handle('patologie:update', (id: number, nome: string) => rinominaPatologia(id, nome))
+  handle('patologie:delete', (id: number) => eliminaPatologia(id))
 
   // ---- Gruppi (dove segui il paziente: Centro, Studio, Domicilio...) ----
   registraElenco('gruppi', elencoSemplice('gruppi', 'Gruppo'))
@@ -745,123 +752,34 @@ export function registerIpc(): void {
   })
 
   // ---- Fasi ----
-  // Tutte le fasi della patologia, palestra e campo insieme: chi le usa
-  // filtra secondo il posto in cui deve mostrarle.
-  handle('fasi:list', (patologiaId: number) =>
-    getDb()
-      .prepare('SELECT * FROM fasi WHERE patologia_id = ? ORDER BY campo, ordine, id')
-      .all(patologiaId)
-  )
-  handle('fasi:create', (patologiaId: number, nome: string, campo = false) => {
-    const db = getDb()
-    // L'ordine si conta dentro all'elenco di appartenenza: palestra e campo
-    // sono due elenchi, ognuno con la sua numerazione.
-    const { next } = db
-      .prepare(
-        'SELECT COALESCE(MAX(ordine), -1) + 1 AS next FROM fasi WHERE patologia_id = ? AND campo = ?'
-      )
-      .get(patologiaId, campo ? 1 : 0) as { next: number }
-    return Number(
-      db.prepare('INSERT INTO fasi (patologia_id, nome, ordine, campo) VALUES (?, ?, ?, ?)')
-        .run(patologiaId, nome.trim(), next, campo ? 1 : 0).lastInsertRowid
-    )
-  })
-  handle('fasi:update', (id: number, nome: string) => {
-    getDb().prepare('UPDATE fasi SET nome = ? WHERE id = ?').run(nome.trim(), id)
-  })
-  handle('fasi:delete', (id: number) => {
-    eliminaConCestino('fasi', id, 'Fase', nomeDi('fasi', id))
-  })
+  handle('fasi:list', (patologiaId: number) => elencoFasi(patologiaId))
+  handle('fasi:create', (patologiaId: number, nome: string, campo = false) => creaFase(patologiaId, nome, campo))
+  handle('fasi:update', (id: number, nome: string) => rinominaFase(id, nome))
+  handle('fasi:delete', (id: number) => eliminaFase(id))
   handle('fasi:reorder', (ids: number[]) => riordina('fasi', ids))
 
   // ---- Obiettivi ----
-  handle('obiettivi:list', (faseId: number) =>
-    getDb().prepare('SELECT * FROM obiettivi WHERE fase_id = ? ORDER BY ordine, id').all(faseId)
-  )
-  handle('obiettivi:create', (faseId: number, nome: string) => {
-    const db = getDb()
-    const { next } = db
-      .prepare('SELECT COALESCE(MAX(ordine), -1) + 1 AS next FROM obiettivi WHERE fase_id = ?')
-      .get(faseId) as { next: number }
-    return Number(
-      db.prepare('INSERT INTO obiettivi (fase_id, nome, ordine) VALUES (?, ?, ?)')
-        .run(faseId, nome.trim(), next).lastInsertRowid
-    )
-  })
-  handle('obiettivi:update', (id: number, nome: string) => {
-    getDb().prepare('UPDATE obiettivi SET nome = ? WHERE id = ?').run(nome.trim(), id)
-  })
-  handle('obiettivi:delete', (id: number) => {
-    eliminaConCestino('obiettivi', id, 'Obiettivo', nomeDi('obiettivi', id))
-  })
+  handle('obiettivi:list', (faseId: number) => elencoObiettivi(faseId))
+  handle('obiettivi:create', (faseId: number, nome: string) => creaObiettivo(faseId, nome))
+  handle('obiettivi:update', (id: number, nome: string) => rinominaObiettivo(id, nome))
+  handle('obiettivi:delete', (id: number) => eliminaObiettivo(id))
   handle('obiettivi:reorder', (ids: number[]) => riordina('obiettivi', ids))
 
   // ---- Sezioni (struttura della seduta per fase) ----
-  handle('sezioni:list', (faseId: number) => {
-    const db = getDb()
-    const sezioni = db
-      .prepare('SELECT * FROM sezioni WHERE fase_id = ? ORDER BY ordine, id')
-      .all(faseId) as { id: number }[]
-    const catStmt = db.prepare(
-      'SELECT categoria_id FROM sezione_categorie WHERE sezione_id = ? ORDER BY ordine, categoria_id'
-    )
-    return sezioni.map((s) => ({
-      ...s,
-      categoria_ids: (catStmt.all(s.id) as { categoria_id: number }[]).map((r) => r.categoria_id)
-    }))
-  })
-  handle('sezioni:create', (faseId: number, nome: string) => {
-    const db = getDb()
-    const { next } = db
-      .prepare('SELECT COALESCE(MAX(ordine), -1) + 1 AS next FROM sezioni WHERE fase_id = ?')
-      .get(faseId) as { next: number }
-    return Number(
-      db.prepare('INSERT INTO sezioni (fase_id, nome, ordine) VALUES (?, ?, ?)')
-        .run(faseId, nome.trim(), next).lastInsertRowid
-    )
-  })
-  handle('sezioni:update', (id: number, nome: string) => {
-    getDb().prepare('UPDATE sezioni SET nome = ? WHERE id = ?').run(nome.trim(), id)
-  })
-  handle('sezioni:delete', (id: number) => {
-    eliminaConCestino('sezioni', id, 'Sezione', nomeDi('sezioni', id))
-  })
+  handle('sezioni:list', (faseId: number) => elencoSezioni(faseId))
+  handle('sezioni:create', (faseId: number, nome: string) => creaSezione(faseId, nome))
+  handle('sezioni:update', (id: number, nome: string) => rinominaSezione(id, nome))
+  handle('sezioni:delete', (id: number) => eliminaSezione(id))
   handle('sezioni:reorder', (ids: number[]) => riordina('sezioni', ids))
-  handle('sezioni:setCategorie', (sezioneId: number, categoriaIds: number[]) => {
-    const db = getDb()
-    db.transaction(() => {
-      db.prepare('DELETE FROM sezione_categorie WHERE sezione_id = ?').run(sezioneId)
-      const ins = db.prepare(
-        'INSERT INTO sezione_categorie (sezione_id, categoria_id, ordine) VALUES (?, ?, ?)'
-      )
-      categoriaIds.forEach((cid, i) => ins.run(sezioneId, cid, i))
-    })()
-  })
+  handle('sezioni:setCategorie', (sezioneId: number, categoriaIds: number[]) =>
+    impostaCategorieSezione(sezioneId, categoriaIds)
+  )
 
   // ---- Test di avanzamento (per fase) ----
-  handle('testAvanzamento:list', (faseId: number) =>
-    getDb()
-      .prepare('SELECT * FROM test_avanzamento WHERE fase_id = ? ORDER BY ordine, id')
-      .all(faseId)
-  )
-  handle('testAvanzamento:create', (faseId: number, nome: string) => {
-    const db = getDb()
-    const { next } = db
-      .prepare(
-        'SELECT COALESCE(MAX(ordine), -1) + 1 AS next FROM test_avanzamento WHERE fase_id = ?'
-      )
-      .get(faseId) as { next: number }
-    return Number(
-      db.prepare('INSERT INTO test_avanzamento (fase_id, nome, ordine) VALUES (?, ?, ?)')
-        .run(faseId, nome.trim(), next).lastInsertRowid
-    )
-  })
-  handle('testAvanzamento:update', (id: number, nome: string) => {
-    getDb().prepare('UPDATE test_avanzamento SET nome = ? WHERE id = ?').run(nome.trim(), id)
-  })
-  handle('testAvanzamento:delete', (id: number) => {
-    eliminaConCestino('test_avanzamento', id, 'Test di avanzamento', nomeDi('test_avanzamento', id))
-  })
+  handle('testAvanzamento:list', (faseId: number) => elencoTestAvanzamento(faseId))
+  handle('testAvanzamento:create', (faseId: number, nome: string) => creaTestAvanzamento(faseId, nome))
+  handle('testAvanzamento:update', (id: number, nome: string) => rinominaTestAvanzamento(id, nome))
+  handle('testAvanzamento:delete', (id: number) => eliminaTestAvanzamento(id))
   handle('testAvanzamento:reorder', (ids: number[]) => riordina('test_avanzamento', ids))
 
   // ---- Categorie ----
