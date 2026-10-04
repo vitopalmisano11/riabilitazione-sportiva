@@ -9,7 +9,7 @@ import {
   temaValido,
   type Tema
 } from '../shared/temi'
-import { copyFileSync, existsSync, mkdirSync, readFileSync } from 'fs'
+import { copyFileSync, existsSync, mkdirSync, readFileSync, statSync } from 'fs'
 import { join } from 'path'
 import { spostaFileDati } from './file-dati'
 import { leggiJsonPerScrivere, scriviAtomico } from './scrittura'
@@ -50,10 +50,24 @@ export interface CopiaFallita {
 
 const percorsoFile = (): string => join(app.getPath('userData'), 'impostazioni.json')
 
+// Le impostazioni si leggono decine di volte per ogni schermata: si tiene in
+// memoria l'ultima lettura e si rilegge il file solo se e' cambiato (orario di
+// modifica e grandezza), cosi' una modifica fatta a mano o da un'altra copia del
+// programma si vede lo stesso. Chi riscrive (salva) legge sempre dal file.
+let lettura: { file: string; mtime: number; size: number; contenuto: Impostazioni } | null = null
+
 function leggi(): Impostazioni {
+  const file = percorsoFile()
   try {
-    return JSON.parse(readFileSync(percorsoFile(), 'utf-8')) as Impostazioni
+    const st = statSync(file)
+    if (lettura && lettura.file === file && lettura.mtime === st.mtimeMs && lettura.size === st.size) {
+      return lettura.contenuto
+    }
+    const contenuto = JSON.parse(readFileSync(file, 'utf-8')) as Impostazioni
+    lettura = { file, mtime: st.mtimeMs, size: st.size, contenuto }
+    return contenuto
   } catch {
+    lettura = null
     return {}
   }
 }
@@ -62,6 +76,7 @@ function salva(patch: Impostazioni): void {
   // Per riscrivere si legge il file com'e' davvero: se non si legge, ci si
   // ferma con un errore invece di scriverlo con dentro solo questa modifica.
   const attuali = leggiJsonPerScrivere<Impostazioni>(percorsoFile())
+  lettura = null
   scriviAtomico(percorsoFile(), JSON.stringify({ ...attuali, ...patch }, null, 2))
 }
 
@@ -128,6 +143,7 @@ export function percorsoImpostazioni(): string {
 export function ricominciaImpostazioni(dir: string): void {
   const file = percorsoFile()
   if (existsSync(file)) copyFileSync(file, `${file}.illeggibile-${Date.now()}`)
+  lettura = null
   scriviAtomico(file, JSON.stringify({ cartellaDati: dir }, null, 2))
 }
 
