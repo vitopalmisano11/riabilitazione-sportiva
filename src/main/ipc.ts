@@ -74,6 +74,21 @@ import {
 } from './pazienti'
 import { archiviaTecnica, creaTecnica, elencoTecniche } from './tecniche'
 import {
+  aggiornaObiettivoTerapeutico,
+  creaObiettivoTerapeutico,
+  elencoObiettiviTerapeutici,
+  leggiAspettative,
+  salvaAspettative,
+  togliObiettivoTerapeutico
+} from './obiettivi-terapeutici'
+import {
+  creaBodyChart,
+  elencoBodyChart,
+  eliminaBodyChart,
+  leggiBodyChart,
+  salvaBodyChart
+} from './body-chart'
+import {
   leggiAnamnesi,
   leggiAttivita,
   leggiRemota,
@@ -1251,56 +1266,19 @@ export function registerIpc(): void {
   })
 
   // ---- Obiettivi terapeutici ----
-  // Le aspettative stanno sul paziente ma si scrivono qui, dove si parla di
-  // obiettivi: leggerle e salvarle e' un giro a se', senza passare dalla
-  // finestra dell'anagrafica.
-  handle('obiettiviTerapeutici:aspettative', (pazienteId: number) => {
-    const r = getDb()
-      .prepare('SELECT aspettative FROM pazienti WHERE id = ?')
-      .get(pazienteId) as { aspettative: string | null } | undefined
-    return r?.aspettative ?? null
-  })
-  handle(
-    'obiettiviTerapeutici:salvaAspettative',
-    (pazienteId: number, testo: string | null) => {
-      getDb()
-        .prepare('UPDATE pazienti SET aspettative = ? WHERE id = ?')
-        .run(testo?.trim() || null, pazienteId)
-    }
+  // La logica sta in obiettivi-terapeutici.ts: qui solo i canali.
+  handle('obiettiviTerapeutici:aspettative', (pazienteId: number) => leggiAspettative(pazienteId))
+  handle('obiettiviTerapeutici:salvaAspettative', (pazienteId: number, testo: string | null) =>
+    salvaAspettative(pazienteId, testo)
   )
-  handle('obiettiviTerapeutici:list', (pazienteId: number) =>
-    getDb()
-      .prepare(
-        'SELECT id, testo, termine FROM obiettivi_terapeutici WHERE paziente_id = ? ORDER BY ordine, id'
-      )
-      .all(pazienteId)
+  handle('obiettiviTerapeutici:list', (pazienteId: number) => elencoObiettiviTerapeutici(pazienteId))
+  handle('obiettiviTerapeutici:create', (pazienteId: number, testo: string, termine: TermineObiettivo) =>
+    creaObiettivoTerapeutico(pazienteId, testo, termine)
   )
-  handle(
-    'obiettiviTerapeutici:create',
-    (pazienteId: number, testo: string, termine: TermineObiettivo) => {
-      const db = getDb()
-      const { next } = db
-        .prepare(
-          'SELECT COALESCE(MAX(ordine), -1) + 1 AS next FROM obiettivi_terapeutici WHERE paziente_id = ?'
-        )
-        .get(pazienteId) as { next: number }
-      return Number(
-        db
-          .prepare(
-            'INSERT INTO obiettivi_terapeutici (paziente_id, testo, termine, ordine) VALUES (?, ?, ?, ?)'
-          )
-          .run(pazienteId, testo.trim(), termine, next).lastInsertRowid
-      )
-    }
+  handle('obiettiviTerapeutici:update', (id: number, testo: string, termine: TermineObiettivo) =>
+    aggiornaObiettivoTerapeutico(id, testo, termine)
   )
-  handle('obiettiviTerapeutici:update', (id: number, testo: string, termine: TermineObiettivo) => {
-    getDb()
-      .prepare('UPDATE obiettivi_terapeutici SET testo = ?, termine = ? WHERE id = ?')
-      .run(testo.trim(), termine, id)
-  })
-  handle('obiettiviTerapeutici:remove', (id: number) => {
-    getDb().prepare('DELETE FROM obiettivi_terapeutici WHERE id = ?').run(id)
-  })
+  handle('obiettiviTerapeutici:remove', (id: number) => togliObiettivoTerapeutico(id))
   handle('obiettiviTerapeutici:reorder', (ids: number[]) => riordina('obiettivi_terapeutici', ids))
 
   handle('bioimmagini:list', (pazienteId: number) =>
@@ -1397,62 +1375,14 @@ export function registerIpc(): void {
   })
 
   // ---- Body chart ----
-  handle('bodyChart:list', (pazienteId: number) =>
-    getDb()
-      .prepare(
-        `SELECT b.id, b.data, b.note, b.tipo,
-                (SELECT COUNT(*) FROM body_chart_segni s WHERE s.chart_id = b.id) AS num_segni
-         FROM body_chart b
-         WHERE b.paziente_id = ?
-         ORDER BY b.data DESC, b.id DESC`
-      )
-      .all(pazienteId)
+  // La logica sta in body-chart.ts: qui solo i canali.
+  handle('bodyChart:list', (pazienteId: number) => elencoBodyChart(pazienteId))
+  handle('bodyChart:get', (id: number) => leggiBodyChart(id))
+  handle('bodyChart:create', (pazienteId: number, data: string, tipo: TipoChart) =>
+    creaBodyChart(pazienteId, data, tipo)
   )
-  handle('bodyChart:get', (id: number) => {
-    const db = getDb()
-    const chart = db.prepare('SELECT * FROM body_chart WHERE id = ?').get(id)
-    if (!chart) throw new Error('Body chart non trovata.')
-    const segni = db
-      .prepare(
-        `SELECT id, vista, tipo, x, y, dimensione, intensita
-         FROM body_chart_segni WHERE chart_id = ? ORDER BY ordine, id`
-      )
-      .all(id)
-    return { chart, segni }
-  })
-  handle('bodyChart:create', (pazienteId: number, data: string, tipo: TipoChart) => {
-    validaData(data, 'La data della body chart', { obbligatoria: true })
-    return Number(
-      getDb()
-        .prepare('INSERT INTO body_chart (paziente_id, data, tipo) VALUES (?, ?, ?)')
-        .run(pazienteId, data, tipo === 'piede' ? 'piede' : 'corpo').lastInsertRowid
-    )
-  })
-  handle('bodyChart:salva', (dati: BodyChartCompleta) => {
-    validaData(dati.chart.data, 'La data della body chart', { obbligatoria: true })
-    const db = getDb()
-    db.transaction(() => {
-      db.prepare('UPDATE body_chart SET data = ?, note = ? WHERE id = ?').run(
-        dati.chart.data,
-        dati.chart.note,
-        dati.chart.id
-      )
-      db.prepare('DELETE FROM body_chart_segni WHERE chart_id = ?').run(dati.chart.id)
-      const ins = db.prepare(
-        `INSERT INTO body_chart_segni (chart_id, vista, tipo, x, y, dimensione, intensita, ordine)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-      )
-      dati.segni.forEach((s, i) =>
-        ins.run(dati.chart.id, s.vista, s.tipo, s.x, s.y, s.dimensione, s.intensita, i)
-      )
-    })()
-  })
-  handle('bodyChart:delete', (id: number) => {
-    const b = getDb().prepare('SELECT data FROM body_chart WHERE id = ?').get(id) as
-      | { data: string }
-      | undefined
-    eliminaConCestino('body_chart', id, 'Body chart', `Body chart del ${dataIt(b?.data)}`)
-  })
+  handle('bodyChart:salva', (dati: BodyChartCompleta) => salvaBodyChart(dati))
+  handle('bodyChart:delete', (id: number) => eliminaBodyChart(id))
 
   // ---- Blocco automatico e registro degli errori ----
   handle('sicurezza:blocco', () => blocco())
