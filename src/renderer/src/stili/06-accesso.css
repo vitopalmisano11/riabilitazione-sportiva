@@ -1,0 +1,309 @@
+/* La schermata della password. */
+
+/* ---- Autenticazione ---- */
+
+.auth-screen {
+  position: fixed;
+  inset: var(--alto-barra) 0 0 0;
+  /* Beige caldo con due aloni verde salvia appena accennati. */
+  background:
+    radial-gradient(700px 500px at 15% -10%, rgba(85, 128, 106, 0.18), transparent 60%),
+    radial-gradient(800px 600px at 110% 110%, rgba(85, 128, 106, 0.22), transparent 60%),
+    var(--login);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.auth-card {
+  background: var(--surface);
+  border-radius: 18px;
+  padding: 38px;
+  width: 480px;
+  max-width: calc(100vw - 48px);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: var(--shadow-lg);
+  animation: pop-up 0.25s ease-out;
+}
+
+.auth-logo {
+  width: 56px;
+  height: 56px;
+  border-radius: 15px;
+  background: var(--logo);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.35);
+  margin-bottom: 2px;
+}
+
+.auth-card h1 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.auth-card p {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 16px;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Due campi sulla stessa riga dentro a una finestra: uno largo (un elenco,
+   di solito) e uno stretto accanto, allineati in basso cosi' le caselle
+   restano alla pari anche se le etichette hanno lunghezze diverse. */
+.riga-campi {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.riga-campi > label {
+  flex: 1;
+  min-width: 160px;
+}
+
+.riga-campi > .ora-field {
+  /* troppo stretta, i minuti finivano tagliati invece di stare per intero
+     nella casella */
+  flex: 0 1 120px;
+  min-width: 112px;
+}
+
+.riga-campi > .data-field {
+  /* un po' piu' larga della versione base: qui non puo' crescere (flex-grow
+     0), e troppo stretta la data finiva scritta sopra all'icona del
+     calendario invece che a fianco. */
+  flex: 0 1 160px;
+  min-width: 150px;
+}
+
+/* Menu a tendina disegnato dal programma (MenuScelta): il bottone ha lo
+   stesso aspetto delle caselle e dei menu nativi, cosi' non si vede la
+   differenza finche' non si apre. */
+.menu-scelta-bottone {
+  width: 100%;
+  min-width: 0;
+  /* Griglia e non flex: con flex, il testo lungo e la freccetta potevano
+     finire su due righe invece di restare affiancati con il testo troncato.
+     La colonna del testo e' minmax(0, 1fr): puo' restringersi fino a 0, cosa
+     che una colonna "1fr" da sola non farebbe mai da sola. */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  font-weight: 400;
+  padding: 10px 14px;
+  font-size: 16px;
+  /* stesso sfondo delle caselle, non quello (diverso) dei pulsanti */
+  background: var(--campo);
+}
+
+.menu-scelta-bottone:hover:not(:disabled) {
+  background: var(--campo);
+  color: inherit;
+  border-color: var(--border-forte);
+}
+
+/* Con un nome scelto lungo (es. un protocollo), il testo si tronca con i
+   puntini invece di allargare il bottone: senza min-width:0 una colonna di
+   griglia non si restringe mai sotto la larghezza naturale del suo
+   contenuto, e trascinava con se' tutta la riga e la finestra. */
+.menu-scelta-bottone > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.menu-scelta-bottone svg {
+  flex-shrink: 0;
+  color: var(--text-dim);
+}
+
+.menu-scelta-placeholder {
+  color: var(--text-dim);
+}
+
+/* position: fixed e non absolute: cosi' il menu si disegna sopra a tutto,
+   anche dentro a una finestra modale che altrimenti taglierebbe quello che
+   sfora dai suoi bordi. La posizione esatta (sotto al bottone) la calcola
+   il componente e arriva come stile in linea. */
+.menu-scelta-popup {
+  position: fixed;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border-forte);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.menu-scelta-ricerca {
+  margin: 6px 6px 0 6px;
+  padding: 8px 10px;
+  font-size: 15px;
+}
+
+.menu-scelta-lista {
+  /* circa cinque voci: oltre, si scorre dentro invece di allungarsi fino a
+     uscire dalla finestra che lo contiene. */
+  max-height: 195px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+}
+
+.menu-scelta-lista button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 7px 10px;
+  border: none;
+  background: none;
+  font-size: 15px;
+}
+
+.menu-scelta-lista button:hover:not(.scelta-attiva) {
+  background: var(--accent-soft);
+}
+
+.menu-scelta-lista button.scelta-attiva {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* Etichetta sopra, casella sotto: fuori dalle finestre modali non c'era
+   nessuna regola e le due cose finivano affiancate. */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 15px;
+  color: var(--text-dim);
+}
+
+.field input {
+  font-size: 16px;
+  color: var(--text);
+}
+
+.auth-error {
+  color: var(--danger) !important;
+  font-size: 15px;
+  margin: 0;
+}
+
+.recovery-key {
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 18px;
+  letter-spacing: 1px;
+  background: var(--accent-soft);
+  border: 1px dashed var(--accent);
+  padding: 14px;
+  border-radius: 8px;
+  text-align: center;
+  user-select: text;
+  overflow-wrap: anywhere;
+}
+
+.auth-links {
+  text-align: center;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 15px;
+  padding: 4px;
+}
+
+.modal-testo {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 15px;
+  /* Gli a capo scritti nel testo si vedono: le domande dell'app li usano
+     per dividere in righe cio' che va letto una riga alla volta. */
+  white-space: pre-line;
+}
+
+.modal-testo code {
+  background: var(--bg);
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
+.cartella-path {
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 15px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--barra-bordo);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sidebar-footer button {
+  width: 100%;
+  background: none;
+  border: 1px solid var(--barra-bordo-pulsante);
+  color: var(--barra-voce);
+  font-size: 15px;
+}
+
+/* Il fondo va dichiarato: la regola generale dei pulsanti al passaggio del
+   mouse ne mette uno chiaro, e su una barra scura restava scritta bianca su
+   riquadro bianco. Qui si usa lo stesso grigio delle voci di menu sopra. */
+.sidebar-footer button:hover:not(:disabled) {
+  background: var(--barra-hover);
+  color: var(--barra-hover-testo);
+  border-color: var(--barra-hover);
+}
+
+.sidebar-footer button {
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+/* Un aggiornamento pronto: l'unico pulsante pieno del fondo, perche' si noti
+   senza disturbare. Pieno e non solo bordato: sulla barra scura del tema blu
+   una scritta del colore del tema non si leggerebbe. Va dopo la regola del
+   passaggio del mouse, che altrimenti lo spegnerebbe. */
+.sidebar-footer button.aggiornamento-pronto,
+.sidebar-footer button.aggiornamento-pronto:hover:not(:disabled) {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.sidebar-footer button.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}

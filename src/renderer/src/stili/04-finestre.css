@@ -1,0 +1,219 @@
+/* Le finestre modali. */
+
+/* ---- Modal ---- */
+
+.modal-overlay {
+  position: fixed;
+  inset: var(--alto-barra) 0 0 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  animation: fade-in 0.15s ease-out;
+}
+
+.modal {
+  background: var(--surface);
+  border-radius: 14px;
+  padding: 26px;
+  width: 620px;
+  max-width: calc(100vw - 48px);
+  max-height: calc(100vh - 48px - var(--alto-barra));
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: var(--shadow-lg);
+  animation: pop-up 0.18s ease-out;
+}
+
+/* Una finestra centrata nello spazio a destra della barra laterale, non in
+   tutta la finestra del programma: altrimenti il centro cade sotto alla
+   barra e la finestra sembra spostata a sinistra. */
+.modal-overlay.modal-overlay-contenuto {
+  left: 252px;
+}
+
+.modal-nuovo-screening {
+  width: 720px;
+}
+
+/* Cambiando sezione dal menu la pagina nuova compare con una dissolvenza
+   breve, invece di sostituire l'altra di colpo. */
+.entrata-pagina {
+  animation: entrata-pagina 0.18s ease-out;
+}
+
+@keyframes entrata-pagina {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* I blocchi che si aprono (indicazioni per casa, segni, cestino) si aprono
+   con la stessa dissolvenza. */
+details[open] > :not(summary) {
+  animation: entrata-pagina 0.16s ease-out;
+}
+
+/* Chi ha chiesto a Windows di ridurre le animazioni non ne vede nessuna. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pop-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.modal h3 {
+  margin: 0;
+}
+
+/* La finestra che fa una domanda: il titolo con l'icona quando l'azione
+   distrugge qualcosa, e il testo sotto. */
+.modal-domanda .testata-domanda {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.modal-domanda .testata-domanda h3 {
+  margin: 0;
+}
+
+.modal-domanda .icona-pericolo {
+  color: var(--danger);
+  flex: 0 0 auto;
+}
+
+.modal-domanda .modal-testo {
+  white-space: pre-wrap;
+}
+
+/* Nella domanda il pulsante che cancella e' pieno di rosso, non solo bordato:
+   e' l'azione da cui non si torna indietro e deve saltare all'occhio. */
+.modal-domanda .modal-actions button.danger {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+  font-weight: 600;
+}
+
+.modal-domanda .modal-actions button.danger:hover:not(:disabled) {
+  background: #b93a3a;
+  border-color: #b93a3a;
+  color: #fff;
+}
+
+.modal-sm {
+  width: 470px;
+}
+
+.modal label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 15px;
+  color: var(--text-dim);
+}
+
+.modal label input,
+.modal label select,
+.modal label textarea {
+  font-size: 16px;
+  color: var(--text);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+}
+
+/* Queste due vanno dopo .form-row, altrimenti la riga qui sopra le annulla e il
+   numero di colonne torna a deciderlo da solo il browser. Il dosaggio a cluster
+   ha sei campi: su tre colonne vengono due righe piene. */
+.form-row.form-row-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.form-row.form-row-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+/* Una nota sotto a una casella, quando il valore scritto dice qualcosa in piu'
+   (per esempio quanto tempo e' passato dalla data appena messa). */
+.hint-campo {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+/* Numero e unita' di misura affiancati dentro allo stesso campo: si leggono
+   come una cosa sola, che e' quello che sono. */
+.campo-con-unita {
+  display: flex;
+  gap: 6px;
+}
+
+.campo-con-unita input {
+  min-width: 0;
+}
+
+.campo-con-unita .casella-unita {
+  flex: none;
+  width: 62px;
+  text-align: center;
+}
+
+.form-row input,
+.form-row select {
+  min-width: 0;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  /* A capo invece che fuori dal riquadro: con cinque pulsanti in fila la riga
+     sbordava da tutte e due le parti. */
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.placeholder {
+  min-height: 120px;
+}
+
+/* ---- Pazienti ---- */
+
+.list-top {
+  margin-bottom: 10px;
+}

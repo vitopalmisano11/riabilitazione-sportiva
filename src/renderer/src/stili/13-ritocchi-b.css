@@ -1,0 +1,966 @@
+/* Regole aggiunte nel tempo per le varie pagine (seconda parte): vedi i commenti di ognuna. */
+
+/* Peso, altezza e massimali: caselle strette in riga, i numeri sono corti. */
+.riga-misure {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.campo-misura {
+  flex: 0 1 130px;
+}
+
+.campo-esercizio-max {
+  flex: 1 1 200px;
+}
+
+.riga-stima {
+  align-items: center;
+  margin-top: 10px;
+}
+
+.riga-stima svg {
+  color: var(--text-dim);
+}
+
+.campo-stima {
+  width: 80px;
+}
+
+.nuovo-massimale {
+  padding: 12px;
+  margin-bottom: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--pannello);
+}
+
+.lista-massimali {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.lista-massimali > li {
+  border-bottom: 1px solid var(--bg);
+  padding: 6px 4px;
+}
+
+.lista-massimali > li:last-child {
+  border-bottom: none;
+}
+
+.riga-massimale {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.max-esercizio {
+  flex: 1;
+  min-width: 140px;
+  font-weight: 600;
+}
+
+.max-valore {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* Le percentuali del massimale: si aprono premendo sul numero. */
+.quote-massimale {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin: 4px 0 6px 4px;
+}
+
+.quota {
+  display: flex;
+  flex-direction: column;
+}
+
+.quota-et {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+}
+
+.quota-val {
+  font-size: 15px;
+}
+
+/* I segni di riferimento stanno in fondo alle misure, in un blocco chiuso: la
+   larghezza pero' e' quella della scheda, non quella stretta degli altri
+   blocchi apribili, perche' dentro c'e' un elenco. */
+.blocco-segni .contenuto-segni,
+.blocco-indicazioni .contenuto-indicazioni {
+  max-width: none;
+}
+
+/* Chiusi, ma dello stesso colore degli altri riquadri della scheda: col fondo
+   del pannello sembravano spenti, come una cosa disattivata. */
+/* Nella finestra della cartella, sotto: un altro documento che si puo'
+   stampare, staccato dalle spunte della cartella. */
+.altro-documento {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+/* Il punteggio del cluster, sotto alle sezioni del protocollo. */
+.punteggio-cluster {
+  margin-top: var(--spazio);
+}
+
+.punteggio-cluster .lista-domande {
+  margin-bottom: 10px;
+}
+
+.regola-punteggio .regola-fascia {
+  flex-wrap: wrap;
+}
+
+.campo-etichetta-fascia {
+  flex: 1 1 240px;
+}
+
+/* Il risultato durante lo screening: una tabellina con le voci e i punti. */
+.risultato-cluster h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tabella-punteggio {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tabella-punteggio th,
+.tabella-punteggio td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+/* un valore che nessuna soglia comprende: e' un buco nella configurazione */
+.tabella-punteggio td.fuori-fascia {
+  color: var(--danger);
+}
+
+.tabella-punteggio th {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+/* Nella scheda del test i campi respirano: la casella non deve stare
+   attaccata al titolo di quella sotto. */
+.editor-test > label,
+.editor-test > .form-row-2,
+.editor-test > .checkbox-inline,
+.editor-test > .regola-fascia {
+  margin-bottom: 16px;
+}
+
+/* Copiare una seduta dalla settimana: i sette giorni come pulsanti, quello
+   della seduta di partenza tratteggiato. */
+.giorni-copia {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+  gap: 6px;
+}
+
+.giorni-copia button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 6px;
+}
+
+.giorni-copia .nome-giorno {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.giorni-copia .numero-giorno {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.giorni-copia button.giorno-origine {
+  border-style: dashed;
+}
+
+.riga-altra-data {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+/* ---- Diario della seduta ---- */
+
+/* L'ultima volta: chiusa e' una riga sola, che si apre con un clic. */
+.titolo-ultima {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  justify-content: flex-start;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-align: left;
+}
+
+.titolo-ultima:hover:not(:disabled) {
+  background: none;
+  color: var(--text);
+}
+
+.titolo-ultima .data-ultima {
+  flex: none;
+}
+
+.titolo-ultima .in-breve {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 400;
+  color: var(--text);
+}
+
+.titolo-ultima .freccia-ultima {
+  flex: none;
+  margin-left: auto;
+  transition: transform 0.15s ease;
+}
+
+.ultima-seduta.aperta .freccia-ultima,
+.sezione-comprimibile.aperta .freccia-ultima {
+  transform: rotate(180deg);
+}
+
+.riga-comprimibile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sezione-comprimibile.aperta .riga-comprimibile {
+  margin-bottom: 8px;
+}
+
+.ultima-seduta.aperta .titolo-ultima {
+  margin-bottom: 8px;
+}
+
+.builder-col > section.card.ultima-seduta {
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+/* Il titolo di un blocco della seduta e i suoi comandi sulla stessa riga. */
+.testata-blocco {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+
+.testata-blocco .link-discreto {
+  margin-left: auto;
+}
+
+/* Una casella di testo alta una riga, che cresce da sola mentre si scrive. */
+textarea.cresce {
+  field-sizing: content;
+  min-height: 44px;
+  max-height: 240px;
+  resize: none;
+}
+
+.blocco-seduta .riga-diario {
+  gap: 10px;
+}
+
+.righe-ultima {
+  margin: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.righe-ultima > div {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+  gap: 10px;
+}
+
+.righe-ultima dt {
+  color: var(--text-dim);
+  font-size: 14px;
+}
+
+.righe-ultima dt.dt-riferiva {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0 6px;
+}
+
+.righe-ultima dt.dt-riferiva .badge-andamento {
+  margin-right: 0;
+}
+
+/* A capo dove si e' andati a capo scrivendo la nota della seduta. */
+.righe-ultima dd {
+  margin: 0;
+  font-size: 15px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.diario-seduta {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.riga-diario {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.riga-diario .scelta-coppia.segmentata {
+  align-self: flex-start;
+}
+
+.riga-diario .scelta-coppia.segmentata button.scelta-attiva.meglio {
+  background: #1f9d61;
+  border-color: #1f9d61;
+}
+
+.riga-diario .scelta-coppia.segmentata button.scelta-attiva.peggio {
+  background: #c24141;
+  border-color: #c24141;
+}
+
+.scelte-multiple.tecniche {
+  align-items: center;
+  gap: 6px;
+}
+
+/* Una tecnica e' una pillola sola: il nome e, mentre si modifica l'elenco, la
+   X dentro alla stessa pillola, separata da una linea. Cosi' si vede a quale
+   tecnica si riferisce, ed e' alta uguale. */
+.tecnica {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--border-forte);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.tecnica > button {
+  border: none;
+  border-radius: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.tecnica > button.scelta-attiva {
+  background: var(--accent);
+  color: #fff;
+}
+
+.tecnica.in-modifica > button:first-child {
+  cursor: default;
+}
+
+.tecnica .togli-tecnica {
+  padding: 0 10px;
+  border-left: 1px solid var(--border-forte);
+  color: var(--text-dim);
+  background: transparent;
+}
+
+.tecnica .togli-tecnica:hover:not(:disabled) {
+  background: #c24141;
+  color: #fff;
+}
+
+.nuova-tecnica {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.nuova-tecnica input {
+  width: 200px;
+  padding: 6px 10px;
+}
+
+.link-discreto {
+  border: none;
+  background: none;
+  padding: 4px 6px;
+  font-size: 14px;
+  color: var(--text-dim);
+  text-decoration: underline;
+}
+
+.link-discreto:hover:not(:disabled) {
+  background: none;
+  color: var(--accent);
+}
+
+/* Meglio, uguale, peggio: la parola colorata, nel diario e nel promemoria. */
+.badge-andamento {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--intestazione);
+  color: var(--text-dim);
+}
+
+.badge-andamento.meglio {
+  background: rgba(31, 157, 97, 0.15);
+  color: #1f9d61;
+}
+
+.badge-andamento.peggio {
+  background: rgba(194, 65, 65, 0.15);
+  color: #c24141;
+}
+
+.riga-diario-elenco {
+  font-size: 14px;
+  color: var(--text);
+}
+
+.etichetta-diario {
+  margin-right: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-dim);
+}
+
+.altro-documento.senza-linea {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+/* La ricerca del paziente in cima alla settimana: l'elenco dei risultati
+   scende sopra al resto, come una tendina. */
+.ricerca-settimana {
+  position: relative;
+  width: 280px;
+  max-width: 100%;
+}
+
+.ricerca-settimana input {
+  width: 100%;
+}
+
+.risultati-settimana {
+  left: auto;
+  right: 0;
+  width: 340px;
+  max-width: 90vw;
+}
+
+.risultati-settimana li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+}
+
+.risultati-settimana li:hover {
+  background: var(--intestazione);
+}
+
+.risultati-settimana .nome-risultato {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.orari-scuro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+  color: var(--text-dim);
+  font-size: 15px;
+}
+
+.orari-scuro input {
+  width: 110px;
+  padding: 6px 8px;
+}
+
+/* La cartella completa: il nome, le sezioni da spuntare e, sotto, i suoi due
+   pulsanti a destra. */
+/* Nella finestra dei documenti due gruppi ben distinti, ognuno nel suo
+   riquadro con il titolo: le relazioni, e la cartella con le sue spunte. */
+.gruppo-documenti {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--pannello);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.gruppo-documenti + .gruppo-documenti {
+  margin-top: 6px;
+}
+
+.titolo-gruppo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.pulsanti-cartella {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.elenco-documenti {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.elenco-documenti .altro-documento + .altro-documento {
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.altro-documento .nome-documento {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.blocco-segni,
+.blocco-indicazioni {
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.riga-titolo-segni {
+  justify-content: flex-end;
+  margin-bottom: 4px;
+}
+
+/* I segni di riferimento: una riga per segno, il nome a sinistra e i due
+   numeri (da dove e' partito, dov'e' adesso) al centro. Niente grafici: sono
+   due numeri, e due numeri si leggono. */
+.lista-segni {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.lista-segni li {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--bg);
+}
+
+.lista-segni li:last-child {
+  border-bottom: none;
+}
+
+.segno-nome {
+  flex: 1;
+  min-width: 140px;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.segno-andamento {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.segno-prima {
+  color: var(--text-dim);
+}
+
+.segno-freccia {
+  color: var(--text-dim);
+}
+
+.segno-ultima {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.riga-nuovo-segno {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.riga-nuovo-segno input {
+  flex: 1 1 180px;
+}
+
+.riga-nuovo-segno .campo-unita {
+  flex: 0 1 150px;
+}
+
+/* L'unita' di misura accanto al nome del segno, nella riga della seduta. */
+.unita-segno {
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+/* I limiti da non superare: una fascia sottile sotto al nome del paziente e
+   nell'intestazione della seduta. Ambra e non rossa: e' un promemoria che deve
+   farsi notare, non un errore. */
+.fascia-precauzioni {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 var(--spazio);
+  padding: 8px 12px;
+  border-left: 3px solid #d97706;
+  border-radius: var(--radius-sm);
+  background: rgba(217, 119, 6, 0.1);
+  color: var(--text);
+  font-size: 14px;
+}
+
+.fascia-precauzioni svg {
+  flex: none;
+  margin-top: 2px;
+  color: #b45309;
+}
+
+/* Come esce l'intestazione in cima al foglio: si vede qui invece di doverlo
+   stampare per scoprirlo. */
+.anteprima-profilo {
+  margin-top: var(--spazio);
+}
+
+.foglio-finto {
+  margin-top: 6px;
+  padding: 10px 14px;
+  background: var(--campo);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.foglio-finto .riga-chi {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.foglio-finto .riga-dove {
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+/* Dolore e sforzo percepito, sopra alle note: due caselline strette, il resto
+   della riga vuoto. Sono numeri, non un testo da scrivere. */
+.riga-percepito {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.campo-percepito select,
+.campo-percepito input {
+  width: 90px;
+}
+
+.nome-percepito {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.righe-seduta .riga-testata {
+  flex: 1 1 auto;
+  min-width: 130px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+
+.righe-seduta .riga-params {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+
+.righe-seduta .riga-params input {
+  width: 74px;
+  padding: 6px 8px;
+  font-size: 14px;
+}
+
+.righe-seduta .riga-params .riga-nota {
+  width: 190px;
+}
+
+/* Le caselle del cluster contengono numeri piccoli ("3", "15\"") e stanno in
+   una riga che ne ha gia' quattro: strette quanto basta a non far uscire la
+   riga dalla finestra. */
+.righe-seduta .riga-params .campo-cluster {
+  width: 58px;
+}
+
+.righe-seduta .btn-togli {
+  flex: none;
+  padding: 6px;
+}
+
+/* Pannello dei filtri sotto la barra di ricerca: compare solo quando serve. */
+.pannello-filtri {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin: 10px 0 14px;
+  padding: 10px 12px;
+  background: var(--pannello);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+/* Il recupero della password in Impostazioni: com'e' adesso, poi i campi. */
+.stato-recupero {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.riga-recupero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.nome-recupero {
+  font-weight: 600;
+}
+
+.domanda-attuale {
+  margin: 0;
+}
+
+/* Nella schermata di accesso: chiave o domanda, sopra alla spiegazione. */
+.scelta-recupero {
+  align-self: center;
+  margin-bottom: 4px;
+}
+
+/* Casella di testo che si allunga da sola quanto il testo che contiene. */
+textarea.testo-adatta {
+  field-sizing: content;
+  min-height: 3em;
+  resize: none;
+}
+
+/* Il giorno di oggi, portato in vista aprendo la settimana, lascia un po' d'aria sopra. */
+.giorno-settimana.oggi {
+  scroll-margin-top: 16px;
+}
+
+/* Nell'anteprima del foglio: l'iscrizione all'Ordine in fondo a destra della
+   riga del nome. */
+.foglio-finto .riga-chi-con-iscrizione {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+}
+
+.foglio-finto .riga-iscrizione {
+  font-size: 13px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+/* Il logo dell'app: il riquadro bianco con gli angoli arrotondati e' quello
+   dell'icona di Windows; il disegno a cerchi e' una maschera (assets/logo-segno.png)
+   riempita con il colore del tema, quindi cambia insieme a lui. */
+.logo-app,
+.auth-logo-app {
+  display: block;
+  position: relative;
+  flex-shrink: 0;
+  border-radius: 23%;
+  background: linear-gradient(160deg, #ffffff, #f1f4f8);
+}
+
+.logo-app::after,
+.auth-logo-app::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, var(--accent-hover), var(--accent));
+  -webkit-mask: url('../assets/logo-segno.png') center / 100% 100% no-repeat;
+  mask: url('../assets/logo-segno.png') center / 100% 100% no-repeat;
+}
+
+.logo-app {
+  width: 36px;
+  height: 36px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+}
+
+.auth-logo-app {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.18);
+}
+
+/* Ricerca in tutto l'archivio (Ctrl+K): una finestra stretta in alto, come una
+   palette di comandi, con i risultati divisi per gruppo. */
+.ricerca-overlay {
+  align-items: flex-start;
+  padding-top: 12vh;
+}
+
+.modal.ricerca-globale {
+  width: 640px;
+  padding: 16px;
+  gap: 8px;
+  max-height: 70vh;
+}
+
+.ricerca-campo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 4px 8px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-dim);
+}
+
+.ricerca-campo input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  font-size: 16px;
+  padding: 6px 0;
+}
+
+.ricerca-campo input:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.ricerca-elenco {
+  overflow: auto;
+  min-height: 60px;
+}
+
+.ricerca-gruppo {
+  margin: 8px 4px 4px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.ricerca-voce {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  box-shadow: none;
+}
+
+.ricerca-voce.scelta {
+  background: var(--accent-soft);
+}
+
+.ricerca-titolo {
+  font-weight: 600;
+}
+
+.ricerca-data,
+.ricerca-campo-nome {
+  font-weight: 400;
+  color: var(--text-dim);
+}
+
+.ricerca-estratto {
+  font-size: 13.5px;
+  color: var(--text-dim);
+  overflow-wrap: anywhere;
+}
+
+.ricerca-suggerimenti {
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text-dim);
+}

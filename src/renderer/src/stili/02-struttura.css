@@ -1,0 +1,410 @@
+/* La struttura della pagina (barra laterale, contenuto) e gli elenchi con colonne. */
+
+/* ---- Layout ---- */
+
+.app {
+  display: flex;
+  height: calc(100vh - var(--alto-barra));
+  margin-top: var(--alto-barra);
+}
+
+/* Colori dal tema: chiara col verde, scura col blu. Le scritte, il passaggio
+   del mouse e i bordi seguono, cosi' la barra si legge in entrambi. */
+.sidebar {
+  width: 252px;
+  flex-shrink: 0;
+  background: var(--barra);
+  color: var(--barra-testo);
+  border-right: 1px solid var(--barra-bordo);
+  padding: 18px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Sotto al nome una riga del colore del tema, come quella sotto ai titoli dei
+   riquadri: divide il nome dalle voci del menu. */
+.sidebar h1 {
+  font-size: 19px;
+  margin: 0 0 12px;
+  padding: 0 8px 14px;
+  border-bottom: 2px solid var(--accent);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  letter-spacing: 0.01em;
+}
+
+.logo-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--logo);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  box-shadow: var(--shadow-sm);
+  flex-shrink: 0;
+}
+
+/* Quanti pazienti del follow-up sono da sentire: un numerino in fondo alla
+   voce del menu. */
+.conta-menu {
+  margin-left: auto;
+  min-width: 22px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+
+.sidebar nav button.active .conta-menu {
+  background: #fff;
+  color: var(--accent);
+}
+
+.sidebar nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar nav button {
+  text-align: left;
+  justify-content: flex-start;
+  gap: 10px;
+  background: none;
+  border: none;
+  color: var(--barra-voce);
+  padding: 11px 12px;
+  border-radius: var(--radius-sm);
+}
+
+.sidebar nav button:hover:not(:disabled) {
+  background: var(--barra-hover);
+  color: var(--barra-hover-testo);
+}
+
+.sidebar nav button.active {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 2px 8px var(--accent-ombra);
+}
+
+.content {
+  flex: 1;
+  overflow: auto;
+  padding: 30px 36px;
+}
+
+/* Contenuto centrato nella finestra massimizzata, con larghezza di lettura sensata */
+.page {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.page-header h2 {
+  margin: 0 0 6px;
+  font-size: 26px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.page-header p {
+  margin: 0 0 var(--spazio);
+  color: var(--text-dim);
+  max-width: 720px;
+}
+
+/* ---- CrudList / colonne ---- */
+
+.config-patologie {
+  display: grid;
+  grid-template-columns: minmax(220px, 260px) minmax(220px, 260px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .config-patologie {
+    grid-template-columns: 1fr 1fr;
+  }
+  .fase-dettaglio {
+    grid-column: 1 / -1;
+  }
+}
+
+.fase-dettaglio {
+  min-width: 0;
+}
+
+/* Le schede sono un gruppo dentro una fascia beige, non scritte in fila su
+   fondo pagina: cosi' si vede dove comincia e dove finisce la scelta, e quella
+   attiva si stacca perche' e' l'unica bianca. */
+.config-tabs {
+  display: inline-flex;
+  gap: 4px;
+  margin-bottom: var(--spazio);
+  padding: 4px;
+  background: var(--intestazione);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  flex-wrap: wrap;
+}
+
+.config-tabs button {
+  border: none;
+  background: none;
+  color: var(--intestazione-testo);
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+}
+
+.config-tabs button:hover:not(:disabled) {
+  background: var(--intestazione-hover);
+  color: var(--intestazione-testo-forte);
+}
+
+.config-tabs button.active {
+  background: var(--surface);
+  color: var(--accent);
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+}
+
+.config-tabs-top {
+  margin-bottom: 18px;
+}
+
+.config-wrapper {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+/* min 300px per colonna: i nomi delle sezioni non si spezzano più a metà parola */
+.struttura-tab {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+/* Il riquadro grande e' bianco come tutte le schede; l'elenco che ci sta
+   dentro — quello su cui si lavora — e' grigio chiaro, cosi' si vede che e' una
+   cosa dentro un'altra e non due riquadri affiancati. */
+.struttura-tab .crud-list {
+  background: var(--surface);
+}
+
+.struttura-tab .crud-list ul,
+.struttura-tab .crud-list .checkbox-list {
+  background: var(--pannello);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  margin-bottom: 10px;
+}
+
+.struttura-tab .crud-list ul:empty {
+  display: none;
+}
+
+/* Colonna nome: va a capo invece di allargare la tabella, ma non si stringe
+   sotto una misura leggibile. */
+.data-table th.col-nome,
+.data-table td.col-nome {
+  width: 34%;
+  min-width: 230px;
+}
+
+.cella-nome {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+/* Al massimo due righe: un nome lunghissimo verrebbe accorciato con i puntini
+   invece di far crescere la riga. Per intero si legge passandoci sopra. */
+.nome-esercizio {
+  font-weight: 600;
+  flex: 1;
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+/* Video, immagine ed etichetta stanno in colonna a se': restano a destra del
+   nome anche quando il nome occupa due righe. */
+.icone-nome {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  /* Lo spazio delle due icone e' sempre riservato, anche dove non ci sono: cosi'
+     i nomi vanno a capo nello stesso punto in tutte le righe. */
+  min-width: 56px;
+  white-space: nowrap;
+}
+
+/* Le azioni sono tre icone: la colonna e' larga quanto basta a loro e lascia il
+   resto al nome. Larghezza dichiarata, non "quanto serve": con le colonne a
+   larghezza fissa i pulsanti sarebbero usciti dalla casella. */
+.data-table th.col-azioni,
+.data-table td.col-azioni {
+  width: 120px;
+  text-align: right;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.data-table td.col-azioni button {
+  padding: 4px 6px;
+}
+
+/* Serie, ripetizioni, carico e recupero sono valori brevi (3, 12, 5 kg, 1'):
+   colonne strette e incolonnate al centro, cosi' si leggono come una tabella di
+   numeri e lo spazio in piu' va al nome. */
+/* La categoria prende lo spazio che avanza, ma su una riga sola: un nome lungo
+   sconfinava nella colonna delle serie. Se non ci sta, finisce con i puntini e
+   per intero si legge passandoci sopra. */
+.data-table th.col-categoria,
+.data-table td.col-categoria {
+  /* Una larghezza sua: senza, le restava solo l'avanzo e in finestre strette si
+     riduceva a tre lettere e i puntini. */
+  width: 20%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.data-table th.col-param,
+.data-table td.col-param {
+  width: 84px;
+  text-align: center;
+  white-space: nowrap;
+  /* Valori di due o tre caratteri: il grosso della casella era margine. */
+  padding-left: 6px;
+  padding-right: 6px;
+}
+
+.data-table th.col-param {
+  font-size: 12px;
+}
+
+.form-row-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+
+
+/* menu a tendina per il download */
+.menu-wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.menu-chiudi {
+  position: fixed;
+  inset: 0;
+  z-index: 19;
+}
+
+.menu-tendina {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  min-width: 185px;
+  padding: 6px;
+  animation: pop-up 0.12s ease-out;
+}
+
+.menu-tendina button {
+  border: none;
+  background: none;
+  justify-content: flex-start;
+  gap: 9px;
+  padding: 9px 12px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.menu-tendina button:hover:not(:disabled) {
+  background: var(--accent-soft);
+}
+
+/* I sottotitoli sono fasce beige e non scritte sciolte: dentro un riquadro
+   bianco pieno di elenchi, una scritta piccola in grigio si perde e non si
+   capisce dove finisce un gruppo e comincia il successivo. */
+.sotto-titolo {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--intestazione-testo);
+  background: var(--intestazione);
+  border-radius: var(--radius-sm);
+  padding: 5px 10px;
+  margin: var(--spazio) 0 8px;
+}
+
+/* Lo stacco a sinistra era nato quando nel tema verde la fascia era
+   trasparente e si vedeva solo la scritta, che sembrava disallineata. Adesso
+   la fascia si vede, e a doversi incolonnare con le caselle e' lei. */
+
+/* Fuori dai riquadri bianchi la fascia non serve: li' il sottotitolo sta gia'
+   su un fondo suo. */
+.riga-filtro .sotto-titolo,
+.testata-grafico .sotto-titolo {
+  background: none;
+  padding: 0;
+  margin: 0;
+}
+
+
+.obiettivo-raggiunto {
+  text-decoration: line-through;
+  color: var(--text-dim);
+}
+
+.test-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.test-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.test-check {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.test-valore {
+  width: 160px;
+  flex-shrink: 0;
+}

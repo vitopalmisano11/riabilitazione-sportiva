@@ -1,0 +1,623 @@
+:root {
+  /* Tutta la scala dei grigi e' calda: un grigio azzurrato accanto a una barra
+     beige darebbe uno stacco netto, come due fogli di carta diversi. */
+  --bg: #f4efe5;
+  --surface: #ffffff;
+  --border: #e6dfd3;
+  --border-forte: #d6ccbb;
+  --text: #241f19;
+  --text-dim: #77706a;
+  /* Verde salvia su fondo beige: e' il tema di partenza. L'altro tema (blu, con
+     la barra laterale scura) ridichiara queste stesse variabili piu' sotto, in
+     [data-tema='blu']: nel resto del foglio non compare nessun colore del tema
+     scritto a mano, altrimenti cambiarlo vorrebbe dire ricontrollare mille
+     righe. Il tema si scegle in Impostazioni ed e' ricordato fra un avvio e
+     l'altro; i documenti stampati usano gli stessi due colori (vedi
+     src/shared/temi.ts). */
+  --accent: #55806a;
+  --accent-hover: #446a57;
+  --accent-soft: #e7efe9;
+  --accent-ombra: rgba(85, 128, 106, 0.45);
+  --logo: linear-gradient(135deg, #6d9c83, #46705b);
+  /* barra laterale: chiara in questo tema, scura nell'altro */
+  --barra: linear-gradient(180deg, #e6dcc9 0%, #dcd1bb 100%);
+  --barra-testo: #4a4237;
+  --barra-voce: #4a4237;
+  --barra-hover: #d3c6ae;
+  --barra-hover-testo: #2f2a22;
+  --barra-bordo: #cfc2a9;
+  --barra-bordo-pulsante: #c3b498;
+  --barra-etichetta: #8d99a8;
+  /* fondo delle intestazioni: righe dei titoli, sottotitoli, barra delle schede.
+     Erano scritti citando se stessi (--intestazione: var(--intestazione)), che
+     per il browser vuol dire "niente": nel tema verde le fasce dei titoli
+     restavano trasparenti e la scritta prendeva il colore che passava. */
+  --intestazione: #efe8d9;
+  --intestazione-hover: #e6dcc9;
+  --intestazione-testo: #6d6459;
+  --intestazione-testo-forte: #2f2a22;
+  --login: linear-gradient(160deg, #ece3d3 0%, #ddd2bd 55%, #e8dfcd 100%);
+  /* fondo dei riquadri di dati e interno delle caselle in cui si scrive:
+     appena piu' chiari del grigio della pagina, cosi' si distinguono */
+  /* Un riquadro dentro un riquadro bianco e' grigio chiaro: il beige, che e' il
+     colore del fondo pagina, li' dentro sembrerebbe un buco. */
+  --pannello: #f3f3f2;
+  /* Il fondo della riga pari negli elenchi: appena piu' scuro del bianco, non
+     un colore. */
+  --riga-alterna: #f6f6f5;
+  /* Le caselle in cui si scrive sono bianche sempre, non solo quando ci si
+     clicca dentro. */
+  --campo: #ffffff;
+  --danger: #d64545;
+  --success: #1f9d61;
+  /* un promemoria o un dubbio, non un guasto: ambra, fra il verde e il rosso */
+  --attenzione: #b7791f;
+  --radius: 10px;
+  --radius-sm: 8px;
+  /* Lo spazio fra una sezione e l'altra e' sempre questo, e il riquadro di una
+     sezione ha sempre questo margine interno: prima ogni pagina aveva il suo
+     (12, 14, 16, 18, 20, 22) e si vedeva passando da una all'altra. */
+  --spazio: 16px;
+  --spazio-interno: 16px;
+  --shadow-sm: 0 1px 2px rgba(60, 48, 32, 0.07);
+  --shadow-md: 0 4px 12px rgba(60, 48, 32, 0.1);
+  --shadow-lg: 0 18px 50px rgba(15, 23, 42, 0.25);
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  color: var(--text);
+}
+
+/* Tema terracotta: argilla su sabbia. Il verde e il blu sono due colori freddi,
+   questo e' caldo: e' la differenza che si vede di piu' passando dall'uno
+   all'altro, e in uno studio dove lo schermo lo guarda anche il paziente un
+   colore caldo pesa meno di un blu da ufficio. Il fondo e' piu' chiaro del beige
+   del tema verde, perche' l'argilla e' gia' satura di suo. */
+:root[data-tema='terracotta'] {
+  --bg: #f7f1ea;
+  --border: #e8ded3;
+  --border-forte: #d8cabb;
+  --text: #2a211b;
+  --text-dim: #7b6c60;
+  --accent: #a15843;
+  --accent-hover: #85452f;
+  --accent-soft: #f6e9e2;
+  --accent-ombra: rgba(161, 88, 67, 0.4);
+  --logo: linear-gradient(135deg, #c2755a, #8c4732);
+  --barra: linear-gradient(180deg, #efe1d3 0%, #e5d3c1 100%);
+  --barra-testo: #524134;
+  --barra-voce: #524134;
+  --barra-hover: #dcc6ae;
+  --barra-hover-testo: #33251b;
+  --barra-bordo: #d6bfa8;
+  --barra-bordo-pulsante: #cbb096;
+  --barra-etichetta: #9a8878;
+  --intestazione: #f3e7dc;
+  --intestazione-hover: #ebdbcc;
+  --intestazione-testo: #6f5f52;
+  --intestazione-testo-forte: #33251b;
+  --pannello: #f4f1ee;
+  --riga-alterna: #faf7f4;
+  --login: linear-gradient(160deg, #f0e2d5 0%, #e2cdb8 55%, #eee0d2 100%);
+}
+
+/* Tema blu: quello con cui e' nata l'app, con la barra laterale scura. Solo
+   variabili: le regole sono le stesse del tema verde. */
+:root[data-tema='blu'] {
+  --bg: #f2f5f9;
+  --border: #e4e9f0;
+  --border-forte: #d3dae3;
+  --text: #17222f;
+  --text-dim: #64748b;
+  --accent: #2563eb;
+  --accent-hover: #1d4fc7;
+  --accent-soft: #e8effd;
+  --accent-ombra: rgba(37, 99, 235, 0.4);
+  --logo: linear-gradient(135deg, #3b82f6, #1e40af);
+  --barra: linear-gradient(180deg, #18202b 0%, #1c2634 100%);
+  --barra-testo: #e6eaf0;
+  --barra-voce: #cbd4de;
+  --barra-hover: #2a3644;
+  --barra-hover-testo: #ffffff;
+  --barra-bordo: #131a24;
+  --barra-bordo-pulsante: #3a4756;
+  --barra-etichetta: #8d99a8;
+  --intestazione: #eef2f8;
+  --intestazione-hover: #e2e8f1;
+  --intestazione-testo: #64748b;
+  --intestazione-testo-forte: #17222f;
+  --pannello: #f7f9fc;
+  --riga-alterna: #fafbfd;
+  --login: linear-gradient(160deg, #101724 0%, #17233a 55%, #101724 100%);
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
+}
+
+/* Tema prugna: un viola smorzato su un grigio appena tinto. Fra i quattro e'
+   il piu' neutro dei caldi e il piu' caldo dei freddi: non e' ne' clinico come
+   il blu ne' domestico come il terracotta. */
+:root[data-tema='prugna'] {
+  --bg: #f5f2f8;
+  --border: #e7e2ee;
+  --border-forte: #d6cfe1;
+  --text: #241d2c;
+  --text-dim: #6f6779;
+  --accent: #7a5299;
+  --accent-hover: #634081;
+  --accent-soft: #f0eaf6;
+  --accent-ombra: rgba(122, 82, 153, 0.4);
+  --logo: linear-gradient(135deg, #9a72b8, #63407f);
+  --barra: linear-gradient(180deg, #ece5f2 0%, #e0d6ea 100%);
+  --barra-testo: #453a52;
+  --barra-voce: #453a52;
+  --barra-hover: #d6c8e4;
+  --barra-hover-testo: #2b2135;
+  --barra-bordo: #cfc2de;
+  --barra-bordo-pulsante: #c2b2d3;
+  --barra-etichetta: #8d829b;
+  --intestazione: #ece6f3;
+  --intestazione-hover: #e2d9ec;
+  --intestazione-testo: #6b6178;
+  --intestazione-testo-forte: #2b2135;
+  --pannello: #f6f4f9;
+  --riga-alterna: #faf9fc;
+  --login: linear-gradient(160deg, #ebe3f2 0%, #dccfe9 55%, #eae2f1 100%);
+}
+
+/* Tema ardesia: grigio-azzurro, il piu' sobrio dei sei. Non ha una tinta che
+   si impone: e' quello per chi vuole che a colorare lo schermo siano i dati. */
+:root[data-tema='ardesia'] {
+  --bg: #f2f4f6;
+  --border: #e2e6ea;
+  --border-forte: #cfd6dd;
+  --text: #1c242b;
+  --text-dim: #63707a;
+  --accent: #4a6a7b;
+  --accent-hover: #3a5665;
+  --accent-soft: #e8eef1;
+  --accent-ombra: rgba(74, 106, 123, 0.4);
+  --logo: linear-gradient(135deg, #6e8fa0, #3d5b6a);
+  --barra: linear-gradient(180deg, #e6ebef 0%, #d9e0e6 100%);
+  --barra-testo: #3b4a54;
+  --barra-voce: #3b4a54;
+  --barra-hover: #cbd5dc;
+  --barra-hover-testo: #1c242b;
+  --barra-bordo: #c9d2d9;
+  --barra-bordo-pulsante: #b9c4cc;
+  --barra-etichetta: #7f8b95;
+  --intestazione: #eaeff2;
+  --intestazione-hover: #dfe6eb;
+  --intestazione-testo: #63707a;
+  --intestazione-testo-forte: #1c242b;
+  --pannello: #f6f8f9;
+  --riga-alterna: #fafbfc;
+  --login: linear-gradient(160deg, #e8eef2 0%, #d6dfe6 55%, #e8eef2 100%);
+}
+
+/* Tema bordeaux: un rosso vinoso, scuro e fermo. Il terracotta e' un mattone
+   che tende all'arancio, questo tende al viola: da lontano non si confondono. */
+:root[data-tema='bordeaux'] {
+  --bg: #f8f2f4;
+  --border: #ecdfe3;
+  --border-forte: #dcc8ce;
+  --text: #2a1c21;
+  --text-dim: #776168;
+  --accent: #8c3b52;
+  --accent-hover: #722f43;
+  --accent-soft: #f6e8ec;
+  --accent-ombra: rgba(140, 59, 82, 0.4);
+  --logo: linear-gradient(135deg, #ab5670, #6f2c40);
+  --barra: linear-gradient(180deg, #f0e2e6 0%, #e6d2d8 100%);
+  --barra-testo: #4d3a40;
+  --barra-voce: #4d3a40;
+  --barra-hover: #dcc2ca;
+  --barra-hover-testo: #2a1c21;
+  --barra-bordo: #d8bec6;
+  --barra-bordo-pulsante: #cbadb6;
+  --barra-etichetta: #94818a;
+  --intestazione: #f2e6ea;
+  --intestazione-hover: #eadae0;
+  --intestazione-testo: #776168;
+  --intestazione-testo-forte: #2a1c21;
+  --pannello: #f9f5f6;
+  --riga-alterna: #fcfafb;
+  --login: linear-gradient(160deg, #f0e0e5 0%, #e2c8d0 55%, #eedfe4 100%);
+}
+
+/* ---- Barra laterale chiara o scura ----
+   Prima lo decideva il colore scelto: il blu nasceva con la barra scura, il
+   verde e il terracotta chiara. Adesso e' una scelta a se', valida con
+   qualunque colore; chi non tocca niente si ritrova com'era. La barra scura
+   tiene la tinta del suo tema, altrimenti sembrerebbero tutte lo stesso tema.
+   Con la barra cambia anche il fondo della schermata di accesso, che e' l'altra
+   grande superficie colorata dell'app. */
+
+:root[data-barra='scura'] {
+  --barra: linear-gradient(180deg, #15201b 0%, #1a2a23 100%);
+  --barra-alta: #15201b;
+  --barra-alta-testo: var(--barra-testo);
+  --barra-alta-bordo: var(--barra-bordo);
+  --barra-testo: #e7efea;
+  --barra-voce: #c3d3ca;
+  --barra-hover: #26382f;
+  --barra-hover-testo: #ffffff;
+  --barra-bordo: #0f1814;
+  --barra-bordo-pulsante: #37493f;
+  --barra-etichetta: #8ba095;
+  --login: linear-gradient(160deg, #14201a 0%, #1d3128 55%, #14201a 100%);
+}
+
+:root[data-tema='terracotta'][data-barra='scura'] {
+  --barra: linear-gradient(180deg, #241a15 0%, #30231b 100%);
+  --barra-alta: #241a15;
+  --barra-alta-testo: var(--barra-testo);
+  --barra-alta-bordo: var(--barra-bordo);
+  --barra-testo: #f2e6dd;
+  --barra-voce: #d8c4b5;
+  --barra-hover: #3f2e24;
+  --barra-hover-testo: #ffffff;
+  --barra-bordo: #1a120e;
+  --barra-bordo-pulsante: #4d3a2e;
+  --barra-etichetta: #a08d7e;
+  --login: linear-gradient(160deg, #221913 0%, #35251b 55%, #221913 100%);
+}
+
+:root[data-tema='ardesia'][data-barra='scura'] {
+  --barra: linear-gradient(180deg, #172026 0%, #1f2b33 100%);
+  --barra-alta: #172026;
+  --barra-alta-testo: var(--barra-testo);
+  --barra-alta-bordo: var(--barra-bordo);
+  --barra-testo: #e6ecf0;
+  --barra-voce: #c6d1d9;
+  --barra-hover: #2b3941;
+  --barra-hover-testo: #ffffff;
+  --barra-bordo: #10171c;
+  --barra-bordo-pulsante: #3a4a54;
+  --barra-etichetta: #869299;
+  --login: linear-gradient(160deg, #161e24 0%, #23303a 55%, #161e24 100%);
+}
+
+:root[data-tema='bordeaux'][data-barra='scura'] {
+  --barra: linear-gradient(180deg, #221217 0%, #2f1b22 100%);
+  --barra-alta: #221217;
+  --barra-alta-testo: var(--barra-testo);
+  --barra-alta-bordo: var(--barra-bordo);
+  --barra-testo: #f2e4e8;
+  --barra-voce: #dcc2ca;
+  --barra-hover: #3f272f;
+  --barra-hover-testo: #ffffff;
+  --barra-bordo: #180c10;
+  --barra-bordo-pulsante: #4e343d;
+  --barra-etichetta: #9c848c;
+  --login: linear-gradient(160deg, #1f1116 0%, #331d25 55%, #1f1116 100%);
+}
+
+:root[data-tema='prugna'][data-barra='scura'] {
+  --barra: linear-gradient(180deg, #1e1826 0%, #2a2135 100%);
+  --barra-alta: #1e1826;
+  --barra-alta-testo: var(--barra-testo);
+  --barra-alta-bordo: var(--barra-bordo);
+  --barra-testo: #ece5f2;
+  --barra-voce: #cfc2de;
+  --barra-hover: #3a2f49;
+  --barra-hover-testo: #ffffff;
+  --barra-bordo: #150f1c;
+  --barra-bordo-pulsante: #493c5b;
+  --barra-etichetta: #948aa3;
+  --login: linear-gradient(160deg, #1c1624 0%, #2d2338 55%, #1c1624 100%);
+}
+
+:root[data-tema='blu'][data-barra='scura'] {
+  --barra: linear-gradient(180deg, #18202b 0%, #1c2634 100%);
+  --barra-alta: #18202b;
+  --barra-alta-testo: var(--barra-testo);
+  --barra-alta-bordo: var(--barra-bordo);
+  --barra-testo: #e6eaf0;
+  --barra-voce: #cbd4de;
+  --barra-hover: #2a3644;
+  --barra-hover-testo: #ffffff;
+  --barra-bordo: #131a24;
+  --barra-bordo-pulsante: #3a4756;
+  --barra-etichetta: #8d99a8;
+  --login: linear-gradient(160deg, #101724 0%, #17233a 55%, #101724 100%);
+}
+
+/* La versione chiara serve solo al blu: gli altri due ce l'hanno gia' cosi'. */
+:root[data-tema='blu'][data-barra='chiara'] {
+  --barra: linear-gradient(180deg, #e4ebf5 0%, #d7e0ee 100%);
+  --barra-testo: #35455c;
+  --barra-voce: #35455c;
+  --barra-hover: #c8d5e8;
+  --barra-hover-testo: #17222f;
+  --barra-bordo: #c6d1e2;
+  --barra-bordo-pulsante: #b7c4d9;
+  --barra-etichetta: #8492a8;
+  --login: linear-gradient(160deg, #e8eef7 0%, #d3ddec 55%, #e8eef7 100%);
+}
+
+/* Modalità scura: si accende sopra al tema scelto e cambia solo i fondi, i
+   bordi e le scritte. L'accento resta quello della tavolozza — verde, blu o
+   terracotta — schiarito quel tanto che serve a staccare dal fondo scuro.
+   Sta dopo i temi perche', a parita' di peso, vince la regola scritta dopo. */
+:root[data-scuro='si'] {
+  --bg: #16161a;
+  --surface: #1e1e23;
+  --border: #32323a;
+  --border-forte: #45454f;
+  --text: #eae7e3;
+  --text-dim: #a49d96;
+  --pannello: #26262c;
+  --riga-alterna: #212127;
+  --campo: #1a1a1f;
+  --intestazione: #2c2c33;
+  --intestazione-hover: #35353d;
+  --intestazione-testo: #b6afa8;
+  --intestazione-testo-forte: #f2efec;
+  --barra: linear-gradient(180deg, #131317 0%, #191920 100%);
+  --barra-testo: #e6e2de;
+  --barra-voce: #b9b2ab;
+  --barra-hover: #2b2b33;
+  --barra-hover-testo: #ffffff;
+  --barra-bordo: #101014;
+  --barra-bordo-pulsante: #3b3b45;
+  --barra-etichetta: #7d766f;
+  --login: linear-gradient(160deg, #131317 0%, #1d1d24 55%, #131317 100%);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 18px 50px rgba(0, 0, 0, 0.7);
+}
+
+/* Gli accenti al buio: gli stessi colori, un po' piu' chiari, altrimenti sul
+   fondo scuro affogano. */
+:root[data-scuro='si'] {
+  --accent: #6fa287;
+  --accent-hover: #85b69b;
+  --accent-soft: #24352c;
+  --accent-ombra: rgba(111, 162, 135, 0.35);
+  --logo: linear-gradient(135deg, #6fa287, #46705b);
+}
+
+:root[data-scuro='si'][data-tema='blu'] {
+  --accent: #5b8def;
+  --accent-hover: #7ba4f5;
+  --accent-soft: #1e2a44;
+  --accent-ombra: rgba(91, 141, 239, 0.35);
+  --logo: linear-gradient(135deg, #5b8def, #2b4fa8);
+}
+
+:root[data-scuro='si'][data-tema='ardesia'] {
+  --accent: #82a6b8;
+  --accent-hover: #98b8c8;
+  --accent-soft: #21303a;
+  --accent-ombra: rgba(130, 166, 184, 0.35);
+  --logo: linear-gradient(135deg, #82a6b8, #3d5b6a);
+}
+
+:root[data-scuro='si'][data-tema='bordeaux'] {
+  --accent: #c4788e;
+  --accent-hover: #d492a5;
+  --accent-soft: #38222a;
+  --accent-ombra: rgba(196, 120, 142, 0.35);
+  --logo: linear-gradient(135deg, #c4788e, #6f2c40);
+}
+
+:root[data-scuro='si'][data-tema='prugna'] {
+  --accent: #a681c4;
+  --accent-hover: #b99bd3;
+  --accent-soft: #2c2337;
+  --accent-ombra: rgba(166, 129, 196, 0.35);
+  --logo: linear-gradient(135deg, #a681c4, #63407f);
+}
+
+:root[data-scuro='si'][data-tema='terracotta'] {
+  --accent: #c8785e;
+  --accent-hover: #d78e75;
+  --accent-soft: #3a271f;
+  --accent-ombra: rgba(200, 120, 94, 0.35);
+  --logo: linear-gradient(135deg, #c8785e, #8c4732);
+}
+
+
+* {
+  box-sizing: border-box;
+}
+
+/* Quanto e' alta la barra disegnata in cima alla finestra: zero dove non c'e'.
+   I suoi colori sono quelli della colonna laterale, sempre: prima con la
+   colonna chiara era bianca, e staccava dal resto dell'app. */
+:root {
+  --alto-barra: 0px;
+  --barra-alta: var(--barra);
+  --barra-alta-testo: var(--barra-testo);
+  --barra-alta-bordo: var(--barra-bordo);
+}
+
+:root[data-barra-disegnata='si'] {
+  --alto-barra: 38px;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  user-select: none;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cec4b4;
+  border-radius: 6px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #b8ac98;
+  background-clip: content-box;
+  border: 2px solid transparent;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Nella compilazione di uno screening la lista di test e' lunga e si scorre
+   spesso: la barra sempre visibile a fianco distraeva. Solo li', resta
+   invisibile finche' non si passa il mouse sul riquadro che scorre. */
+.content:has(.pagina-compila-screening)::-webkit-scrollbar-thumb {
+  background: transparent;
+}
+
+.content:has(.pagina-compila-screening):hover::-webkit-scrollbar-thumb {
+  background: #cec4b4;
+}
+
+.content:has(.pagina-compila-screening):hover::-webkit-scrollbar-thumb:hover {
+  background: #b8ac98;
+}
+
+/* Con il testo ingrandito le caselle e i pulsanti chiedono piu' spazio del
+   riquadro che li contiene, e senza queste due righe uscivano fuori invece di
+   stringersi: le caselle hanno una larghezza minima loro (quella del "size"
+   dell'HTML) e i pulsanti non si restringono mai sotto la loro scritta. */
+input,
+textarea,
+select {
+  min-width: 0;
+  max-width: 100%;
+  user-select: text;
+  font: inherit;
+  color: inherit;
+  padding: 10px 14px;
+  border: 1px solid var(--border-forte);
+  border-radius: var(--radius-sm);
+  /* interno leggermente colorato: si vede a colpo d'occhio dove si scrive */
+  background: var(--campo);
+  outline: none;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+/* Etichetta sopra, casella sotto, anche fuori dalle finestre modali: senza
+   questa regola le due cose finiscono affiancate e il testo appare piu' in
+   basso della casella. :where() non aggiunge peso al selettore, cosi' le
+   etichette che devono restare in riga (spunte, filtri) vincono comunque. */
+.card :where(label) {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 15px;
+  color: var(--text-dim);
+}
+
+.card :where(label) input,
+.card :where(label) select,
+.card :where(label) textarea {
+  font-size: 16px;
+  color: var(--text);
+}
+
+/* .form-row-2 era usata in nove punti senza avere nessuno stile: le due
+   colonne non sono mai state due colonne. */
+.form-row-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+@media (max-width: 760px) {
+  .form-row-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+  background: var(--surface);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #9aa6b5;
+}
+
+input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  accent-color: var(--accent);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+button {
+  font: inherit;
+  /* Mai piu' largo del posto che ha: con il testo grande la scritta va a capo
+     dentro al pulsante invece di sbordare dal riquadro. */
+  min-width: 0;
+  max-width: 100%;
+  flex-wrap: wrap;
+  overflow-wrap: anywhere;
+  padding: 9px 16px;
+  border: 1px solid var(--border-forte);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s,
+    box-shadow 0.15s,
+    transform 0.05s;
+}
+
+button:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: #fdfeff;
+}
+
+button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+button:focus-visible {
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  box-shadow: var(--shadow-sm);
+}
+
+button.primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  color: #fff;
+}
+
+button.danger:hover:not(:disabled) {
+  border-color: var(--danger);
+  color: var(--danger);
+  background: #fdf7f7;
+}

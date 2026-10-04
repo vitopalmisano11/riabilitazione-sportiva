@@ -1,0 +1,646 @@
+/* La configurazione: patologie, fasi, esercizi, tabelle e le icone accanto ai nomi. */
+
+/* ---- Configurazione a step (patologia -> fase -> editor) ---- */
+
+.step-flow {
+  max-width: 920px;
+  margin: 0 auto;
+}
+
+.briciole {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 14px;
+  color: var(--text-dim);
+}
+
+.briciola {
+  border: none;
+  background: none;
+  padding: 4px 9px;
+  border-radius: 6px;
+  color: var(--accent);
+  font-size: 16px;
+}
+
+/* Il nome del paziente dentro al titolo: stessa dimensione del titolo, si
+   riconosce come pulsante dal colore e dalla sottolineatura al passaggio. */
+.nome-nel-titolo {
+  font-size: inherit;
+  font-weight: inherit;
+  padding: 0 2px;
+  vertical-align: baseline;
+}
+
+.nome-nel-titolo:hover:not(:disabled) {
+  background: none;
+  text-decoration: underline;
+}
+
+.briciola:hover:not(:disabled) {
+  background: var(--accent-soft);
+}
+
+.briciola:disabled,
+.briciola.corrente {
+  color: var(--text);
+  font-weight: 600;
+  opacity: 1;
+  cursor: default;
+}
+
+.step-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.step-head .step-title {
+  margin-bottom: 0;
+}
+
+/* ricerca compatta accanto al titolo, non piu' a tutta larghezza */
+.ricerca-con-azione {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ricerca-compatta {
+  width: 240px;
+  max-width: 100%;
+}
+
+/* pulsante quadrato con la sola icona, alto quanto il campo di ricerca */
+.btn-icona {
+  padding: 10px 12px;
+  flex-shrink: 0;
+}
+
+.step-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.step-num {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.step-title h3 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.scelta-tiles {
+  display: grid;
+  /* quattro per riga: la quinta va a capo */
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+/* a finestra stretta quattro colonne starebbero troppo strette */
+@media (max-width: 980px) {
+  .scelta-tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.scelta-tile {
+  position: relative;
+  min-height: 104px;
+  /* margini uguali sopra e sotto: solo cosi' il nome cade nel centro esatto
+     della casella. In basso c'e' spazio per le azioni, che sono sovrapposte. */
+  padding: 30px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s,
+    transform 0.1s;
+}
+
+.scelta-tile:hover {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.scelta-tile:hover .item-actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* I comandi stanno nell'angolo in basso a destra, tutti insieme: al centro in
+   basso rubavano una riga alla piastrella, e il nome non era mai davvero al
+   centro. Compaiono passandoci sopra. */
+.scelta-tile .item-actions {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  justify-content: flex-end;
+  gap: 2px;
+}
+
+/* la rinomina resta a tutta larghezza dentro la casella */
+.scelta-tile .edit-row {
+  width: 100%;
+}
+
+.scelta-tile-nome {
+  font-weight: 600;
+  font-size: 17px;
+  /* A capo fra una parola e l'altra: spezzare "Ricostruzione" a meta' si
+     leggeva peggio di una riga in piu'. */
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+  line-height: 1.25;
+  /* Un margine ai lati: il nome non arriva mai al bordo ne' alla maniglia. */
+  padding: 0 4px;
+  min-width: 0;
+}
+
+.scelta-tile-add {
+  border-style: dashed;
+  cursor: default;
+  box-shadow: none;
+  background: var(--pannello);
+  align-items: stretch;
+  justify-content: center;
+  padding: 20px 14px;
+}
+
+.scelta-tile-add:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: var(--border-forte);
+}
+
+.scelta-tile-add input {
+  min-width: 0;
+}
+
+/* ---- Icone accanto al nome dell'esercizio (video, immagine) ---- */
+
+.icona-esercizio {
+  border: none;
+  background: none;
+  color: var(--accent);
+  padding: 2px 5px;
+  border-radius: 6px;
+  margin-left: 6px;
+  vertical-align: -2px;
+}
+
+.icona-esercizio:hover:not(:disabled) {
+  background: var(--accent-soft);
+}
+
+.single-col {
+  max-width: 480px;
+}
+
+.crud-list {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--spazio-interno);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Il titolo del riquadro e' una testata vera e propria: fondo beige a tutta
+   larghezza, cosi' si distingue dagli elenchi che ha sotto. */
+.crud-list h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: -16px -16px 12px;
+  padding: 8px 10px 8px 16px;
+  font-size: 15px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--intestazione-testo);
+  background: var(--intestazione);
+  border-radius: var(--radius) var(--radius) 0 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.crud-list ul {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.crud-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 9px 10px;
+  border-radius: var(--radius);
+}
+
+.crud-list li.selectable {
+  cursor: pointer;
+}
+
+.crud-list li.selectable:hover {
+  background: var(--accent-soft);
+}
+
+.crud-list li.selected {
+  background: var(--accent-soft);
+  outline: 1px solid var(--accent);
+}
+
+.crud-list li.empty,
+.crud-list .hint {
+  color: var(--text-dim);
+  font-style: italic;
+  font-size: 15px;
+}
+
+.item-nome {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+.item-actions {
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  /* invisibili = non cliccabili, altrimenti rubano il clic alla riga */
+  pointer-events: none;
+}
+
+.crud-list li:hover .item-actions,
+.crud-list li.selected .item-actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.item-actions button {
+  padding: 3px 6px;
+  font-size: 14px;
+  border: none;
+  background: none;
+  color: var(--text-dim);
+  border-radius: 6px;
+}
+
+.item-actions button:hover:not(:disabled) {
+  background: var(--accent-soft);
+}
+
+.item-actions button.danger:hover:not(:disabled) {
+  background: #fdeeee;
+}
+
+.edit-row {
+  display: flex;
+  flex: 1;
+  gap: 6px;
+}
+
+.edit-row input {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 8px;
+}
+
+/* Il pulsante che aggiunge sta in fondo alla riga del titolo, in tutte le
+   liste: sempre nello stesso posto, e con scritto cosa aggiunge. */
+.btn-aggiungi-lista {
+  margin-left: auto;
+  padding: 3px 10px;
+  font-size: 13px;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--accent);
+}
+
+.add-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.add-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.checkbox-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* spaziatura compatta, allineata a quella delle liste di sezioni */
+/* Dentro .crud-list queste voci ereditavano la spaziatura delle righe
+   modificabili (9px sopra e sotto) e risultavano troppo distanziate: qui la
+   spaziatura la decide la label, con l'evidenziazione al passaggio del mouse
+   che tiene le voci ben separate a occhio. */
+.crud-list .checkbox-list li {
+  padding: 0;
+}
+
+.checkbox-list label {
+  display: flex;
+  /* dichiarata apposta: la regola generale delle etichette nelle card le mette
+     in colonna, e qui la spunta deve restare a sinistra del testo */
+  flex-direction: row;
+  align-items: center;
+  gap: 9px;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.checkbox-list label:hover {
+  background: var(--accent-soft);
+}
+
+/* ---- Toolbar + tabella esercizi ---- */
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  /* A capo invece che fuori: con il testo ingrandito la barra non ci sta piu'
+     in una riga sola. */
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.toolbar input[type='search'] {
+  width: 260px;
+  flex: 1 1 180px;
+}
+
+/* Il filtro delle categorie non ha bisogno di tutta quella larghezza: i nomi
+   sono corti, e lo spazio serve al resto della barra. */
+.filtro-categorie {
+  max-width: 230px;
+  flex: 1 1 180px;
+}
+
+/* Spinge a destra quello che viene dopo, in qualunque riga di pulsanti: era
+   definito solo dentro .toolbar, quindi nelle finestre non faceva niente. */
+.spacer {
+  flex: 1;
+}
+
+.checkbox-inline,
+/* dentro una finestra vince .modal label, che le metterebbe in colonna: qui la
+   spunta deve restare a sinistra del testo */
+.modal label.checkbox-inline {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-dim);
+  font-size: 16px;
+}
+
+/* Le tabelle larghe (esercizi, follow-up, movimenti, misure) scorrono di lato
+   dentro al loro riquadro. Con il testo ingrandito le colonne non si possono
+   stringere oltre un certo punto, e la tabella usciva dal riquadro portandosi
+   fuori anche i pulsanti dell'ultima colonna. */
+.tabella-scorre {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+/* Sotto questa larghezza le colonne diventano illeggibili (nomi ridotti a tre
+   lettere e puntini): meglio far scorrere la tabella che stringerla ancora. */
+.tabella-scorre > table {
+  min-width: 640px;
+}
+
+/* Otto colonne: sotto questa larghezza il nome dell'esercizio si riduce a due
+   lettere e i puntini. */
+.tabella-scorre > .tabella-esercizi {
+  min-width: 820px;
+}
+
+/* La tabella di un test (Prova 1, Prova 2...) ha poche colonne strette: i
+   640px di minimo, pensati per tabelle con tante colonne, allargavano molto
+   le poche caselle invece di tenerle vicine. Qui la larghezza segue solo il
+   contenuto, e scorre soltanto quando le prove sono davvero tante. */
+.tabella-scorre > .tabella-misura {
+  min-width: 0;
+}
+
+/* Le tabelle dei test con piu' prove (es. drop jump, CMJ) scorrono spesso: la
+   barra sempre visibile a fianco delle caselle distraeva mentre si scriveva.
+   Solo qui, resta nascosta finche' non ci si passa sopra col mouse, e c'e'
+   un po' di spazio sotto alle caselle prima che cominci la barra. */
+.voce-test .tabella-scorre {
+  padding-bottom: 10px;
+}
+
+.voce-test .tabella-scorre::-webkit-scrollbar-thumb {
+  background: transparent;
+}
+
+.voce-test .tabella-scorre:hover::-webkit-scrollbar-thumb {
+  background: #cec4b4;
+}
+
+.voce-test .tabella-scorre:hover::-webkit-scrollbar-thumb:hover {
+  background: #b8ac98;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Nella libreria esercizi le larghezze delle colonne sono decise tutte qui:
+   sommate come semplici indicazioni la tabella sporgeva dalla finestra e
+   comparivano le frecce di scorrimento in orizzontale. Cosi' vengono rispettate
+   e la tabella sta dentro. Le altre tabelle restano automatiche. */
+.data-table.tabella-esercizi {
+  table-layout: fixed;
+}
+
+.data-table tbody tr:not(.archiviato):hover td {
+  background: var(--pannello);
+}
+
+.data-table th,
+.data-table td {
+  text-align: left;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.data-table th {
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+  background: var(--pannello);
+}
+
+.data-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* La nota tecnica non sta piu' nella tabella: la colonna e' larga quanto
+   l'icona, cosi' il testo lungo non allarga piu' la riga. */
+.data-table th.col-nota,
+.data-table td.col-nota {
+  width: 46px;
+  text-align: center;
+  padding-left: 4px;
+  padding-right: 4px;
+  font-size: 12px;
+}
+
+.nota-aiuto,
+.icona-aiuto {
+  display: inline-flex;
+  cursor: help;
+}
+
+/* Il punto interrogativo accanto a un titolo: presente ma discreto, e in linea
+   con la scritta che accompagna. */
+.icona-aiuto {
+  color: var(--text-dim);
+  vertical-align: -3px;
+  margin-left: 6px;
+}
+
+.icona-aiuto:hover {
+  color: var(--accent);
+}
+
+/* Il cartellino galleggia sopra la pagina: dentro la tabella lo taglierebbe il
+   bordo arrotondato. Si ancora all'angolo dell'icona. */
+.bolla-nota {
+  position: fixed;
+  z-index: 60;
+  /* Il "?" spesso sta dentro a un titolo, che e' tutto maiuscolo e spaziato:
+     senza azzerarli, la spiegazione usciva IN MAIUSCOLO. */
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 400;
+  text-align: left;
+  transform: translateX(-100%);
+  max-width: 340px;
+  padding: 9px 11px;
+  background: var(--pannello);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.35;
+  white-space: pre-wrap;
+  pointer-events: none;
+}
+
+.bolla-nota.sopra {
+  transform: translate(-100%, -100%);
+}
+
+/* La spiegazione di una schermata si apre verso destra, perche' il punto
+   interrogativo sta accanto a un titolo, a sinistra. */
+.bolla-aiuto {
+  transform: none;
+  /* Piu' stretta: una riga lunga trecento pixel si rilegge male, e la bolla
+     copriva mezza schermata. */
+  max-width: 300px;
+}
+
+.bolla-aiuto.sopra {
+  transform: translateY(-100%);
+}
+
+.data-table td.empty {
+  text-align: center;
+  color: var(--text-dim);
+  font-style: italic;
+  padding: 28px;
+}
+
+.data-table tr.archiviato td {
+  opacity: 0.55;
+}
+
+/* Un'etichettina discreta: dice com'e' fatto il test, non e' un'azione ne' un
+   allarme. Contorno invece di riempimento, cosi' non pesa accanto al nome. */
+.badge {
+  margin-left: 8px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: none;
+  border: 1px solid var(--border-forte);
+  border-radius: 999px;
+  padding: 1px 8px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.row-actions {
+  white-space: nowrap;
+}
+
+/* Nel diario la fila e' uno <span>: in linea, i pulsanti con la sola icona si
+   allineavano alla base del testo e risultavano sfalsati rispetto a quelli con
+   la scritta. In flex si allineano tutti al centro. Nelle tabelle .row-actions
+   e' invece una cella, che non va tolta dal flusso della tabella. */
+span.row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.row-actions button {
+  margin-left: 4px;
+  padding: 4px 9px;
+  font-size: 15px;
+}
+
+span.row-actions button {
+  margin-left: 0;
+  align-self: stretch;
+}

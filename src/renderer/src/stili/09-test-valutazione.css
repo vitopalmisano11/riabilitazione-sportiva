@@ -1,0 +1,589 @@
+/* I test di valutazione. */
+
+/* ---- Test di valutazione ---- */
+
+.riga-parametro {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.riga-parametro input:first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.campo-stretto {
+  width: 110px;
+  flex-shrink: 0;
+}
+
+/* Le caselle di testo hanno una dimensione decisa dal modulo: trascinandone
+   l'angolo si sfasava il resto della schermata. */
+textarea {
+  resize: none;
+}
+
+/* due impostazioni distinte dentro la stessa finestra */
+/* Scelta del tema: due pulsanti con il pallino del colore, cosi' si vede cosa
+   si sta scegliendo prima di premere. */
+.scelta-tema {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  /* staccati dalla riga che li spiega: attaccati sembravano parte del testo */
+  margin-top: 12px;
+}
+
+.scelta-tema button {
+  gap: 9px;
+}
+
+/* Quante sedute aspettano il paziente, sulla linguetta del diario. */
+.pallino-conta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  margin-left: 8px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* Scelta dei giorni quando si programma la settimana. */
+.scelte-giorni {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.aggiungi-data {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.date-scelte {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.date-scelte li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 6px 5px 12px;
+  border: 1px solid var(--border-forte);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 14px;
+}
+
+.date-scelte li button {
+  border: none;
+  background: none;
+  padding: 2px;
+  color: var(--text-dim);
+}
+
+/* Le sedute programmate, sopra a quelle svolte: fondo appena diverso, perche'
+   sono cose da fare e non cose fatte. */
+.blocco-programmate {
+  background: var(--pannello);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  /* niente spazio a destra e sinistra: con quello le righe qui dentro
+     partivano piu' rientrate delle sedute svolte subito sotto, e le due
+     colonne della data non erano piu' allineate. */
+  padding: 4px 0 8px;
+  margin-bottom: var(--spazio);
+}
+
+.blocco-programmate .sotto-titolo {
+  margin-top: 8px;
+}
+
+/* Riquadri delle impostazioni affiancati quando c'e' spazio: due domande
+   diverse, una accanto all'altra invece che una sotto l'altra. */
+.griglia-impostazioni {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: var(--spazio);
+  align-items: start;
+}
+
+/* Due riquadri affiancati alti uguale: il piu' corto si allunga fino al piu'
+   lungo, cosi' la coppia si legge come una cosa sola. */
+.griglia-pari {
+  align-items: stretch;
+}
+
+/* Sempre due colonne, anche con tre riquadri: il terzo va a capo sotto al
+   primo, largo come lui, invece di stringere tutti e tre su una riga. Su una
+   finestra stretta si torna a uno sotto l'altro. */
+.griglia-due {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 900px) {
+  .griglia-due {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Due riquadri uno sotto l'altro dentro a una colonna della griglia. */
+.colonna-schede {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spazio);
+  min-width: 0;
+}
+
+/* Dentro alla griglia i riquadri restano riquadri: la regola generale guarda
+   solo i figli diretti della scheda, e qui c'e' la griglia in mezzo. */
+.griglia-impostazioni > .card,
+.colonna-schede > .card,
+.stacco-blocco > .card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: var(--spazio-interno) calc(var(--spazio-interno) + 4px);
+}
+
+/* I blocchi della scheda dati sono cose diverse: fra uno e l'altro ci vuole
+   respiro, altrimenti sembrano un elenco unico. */
+.stacco-blocco {
+  margin-top: var(--spazio);
+}
+
+/* Le piastrelle non hanno piu' l'iconcina per trascinare: si prende la
+   piastrella e la si sposta. Cosi' al centro c'e' solo il nome, che era il
+   punto. Il testo non si seleziona, altrimenti trascinando si evidenzia. */
+.scelta-tile {
+  user-select: none;
+}
+
+/* L'etichetta "campo" sta sotto al nome e si muove con lui: sono la stessa
+   cosa, e staccata in fondo alla piastrella sembrava appartenere al riquadro
+   invece che alla patologia. */
+.pillola-in-basso {
+  margin-left: 0;
+}
+
+/* Il posto dell'etichetta c'e' in tutte le piastrelle, anche in quelle senza:
+   e' l'unico modo perche' i nomi cadano tutti alla stessa altezza invece di
+   alzarsi di mezza riga dove l'etichetta c'e'. */
+.riga-pillola {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+}
+
+/* Un titolo di sezione con il suo pulsante in fondo alla riga. */
+.riga-con-pulsante {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.riga-con-pulsante button {
+  padding: 3px 10px;
+  font-size: 13px;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+/* Il lavoro al campo e' un percorso parallelo: nel diario sta staccato da
+   quello in palestra, non in coda. */
+.blocco-campo {
+  margin-top: var(--spazio);
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+}
+
+/* I due binari della seduta: palestra e campo. Due pulsanti affiancati, quello
+   scelto pieno del colore dell'app, come la scelta del tema. */
+.scelta-binario {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.scelta-binario button {
+  padding: 4px 12px;
+  font-size: 14px;
+}
+
+.scelta-binario select {
+  margin-left: 4px;
+}
+
+/* L'interruttore del percorso al campo sulla patologia: piccolo, con scritto
+   il suo nome, acceso prende il colore dell'app. Stesso modo del "cluster"
+   sulle categorie: una cosa che si accende una volta e resta li' a dire com'e'. */
+.pillola-campo {
+  flex: none;
+  padding: 2px 8px;
+  margin-left: 8px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.pillola-campo.attivo {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+/* La guida dei dati: testo da leggere, non un modulo da compilare. Righe
+   larghe il giusto e spazio fra i paragrafi. */
+.guida-dati p,
+.guida-dati li {
+  margin: 6px 0;
+  line-height: 1.55;
+}
+
+.guida-dati ul {
+  margin: 4px 0 10px;
+  padding-left: 22px;
+}
+
+.guida-dati li {
+  margin-bottom: 6px;
+}
+
+.guida-dati .sotto-titolo {
+  margin-top: 18px;
+}
+
+/* Il pulsante della guida sta in fondo alla scheda, staccato dal resto. */
+.riga-guida {
+  margin-top: var(--spazio);
+  justify-content: center;
+}
+
+/* La settimana: sette blocchi uno sotto l'altro dentro allo stesso riquadro.
+   I giorni vuoti restano al loro posto, con un trattino: una settimana si legge
+   come una settimana, non come un elenco di giorni pieni. */
+/* Ogni giorno nel suo riquadro, con il nome del giorno come cartellino in
+   cima: sette elenchi uno sotto l'altro si confondevano, e non si vedeva dove
+   finiva il giorno e cominciava quello dopo. */
+.giorno-settimana {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0 12px 10px;
+  margin-bottom: 10px;
+}
+
+.giorno-settimana:last-child {
+  margin-bottom: 0;
+}
+
+.giorno-settimana .sotto-titolo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 -12px 8px;
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+
+/* Il "+" del giorno sta in fondo alla sua fascia, scolorito finche' non ci si
+   passa sopra: c'e' quando serve e non fa rumore quando si legge. */
+.btn-aggiungi-giorno {
+  margin-left: auto;
+  padding: 1px 6px;
+  border: none;
+  background: none;
+  color: var(--intestazione-testo);
+}
+
+.giorno-settimana:hover .btn-aggiungi-giorno,
+.btn-aggiungi-giorno:hover {
+  color: var(--accent);
+  background: var(--surface);
+}
+
+/* Il giorno di oggi si riconosce senza cercarlo. */
+.giorno-settimana.oggi .sotto-titolo {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.giorno-settimana .riga-vuota {
+  margin: 0 0 2px 10px;
+}
+
+/* Il nome del paziente e' un pulsante, e un pulsante dentro a una colonna si
+   allargherebbe centrando la scritta: qui deve stare a sinistra, sopra ai suoi
+   dettagli, come il titolo della riga. Senza bordo interno a sinistra, se no
+   parte spostato rispetto alla riga dei dettagli che ha sotto. */
+.giorno-settimana .nome-nel-titolo {
+  align-self: flex-start;
+  text-align: left;
+  font-size: 16px;
+  font-weight: 600;
+  padding-left: 0;
+  padding-right: 0;
+  margin-bottom: 1px;
+}
+
+/* Lo sfondo del passaggio del mouse, senza bordo interno, sarebbe attaccato
+   alle lettere: si allarga con l'ombra invece che con lo spazio. */
+.giorno-settimana .nome-nel-titolo:hover:not(:disabled) {
+  background: none;
+  box-shadow: 0 0 0 5px var(--accent-soft);
+  background-color: var(--accent-soft);
+}
+
+.titolo-settimana {
+  font-weight: 600;
+  min-width: 210px;
+  text-align: center;
+}
+
+/* Meno, la percentuale, piu', e il ritorno alla misura normale. Pulsanti
+   piccoli: con la misura di quelli normali la riga diventava alta il doppio
+   delle altre e l'ultimo pulsante usciva dal riquadro. */
+.regola-ingrandimento {
+  display: flex;
+  align-items: center;
+  /* I pulsanti della riga vanno a capo restando allineati a destra, invece di
+     spingere fuori dal riquadro. */
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.regola-ingrandimento button {
+  padding: 4px 8px;
+  min-height: 0;
+}
+
+.valore-ingrandimento {
+  min-width: 46px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.riga-luce {
+  margin-top: var(--spazio);
+  padding-top: var(--spazio);
+  border-top: 1px solid var(--border);
+}
+
+/* Il cestino dentro a "Dati e backup": una riga richiudibile, che a riposo non
+   pesa piu' di un titolo. */
+.blocco-cestino {
+  background: var(--surface);
+  margin-bottom: 0;
+}
+
+.blocco-cestino .sedute-list {
+  margin-top: 8px;
+}
+
+/* Impostazione che si accende o si spegne: il nome e la spiegazione a sinistra,
+   la casella a destra, staccata dal testo invece che appiccicata davanti. */
+/* Vale anche dentro alle finestre, non solo nei riquadri: la casella deve
+   stare in fondo alla riga del nome, non sotto. Selettori con la stessa forza
+   della regola che mette in colonna i campi di una finestra, e scritti dopo:
+   con :where() perdevano il confronto e restavano incolonnati. */
+.card .riga-interruttore,
+.modal .riga-interruttore {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  /* Se il nome e i pulsanti non ci stanno in una riga, i pulsanti scendono
+     sotto: prima restavano in riga e uscivano dal riquadro. */
+  flex-wrap: wrap;
+  gap: 12px;
+  cursor: pointer;
+}
+
+/* Un interruttore che segue qualcos'altro (le piastrelle dei colori, il nome
+   di una categoria): senza una riga di stacco sembrava la didascalia di quello
+   che gli sta sopra. */
+.riga-staccata {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+/* Nome e "?" sulla stessa riga, sempre: come blocco il punto interrogativo
+   andava a capo appena il riquadro si stringeva. */
+.riga-interruttore .nome-interruttore {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  /* Il nome puo' andare a capo, ma il "?" gli resta accanto: e' un elemento a
+     se', quindi si tiene sulla stessa riga del testo e scende con lui. Prima
+     era vietato andare a capo, e con il testo grande la riga sfondava. */
+  white-space: normal;
+  min-width: 0;
+  font-size: 16px;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.riga-interruttore input[type='checkbox'] {
+  flex: 0 0 auto;
+}
+
+/* L'interruttore che scorre, come quello del telefono: per le funzioni che si
+   accendono e si spengono. Le spunte restano dove si sceglie da un elenco. */
+input[type='checkbox'].interruttore {
+  appearance: none;
+  flex: none;
+  position: relative;
+  width: 44px;
+  height: 26px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: var(--border-forte);
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+
+input[type='checkbox'].interruttore::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: transform 0.18s ease;
+}
+
+input[type='checkbox'].interruttore:checked {
+  background: var(--accent);
+}
+
+input[type='checkbox'].interruttore:checked::before {
+  transform: translateX(18px);
+}
+
+input[type='checkbox'].interruttore:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+input[type='checkbox'].interruttore:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.pallino-tema {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+
+.blocco-impostazione {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--spazio-interno);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.blocco-impostazione .sotto-titolo {
+  margin-top: 0;
+}
+
+/* le categorie stanno sopra la libreria, ma restano un blocco a se' */
+.blocco-categorie {
+  max-width: 520px;
+  margin-bottom: 6px;
+}
+
+/* riga secondaria dentro la casella (es. patologia e fase del paziente) */
+.scelta-tile-sub {
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+/* Elenco in colonna, centrato: i pazienti si scorrono meglio incolonnati che
+   affiancati, e la ricerca sta sopra la colonna. */
+.colonna-centrata {
+  max-width: 620px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.ricerca-sopra {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.ricerca-sopra input {
+  flex: 1;
+  min-width: 0;
+}
+
+.elenco-verticale {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Una riga sì e una no con il fondo appena piu' scuro: l'occhio segue la riga
+   fino in fondo senza saltare a quella sopra o sotto. Vale per tutti gli
+   elenchi lunghi dell'app. La prima resta chiara, cosi' un elenco di due righe
+   non sembra colorato a caso. */
+.sedute-list li:nth-child(even),
+.esercizi-proposti li:nth-child(even),
+.crud-list > ul > li:nth-child(even),
+.lista-segni li:nth-child(even),
+.lista-indicazioni li:nth-child(even),
+.lista-massimali > li:nth-child(even),
+.elenco-categorie li:nth-child(even),
+.checkbox-list li:nth-child(even),
+.data-table tbody tr:nth-child(even),
+.elenco-verticale > .scelta-tile:nth-child(even) {
+  background: var(--riga-alterna);
+}
+
+/* Il riquadro che contiene l'elenco dei pazienti: scorre lui, come quello del
+   follow-up, invece di far crescere la pagina. Il margine interno c'e' perche'
+   le righe hanno un'ombra, e senza verrebbe tagliata dal bordo. */
+.riquadro-scorrevole {
+  max-height: 440px;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+/* Un gruppo dopo l'altro nell'elenco pazienti: senza uno stacco si leggeva
+   come un'unica lista lunga, col nome del gruppo perso in mezzo alle righe. */
+.blocco-gruppo-pazienti + .blocco-gruppo-pazienti {
+  margin-top: 20px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}

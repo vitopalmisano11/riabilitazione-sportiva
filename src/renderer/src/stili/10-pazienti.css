@@ -1,0 +1,683 @@
+/* I pazienti: l'elenco, la scheda, la body chart e l'anamnesi. */
+
+/* ---- La lista dei pazienti, larga e a colonne ---- */
+.lista-larga .elenco-pazienti {
+  width: 100%;
+}
+
+/* L'elenco scende fino in fondo alla finestra, e scorre lui: un riquadro
+   con gli angoli arrotondati, come gli altri. */
+.lista-larga .riquadro-scorrevole {
+  max-height: max(320px, calc(100vh - var(--alto-barra) - 215px));
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.riga-paziente {
+  display: grid;
+  grid-template-columns:
+    minmax(170px, 1.3fr) minmax(170px, 1.5fr) minmax(120px, 0.8fr)
+    minmax(120px, 0.7fr) 44px;
+  align-items: center;
+  gap: 12px;
+  padding: 5px 12px 5px 16px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.righe-pazienti {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.righe-pazienti > .riga-paziente:nth-child(even) {
+  background: var(--riga-alterna);
+}
+
+.righe-pazienti > .riga-paziente:hover {
+  background: var(--intestazione);
+}
+
+.intestazione-pazienti {
+  position: sticky;
+  top: -6px;
+  z-index: 1;
+  background: var(--surface);
+  cursor: default;
+  padding-top: 4px;
+  padding-bottom: 6px;
+  margin: 0 0 2px;
+  border-bottom: 1.5px solid var(--border-forte);
+  border-radius: 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.nome-paziente-riga {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dettaglio-riga {
+  color: var(--text-dim);
+  font-size: 15px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.badge-stato {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--accent-soft);
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.badge-stato.follow {
+  background: var(--intestazione);
+  color: var(--text-dim);
+}
+
+/* Su una finestra stretta restano nome, ultima seduta e il pulsante. */
+@media (max-width: 820px) {
+  .riga-paziente {
+    grid-template-columns: minmax(0, 1fr) auto 44px;
+  }
+
+  .riga-paziente > :nth-child(2),
+  .riga-paziente > :nth-child(4) {
+    display: none;
+  }
+}
+
+/* I due pulsanti che spostano il paziente da un elenco all'altro — "Concludi"
+   e "Riprendi" — sono la stessa cosa in due versi: stessa misura, e la scritta
+   non va mai a capo lasciando la freccia da sola. */
+.btn-stato {
+  min-width: 136px;
+  justify-content: center;
+  white-space: nowrap;
+  flex-wrap: nowrap;
+}
+
+/* Gli elenchi del follow-up si comportano allo stesso modo: chi e' in
+   trattamento e chi ha concluso possono essere tanti, e la pagina non deve
+   crescere all'infinito. */
+.elenco-followup {
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.tabella-followup-scorre {
+  max-height: 420px;
+}
+
+/* Riga dell'elenco pazienti: il nome a sinistra, e a destra il pulsante che
+   apre subito la seduta di oggi senza passare dalla scheda. */
+.elenco-verticale .scelta-tile {
+  min-height: 0;
+  padding: 10px 12px 10px 16px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.elenco-verticale .scelta-tile-nome {
+  text-align: left;
+}
+
+/* 3) le categorie si aprono solo quando servono */
+.blocco-apribile {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: var(--spazio);
+  background: var(--pannello);
+}
+
+/* La riga che apre e chiude un riquadro: un pulsante vero, con la freccetta
+   che gira, cosi' si vede che si puo' anche richiudere. */
+.riga-apribile {
+  width: 100%;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 10px 14px;
+  border: none;
+  background: none;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.riga-apribile:hover:not(:disabled) {
+  background: none;
+  color: var(--accent);
+}
+
+/* La ricerca dentro a un elenco di categorie: sta sopra all'elenco, larga
+   quanto il riquadro. */
+.cerca-categoria {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+/* L'elenco delle categorie da aggiungere non fa crescere la pagina all'infinito:
+   oltre una certa altezza scorre dentro al suo riquadro. */
+.elenco-categorie-scorre {
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.blocco-apribile > summary {
+  cursor: pointer;
+  padding: 10px 14px;
+  font-weight: 600;
+  color: var(--text-dim);
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.blocco-apribile > summary::-webkit-details-marker {
+  display: none;
+}
+
+.blocco-apribile[open] > summary {
+  border-bottom: 1px solid var(--border);
+}
+
+.blocco-apribile .contenuto-apribile {
+  padding: 12px 14px;
+  max-width: 520px;
+}
+
+/* l'elenco dei meno recenti sta sotto e occupa tutta la colonna */
+.blocco-archivio {
+  margin-top: 12px;
+  margin-bottom: 0;
+}
+
+.blocco-archivio .contenuto-apribile {
+  max-width: none;
+}
+
+/* Cosa riferisce e il trattamento: chiusi come gli altri blocchi apribili
+   dell'app, ma larghi quanto la seduta (senza il limite di 520px pensato per
+   un elenco di caselle strette). Specificita' pari alla regola sopra, e
+   dichiarata dopo: cosi' vince lei. */
+.contenuto-apribile.contenuto-riferisce,
+.contenuto-apribile.contenuto-trattamento {
+  max-width: none;
+}
+
+/* ---- Dati del paziente, in sola lettura ---- */
+
+.dati-paziente {
+  margin: 0;
+  background: var(--pannello);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 10px 24px;
+}
+
+.dati-paziente .dato {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.dati-paziente dt {
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+.dati-paziente dd {
+  margin: 0;
+  font-size: 16px;
+  overflow-wrap: break-word;
+}
+
+/* ---- Body chart ---- */
+
+.legenda-segni {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.legenda-segni button {
+  padding: 8px 12px;
+  font-size: 15px;
+}
+
+.icona-segno {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  overflow: visible;
+}
+
+.corpi {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+@media (max-width: 820px) {
+  .corpi {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Le viste del piede sono larghe quanto alte (due piedi affiancati): in fila da
+   quattro diventerebbero francobolli. Due per riga, grandi. */
+.corpi-piede {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 780px;
+}
+
+.corpo-riquadro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px;
+  /* ingrandendo con un pizzico sul pad la figura deve poter sporgere sopra
+     alle altre, non restare tagliata dentro al suo riquadro */
+  position: relative;
+  overflow: visible;
+}
+
+.corpo-riquadro.zoomata {
+  z-index: 5;
+}
+
+.corpo-zoom {
+  transform-origin: center center;
+}
+
+.corpo-etichetta {
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+.figura-umana {
+  width: 100%;
+  height: auto;
+  /* con un'altezza fissa le quattro figure restano confrontabili fra loro */
+  max-height: 46vh;
+  touch-action: none;
+}
+
+.figura-umana.attiva {
+  cursor: crosshair;
+}
+
+/* Le stesse parti due volte: prima ingrossate del colore del contorno, poi
+   riempite di bianco. Resta il solo profilo esterno dell'unione. */
+.corpo-bordo {
+  fill: #1f2937;
+  stroke: #1f2937;
+  stroke-width: 4;
+  stroke-linejoin: round;
+}
+
+.corpo-pieno {
+  fill: #ffffff;
+}
+
+/* parte disegnata sopra la sagoma, con contorno proprio (il braccio di lato) */
+.corpo-sopra {
+  fill: #ffffff;
+  stroke: #1f2937;
+  stroke-width: 2.6;
+  stroke-linejoin: round;
+}
+
+/* Linee anatomiche interne: piu' leggere del contorno, non devono competere
+   con i segni del dolore. */
+.corpo-riferimento {
+  fill: none;
+  stroke: #7d8998;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* I quattro segni della legenda */
+.segno {
+  cursor: grab;
+}
+
+.segno-presa {
+  fill: transparent;
+}
+
+.segno.selezionato .segno-presa {
+  fill: rgba(85, 128, 106, 0.14);
+  stroke: var(--accent);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+/* Il numero dell'intensita' accanto al segno, solo al passaggio del mouse. */
+.segno-intensita {
+  font-size: 20px;
+  font-weight: 700;
+  fill: #b03030;
+  paint-order: stroke;
+  stroke: #fff;
+  stroke-width: 4;
+  opacity: 0;
+  transition: opacity 0.12s;
+  pointer-events: none;
+}
+
+.segno:hover .segno-intensita,
+.segno.selezionato .segno-intensita {
+  opacity: 1;
+}
+
+.segno-dolore {
+  fill: none;
+  stroke: var(--danger);
+  stroke-width: 4;
+}
+
+.segno-rigidita line {
+  stroke: var(--danger);
+  stroke-width: 3.4;
+  stroke-linecap: round;
+}
+
+.segno-scossa {
+  fill: var(--danger);
+}
+
+.segno-parestesie {
+  fill: var(--danger);
+  opacity: 0.28;
+}
+
+.segno-strumenti {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 10px 12px;
+  background: var(--pannello);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.segno-strumenti input[type='range'] {
+  padding: 0;
+  width: 130px;
+  background: none;
+  border: none;
+}
+
+/* Il pulsante che apre la body chart: solo la sagoma, il nome compare
+   passandoci sopra col cursore. */
+.btn-sagoma {
+  /* larga come i pulsanti icona del resto della pagina, e quadrata */
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+/* le sotto-sezioni dell'anamnesi, affiancate sotto al titolo */
+.sotto-sezioni {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+/* stesso colore delle icone lucide degli altri pulsanti della sezione */
+/* L'icona degli obiettivi: quaderno e bersaglio, tutto di tratto. L'alone del
+   colore del fondo sta sotto al bersaglio e nasconde le righe del foglio che ci
+   passerebbero attraverso. */
+.icona-obiettivi {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.icona-obiettivi .io-alone {
+  stroke: var(--surface);
+  stroke-width: 3.5;
+}
+
+.primary .icona-obiettivi .io-alone {
+  stroke: var(--accent);
+}
+
+/* L'omino della body chart: contorno del colore del testo e bianco dentro,
+   come un disegno fatto a penna. Il pieno si ottiene disegnando due volte la
+   stessa figura, la seconda piu' sottile e del colore del fondo. */
+.icona-sagoma {
+  fill: var(--surface);
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linejoin: round;
+}
+
+.primary .icona-sagoma {
+  fill: var(--accent);
+}
+
+/* ---- Anamnesi prossima ---- */
+
+/* coppie di pulsanti per le risposte rapide del colloquio */
+.scelte-rapide {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 10px 8px;
+}
+
+.gruppo-scelta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.didascalia-scelta {
+  padding-left: 2px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+/* Le due scelte di una coppia in un pezzo solo: un bordo intorno, una linea
+   in mezzo, e quella scelta piena del colore dell'app. */
+.scelta-coppia.segmentata {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--border-forte);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.scelta-coppia.segmentata button {
+  flex: 1 1 auto;
+  /* stretti quanto basta perche' le quattro coppie stiano su una riga anche
+     quando la finestra ha la barra di scorrimento */
+  padding: 7px 10px;
+  border: none;
+  border-radius: 0;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+
+.scelta-coppia.segmentata button + button {
+  border-left: 1px solid var(--border-forte);
+}
+
+.scelta-coppia.segmentata button:hover:not(.scelta-attiva) {
+  background: var(--intestazione);
+}
+
+.scelta-coppia {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.scelta-coppia button {
+  padding: 6px 12px;
+  font-size: 15px;
+  /* "Sì" e "No" alla stessa larghezza: senza, il testo piu' corto lasciava
+     un pulsante piu' stretto dell'altro. */
+  min-width: 46px;
+}
+
+/* Una domanda si'/no con il dettaglio accanto: il nome sopra, i due pulsanti
+   e la casella sulla stessa riga. */
+.domanda-sino {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 4px 8px;
+}
+
+.domanda-sino .nome-domanda {
+  grid-column: 1 / -1;
+}
+
+.nome-domanda {
+  font-size: 15px;
+  color: var(--text-dim);
+}
+
+/* I sintomi neurologici: si'/no, i tipi quando c'e' il si', e il dettaglio. */
+.domanda-neuro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.domanda-neuro .nome-domanda {
+  flex-basis: 100%;
+}
+
+.domanda-neuro > input {
+  flex: 1 1 220px;
+}
+
+.scelte-multiple {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.scelte-multiple button {
+  padding: 6px 12px;
+  font-size: 15px;
+}
+
+.scelte-multiple button.scelta-attiva {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* La durata di un sintomo: numero, unita', fase e testo libero in una riga
+   che va a capo se non ci sta. */
+.riga-durata {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.riga-durata .nome-domanda {
+  flex-basis: 100%;
+}
+
+.riga-durata .campo-stretto {
+  width: 72px;
+}
+
+.riga-durata .campo-altro {
+  flex: 1 1 220px;
+}
+
+/* Tutto alla stessa altezza: le due caselle e le unita' misurano quanto un
+   pulsante, invece di essere le caselle piu' alte. */
+.riga-durata > input,
+.riga-durata .scelta-coppia.segmentata {
+  height: 38px;
+}
+
+.riga-durata > input {
+  padding-top: 0;
+  padding-bottom: 0;
+  font-size: 15px;
+}
+
+.riga-durata .scelta-coppia.segmentata button {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.badge-fase-durata {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Le tre intensita' del dolore, una scala per riga col nome a sinistra. */
+.intensita-sintomo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.riga-nprs {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.nome-nprs {
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+.scelta-coppia button.scelta-attiva {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}

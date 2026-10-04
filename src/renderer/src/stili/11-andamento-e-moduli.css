@@ -1,0 +1,985 @@
+/* Andamento nel tempo, domande si/no e le regole aggiunte via via per i moduli. */
+
+/* ---- Andamento nel tempo ---- */
+
+.riquadro-grafico {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  background: var(--pannello);
+  min-width: 0;
+}
+
+.grafico {
+  width: 100%;
+  height: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: crosshair;
+}
+
+.grafico-griglia {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.grafico-etichetta {
+  fill: var(--text-dim);
+  font-size: 13px;
+}
+
+.grafico-linea {
+  fill: none;
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.grafico-punto {
+  cursor: pointer;
+  stroke: #fff;
+  stroke-width: 2;
+}
+
+.grafico-punto.scelto {
+  stroke: var(--text);
+  stroke-width: 3;
+}
+
+.legenda-sintomi {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.legenda-sintomi button {
+  padding: 6px 12px;
+  font-size: 15px;
+}
+
+.pallino {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ---- Domande si'/no compatte ---- */
+
+.griglia-sino {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 4px 20px;
+}
+
+.riga-sino {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 3px 0;
+  border-bottom: 1px solid var(--bg);
+}
+
+.riga-sino .scelta-coppia button {
+  padding: 3px 12px;
+  font-size: 14px;
+  min-width: 42px;
+}
+
+/* testata del grafico: titolo a sinistra, svuota a destra */
+.testata-grafico {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.testata-grafico .sotto-titolo {
+  margin: 0;
+}
+
+.testata-grafico button {
+  padding: 5px 10px;
+  font-size: 14px;
+}
+
+/* Nella barra degli strumenti il pulsante con la sola icona e' quadrato e alto
+   quanto le caselle accanto. */
+.segno-strumenti > button {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.campo-data {
+  width: 130px;
+}
+
+.campo-errato {
+  border-color: var(--danger);
+}.campo-nota-test {
+  flex: 1;
+  min-width: 0;
+}
+
+/* carico locale e generale sulla prima riga, le capacita' sulla seconda */
+.griglia-carico {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 24px;
+}
+
+@media (max-width: 760px) {
+  .griglia-carico {
+    grid-template-columns: 1fr;
+  }
+}
+
+.col-gradi {
+  width: 72px;
+  text-align: center;
+  /* senza questo il simbolo dei gradi andava a capo da solo */
+  white-space: nowrap;
+}.campo-gradi {
+  width: 100%;
+  padding: 6px 6px;
+  font-size: 15px;
+  text-align: center;
+}
+
+.obiettivo-testo {
+  flex: 1;
+  min-width: 0;
+}
+
+/* La maniglia del trascinamento sta dentro alla casella, non accanto: si
+   afferra l'obiettivo da dove c'e' scritto, e le due cose sembrano un campo
+   solo invece di un campo piu' un pulsante. Questa regola era stata tolta per
+   sbaglio quando le sezioni dello screening hanno smesso di usarla. */
+.campo-con-maniglia {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-left: 6px;
+  border: 1px solid var(--border-forte);
+  border-radius: var(--radius-sm);
+  background: var(--campo);
+}
+
+.campo-con-maniglia input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  padding-left: 6px;
+}
+
+.campo-con-maniglia input:focus {
+  box-shadow: none;
+}
+
+.campo-con-maniglia > button {
+  border: none;
+  background: none;
+  padding: 4px;
+  color: var(--text-dim);
+  cursor: grab;
+}
+
+.campo-con-maniglia > button:hover:not(:disabled) {
+  background: none;
+  color: var(--accent);
+}
+
+/* Maniglia a destra del testo, e visibile solo passando sopra alla riga: negli
+   obiettivi si legge quasi sempre, si trascina di rado. Resta in posizione
+   anche da invisibile, cosi' la riga non si sposta quando compare. */
+.campo-con-maniglia.maniglia-destra {
+  padding-left: 0;
+  padding-right: 4px;
+}
+
+.campo-con-maniglia.maniglia-destra input {
+  padding-left: 10px;
+}
+
+.campo-con-maniglia.maniglia-destra > button {
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.campo-con-maniglia.maniglia-destra:hover > button,
+.campo-con-maniglia.maniglia-destra > button:focus-visible {
+  opacity: 1;
+}
+
+/* La casella del testo e il menu del termine devono essere alti uguali: la
+   prima e' un contenitore con dentro maniglia e input, il secondo un select. */
+.sedute-list li .campo-con-maniglia,
+.sedute-list li > select {
+  min-height: 44px;
+}
+
+.sedute-list li .campo-con-maniglia input {
+  padding-top: 0;
+  padding-bottom: 0;
+  align-self: stretch;
+}
+
+/* Scheda mostrata al paziente: si legge da lontano, in piedi, mentre si
+   esegue l'esercizio. Percio' caratteri grandi e molta aria. */
+/* Bianca come l'anteprima della seduta: e' lo stesso documento, mostrato a
+   schermo invece che stampato. Il fondo beige della pagina qui non c'entra. */
+/* Il programma del paziente e' un foglio: staccato dai bordi della finestra,
+   come il PDF della cartella quando lo si guarda. Prima era una colonna bianca
+   attaccata sopra e sotto, e non si capiva dove finiva. */
+/* La finestra della scheda: il contenuto parte sotto alla barra. */
+.finestra-scheda {
+  padding-top: var(--alto-barra);
+}
+
+/* Le finestre disegnano da se' la barra in cima, piu' alta di quella di
+   Windows: il titolo a sinistra, e tutta la striscia serve a trascinare la
+   finestra. A destra Windows ci mette riduci, ingrandisci e chiudi. Le misure
+   vengono da env(): restano giuste anche ingrandendo la pagina con Ctrl +. */
+.barra-finestra {
+  position: fixed;
+  z-index: 50;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--alto-barra);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  padding-left: 16px;
+  background: var(--barra-alta);
+  box-shadow: 0 1px 0 var(--barra-alta-bordo);
+  color: var(--barra-alta-testo);
+  font-size: 14px;
+  font-weight: 600;
+  user-select: none;
+  -webkit-app-region: drag;
+}
+
+.barra-finestra .titolo-barra {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* I tre pulsanti della finestra: larghi come quelli di Windows, e al
+   passaggio del mouse si accendono tutti — la X di rosso. */
+.comandi-finestra {
+  display: flex;
+  align-self: stretch;
+  -webkit-app-region: no-drag;
+}
+
+.barra-finestra .comando-finestra {
+  width: 46px;
+  height: 100%;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  cursor: default;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.barra-finestra .comando-finestra:hover:not(:disabled) {
+  background: rgba(128, 128, 128, 0.22);
+  border-color: transparent;
+  color: inherit;
+}
+
+.barra-finestra .comando-finestra.chiudi:hover:not(:disabled) {
+  background: #c42b1c;
+  color: #fff;
+}
+
+/* Premuti, questi pulsanti non si spostano: la regola generale dei pulsanti li
+   abbassa di un pixel, ma la X sta a filo del bordo in alto dello schermo e chi
+   ci porta il mouse la preme a y = 0. Abbassata, il puntatore restava sopra il
+   pulsante: il rilascio cadeva fuori, il clic non partiva e la finestra non si
+   chiudeva (Alt+F4 si', perche' non passa dal pulsante). */
+.barra-finestra .comando-finestra:active:not(:disabled) {
+  transform: none;
+}
+
+.scheda-paziente {
+  max-width: 760px;
+  margin: 22px auto;
+  padding: 26px 30px 34px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-md);
+}
+
+.scheda-paziente header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 3px solid var(--accent);
+  padding-bottom: 12px;
+  margin-bottom: 20px;
+}
+
+.scheda-paziente header h1 {
+  margin: 0;
+  font-size: 21px;
+}
+
+.scheda-paziente header p {
+  margin: 4px 0 0;
+  color: var(--text-dim);
+  font-size: 14px;
+}
+
+/* Il nome della sezione e' una fascetta piena, non una scritta colorata: sotto
+   ci sono subito le intestazioni delle colonne, e due righe di testo una
+   sull'altra si confondevano. Cosi' si vede a colpo d'occhio dove comincia un
+   blocco di esercizi. */
+.scheda-paziente h2 {
+  display: inline-block;
+  /* Piccola: dice dove comincia un blocco, non e' la cosa principale del
+     foglio. Quella sono i nomi degli esercizi. */
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 22px 0 8px;
+  padding: 4px 11px;
+  border-radius: 999px;
+  /* Fondo del colore secondario del tema (beige nel verde, sabbia nel
+     terracotta, azzurrino nel blu) e scritta del colore principale: pieno era
+     troppo forte per un foglio che deve restare sobrio. */
+  background: var(--intestazione);
+  color: var(--accent);
+}
+
+/* Il programma del paziente: una tabella con quattro colonne sempre nello
+   stesso posto. Si legge in piedi, da lontano, quindi i caratteri sono grandi
+   e le righe alte; i numeri stanno al centro delle loro colonne, che restano
+   strette, e tutto lo spazio che avanza va al nome dell'esercizio. */
+.tabella-scheda {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 6px;
+}
+
+.tabella-scheda th {
+  /* "SERIE × RIP." su due righe faceva sembrare storta la tabella quando la
+     colonna era stretta. */
+  white-space: nowrap;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  text-align: center;
+  padding: 0 10px 6px;
+  border-bottom: 2px solid var(--border-forte);
+}
+
+.tabella-scheda th:first-child {
+  text-align: left;
+}
+
+.tabella-scheda td {
+  padding: 10px 10px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.tabella-scheda tr:last-child td {
+  border-bottom: none;
+}
+
+.tabella-scheda .col-esercizio {
+  width: auto;
+}
+
+.tabella-scheda .nome {
+  display: block;
+  font-size: 16.5px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+/* La nota sta sotto al nome e in corsivo: e' un'indicazione, non un dato da
+   incolonnare, e nessuno la cerca in una colonna. */
+.tabella-scheda .nota-es {
+  display: block;
+  margin-top: 3px;
+  font-size: 13.5px;
+  font-style: italic;
+  color: var(--text-dim);
+}
+
+/* Le tre colonne dei numeri: strette quanto basta al loro contenuto, cosi' il
+   nome dell'esercizio si prende il resto. */
+.tabella-scheda .col-dose {
+  width: 1%;
+  white-space: nowrap;
+  text-align: center;
+  font-size: 16.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.nota-seduta {
+  font-size: 14px;
+  white-space: pre-wrap;
+}
+
+/* Le sezioni da includere nella cartella: due colonne, cosi' si vedono tutte
+   senza far scorrere la finestra. */
+.sezioni-cartella {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px 16px;
+  margin-bottom: 10px;
+}
+
+/* La riga di pulsanti in fondo alle finestre. L'altezza minima serve ai
+   pulsanti con la sola icona: senza, resterebbero piu' bassi di quelli con il
+   testo, che portano l'altezza di una riga di scritta. */
+.modal-actions {
+  align-items: center;
+}
+
+.modal-actions button {
+  min-height: 44px;
+}
+
+/* Elenco del follow-up: caselle di data e spunte incolonnate, nomi a sinistra. */
+.tabella-followup th:not(.col-nome),
+.tabella-followup td:not(.col-nome) {
+  text-align: center;
+  width: 1%;
+  white-space: nowrap;
+}
+
+/* La regola generale delle tabelle allinea in alto: le spunte e le date
+   restavano attaccate al bordo superiore invece che al centro della riga. */
+.tabella-followup td {
+  vertical-align: middle;
+}
+
+.tabella-followup input[type='date'] {
+  padding: 6px 10px;
+}
+
+/* una data gia' passata: da sentire, si vede scorrendo l'elenco */
+.tabella-followup input.data-scaduta {
+  border-color: var(--danger);
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.sotto-riga {
+  display: block;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+/* Il nome del paziente nel follow-up e' un collegamento alla sua scheda:
+   sembra testo, ma si vede che ci si puo' cliccare passandoci sopra. */
+.nome-cliccabile {
+  padding: 0;
+  border: none;
+  background: none;
+  font-weight: 600;
+  color: inherit;
+  text-align: left;
+  border-radius: 0;
+}
+
+.nome-cliccabile:hover:not(:disabled) {
+  background: none;
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+/* Le voci di una sezione di screening: nome, tipo, e la croce per toglierla. */
+.voci-screening {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.voci-screening li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.voci-screening li:hover {
+  background: var(--pannello);
+}
+
+/* Nei riquadri della configurazione le etichette non avevano nessuna regola: la
+   casella finiva appiccicata alla scritta, sulla stessa riga. */
+.crud-list label,
+.testata-protocollo label,
+.sezione-card > label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 15px;
+  color: var(--text-dim);
+}
+
+/* Le voci con la spunta fanno eccezione: la regola qui sopra le metterebbe in
+   colonna, con la casella sopra alla scritta. E' piu' in basso di
+   .checkbox-list label, quindi senza questa vincerebbe lei. */
+.crud-list .checkbox-list label,
+.crud-list label.checkbox-inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 9px;
+}
+
+.crud-list label input,
+.testata-protocollo label input,
+.testata-protocollo label textarea,
+.sezione-card > label input {
+  color: var(--text);
+}
+
+/* Le sezioni di un protocollo su due colonne: ambulatorio e campo affiancati.
+   Sotto una certa larghezza tornano in colonna, altrimenti gli elenchi dei test
+   diventano illeggibili. */
+.colonne-sezioni {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.sezione-screening {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 16px 18px;
+}
+
+.sezione-screening .sezione-testata {
+  margin-bottom: 12px;
+}
+
+.sezione-screening .sezione-testata input {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+}
+
+/* Un pulsante secondario, per le azioni che non sono quella principale.
+   flex: none e nowrap perche' accanto a un testo lungo si stringerebbe fino ad
+   andare a capo su tre righe. */
+.btn-piccolo {
+  padding: 6px 12px;
+  font-size: 14px;
+  flex: none;
+  white-space: nowrap;
+}
+
+/* Spiegazione a sinistra, pulsante a destra, il tutto allineato a destra. */
+.riga-nuova-sezione {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.riga-nuova-sezione .hint {
+  text-align: right;
+  max-width: 460px;
+}
+
+/* Intestazione del protocollo: i due campi e, staccate, le note al centro. */
+.testata-protocollo {
+  max-width: 760px;
+  margin: 0 auto 22px;
+}
+
+.testata-protocollo .campo-note {
+  margin-top: 18px;
+}
+
+.titolo-sport {
+  color: var(--text-dim);
+  font-weight: 400;
+}
+
+/* Lo sport a sinistra e i suoi protocolli sulla stessa riga, come un indice. */
+.riga-sport {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--bg);
+}
+
+.riga-sport:last-child {
+  border-bottom: none;
+}
+
+.nome-sport {
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+  padding-top: 8px;
+}
+
+.protocolli-sport {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.protocolli-sport li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+}
+
+.protocolli-sport li > .nome-cliccabile {
+  flex: none;
+}
+
+.protocolli-sport li > input {
+  flex: 1;
+  min-width: 0;
+}
+
+.protocolli-sport .seduta-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.protocolli-sport li > .row-actions {
+  margin-left: auto;
+}
+
+/* Il riquadro "Nuovo protocollo" e' una scheda a se': lo stacco lo da' la
+   griglia della pagina, non serve altro. */
+
+/* Compilazione di uno screening: un blocco per test, dentro una tabellina per
+   misura. Le caselle sono strette perche' contengono numeri, non frasi. */
+.voce-test {
+  /* Prima era var(--bg): un beige chiarissimo su sfondo bianco, quasi
+     invisibile. Con piu' test in fila non si capiva dove finiva l'uno e
+     cominciava l'altro. */
+  border-top: 2px solid var(--border);
+  padding: 14px 0;
+}
+
+.voce-test:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+/* Una fascia colorata come i sotto-titoli delle liste, non piu' solo una
+   riga sottile sotto al nome: fra tanti test uno via l'altro, il nome di
+   quello che si sta compilando si trova a colpo d'occhio. */
+.voce-testata {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  margin-bottom: 8px;
+  background: var(--intestazione);
+  border-radius: var(--radius-sm);
+}
+
+.voce-nome {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--intestazione-testo-forte);
+}
+
+.misura-riga {
+  margin-top: 10px;
+}
+
+.misura-nome {
+  font-size: 14px;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+
+.misura-nome .unita {
+  font-size: 13px;
+}
+
+.tabella-misura {
+  border-collapse: collapse;
+}
+
+.tabella-misura th,
+.tabella-misura td {
+  /* Meno spazio fra una prova e l'altra: con test a tante prove (drop jump,
+     CMJ...) la tabella scorreva quasi sempre, anche con poche colonne. */
+  padding: 2px 1px 2px 0;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-dim);
+}
+
+.tabella-misura tbody th {
+  padding-right: 10px;
+  white-space: nowrap;
+}
+
+.tabella-misura input {
+  width: 66px;
+  padding: 6px 6px;
+  text-align: right;
+}
+
+.valore-sintesi {
+  font-weight: 600;
+  color: var(--text);
+  padding-left: 8px !important;
+}
+
+.asimmetria {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.asimmetria.alta {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+/* Il salvataggio di uno screening, in fondo alla pagina invece che in cima:
+   si arriva li' scrivendo l'ultimo numero. Stessa altezza dei pulsanti grandi
+   usati nelle finestre del programma (.modal-actions button), non una
+   misura inventata apposta. */
+.azioni-fine-pagina {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.azioni-fine-pagina button {
+  min-height: 44px;
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+
+/* Uno screening svolto: nome, protocollo, sport e data incolonnati, tutto su
+   una riga sola. */
+/* Il selettore porta anche .sedute-list perche' la regola generale delle righe
+   (.sedute-list li) dichiara display:flex e vincerebbe su una classe sola: le
+   colonne della griglia non verrebbero applicate. */
+.sedute-list li.riga-screening {
+  display: grid;
+  /* la colonna della data ha una larghezza sua: con "ultimo 16/07/2026" i 110px
+     di prima non bastavano e la scritta veniva troncata */
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.2fr) minmax(0, 0.7fr) 150px auto auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.riga-screening .colonna-protocollo,
+.riga-screening .colonna-sport,
+.riga-screening .colonna-data {
+  color: var(--text-dim);
+  font-size: 14px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.riga-screening .row-actions {
+  grid-column: -2 / -1;
+  margin-left: auto;
+}
+
+/* Striscia sotto al titolo dello screening: descrizione a sinistra, data a
+   destra. Le due estremita' bilanciano la riga senza aggiungere un riquadro. */
+.testata-screening {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.dettaglio-screening {
+  color: var(--text-dim);
+  font-size: 15px;
+}
+
+/* Le note dello screening: in fondo, larghe quanto la pagina. */
+.note-screening {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 16px 18px;
+  margin-top: 16px;
+}
+
+.note-screening label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 15px;
+  color: var(--text-dim);
+}
+
+.note-screening textarea {
+  color: var(--text);
+}
+
+/* Chi è in trattamento: nome, patologia, ultima seduta e il pulsante, tutto su
+   una riga sola. */
+.sedute-list li.riga-trattamento {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.2fr) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.riga-trattamento .colonna-patologia,
+.riga-trattamento .colonna-ultima {
+  color: var(--text-dim);
+  font-size: 14px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.riga-trattamento > button:last-child {
+  justify-self: end;
+}
+
+.riga-screening .row-actions {
+  justify-self: end;
+}
+
+/* Dentro una griglia il pulsante si allarga a tutta la colonna e il nome
+   finirebbe centrato: qui va tenuto attaccato a sinistra. */
+.riga-trattamento .nome-cliccabile,
+.riga-screening .nome-cliccabile {
+  justify-self: start;
+  justify-content: flex-start;
+}
+
+/* Ricerca per nome e tendina della categoria affiancate, sopra all'elenco dei
+   test o questionari da aggiungere: stesso formato dei menu e delle caselle
+   usati nel resto del programma, non piu' piccoli apposta. */
+.riga-filtro {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.riga-filtro input[type='search'] {
+  flex: 1;
+  min-width: 0;
+}
+
+.riga-filtro .campo-categorie {
+  flex: 0 0 200px;
+  min-width: 160px;
+}
+
+/* Iconcina rotonda accanto a un titolo: apre una spiegazione, non un'azione. */
+.btn-icona-tonda {
+  padding: 3px;
+  border: none;
+  background: none;
+  color: var(--text-dim);
+  border-radius: 999px;
+}
+
+.btn-icona-tonda:hover:not(:disabled) {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* Riga delle copie di sicurezza: la casella del numero con la sua scritta
+   sopra, i tre pulsanti allineati in basso e tutti della stessa altezza. */
+.riga-backup {
+  align-items: flex-end;
+}
+
+.campo-copie {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 15px;
+  color: var(--text-dim);
+}
+
+.campo-copie input {
+  width: 110px;
+  color: var(--text);
+}
+
+.riga-backup button,
+.campo-copie input {
+  min-height: 46px;
+}
+
+/* Tre pulsanti piu' la casella in 620px di finestra: senza questo le scritte
+   andavano a capo dentro al pulsante. */
+.riga-backup button {
+  white-space: nowrap;
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+/* Movimento attivo e passivo affiancati, ognuno nel suo riquadro. Sotto una
+   certa larghezza vanno uno sopra l'altro: schiacciati diventerebbero
+   illeggibili. */
+/* La valutazione oggettiva si legge a riquadri: uno per distretto, e dentro
+   uno per i movimenti e uno per ogni gruppo di test. Prima era un seguito di
+   righe in cui non si capiva dove finiva una cosa e cominciava l'altra. */
+.riquadro-distretto {
+  border: 1px solid var(--border-forte);
+  border-radius: var(--radius);
+  padding: 0 var(--spazio-interno) var(--spazio-interno);
+  margin-top: var(--spazio);
+}

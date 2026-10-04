@@ -1,0 +1,793 @@
+/* Regole aggiunte nel tempo per le varie pagine (prima parte): vedi i commenti di ognuna. */
+
+/* Il nome del distretto fa da cartellino del riquadro: attaccato al bordo di
+   sopra, largo quanto lui. */
+.riquadro-distretto .titolo-distretto {
+  margin: 0 calc(var(--spazio-interno) * -1) var(--spazio-interno);
+  border-radius: var(--radius) var(--radius) 0 0;
+  font-size: 14px;
+  color: var(--intestazione-testo-forte);
+}
+
+.riquadro-test {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 4px 12px 12px;
+  margin-bottom: 12px;
+}
+
+.riquadro-test:last-child {
+  margin-bottom: 0;
+}
+
+.riquadro-test > .sotto-titolo:first-child {
+  margin-top: 10px;
+}
+
+/* Un test per riga, staccato dal successivo: sono cose diverse, non un blocco
+   unico di caselle. */
+.riga-test {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--bg);
+}
+
+.riga-test:last-child {
+  border-bottom: none;
+}
+
+/* Le categorie degli esercizi su due colonne: a sinistra il tipo di lavoro, a
+   destra i distretti di quello scelto. Occupa tutta la larghezza del riquadro:
+   sono due elenchi corti, e affiancati si leggono insieme. */
+.categorie-due-colonne {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(0, 1.4fr);
+  gap: var(--spazio);
+  align-items: start;
+}
+
+@media (max-width: 760px) {
+  .categorie-due-colonne {
+    grid-template-columns: 1fr;
+  }
+}
+
+.colonna-categorie,
+.colonna-distretti {
+  min-width: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px 12px;
+}
+
+.elenco-categorie {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.elenco-categorie li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.elenco-categorie li:hover {
+  background: var(--pannello);
+}
+
+/* Il tipo di lavoro che si sta guardando: quello di cui la colonna a destra
+   mostra i distretti. */
+.elenco-categorie li.scelta {
+  background: var(--intestazione);
+  color: var(--intestazione-testo-forte);
+  font-weight: 600;
+}
+
+.nome-categoria {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Quanti distretti ci stanno dentro: un numero piccolo, non un'etichetta. */
+.conta-distretti {
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--pannello);
+  color: var(--text-dim);
+  font-size: 12px;
+  text-align: center;
+}
+
+.riga-nuovo-distretto {
+  display: flex;
+  gap: 6px;
+  margin: 8px 0 4px;
+}
+
+.riga-nuovo-distretto input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Spostare qui una categoria che esiste gia': sta in fondo, dopo i distretti,
+   perche' e' la cosa che si fa una volta ogni tanto. A riposo e' solo una
+   scritta piccola. */
+.link-sposta {
+  margin-top: 12px;
+  padding: 4px 0;
+  font-size: 13px;
+  color: var(--text-dim);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.link-sposta:hover:not(:disabled) {
+  color: var(--accent);
+  background: none;
+}
+
+.sposta-dentro {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--bg);
+  font-size: 14px;
+}
+
+/* La casella in cui si sceglie scrivendo, al posto del menu a tendina: la
+   tendina di Windows con trenta voci si apre lunga mezza schermata e da dentro
+   l'app non si puo' accorciare. */
+.scelta-cerca {
+  position: relative;
+}
+
+.riga-scelta-cerca {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+}
+
+.riga-scelta-cerca input {
+  flex: 1;
+  min-width: 0;
+}
+
+.riga-scelta-cerca .btn-icona {
+  flex: none;
+  padding: 0 8px;
+  color: var(--text-dim);
+}
+
+/* L'elenco sta sopra a quello che c'e' sotto, come farebbe una tendina, e non
+   supera mai sette righe. position: fixed e non absolute: cosi' si disegna
+   sopra a tutto, anche dentro a una finestra modale che altrimenti
+   taglierebbe quello che sfora dai suoi bordi. La posizione esatta la calcola
+   il componente e arriva come stile in linea. */
+.elenco-scelta {
+  position: fixed;
+  z-index: 30;
+  max-height: 260px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--border-forte);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+}
+
+.elenco-scelta li {
+  display: block;
+}
+
+.elenco-scelta .briciola {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  color: var(--text);
+}
+
+.elenco-scelta .briciola:hover:not(:disabled) {
+  background: var(--intestazione);
+  color: var(--intestazione-testo-forte);
+}
+
+/* Le righe dell'elenco a due livelli: la categoria che si apre ha la freccetta
+   in fondo a destra, la riga per tornare indietro la freccetta a sinistra. */
+.elenco-scelta .briciola.voce-apribile,
+.elenco-scelta .briciola.voce-indietro {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-start;
+}
+
+.elenco-scelta .briciola.voce-apribile span {
+  flex: 1;
+}
+
+.elenco-scelta .briciola.voce-indietro {
+  font-weight: 600;
+  color: var(--text-dim);
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  margin-bottom: 2px;
+}
+
+/* Cercando, accanto al distretto la sua categoria, in piccolo. */
+.elenco-scelta .voce-gruppo {
+  margin-left: 8px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.elenco-scelta .briciola.scelta-attiva .voce-gruppo {
+  color: inherit;
+}
+
+.elenco-scelta .briciola.scelta-attiva {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.elenco-scelta .empty {
+  padding: 7px 10px;
+  color: var(--text-dim);
+  font-size: 14px;
+}
+
+/* Gli elenchi lunghi scorrono dentro al loro riquadro invece di allungare la
+   pagina all'infinito: si guarda un pezzo per volta e il resto della schermata
+   (i pulsanti, il modulo accanto) resta dov'e'.
+   L'altezza e' generosa — dieci o dodici righe — perche' l'elenco corto, che e'
+   il caso normale, non deve sembrare tagliato. */
+.crud-list > ul,
+.contenuto-cestino .sedute-list {
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+/* Gli elenchi che si aprono dentro a un riquadro gia' piccolo sono piu' corti
+   ancora: sono una scelta da fare al volo, non una pagina da leggere. */
+.contenuto-categorie .crud-list > ul,
+.lista-indicazioni,
+.lista-massimali,
+.lista-segni {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+/* Gli esercizi proposti mentre componi la seduta (e l'elenco dei pazienti
+   nella finestrella della settimana, che usa la stessa lista): sotto c'e' il
+   resto del programma, e l'elenco non deve spingerlo fuori dallo schermo. */
+.esercizi-proposti {
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+/* Le piastrelle da cui si sceglie (patologie, distretti, questionari, test):
+   con trenta voci la pagina diventava lunghissima. Il limite e' alto, quattro o
+   cinque file: con poche voci non si vede nessuna barra.
+   Il margine interno serve allo scorrimento: passandoci sopra la piastrella si
+   alza di un pixel, e senza quello spazio il bordo di sopra veniva tagliato via
+   dal riquadro che scorre — si illuminava tutto il contorno tranne quello. */
+.scelta-tiles {
+  max-height: 520px;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+/* I movimenti: un riquadro per l'attivo e uno per il passivo, uno sotto
+   l'altro. Dentro, una riga per movimento; con i due lati destra e sinistra
+   stanno affiancate, ognuna con le sue colonnine. */
+.movimenti {
+  margin-bottom: var(--spazio);
+}
+
+.blocco-movimenti .sotto-titolo {
+  margin-top: 8px;
+}
+
+.griglia-movimenti {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(0, 2.4fr);
+  align-items: stretch;
+}
+
+.griglia-movimenti.due-lati {
+  grid-template-columns: minmax(120px, 1fr) repeat(2, minmax(0, 1.6fr));
+}
+
+/* La riga di un movimento sono celle della griglia, non un riquadro suo:
+   cosi' resta incolonnata con le altre. */
+.gm-riga {
+  display: contents;
+}
+
+.gm-riga.pari > * {
+  background: var(--riga-alterna);
+}
+
+/* Il nome del lato: una fascia sopra alle sue colonne. Il lato interessato
+   nel colore del tema. */
+.gm-lato {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 0 3px;
+  padding: 5px 8px;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  background: var(--intestazione);
+  color: var(--intestazione-testo-forte);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.gm-lato.interessato {
+  background: var(--accent);
+  color: #fff;
+}
+
+.gm-lato .nota-lato {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  opacity: 0.9;
+}
+
+.gm-titolo {
+  display: flex;
+  align-items: flex-end;
+  padding: 8px 6px 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* Titoli e rilievi con le stesse colonnine: norma, intensita', dolore (stretta)
+   e gradi. Ogni valore cade esattamente sotto al suo titolo. */
+.gm-sotto,
+.gm-rilievi {
+  display: grid;
+  grid-template-columns: 34px 104px 48px;
+  justify-content: space-evenly;
+  align-items: center;
+  justify-items: center;
+  column-gap: 4px;
+}
+
+.con-gradi .gm-sotto,
+.con-gradi .gm-rilievi {
+  grid-template-columns: 34px 104px 48px 68px;
+}
+
+.gm-sotto {
+  padding: 8px 0 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+/* La riga dei titoli si chiude con una linea: sotto comincia quello che si
+   compila. */
+.gm-titolo,
+.gm-sotto {
+  border-bottom: 1.5px solid var(--border-forte);
+}
+
+.gm-rilievi {
+  padding: 6px 0;
+}
+
+/* Una riga verticale fra destra e sinistra, per tutta l'altezza. */
+.griglia-movimenti .secondo-lato {
+  border-left: 1px solid var(--border-forte);
+}
+
+.gm-lato.secondo-lato {
+  border-left: none;
+}
+
+.gm-nome,
+.gm-rilievi {
+  border-bottom: 1px solid var(--border);
+}
+
+.gm-riga > *:first-child {
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+}
+
+.gm-riga > *:last-child {
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.gm-nome {
+  display: flex;
+  align-items: center;
+  padding: 6px 10px 6px 6px;
+  font-size: 14px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+/* La spunta del dolore un filo piu' grande: e' il bersaglio piu' piccolo della
+   riga e si preme decine di volte. */
+.gm-dolore input[type='checkbox'] {
+  width: 20px;
+  height: 20px;
+}
+
+.btn-norma {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  justify-content: center;
+  color: var(--text-dim);
+}
+
+.btn-norma.scelta-attiva {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* Un movimento nella norma: i rilievi si fanno da parte. */
+.gm-rilievi.in-norma .scala-segni,
+.gm-rilievi.in-norma .gm-dolore {
+  opacity: 0.35;
+}
+
+.azioni-norma {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.riga-test .item-nome {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.spunta-bilaterale {
+  margin-bottom: 12px;
+}
+
+.gm-rilievi .campo-gradi {
+  width: 64px;
+  padding: 5px 4px;
+  font-size: 15px;
+  text-align: center;
+}
+
+/* Le note in fondo al loro riquadro, larghe quanto lui. */
+.gm-nota {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 10px;
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+.gm-nota textarea {
+  font-size: 14px;
+  padding: 6px 8px;
+}
+
+.gm-nota textarea.cresce {
+  min-height: 64px;
+}
+
+/* Il pulsante "il resto nella norma" quando e' gia' fatto: acceso, e un clic
+   lo spegne. */
+.azioni-norma .btn-piccolo.scelta-attiva {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Il carico: tre pulsanti quadrati con la freccia. */
+.riga-sino .scelta-andamento button {
+  flex: none;
+  width: 36px;
+  height: 34px;
+  padding: 0;
+  justify-content: center;
+}
+
+/* I test: il nome, un esito per lato e la nota in fondo alla riga. Le righe,
+   le fasce dei lati e i titoli sono gli stessi della tabella dei movimenti. */
+.griglia-test {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) 230px minmax(150px, 1.1fr);
+  align-items: stretch;
+}
+
+.griglia-test.due-lati {
+  grid-template-columns: minmax(110px, 1fr) repeat(2, 214px) minmax(130px, 1fr);
+}
+
+.griglia-test > .gm-titolo,
+.griglia-test > .gm-lato {
+  margin-bottom: 0;
+}
+
+.griglia-test > .gm-titolo {
+  border-bottom: 1.5px solid var(--border-forte);
+}
+
+.griglia-test > .gm-lato {
+  margin: 0 3px;
+  border-bottom: 1.5px solid var(--border-forte);
+}
+
+.gt-centro {
+  justify-content: center;
+}
+
+.gt-esito,
+.gt-nota {
+  display: flex;
+  align-items: center;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.gt-esito {
+  justify-content: center;
+}
+
+.gt-esito > input,
+.gt-nota > input {
+  width: 100%;
+  min-width: 0;
+  padding: 5px 8px;
+  font-size: 14px;
+}
+
+.griglia-test .gt-esito.secondo-lato,
+.griglia-test .secondo-lato + .gt-nota,
+.griglia-test .gm-lato + .gm-titolo {
+  border-left: 1px solid var(--border-forte);
+}
+
+.esito-test button {
+  padding: 5px 10px;
+  font-size: 14px;
+}
+
+/* Nei test i pallini sono un filo piu' piccoli: due scale affiancate devono
+   stare nella loro colonna. */
+.griglia-test .scala-pallini {
+  gap: 4px;
+  flex-wrap: nowrap;
+}
+
+.griglia-test .scala-pallini .pallino {
+  width: 28px;
+  height: 28px;
+  font-size: 13px;
+}
+
+@media (max-width: 760px) {
+  .griglia-movimenti,
+  .griglia-movimenti.due-lati {
+    grid-template-columns: 1fr;
+  }
+
+  .gm-angolo {
+    display: none;
+  }
+}
+
+/* I tre segni della restrizione: uno accanto all'altro, senza spazi in mezzo,
+   come una scala. */
+.scala-segni {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.scala-segni button {
+  min-width: 30px;
+  padding: 4px 3px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  background: var(--surface);
+}
+
+.scala-segni button.scelta-attiva {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}/* Il punteggio di un questionario e' il risultato: si legge senza cercarlo. */
+.punteggi-compilazione {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-right: 12px;
+  white-space: nowrap;
+}
+
+.punteggi-compilazione .punteggio {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.15;
+}
+
+.punteggi-compilazione .etichetta {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.punteggi-compilazione .valore {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+/* Intestazione di categoria dentro una sezione della seduta: separa i gruppi
+   senza aggiungere un riquadro dentro il riquadro. */
+.intestazione-categoria {
+  padding: 4px 8px;
+  margin-top: 6px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+  background: none;
+  border: none;
+}
+
+.righe-seduta > .intestazione-categoria:first-child {
+  margin-top: 0;
+}
+
+/* Il cestino compare passando sopra alla riga: e' un'azione rara, e sempre in
+   vista riempiva l'elenco di icone. Resta al suo posto anche da invisibile,
+   cosi' la riga non si sposta quando compare. */
+.righe-seduta li .btn-togli {
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.righe-seduta li:hover .btn-togli,
+.righe-seduta li:focus-within .btn-togli {
+  opacity: 1;
+}
+
+/* Un esercizio della seduta sta su una riga sola: maniglia, nome, i quattro
+   parametri e la nota. Le etichette sono nei segnaposto delle caselle: scritte
+   sopra ogni campo occupavano tre righe per esercizio. */
+.righe-seduta li {
+  display: flex;
+  align-items: center;
+  /* La riga dell'ultima volta va a capo sotto ai numeri di oggi. */
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 6px 8px;
+}
+
+/* Cosa aveva fatto l'ultima volta: una riga sola sotto all'esercizio, scritta
+   piccola perche' e' un riferimento, non un dato da compilare. */
+.ultima-volta {
+  flex: 1 0 100%;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  /* rientrata quanto la maniglia, cosi' cade sotto al nome */
+  margin-left: 30px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.ultima-quando {
+  text-transform: lowercase;
+}
+
+.ultima-dose {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.ultima-volta .btn-piccolo {
+  padding: 2px 8px;
+  font-size: 13px;
+}
+
+/* Gli estremi della scala mentre si compila: uno a sinistra e uno a destra
+   sotto ai numeri, come sulla scala di carta. */
+.compila-estremi {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  /* Larga quanto la fascia dei pallini: i due nomi devono cadere sotto ai due
+     estremi della scala, non ai bordi della pagina. */
+  max-width: 560px;
+  margin-top: 4px;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+.compila-estremi span:last-child {
+  text-align: right;
+}
+
+/* Quanto e' cambiato il punteggio dalla prima volta. */
+.variazione-questionario {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.variazione-questionario .meglio {
+  color: var(--success);
+  font-weight: 600;
+}
+
+.variazione-questionario .peggio {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+/* La scheda del cambiamento nell'editor dei questionari. */
+.blocco-cambiamento {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Indicazioni per casa: una spunta per riga, la frase per intero. */
+.lista-indicazioni {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+}
+
+.lista-indicazioni li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 4px;
+}
+
+.lista-indicazioni .checkbox-inline {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: var(--text);
+}
+
+.campo-frequenza {
+  max-width: 260px;
+}

@@ -1,0 +1,643 @@
+/* La seduta: costruzione e diario. */
+
+/* ---- Builder seduta ---- */
+
+.builder-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.builder-header p {
+  margin-bottom: 0;
+}
+
+.builder-header-actions {
+  display: flex;
+  align-items: flex-end;
+  /* Data, focus e i due pulsanti vanno a capo insieme quando non ci stanno:
+     prima uscivano dall'intestazione, verso destra. */
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.data-field {
+  flex: 1 1 140px;
+  min-width: 130px;
+}
+
+.ora-field {
+  /* troppo stretta, i minuti finivano tagliati invece di stare per intero
+     nella casella */
+  flex: 0 1 120px;
+  min-width: 112px;
+}
+
+/* Il focus della seduta sta accanto alla data: e' testo libero, quindi un po'
+   piu' larga. */
+.focus-field {
+  flex: 1 1 180px;
+  min-width: 150px;
+}
+
+.builder-col {
+  max-width: 1020px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.builder-col .page-header p {
+  margin-bottom: 0;
+}
+
+/* La seduta a blocchi: l'intestazione con data e focus, la volta scorsa, cosa
+   riferisce, il trattamento, poi gli esercizi. Ogni blocco e' un riquadro suo,
+   con lo spazio fra uno e l'altro: prima stavano uno attaccato all'altro e
+   sembravano una cosa sola. */
+.builder-col > .builder-header,
+.builder-col > .card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 16px 18px;
+}
+
+.builder-col > .builder-header h2 {
+  font-size: 22px;
+}
+
+/* La volta scorsa si legge e non si compila: una striscia di colore a
+   sinistra, sullo stesso fondo degli altri riquadri. */
+.builder-col > section.card.ultima-seduta {
+  border-left: 4px solid var(--accent);
+}
+
+/* Cosa riferisce e il trattamento: un po' piu' vicine fra loro (8px) di
+   quanto lo spazio fra tutti i riquadri della seduta (16px, dal gap del
+   builder-col) le terrebbe da sole — vicine ma non attaccate. */
+.coppia-diario {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.coppia-diario > .blocco-apribile {
+  margin-bottom: 0;
+}
+
+.riga-modifica-elenco {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Il titolo di un blocco: icona, nome e punto interrogativo. */
+.titolo-blocco {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 17px;
+  font-weight: 650;
+  color: var(--text);
+}
+
+.titolo-blocco svg {
+  color: var(--accent);
+}
+
+/* Il titolo che separa gli esercizi dal diario: fuori dai riquadri, con una
+   linea che arriva fino in fondo. */
+.titolo-esercizi {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 17px;
+  font-weight: 650;
+  color: var(--text);
+}
+
+.titolo-esercizi svg {
+  color: var(--accent);
+}
+
+.titolo-esercizi::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  margin-left: 6px;
+  background: var(--border-forte);
+}
+
+/* Ogni sezione della seduta e' un riquadro bianco a se', come gli obiettivi:
+   con quattro sezioni di fila senza cornice non si capisce dove finisce una e
+   comincia l'altra. Quello che ci sta dentro — l'elenco degli esercizi e la
+   zona da cui si aggiungono — e' grigio chiaro. */
+.sezione-card,
+.obiettivi-info,
+.settimana-card {
+  min-width: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 16px 18px;
+}
+
+.sezione-card .righe-seduta,
+.sezione-card .aggiungi-area {
+  background: var(--pannello);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+}
+
+/* Il pulsante che apre la scelta degli esercizi: largo quanto la sezione e con
+   il bordo tratteggiato, cosi' si vede che apre qualcosa e non e' una riga
+   della seduta. */
+/* Il pulsante che aggiunge un esercizio sta nella testata della sezione,
+   accanto a rinomina: e' un'azione di quella sezione, non un pezzo di elenco
+   in fondo alla pagina. */
+.btn-aggiungi-sezione {
+  gap: 5px;
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.btn-aggiungi-sezione:hover:not(:disabled) {
+  background: var(--accent-soft);
+}
+
+/* Nell'elenco da cui si pesca, il "+" apre la riga: il nome, che puo' essere
+   lungo, si prende tutto lo spazio che resta. */
+.btn-aggiungi-riga {
+  flex: none;
+  padding: 4px 7px;
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.btn-aggiungi-riga:hover:not(:disabled) {
+  background: var(--accent-soft);
+}
+
+.esercizi-proposti .item-nome {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Un pulsante con la sola icona: quadrato, senza lo spazio che terrebbe una
+   scritta accanto. */
+.btn-solo-icona {
+  padding: 7px 9px;
+}
+
+/* Un pulsante della barra che e' acceso o spento (mostra gli archiviati,
+   l'ordine): acceso prende il colore dell'app. */
+.toolbar button.attivo {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+/* Testata della scelta: dice a quale sezione stai aggiungendo, e come chiudere. */
+.testata-aggiungi {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+
+.sezione-card .righe-seduta {
+  margin-bottom: 10px;
+}
+
+.sezione-card .righe-seduta li {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.sezione-testata {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.sezione-testata h3 {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  font-size: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+}
+
+.sezione-testata .edit-row {
+  flex: 1;
+}
+
+.obiettivi-info .chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 15px;
+}
+
+.chip.raggiunto {
+  background: var(--bg);
+  color: var(--text-dim);
+  text-decoration: line-through;
+}
+
+.aggiungi-area {
+  margin-top: 6px;
+}
+
+.filtro-esercizi {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+/* Il pulsante per l'esercizio "al volo": largo quanto il resto del pannello,
+   cosi' si vede come un'azione a se' e non come una riga della lista sotto. */
+.btn-al-volo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  justify-content: flex-start;
+  color: var(--accent);
+  border-color: var(--accent);
+  border-style: dashed;
+  margin-bottom: 10px;
+  text-align: left;
+}
+
+.btn-al-volo:hover:not(:disabled) {
+  background: var(--accent-soft);
+}
+
+.esercizi-proposti {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.esercizi-proposti li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 4px;
+  border-bottom: 1px solid var(--bg);
+}
+
+.esercizi-proposti li:last-child {
+  border-bottom: none;
+}
+
+.esercizi-proposti button {
+  padding: 3px 10px;
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+.default-hint {
+  color: var(--text-dim);
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 45%;
+  flex-shrink: 1;
+}
+
+.righe-seduta {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.righe-seduta li {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px;
+}
+
+.riga-testata {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.item-actions-static {
+  display: flex;
+  gap: 2px;
+}
+
+.item-actions-static button {
+  padding: 3px 6px;
+  font-size: 14px;
+  border: none;
+  background: none;
+  color: var(--text-dim);
+  border-radius: 6px;
+}
+
+.item-actions-static button:hover:not(:disabled) {
+  background: var(--accent-soft);
+}
+
+.item-actions-static button.danger:hover:not(:disabled) {
+  background: #fdeeee;
+}
+
+.riga-params {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.riga-params label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 14px;
+  color: var(--text-dim);
+  min-width: 0;
+}
+
+.riga-params input {
+  padding: 5px 8px;
+  font-size: 16px;
+  color: var(--text);
+  min-width: 0;
+  width: 100%;
+}
+
+.riga-nota {
+  width: 100%;
+  min-width: 0;
+  font-size: 15px;
+}
+
+.note-seduta {
+  margin-top: 4px;
+}
+
+/* ---- Diario ---- */
+
+/* Il titolo di una sezione e' separato da quello che contiene da una riga del
+   colore del tema: senza, titolo ed elenco si toccavano e sembravano una cosa
+   sola. E' la stessa riga che divide le sezioni nei documenti stampati, quindi
+   l'app e la carta si somigliano. */
+.card > h3,
+.card > .card-header-row {
+  border-bottom: 2px solid var(--accent);
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+}
+
+.card-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.card-header-row h3 {
+  margin: 0;
+}
+
+/* Ogni sezione della scheda paziente dentro il suo riquadro: si riconoscono a
+   colpo d'occhio invece di doverle separare leggendo i titoli. Il riquadro vale
+   solo qui: nelle pagine di configurazione le sezioni sono gia' divise dalle
+   colonne e incorniciarle le renderebbe piu' pesanti. */
+.scheda {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spazio);
+}
+
+/* Barra della scheda paziente: a sinistra le linguette, a destra i due gesti
+   che si ripetono ogni giorno. Su finestre strette i comandi vanno a capo sotto
+   alle linguette invece di schiacciarle. */
+.barra-scheda {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  /* Stesso stacco della riga fra i blocchi della scheda (.scheda { gap:
+     var(--spazio) }): su finestra stretta, quando le linguette e i pulsanti
+     vanno a capo su due righe, restavano piu' vicini fra loro di quanto lo
+     sono i pulsanti dal contenuto sotto. */
+  gap: var(--spazio);
+}
+
+.barra-scheda .config-tabs {
+  margin-bottom: 0;
+}
+
+.scheda > .card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: var(--spazio-interno) calc(var(--spazio-interno) + 4px);
+}
+
+/* Dentro il riquadro il titolo sta in cima: lo stacco fra le sezioni ora lo da'
+   il riquadro, non il margine del titolo. */
+.scheda > .card > h3:first-child,
+.scheda > .card > .card-header-row:first-child {
+  margin-top: 0;
+}
+
+/* Patologia, fase e pulsante di avanzamento su una riga sola: la casella della
+   fase e' piu' stretta perche' i nomi delle fasi sono corti, e cosi' il
+   pulsante ci sta accanto invece di finire a capo. */
+.riga-percorso {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* La patologia ha i nomi piu' lunghi, quindi la sua casella e' un po' piu'
+   larga; fase corrente e pulsante di avanzamento restano uguali fra loro. */
+.riga-percorso .field {
+  flex: 0 1 300px;
+  min-width: 0;
+}
+
+.riga-percorso .campo-fase {
+  flex: 0 1 230px;
+}
+
+/* Il pulsante di avanzamento e' un campo come gli altri: sopra ha la sua
+   etichetta ("Fase 1 di 3"), scritta come "Patologia" e "Fase corrente". */
+.riga-percorso .campo-avanza {
+  flex: none;
+}
+
+/* Stessa altezza e stessa larghezza della casella della fase. Il pulsante puo'
+   crescere se il nome della fase successiva e' lungo: meglio una riga un po'
+   piu' larga che un nome tagliato a meta'. */
+.riga-percorso .campo-avanza button {
+  padding: 10px 16px;
+  min-width: 230px;
+}
+
+.sedute-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sedute-list li {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 4px;
+  border-bottom: 1px solid var(--bg);
+}
+
+.sedute-list li:last-child {
+  border-bottom: none;
+}
+
+.seduta-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.seduta-data {
+  font-weight: 600;
+}
+
+.seduta-meta {
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+/* L'orario dell'appuntamento, nella settimana: una piccola etichetta prima
+   del nome, cosi' si legge insieme a chi viene senza cercarla nel testo. */
+.seduta-ora {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: 6px;
+  padding: 3px 8px;
+  min-width: 46px;
+  text-align: center;
+}
+
+/* Il focus della giornata dentro alla riga della seduta: sta fra la fase e il
+   numero di esercizi, e si stacca perche' e' quello che fa riconoscere una
+   seduta fra tante uguali. */
+.seduta-focus {
+  display: inline-block;
+  margin: 0 4px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--intestazione);
+  color: var(--intestazione-testo-forte);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.seduta-obiettivi {
+  font-size: 14px;
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+/* L'esito del controllo di una copia: si legge sotto alla riga della copia,
+   perche' e' una risposta a quella riga, non un avviso che passa e sparisce. */
+/* Un pulsante-interruttore dentro a una riga di elenco: acceso prende il
+   colore dell'app, cosi' si vede a colpo d'occhio quali righe sono attive. */
+.item-actions button.attivo {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.esito-copia {
+  display: inline-flex;
+  /* L'icona sta all'altezza della prima riga: se la frase va a capo, centrata
+     finirebbe in mezzo al testo. */
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 3px;
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+.esito-buono {
+  color: var(--success);
+}
+
+.esito-guasto {
+  color: var(--danger);
+}
+
+/* un promemoria, non un guasto */
+.esito-attenzione {
+  color: var(--attenzione);
+}
+
+/* A che punto e' il salvataggio di una scheda (IndicatoreSalvataggio): lo
+   stesso ovunque, accanto al pulsante Salva. */
+.stato-salvataggio {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.stato-salvataggio.modificato {
+  color: var(--attenzione);
+}
+.stato-salvataggio.modificato::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.stato-salvataggio.salvato {
+  color: var(--accent);
+}
+.stato-salvataggio.errore {
+  color: var(--danger);
+}
+
+.riga-copia .esito-copia svg {
+  flex: none;
+  margin-top: 2px;
+}

@@ -26,7 +26,8 @@ Specifica originale e feedback dell'utente sono nei file `prompt-*.md` alla radi
   salvano mentre si scrive, con lo stesso indicatore. Le finestre brevi (`Modale`) seguono la loro:
   Invio e clic fuori salvano, «Annulla» scarta.
 - `src/renderer/src/` React: `App.tsx` (shell, sidebar, modali globali), `pages/`, `components/`,
-  `styles.css` (unico foglio di stile, design token in `:root`).
+  `styles.css` (indice che importa, in ordine, i file di `stili/` per area: l'ordine conta per la
+  cascata; design token in `:root` dentro `stili/01-temi.css`).
 - Lingua dell'interfaccia, dei commenti e dei commit: **italiano**.
 
 ## Regole che contano

@@ -1,0 +1,276 @@
+/* I questionari e la loro compilazione. */
+
+/* ---- Questionari (PROM) ---- */
+
+.lista-domande {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spazio);
+  margin-top: var(--spazio);
+}
+
+.domanda-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.domanda-testata {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.domanda-numero {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.domanda-testo {
+  flex: 1;
+  min-width: 0;
+}
+
+.opzioni-domanda {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  /* rientro: le risposte appartengono alla domanda qui sopra */
+  padding-left: 34px;
+}
+
+.opzione-riga {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.opzione-riga input:first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.opzione-punteggio {
+  width: 90px;
+  flex-shrink: 0;
+}
+
+/* la regola di una fascia, letta come una frase: "se Totale da 0 a 3" */
+.regola-fascia {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-left: 34px;
+}
+
+.regola-fascia input[type='number'] {
+  width: 90px;
+}
+
+.regola-parola {
+  color: var(--text-dim);
+  font-size: 15px;
+}
+
+/* ---- Compilazione di un questionario ---- */
+
+/* Dentro una finestra la regola generale mette le etichette in colonna: qui
+   servono in riga, e il selettore va reso piu' specifico per avere la meglio.
+   Senza, la casella finiva sotto al suo testo e i pulsanti accanto
+   risultavano disallineati. */
+/* Etichetta e casella sulla stessa riga: la data e' corta e il nome lungo, in
+   colonna sprecherebbero due righe. Lo stacco e' piu' largo di quello verticale,
+   altrimenti la scritta sembra attaccata alla casella. */
+.modal label.compila-data,
+.card label.compila-data,
+.compila-data {
+  /* display: flex dichiarato qui: fuori dalle card e dalle finestre nessun'altra
+     regola lo metteva, quindi etichetta e casella restavano in linea e lo spazio
+     qui sotto non aveva alcun effetto. */
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+}
+
+.compila-istruzioni {
+  margin: 0;
+  padding: 10px 12px;
+  background: var(--accent-soft);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+}
+
+/* Scorre tutto insieme, domande e note: cosi' le note si incontrano dopo
+   l'ultima domanda invece di restare ferme sotto fin dalla prima. */
+.compila-corpo {
+  max-height: 56vh;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  /* spazio per non far toccare il bordo della barra di scorrimento */
+  padding-right: 4px;
+}
+
+.compila-domande {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.compila-domande > li {
+  border-bottom: 1px solid var(--bg);
+  padding-bottom: 12px;
+}
+
+.compila-testo {
+  margin: 0 0 8px;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+/* La scala numerica come quella di carta: i pallini in fila su una riga, il
+   numero dentro. La riga e' disegnata dietro ai pallini, che la coprono. */
+.scala-pallini {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: 560px;
+  padding: 2px 0;
+}
+
+.scala-pallini::before {
+  content: '';
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  top: 50%;
+  height: 2px;
+  background: var(--border-forte);
+  /* Sotto ai pallini: sono loro a doversi leggere. */
+  z-index: 0;
+}
+
+.scala-pallini .pallino {
+  position: relative;
+  z-index: 1;
+  width: 34px;
+  height: 34px;
+  min-width: 0;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--surface);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.scala-pallini .pallino:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Il valore scelto: pieno e un po' piu' grande, si vede da lontano mentre il
+   paziente indica il suo numero. */
+.scala-pallini .pallino.scelto {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  transform: scale(1.15);
+  box-shadow: var(--shadow-sm);
+}
+
+.scala-pallini .pallino:disabled {
+  opacity: 1;
+}
+
+.scala-pallini .pallino:disabled:not(.scelto) {
+  color: var(--text-dim);
+  opacity: 0.5;
+}
+
+/* Nella riga di un test la scala sta accanto al nome, quindi piu' stretta. */
+.riga-test .scala-pallini {
+  max-width: 260px;
+  flex: none;
+}
+
+.compila-risposte {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* pulsanti larghi: il fisioterapista clicca al volo mentre legge ad alta voce */
+.compila-risposte button {
+  min-width: 62px;
+  padding: 8px 14px;
+  font-size: 14px;
+}
+
+/* Un pulsante-scelta gia' selezionato deve vedersi, sempre. Mancava una regola
+   generale: nella finestra dei distretti quelli gia' scelti erano identici agli
+   altri, quindi cliccandone uno lo si toglieva credendo di aggiungerlo, e il
+   pulsante "Apri la valutazione" si spegneva. */
+button.scelta-attiva {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+button.scelta-attiva:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  color: #fff;
+}
+
+.compila-risposte button.scelta-attiva {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.scelte-questionari {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.scelte-questionari button {
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.badge-fascia {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 600;
+}
