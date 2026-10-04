@@ -23,7 +23,8 @@ import ScalaPallini from './ScalaPallini'
 import Aiuto from './Aiuto'
 import { errMsg, formatData, oggiIso } from '../lib'
 import { useScorciatoie } from '../scorciatoie'
-import { useSalvaUscendo } from '../salvaUscendo'
+import { useSalvataggio } from '../salvataggio'
+import IndicatoreSalvataggio from './IndicatoreSalvataggio'
 import { GRUPPI } from '../pages/DistrettiPage'
 
 const ANDAMENTI: { valore: Andamento; etichetta: string; icona: React.JSX.Element }[] = [
@@ -235,15 +236,15 @@ function SchedaValutazione({
   const [modificato, setModificato] = useState(false)
   // Chiudendo il programma, o uscendo da questa scheda, a valutazione non
   // salvata: si salva da sola.
-  const salvaAllaChiusura = useSalvaUscendo(!soloLettura && modificato)
+  const salvataggio = useSalvataggio(!soloLettura && modificato)
 
   useScorciatoie([
     { tasto: 'Escape', azione: () => void chiudi() },
-    { tasto: 's', ctrl: true, azione: () => void salva(), attiva: !soloLettura && modificato }
+    { tasto: 's', ctrl: true, azione: () => void salvataggio.salva(), attiva: !soloLettura && modificato }
   ])
 
   // Un clic fuori dalla finestra la chiude: quello che c'era di non salvato
-  // si salva da solo (vedi useSalvaUscendo sopra).
+  // si salva da solo (vedi useSalvataggio sopra).
   const chiudi = (): void => {
     onChiudi(modificato)
   }
@@ -420,13 +421,13 @@ function SchedaValutazione({
     return scrittaSenzaLati ? [''] : ['sx', 'dx']
   }
 
-  salvaAllaChiusura.current = () => salva()
+  salvataggio.funzione.current = () => salva()
   const salva = async (): Promise<boolean> => {
     try {
       await window.api.valutazioni.salva(dati)
       toast('Valutazione salvata.')
       // gia' salvata: chiudendosi non deve salvarla una seconda volta
-      salvaAllaChiusura.current = null
+      salvataggio.funzione.current = null
       onChiudi(true)
       return true
     } catch (e) {
@@ -558,9 +559,14 @@ function SchedaValutazione({
         </label>
 
         <div className="modal-actions">
+          {!soloLettura && <IndicatoreSalvataggio stato={salvataggio.stato} errore={salvataggio.errore} />}
           <button onClick={() => void chiudi()}>{soloLettura ? 'Chiudi' : 'Annulla'}</button>
           {!soloLettura && (
-            <button className="primary" disabled={!modificato} onClick={() => void salva()}>
+            <button
+              className="primary"
+              disabled={!modificato || salvataggio.stato === 'salvo'}
+              onClick={() => void salvataggio.salva()}
+            >
               Salva
             </button>
           )}

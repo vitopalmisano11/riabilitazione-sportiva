@@ -25,7 +25,8 @@ import Modale from '../components/Modale'
 import CompilaQuestionario from '../components/CompilaQuestionario'
 import { RisultatoCluster } from '../components/PunteggioCluster'
 import MenuScelta from '../components/MenuScelta'
-import { useSalvaUscendo } from '../salvaUscendo'
+import { useSalvataggio } from '../salvataggio'
+import IndicatoreSalvataggio from '../components/IndicatoreSalvataggio'
 import { errMsg, formatData, oggiIso } from '../lib'
 import {
   arrotonda,
@@ -459,7 +460,7 @@ function Esecuzione({
   const [risultato, setRisultato] = useState<RisultatoPunteggio | null>(null)
   // Chiudendo il programma, o uscendo da questa scheda, con valori non
   // salvati: si salvano da soli.
-  const salvaAllaChiusura = useSalvaUscendo(modificato)
+  const salvataggio = useSalvataggio(modificato)
 
   const aggiornaPunteggio = useCallback((): void => {
     window.api.screeningSvolti
@@ -486,7 +487,7 @@ function Esecuzione({
       .catch((e) => toastErrore(errMsg(e)))
   }, [id])
 
-  salvaAllaChiusura.current = () => salva()
+  salvataggio.funzione.current = () => salva()
   const salva = async (): Promise<boolean> => {
     const daSalvare: ValoreScreening[] = []
     for (const [k, testo] of Object.entries(valori)) {
@@ -526,7 +527,7 @@ function Esecuzione({
       if (!(await chiedi('Ci sono valori non salvati: il report non li conterrebbe.\n\nSalvo prima?'))) {
         return
       }
-      await salva()
+      if (!(await salvataggio.salva())) return
     }
     try {
       await window.api.screeningSvolti.anteprimaReport([id])
@@ -631,7 +632,12 @@ function Esecuzione({
       {/* Il salvataggio sta in fondo, dopo l'ultimo test: e' li' che si arriva
           finendo di scrivere i numeri, non tornando su fino in cima. */}
       <div className="azioni-fine-pagina">
-        <button className="primary" disabled={!modificato} onClick={() => void salva()}>
+        <IndicatoreSalvataggio stato={salvataggio.stato} errore={salvataggio.errore} />
+        <button
+          className="primary"
+          disabled={!modificato || salvataggio.stato === 'salvo'}
+          onClick={() => void salvataggio.salva()}
+        >
           <Save size={18} /> Salva
         </button>
       </div>

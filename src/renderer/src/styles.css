@@ -2505,6 +2505,32 @@ details[open] > :not(summary) {
   color: var(--attenzione);
 }
 
+/* A che punto e' il salvataggio di una scheda (IndicatoreSalvataggio): lo
+   stesso ovunque, accanto al pulsante Salva. */
+.stato-salvataggio {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.stato-salvataggio.modificato {
+  color: var(--attenzione);
+}
+.stato-salvataggio.modificato::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.stato-salvataggio.salvato {
+  color: var(--accent);
+}
+.stato-salvataggio.errore {
+  color: var(--danger);
+}
+
 .riga-copia .esito-copia svg {
   flex: none;
   margin-top: 2px;

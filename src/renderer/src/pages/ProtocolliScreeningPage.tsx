@@ -13,7 +13,9 @@ import type {
 import { toast, toastErrore } from '../components/Toast'
 import { chiedi } from '../components/Conferma'
 import { errMsg } from '../lib'
-import { useRileggiDopoSalvataggio, useSalvaUscendo } from '../salvaUscendo'
+import { useRileggiDopoSalvataggio } from '../salvaUscendo'
+import { useSalvataggio } from '../salvataggio'
+import IndicatoreSalvataggio from '../components/IndicatoreSalvataggio'
 import PunteggioCluster from '../components/PunteggioCluster'
 import MenuScelta from '../components/MenuScelta'
 
@@ -295,8 +297,8 @@ function Editor({
   const [ricercaTest, setRicercaTest] = useState('')
   const [ricercaQuest, setRicercaQuest] = useState('')
   const [modificato, setModificato] = useState(false)
-  // uscendo con modifiche non salvate, si salvano da sole
-  const salvaUscendo = useSalvaUscendo(modificato)
+  // uscendo con modifiche non salvate, si salvano da sole (vedi salvataggio.ts)
+  const salvataggio = useSalvataggio(modificato)
   const [aggiungiA, setAggiungiA] = useState<number | null>(null)
 
   useEffect(() => {
@@ -338,7 +340,7 @@ function Editor({
       return false
     }
   }
-  salvaUscendo.current = salva
+  salvataggio.funzione.current = salva
 
   // Tornando all'elenco non si chiede niente: le modifiche si salvano da sole.
   const indietro = (): void => onIndietro()
@@ -371,7 +373,12 @@ function Editor({
           <button onClick={indietro}>
             <ChevronLeft size={18} /> Tutti i protocolli
           </button>
-          <button className="primary" disabled={!modificato} onClick={() => void salva()}>
+          <IndicatoreSalvataggio stato={salvataggio.stato} errore={salvataggio.errore} />
+          <button
+            className="primary"
+            disabled={!modificato || salvataggio.stato === 'salvo'}
+            onClick={() => void salvataggio.salva()}
+          >
             <Save size={16} /> Salva
           </button>
         </span>

@@ -6,6 +6,8 @@ import { TEMI } from '../../../shared/temi'
 import PannelloBackup from '../components/PannelloBackup'
 import GuidaDati from '../components/GuidaDati'
 import ConsiglioPassword from '../components/ConsiglioPassword'
+import IndicatoreSalvataggio from '../components/IndicatoreSalvataggio'
+import { useSalvataggio } from '../salvataggio'
 import { controllaPassword } from '../../../shared/password'
 import {
   BookOpen,
@@ -396,6 +398,8 @@ const PROFILO_VUOTO: Profilo = {
 function SchedaProfilo(): React.JSX.Element {
   const [profilo, setProfilo] = useState<Profilo>(PROFILO_VUOTO)
   const [salvato, setSalvato] = useState(true)
+  // uscendo dalla scheda, o chiudendo il programma, si salva da solo
+  const salvataggio = useSalvataggio(!salvato)
 
   useEffect(() => {
     void window.api.profilo
@@ -409,15 +413,18 @@ function SchedaProfilo(): React.JSX.Element {
     setSalvato(false)
   }
 
-  const salva = async (): Promise<void> => {
+  const salva = async (): Promise<boolean> => {
     try {
       await window.api.profilo.salva(profilo)
       setSalvato(true)
       toast('Profilo salvato.')
+      return true
     } catch (e) {
       toastErrore(errMsg(e))
+      return false
     }
   }
+  salvataggio.funzione.current = salva
 
   // L'anteprima e' la stessa cosa che finisce in cima al foglio: cosi' si vede
   // subito com'e' venuta, senza stampare per scoprirlo.
@@ -489,8 +496,13 @@ function SchedaProfilo(): React.JSX.Element {
         )}
 
         <div className="modal-actions">
-          <button className="primary" disabled={salvato} onClick={() => void salva()}>
-            <IdCard size={16} /> {salvato ? 'Salvato' : 'Salva il profilo'}
+          <IndicatoreSalvataggio stato={salvataggio.stato} errore={salvataggio.errore} />
+          <button
+            className="primary"
+            disabled={salvato || salvataggio.stato === 'salvo'}
+            onClick={() => void salvataggio.salva()}
+          >
+            <IdCard size={16} /> Salva il profilo
           </button>
         </div>
       </div>

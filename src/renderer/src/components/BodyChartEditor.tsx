@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { useSalvaUscendo } from '../salvaUscendo'
+import { useSalvataggio } from '../salvataggio'
+import IndicatoreSalvataggio from './IndicatoreSalvataggio'
 import { Trash2 } from 'lucide-react'
 import { useClicSulFondo } from '../clicSulFondo'
 import { useZoomPizzico } from '../zoomPizzico'
@@ -36,13 +37,13 @@ export default function BodyChartEditor({
   const [modificato, setModificato] = useState(false)
   // Chiudendo il programma, o uscendo da questa scheda, con segni non
   // salvati: si salvano da soli.
-  const salvaAllaChiusura = useSalvaUscendo(!soloLettura && modificato)
+  const salvataggio = useSalvataggio(!soloLettura && modificato)
 
   // Esc chiude, Ctrl+S salva: sono le due cose che si fanno di continuo qui
   // dentro.
   useScorciatoie([
     { tasto: 'Escape', azione: () => void chiudi() },
-    { tasto: 's', ctrl: true, azione: () => void salva(), attiva: !soloLettura && modificato }
+    { tasto: 's', ctrl: true, azione: () => void salvataggio.salva(), attiva: !soloLettura && modificato }
   ])
 
   // Ctrl+Z dentro a una casella di testo (Note, Intensita') annulla quello che
@@ -72,7 +73,7 @@ export default function BodyChartEditor({
   })
 
   // Un clic fuori dalla finestra la chiude. Se c'erano segni non ancora
-  // salvati si salvano da soli (vedi useSalvaUscendo sopra): al genitore si
+  // salvati si salvano da soli (vedi useSalvataggio sopra): al genitore si
   // dice se c'era qualcosa da salvare, cosi' non cancella una scheda appena
   // creata che in realta' e' stata riempita.
   const chiudi = (): void => {
@@ -147,7 +148,7 @@ export default function BodyChartEditor({
     cambia(t.chiave, { x, y })
   }
 
-  salvaAllaChiusura.current = () => salva()
+  salvataggio.funzione.current = () => salva()
   const salva = async (): Promise<boolean> => {
     try {
       await window.api.bodyChart.salva({
@@ -156,7 +157,7 @@ export default function BodyChartEditor({
       })
       toast('Body chart salvata.')
       // gia' salvata: chiudendosi non deve salvarla una seconda volta
-      salvaAllaChiusura.current = null
+      salvataggio.funzione.current = null
       onChiudi(true)
       return true
     } catch (e) {
@@ -286,9 +287,14 @@ export default function BodyChartEditor({
         </label>
 
         <div className="modal-actions">
+          {!soloLettura && <IndicatoreSalvataggio stato={salvataggio.stato} errore={salvataggio.errore} />}
           <button onClick={() => void chiudi()}>{soloLettura ? 'Chiudi' : 'Annulla'}</button>
           {!soloLettura && (
-            <button className="primary" disabled={!modificato} onClick={() => void salva()}>
+            <button
+              className="primary"
+              disabled={!modificato || salvataggio.stato === 'salvo'}
+              onClick={() => void salvataggio.salva()}
+            >
               Salva
             </button>
           )}

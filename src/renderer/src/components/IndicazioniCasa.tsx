@@ -5,6 +5,8 @@ import Aiuto from './Aiuto'
 import { toast, toastErrore } from './Toast'
 import { chiedi } from './Conferma'
 import { errMsg } from '../lib'
+import { useSalvataggio } from '../salvataggio'
+import IndicatoreSalvataggio from './IndicatoreSalvataggio'
 
 // Le indicazioni che il paziente si porta a casa insieme al programma.
 //
@@ -24,6 +26,8 @@ export default function IndicazioniCasa({
   const [nuova, setNuova] = useState(false)
   const [testo, setTesto] = useState('')
   const [salvato, setSalvato] = useState(true)
+  // uscendo dalla scheda, o chiudendo il programma, si salvano da sole
+  const salvataggio = useSalvataggio(!salvato)
 
   const carica = useCallback((): void => {
     Promise.all([window.api.indicazioni.list(), window.api.indicazioni.delPaziente(paziente.id)])
@@ -45,16 +49,19 @@ export default function IndicazioniCasa({
     setSalvato(false)
   }
 
-  const salva = async (): Promise<void> => {
+  const salva = async (): Promise<boolean> => {
     try {
       await window.api.indicazioni.setDelPaziente(paziente.id, scelte, frequenza || null)
       setSalvato(true)
       onChanged()
       toast('Indicazioni salvate.')
+      return true
     } catch (e) {
       toastErrore(errMsg(e))
+      return false
     }
   }
+  salvataggio.funzione.current = salva
 
   // Una frase nuova entra nell'elenco comune e parte gia' spuntata per questo
   // paziente: e' il motivo per cui la stai scrivendo.
@@ -172,8 +179,13 @@ export default function IndicazioniCasa({
       )}
 
       <div className="modal-actions">
-        <button className="primary" disabled={salvato} onClick={() => void salva()}>
-          {salvato ? 'Salvato' : 'Salva le indicazioni'}
+        <IndicatoreSalvataggio stato={salvataggio.stato} errore={salvataggio.errore} />
+        <button
+          className="primary"
+          disabled={salvato || salvataggio.stato === 'salvo'}
+          onClick={() => void salvataggio.salva()}
+        >
+          Salva le indicazioni
         </button>
       </div>
       </div>

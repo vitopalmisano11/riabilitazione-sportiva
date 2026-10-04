@@ -5,6 +5,8 @@ import Aiuto from './Aiuto'
 import { toast, toastErrore } from './Toast'
 import { chiedi } from './Conferma'
 import { errMsg, formatData, oggiIso } from '../lib'
+import { useSalvataggio } from '../salvataggio'
+import IndicatoreSalvataggio from './IndicatoreSalvataggio'
 
 // I numeri dell'atleta: peso, altezza e i massimali.
 //
@@ -44,6 +46,8 @@ export default function MisurePaziente({
   const [peso, setPeso] = useState(paziente.peso == null ? '' : String(paziente.peso))
   const [altezza, setAltezza] = useState(paziente.altezza == null ? '' : String(paziente.altezza))
   const [misureSalvate, setMisureSalvate] = useState(true)
+  // uscendo dalla scheda, o chiudendo il programma, si salvano da sole
+  const salvataggio = useSalvataggio(!misureSalvate)
   const [massimali, setMassimali] = useState<Massimale[]>([])
   const [aperto, setAperto] = useState<number | null>(null)
   const [nuovo, setNuovo] = useState(false)
@@ -68,16 +72,19 @@ export default function MisurePaziente({
     setMisureSalvate(true)
   }, [paziente.id, paziente.peso, paziente.altezza])
 
-  const salvaMisure = async (): Promise<void> => {
+  const salvaMisure = async (): Promise<boolean> => {
     try {
       await window.api.massimali.setMisure(paziente.id, num(peso), num(altezza))
       setMisureSalvate(true)
       onChanged()
       toast('Misure salvate.')
+      return true
     } catch (e) {
       toastErrore(errMsg(e))
+      return false
     }
   }
+  salvataggio.funzione.current = salvaMisure
 
   // Se il massimale vero non l'hai misurato: quanto ha sollevato, per quante
   // ripetizioni e quante gliene restavano, e il numero esce da solo.
@@ -152,10 +159,15 @@ export default function MisurePaziente({
               }}
             />
           </label>
-          <button className="primary" disabled={misureSalvate} onClick={() => void salvaMisure()}>
-            {misureSalvate ? 'Salvato' : 'Salva'}
+          <button
+            className="primary"
+            disabled={misureSalvate || salvataggio.stato === 'salvo'}
+            onClick={() => void salvataggio.salva()}
+          >
+            Salva
           </button>
         </div>
+        <IndicatoreSalvataggio stato={salvataggio.stato} errore={salvataggio.errore} />
       </section>
 
       <section className="card">

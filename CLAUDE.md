@@ -16,8 +16,15 @@ Specifica originale e feedback dell'utente sono nei file `prompt-*.md` alla radi
   relazioni, report): espone solo i comandi della barra in cima (riduci, ingrandisci, chiudi).
 - Tutte le finestre nascono senza barra di Windows (`barraDisegnata()` in `main/finestre.ts`): la
   barra la disegna la pagina (`components/BarraFinestra.tsx`, `conBarra()` per l'HTML generato).
-- Editor con modifiche da salvare: `useModificheInCorso` (`renderer/src/modificheInCorso.ts`)
-  le salva se si chiude il programma; nella configurazione `useSalvaUscendo` salva anche uscendo.
+- **Salvataggio, una regola sola** (`renderer/src/salvataggio.ts`): in una scheda di lavoro (seduta,
+  valutazione, body chart, screening, configurazione, indicazioni, misure, profilo) quello che si
+  scrive si salva da solo uscendo dalla scheda o chiudendo il programma; «Salva»/Ctrl+S lo fa subito.
+  Accanto al pulsante sempre `<IndicatoreSalvataggio>` (modifiche non salvate / salvataggio… /
+  salvato / non salvato e perché: l'errore resta finché un salvataggio non riesce). Un editor nuovo
+  usa `useSalvataggio(modificato)` e `salvataggio.funzione.current = salva`; sotto ci sono
+  `useSalvaUscendo` (uscita) e `useModificheInCorso` (chiusura del programma). Le anamnesi si
+  salvano mentre si scrive, con lo stesso indicatore. Le finestre brevi (`Modale`) seguono la loro:
+  Invio e clic fuori salvano, «Annulla» scarta.
 - `src/renderer/src/` React: `App.tsx` (shell, sidebar, modali globali), `pages/`, `components/`,
   `styles.css` (unico foglio di stile, design token in `:root`).
 - Lingua dell'interfaccia, dei commenti e dei commit: **italiano**.

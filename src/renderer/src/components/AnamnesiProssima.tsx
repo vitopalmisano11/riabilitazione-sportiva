@@ -16,6 +16,7 @@ import { errMsg, oggiIso } from '../lib'
 import { sposta, useRiordino } from '../riordino'
 import { useScorciatoie } from '../scorciatoie'
 import { useSalvaUscendo } from '../salvaUscendo'
+import IndicatoreSalvataggio from './IndicatoreSalvataggio'
 import GraficoAndamento, { COLORI, type Selezione } from './GraficoAndamento'
 import ScalaPallini from './ScalaPallini'
 import {
@@ -81,6 +82,7 @@ export default function AnamnesiProssima({
 }): React.JSX.Element {
   const [dati, setDati] = useState<Dati | null>(null)
   const [stato, setStato] = useState<'fermo' | 'salvo' | 'salvato' | 'errore'>('fermo')
+  const [errore, setErrore] = useState<string | null>(null)
   // Il salvataggio aspetta un secondo e mezzo dall'ultima lettera: chiudendo
   // il programma in quel mezzo, quello che resta si salva subito.
   const salvaAllaChiusura = useSalvaUscendo(stato === 'salvo' || stato === 'errore')
@@ -123,6 +125,7 @@ export default function AnamnesiProssima({
       daSalvare.current ??= d
       attivitaDaSalvare.current ??= a
       setStato('errore')
+      setErrore(errMsg(e))
       toastErrore(errMsg(e))
       return false
     }
@@ -197,15 +200,9 @@ export default function AnamnesiProssima({
     <Modale className="modal-lg" onConferma={chiudi}>
         <div className="card-header-row">
           <h3>Anamnesi prossima</h3>
-          <span className="hint">
-            {stato === 'salvo'
-              ? 'Salvataggio…'
-              : stato === 'salvato'
-                ? 'Salvato'
-                : stato === 'errore'
-                  ? 'Non salvato'
-                  : ''}
-          </span>
+          {/* qui si salva da solo mentre si scrive: l'indicatore e' lo stesso
+              delle altre schede (vedi salvataggio.ts) */}
+          <IndicatoreSalvataggio stato={stato === 'fermo' ? 'pulito' : stato} errore={errore} />
         </div>
 
         <label>

@@ -17,7 +17,9 @@ import ElencoCategorie from '../components/ElencoCategorie'
 import Aiuto from '../components/Aiuto'
 import { errMsg } from '../lib'
 import { unitaDiTempo } from '../../../shared/soglie'
-import { useRileggiDopoSalvataggio, useSalvaUscendo } from '../salvaUscendo'
+import { useRileggiDopoSalvataggio } from '../salvaUscendo'
+import { useSalvataggio } from '../salvataggio'
+import IndicatoreSalvataggio from '../components/IndicatoreSalvataggio'
 import { sposta, useRiordino } from '../riordino'
 
 const RIASSUNTI: { valore: RiassuntoMisura; etichetta: string }[] = [
@@ -310,8 +312,8 @@ function EditorTest({
 }): React.JSX.Element {
   const [dati, setDati] = useState<TestValutazioneCompleto | null>(null)
   const [modificato, setModificato] = useState(false)
-  // uscendo con modifiche non salvate, si salvano da sole
-  const salvaUscendo = useSalvaUscendo(modificato)
+  // uscendo con modifiche non salvate, si salvano da sole (vedi salvataggio.ts)
+  const salvataggio = useSalvataggio(modificato)
 
   useEffect(() => {
     window.api.testValutazione
@@ -342,7 +344,7 @@ function EditorTest({
       return false
     }
   }
-  salvaUscendo.current = salva
+  salvataggio.funzione.current = salva
 
   return (
     <section className="card editor-test">
@@ -451,8 +453,12 @@ function EditorTest({
       />
 
       <div className="modal-actions">
-        {modificato && <span className="hint">Ci sono modifiche non salvate.</span>}
-        <button className="primary" disabled={!modificato} onClick={() => void salva()}>
+        <IndicatoreSalvataggio stato={salvataggio.stato} errore={salvataggio.errore} />
+        <button
+          className="primary"
+          disabled={!modificato || salvataggio.stato === 'salvo'}
+          onClick={() => void salvataggio.salva()}
+        >
           Salva test
         </button>
       </div>

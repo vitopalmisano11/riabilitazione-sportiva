@@ -17,7 +17,20 @@ export function toast(testo: string): void {
   listener?.({ id: prossimoId++, tipo: 'ok', testo })
 }
 
+// Chi vuole sapere degli errori mentre fa qualcosa: un salvataggio in corso
+// (vedi salvataggio.ts) tiene il messaggio accanto al suo pulsante, dove non
+// sparisce dopo qualche secondo come l'avviso.
+const ascoltatoriErrori = new Set<(testo: string) => void>()
+
+export function ascoltaErrori(fn: (testo: string) => void): () => void {
+  ascoltatoriErrori.add(fn)
+  return () => {
+    ascoltatoriErrori.delete(fn)
+  }
+}
+
 export function toastErrore(testo: string): void {
+  for (const fn of ascoltatoriErrori) fn(testo)
   listener?.({ id: prossimoId++, tipo: 'errore', testo })
 }
 

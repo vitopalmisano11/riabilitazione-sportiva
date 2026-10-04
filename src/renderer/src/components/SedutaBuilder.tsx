@@ -29,7 +29,8 @@ import Aiuto from './Aiuto'
 import DiarioSeduta, { UltimaVoltaSeduta } from './DiarioSeduta'
 import { errMsg, formatData, oggiIso } from '../lib'
 import { scorciatoieBloccate, useScorciatoie } from '../scorciatoie'
-import { useSalvaUscendo } from '../salvaUscendo'
+import { useSalvataggio } from '../salvataggio'
+import IndicatoreSalvataggio from './IndicatoreSalvataggio'
 import { sposta, useRiordino } from '../riordino'
 import { caricoTesto, recuperoTesto, rirTesto, volumeTesto } from '../../../shared/dosaggio'
 
@@ -678,13 +679,19 @@ export default function SedutaBuilder({
   // Chiudendo il programma, o uscendo da questa scheda (anche cliccando in un'
   // altra sezione), con la seduta a meta' di una modifica o appena
   // cominciata: si salva da sola.
-  const salvaAllaChiusura = useSalvaUscendo(modificata && !giaGestita.current)
-  salvaAllaChiusura.current = () => (giaGestita.current ? Promise.resolve(true) : salva())
+  //
+  // Un solo salvataggio alla volta (ci pensa useSalvataggio): Ctrl+S premuto
+  // due volte, un doppio clic o l'uscita che salva mentre un salvataggio e'
+  // gia' partito scrivevano la seduta due volte nel diario. Chi chiede di
+  // salvare mentre un salvataggio e' in corso aspetta quello.
+  const salvataggio = useSalvataggio(modificata && !giaGestita.current)
+  salvataggio.funzione.current = () => (giaGestita.current ? Promise.resolve(true) : salvaSeduta())
+  const salva = salvataggio.salva
 
   // Esc annulla, Ctrl+S salva: la seduta si compila con la tastiera, senza
   // tornare col mouse in fondo alla finestra.
   // Su una seduta gia' salvata che si sta modificando non c'e' niente da
-  // chiedere: uscendo si salva da sola (vedi useSalvaUscendo sopra). Resta da
+  // chiedere: uscendo si salva da sola (vedi useSalvataggio sopra). Resta da
   // decidere solo per una seduta NUOVA, mai salvata: buttarla via subito, o
   // tenerla in bozza per riprenderla. Chiedere qui e' meglio che ritrovarsela
   // proposta domani senza averlo voluto.
@@ -788,23 +795,6 @@ export default function SedutaBuilder({
     }
   }
 
-  // Un solo salvataggio alla volta: Ctrl+S premuto due volte, un doppio clic o
-  // l'uscita che salva mentre un salvataggio e' gia' partito scrivevano la
-  // seduta due volte nel diario. Chi chiede di salvare mentre un salvataggio e'
-  // in corso aspetta quello, invece di farne un altro.
-  const salvataggio = useRef<Promise<boolean> | null>(null)
-  const [inSalvataggio, setInSalvataggio] = useState(false)
-  const salva = (): Promise<boolean> => {
-    if (salvataggio.current) return salvataggio.current
-    setInSalvataggio(true)
-    const corrente = salvaSeduta().finally(() => {
-      salvataggio.current = null
-      if (!smontata.current) setInSalvataggio(false)
-    })
-    salvataggio.current = corrente
-    return corrente
-  }
-
   if (!pronto) {
     return (
       <div className="page">
@@ -904,8 +894,13 @@ export default function SedutaBuilder({
               ))}
             </datalist>
           </label>
+          <IndicatoreSalvataggio stato={salvataggio.stato} errore={salvataggio.errore} />
           <button onClick={() => void annulla()}>Annulla</button>
-          <button className="primary" disabled={inSalvataggio} onClick={() => void salva()}>
+          <button
+            className="primary"
+            disabled={salvataggio.stato === 'salvo'}
+            onClick={() => void salva()}
+          >
             Salva seduta
           </button>
         </div>
@@ -1384,8 +1379,13 @@ export default function SedutaBuilder({
           />
         </label>
         <div className="modal-actions">
+          <IndicatoreSalvataggio stato={salvataggio.stato} errore={salvataggio.errore} />
           <button onClick={() => void annulla()}>Annulla</button>
-          <button className="primary" disabled={inSalvataggio} onClick={() => void salva()}>
+          <button
+            className="primary"
+            disabled={salvataggio.stato === 'salvo'}
+            onClick={() => void salva()}
+          >
             Salva seduta ({totaleEsercizi} esercizi)
           </button>
         </div>

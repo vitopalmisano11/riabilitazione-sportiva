@@ -9,6 +9,7 @@ import { chiediUscita } from '../modificheInCorso'
 import { errMsg, formatData } from '../lib'
 import { useScorciatoie } from '../scorciatoie'
 import { useSalvaUscendo } from '../salvaUscendo'
+import IndicatoreSalvataggio from './IndicatoreSalvataggio'
 
 const ATTESA_SALVATAGGIO = 1500
 
@@ -53,6 +54,7 @@ export default function AnamnesiRemota({
   const [dati, setDati] = useState<Dati | null>(null)
   const [referti, setReferti] = useState<Bioimmagine[]>([])
   const [stato, setStato] = useState<'fermo' | 'salvo' | 'salvato' | 'errore'>('fermo')
+  const [errore, setErrore] = useState<string | null>(null)
   // Il salvataggio aspetta un secondo e mezzo dall'ultima lettera: chiudendo
   // il programma in quel mezzo, quello che resta si salva subito.
   const salvaAllaChiusura = useSalvaUscendo(stato === 'salvo' || stato === 'errore')
@@ -99,6 +101,7 @@ export default function AnamnesiRemota({
       // si rimette in attesa, salvo che nel frattempo si sia scritto di piu' recente
       daSalvare.current ??= d
       setStato('errore')
+      setErrore(errMsg(e))
       toastErrore(errMsg(e))
       return false
     }
@@ -160,15 +163,9 @@ export default function AnamnesiRemota({
     <Modale className="modal-lg" onConferma={chiudi}>
         <div className="card-header-row">
           <h3>Anamnesi remota</h3>
-          <span className="hint">
-            {stato === 'salvo'
-              ? 'Salvataggio…'
-              : stato === 'salvato'
-                ? 'Salvato'
-                : stato === 'errore'
-                  ? 'Non salvato'
-                  : ''}
-          </span>
+          {/* qui si salva da solo mentre si scrive: l'indicatore e' lo stesso
+              delle altre schede (vedi salvataggio.ts) */}
+          <IndicatoreSalvataggio stato={stato === 'fermo' ? 'pulito' : stato} errore={errore} />
         </div>
 
         {/* Prima di tutto il resto: quello che il paziente si porta dietro da
