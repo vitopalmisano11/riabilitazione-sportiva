@@ -703,7 +703,7 @@ export default function SedutaBuilder({
     { tasto: 's', ctrl: true, azione: () => void salva() }
   ])
 
-  const salva = async (): Promise<boolean> => {
+  const salvaSeduta = async (): Promise<boolean> => {
     if (!data) {
       toastErrore('Imposta la data della seduta.')
       return false
@@ -764,6 +764,23 @@ export default function SedutaBuilder({
       toastErrore(errMsg(e))
       return false
     }
+  }
+
+  // Un solo salvataggio alla volta: Ctrl+S premuto due volte, un doppio clic o
+  // l'uscita che salva mentre un salvataggio e' gia' partito scrivevano la
+  // seduta due volte nel diario. Chi chiede di salvare mentre un salvataggio e'
+  // in corso aspetta quello, invece di farne un altro.
+  const salvataggio = useRef<Promise<boolean> | null>(null)
+  const [inSalvataggio, setInSalvataggio] = useState(false)
+  const salva = (): Promise<boolean> => {
+    if (salvataggio.current) return salvataggio.current
+    setInSalvataggio(true)
+    const corrente = salvaSeduta().finally(() => {
+      salvataggio.current = null
+      if (!smontata.current) setInSalvataggio(false)
+    })
+    salvataggio.current = corrente
+    return corrente
   }
 
   if (!pronto) {
@@ -866,7 +883,7 @@ export default function SedutaBuilder({
             </datalist>
           </label>
           <button onClick={() => void annulla()}>Annulla</button>
-          <button className="primary" onClick={() => void salva()}>
+          <button className="primary" disabled={inSalvataggio} onClick={() => void salva()}>
             Salva seduta
           </button>
         </div>
@@ -1346,7 +1363,7 @@ export default function SedutaBuilder({
         </label>
         <div className="modal-actions">
           <button onClick={() => void annulla()}>Annulla</button>
-          <button className="primary" onClick={() => void salva()}>
+          <button className="primary" disabled={inSalvataggio} onClick={() => void salva()}>
             Salva seduta ({totaleEsercizi} esercizi)
           </button>
         </div>

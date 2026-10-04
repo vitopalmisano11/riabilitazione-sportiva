@@ -64,6 +64,10 @@ supera con *Ulteriori informazioni → Esegui comunque*.
 Le versioni vere dell'app sono quelle di `package.json` e dei tag `vX.Y.Z`: le sezioni «giro di
 feedback» qui sopra sono precedenti e usavano una numerazione propria.
 
+### v0.5.4
+
+- Fix: premendo due volte "Salva seduta" (o Ctrl+S) la seduta finiva due volte nel diario
+
 ### v0.5.3
 
 - Fix: la X in alto a destra non chiudeva la finestra se si premeva spingendo il mouse
