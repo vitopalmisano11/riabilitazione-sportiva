@@ -1113,6 +1113,13 @@ export type StatoAccesso =
   // il file delle impostazioni non si legge: non si sa dove sono i dati
   | 'impostazioni-illeggibili'
 
+// Un aggiornamento del programma (vedi main/aggiornamenti.ts): si scarica da
+// solo e si installa alla chiusura.
+export type StatoAggiornamento =
+  | { stato: 'nessuno' }
+  | { stato: 'scaricamento'; versione: string }
+  | { stato: 'pronto'; versione: string }
+
 export interface InfoAccesso {
   stato: StatoAccesso
   // la cartella dei dati; per 'impostazioni-illeggibili' il file delle impostazioni
@@ -1161,6 +1168,13 @@ export type SezioneCartella =
 export interface Api {
   // apre un URL http/https nel browser predefinito
   apriLink(url: string): Promise<void>
+  aggiornamenti: {
+    stato(): Promise<StatoAggiornamento>
+    // Ogni volta che cambia; ritorna la funzione che smette di ascoltare.
+    quandoCambia(fn: (s: StatoAggiornamento) => void): () => void
+    // Chiude il programma (salvando), installa e lo riapre.
+    installa(): Promise<void>
+  }
   // I pulsanti della barra disegnata in cima alla finestra.
   finestra: {
     comando(c: 'riduci' | 'ingrandisci' | 'chiudi'): Promise<void>

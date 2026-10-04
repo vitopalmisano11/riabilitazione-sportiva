@@ -121,6 +121,7 @@ import { ultimaVoltaPerPaziente } from './ultima-volta'
 import { andamentoDolorePerPaziente } from './andamento-dolore'
 import { sedutaPrecedente } from './seduta-precedente'
 import { controllaPassword } from '../shared/password'
+import { installaAdesso, statoAggiornamento } from './aggiornamenti'
 import { leggiProfilo, salvaProfilo } from './profilo'
 import {
   erroreSenzaDatiNelRegistro,
@@ -205,6 +206,10 @@ export function registerIpc(): void {
     }
     void shell.openExternal(url)
   })
+
+  // ---- Aggiornamenti del programma ----
+  handle('aggiornamento:stato', () => statoAggiornamento())
+  handle('aggiornamento:installa', () => installaAdesso())
 
   // ---- Autenticazione ----
   const authPath = (): string => join(cartellaDati(), 'auth.json')

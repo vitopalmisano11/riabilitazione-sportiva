@@ -3,6 +3,7 @@ import {
   CalendarDays,
   CalendarClock,
   ClipboardCheck,
+  Download,
   Settings,
   SlidersHorizontal,
   Users
@@ -27,6 +28,8 @@ import ConfermaHost from './components/Conferma'
 import { errMsg, oggiIso } from './lib'
 import { bloccaScorciatoie } from './scorciatoie'
 import type { Tema } from '../../shared/temi'
+import type { StatoAggiornamento } from '../../shared/types'
+import { chiedi } from './components/Conferma'
 import LogoApp from './components/LogoApp'
 
 type Sezione =
@@ -194,6 +197,36 @@ export default function App(): React.JSX.Element {
       })
       .catch(() => {})
   }
+  // Una versione nuova del programma: si scarica da sola, e quando e' pronta
+  // lo si dice una volta. Si installa alla chiusura, o subito dal pulsante in
+  // fondo al menu.
+  const [aggiornamento, setAggiornamento] = useState<StatoAggiornamento>({ stato: 'nessuno' })
+  useEffect(() => {
+    void window.api.aggiornamenti
+      .stato()
+      .then(setAggiornamento)
+      .catch(() => undefined)
+    return window.api.aggiornamenti.quandoCambia((s) => {
+      setAggiornamento(s)
+      if (s.stato === 'pronto') {
+        toast(`È pronta la versione ${s.versione}: si installa da sola quando chiudi il programma.`)
+      }
+    })
+  }, [])
+  const installaAggiornamento = async (versione: string): Promise<void> => {
+    if (
+      !(await chiedi({
+        titolo: `Aggiornare alla versione ${versione}?`,
+        testo:
+          'Il programma si chiude, si aggiorna e si riapre da solo. Quello che stai scrivendo viene salvato prima, e i dati restano dove sono.',
+        conferma: 'Aggiorna adesso'
+      }))
+    ) {
+      return
+    }
+    window.api.aggiornamenti.installa().catch((e) => toastErrore(errMsg(e)))
+  }
+
   // Una copia automatica non riuscita (di solito quella di chiusura, quando
   // nessuno guarda piu' lo schermo) si dice appena si rientra. I dettagli
   // restano in Impostazioni, nelle copie di sicurezza.
@@ -335,6 +368,16 @@ export default function App(): React.JSX.Element {
           </button>
         </nav>
         <div className="sidebar-footer">
+          {aggiornamento.stato === 'pronto' && (
+            <button
+              className="aggiornamento-pronto"
+              title="Il programma si chiude, si aggiorna e si riapre"
+              onClick={() => void installaAggiornamento(aggiornamento.versione)}
+            >
+              <Download size={17} />
+              Aggiorna alla {aggiornamento.versione}
+            </button>
+          )}
           <button
             className={sezione === 'configurazione' ? 'active' : ''}
             onClick={() => vaiA('configurazione')}

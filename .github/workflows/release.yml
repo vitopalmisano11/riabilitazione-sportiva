@@ -23,12 +23,26 @@ jobs:
           node-version: 22
       - run: npm ci
       - run: npm run build:win
+      # Senza latest.yml il programma installato non vede la versione nuova:
+      # meglio fermarsi qui che pubblicare un rilascio che non arriva a nessuno.
+      - name: Controlla i file degli aggiornamenti automatici
+        shell: bash
+        run: |
+          ls dist
+          test -f dist/latest.yml
+          grep -q "Gestionale-Fisioterapia-Setup-" dist/latest.yml
       - uses: actions/upload-artifact@v4
         with:
           name: installer-windows
-          path: dist/*.exe
+          path: |
+            dist/*.exe
+            dist/latest.yml
+            dist/*.blockmap
       - name: Pubblica release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/*.exe
+          files: |
+            dist/*.exe
+            dist/latest.yml
+            dist/*.blockmap

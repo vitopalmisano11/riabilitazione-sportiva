@@ -2801,6 +2801,17 @@ details[open] > :not(summary) {
   gap: 8px;
 }
 
+/* Un aggiornamento pronto: l'unico pulsante pieno del fondo, perche' si noti
+   senza disturbare. Pieno e non solo bordato: sulla barra scura del tema blu
+   una scritta del colore del tema non si leggerebbe. Va dopo la regola del
+   passaggio del mouse, che altrimenti lo spegnerebbe. */
+.sidebar-footer button.aggiornamento-pronto,
+.sidebar-footer button.aggiornamento-pronto:hover:not(:disabled) {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
 .sidebar-footer button.active {
   background: var(--accent);
   border-color: var(--accent);

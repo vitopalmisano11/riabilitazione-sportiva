@@ -10,6 +10,16 @@ win:
   target:
     - nsis
 nsis:
+  # Un nome senza spazi: GitHub li cambierebbe in punti, e latest.yml (che dice
+  # agli aggiornamenti automatici quale file scaricare) non lo troverebbe piu'.
+  artifactName: Gestionale-Fisioterapia-Setup-${version}.${ext}
   oneClick: true
   deleteAppDataOnUninstall: false
   shortcutName: Gestionale Fisioterapia
+# Dove il programma installato cerca le versioni nuove (main/aggiornamenti.ts):
+# i Releases di questo repository. L'installer, latest.yml e il .blockmap li
+# pubblica release.yml.
+publish:
+  provider: github
+  owner: vitopalmisano11
+  repo: riabilitazione-sportiva

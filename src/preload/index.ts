@@ -20,6 +20,7 @@ import type {
   ValoreScreening,
   SezioneCartella,
   TipoRelazione,
+  StatoAggiornamento,
   StatoPaziente,
   TermineObiettivo,
   TestValutazioneCompleto,
@@ -81,6 +82,17 @@ const invoke = (channel: string, ...args: unknown[]): Promise<never> =>
 
 const api: Api = {
   apriLink: (url: string) => invoke('apriLink', url),
+  aggiornamenti: {
+    stato: () => invoke('aggiornamento:stato'),
+    quandoCambia: (fn: (s: StatoAggiornamento) => void) => {
+      const ascolta = (_e: unknown, s: StatoAggiornamento): void => fn(s)
+      ipcRenderer.on('aggiornamento:stato', ascolta)
+      return () => {
+        ipcRenderer.removeListener('aggiornamento:stato', ascolta)
+      }
+    },
+    installa: () => invoke('aggiornamento:installa')
+  },
   finestra: {
     comando: (c: 'riduci' | 'ingrandisci' | 'chiudi') => invoke('finestra:comando', c),
     ingrandita: () => invoke('finestra:ingrandita')

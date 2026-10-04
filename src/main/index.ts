@@ -1,6 +1,7 @@
 import { app, BrowserWindow, shell } from 'electron'
 import { join } from 'path'
 import { registerIpc } from './ipc'
+import { avviaAggiornamenti } from './aggiornamenti'
 import {
   impostaPosizioneFinestra,
   ingrandimento,
@@ -167,6 +168,8 @@ app.whenReady().then(() => {
   // Il database viene aperto solo dopo il login (vedi handler auth:* in ipc.ts).
   registerIpc()
   createWindow()
+  // una versione nuova si scarica da sola e si installa alla chiusura
+  avviaAggiornamenti()
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
