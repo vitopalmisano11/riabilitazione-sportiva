@@ -6,6 +6,14 @@
 //
 // Prima di copiare si forza un checkpoint del giornale WAL: senza, il file .db
 // potrebbe non contenere le ultime scritture e la copia risulterebbe incompleta.
+//
+// Perche' non l'API di backup di SQLite (db.backup()): con un archivio cifrato
+// la libreria la rifiuta ("incompatible source and target databases"), e le
+// alternative che ricifrano pagina per pagina (VACUUM INTO) costano decine di
+// volte di piu' della copia del file. Le copie fatte mentre si lavora (quella
+// dell'accesso, "Fai una copia", la chiavetta) copiano invece il file senza
+// bloccare il programma, tenendolo fermo finche' non hanno finito: vedi
+// copiaInSenzaBloccare.
 import { app } from 'electron'
 import {
   copyFileSync,
@@ -16,6 +24,7 @@ import {
   rmSync,
   statSync
 } from 'fs'
+import { copyFile, open } from 'fs/promises'
 import { join, sep } from 'path'
 import { apriAltroDb, closeDb, dbAperto, getDb, riapriDb } from './db'
 import { VERSIONE_SCHEMA } from './migrations'
@@ -108,6 +117,85 @@ function ruota(dir = cartellaBackup()): void {
 
 const SUFFISSO_PROVVISORIO = /\.(in-corso|da-togliere)$/
 
+// ---- Una copia alla volta ----
+// Le copie che non bloccano il programma stanno in fila: due copie insieme si
+// pesterebbero i piedi (una fa il checkpoint mentre l'altra legge il file). Chi
+// deve chiudere o sostituire l'archivio (ripristino, spostamento della
+// cartella, chiusura del programma) aspetta prima che la fila sia vuota.
+let ultimaInFila: Promise<unknown> | null = null
+
+export function copiaInCorso(): boolean {
+  return ultimaInFila != null
+}
+
+export function attendiCopie(): Promise<void> {
+  return (ultimaInFila ?? Promise.resolve()).then(
+    () => undefined,
+    () => undefined
+  )
+}
+
+function inFila<T>(lavoro: () => Promise<T>): Promise<T> {
+  // Con la fila vuota si parte subito, non al giro dopo: il checkpoint, cioe'
+  // il momento che la copia fotografa, avviene adesso, prima di qualunque
+  // scrittura che venga dopo (all'accesso, la pulizia del cestino).
+  const questo = ultimaInFila ? attendiCopie().then(lavoro) : lavoro()
+  ultimaInFila = questo
+  questo
+    .finally(() => {
+      if (ultimaInFila === questo) ultimaInFila = null
+    })
+    .catch(() => undefined)
+  return questo
+}
+
+// Le ultime scritture devono essere nel file, non nel giornale. Se il
+// checkpoint non riesce ad andare fino in fondo, il file non ha ancora tutto:
+// una copia fatta adesso sembrerebbe buona e non lo sarebbe.
+function checkpoint(): void {
+  if (!dbAperto()) return
+  const [esito] = getDb().pragma('wal_checkpoint(TRUNCATE)') as { busy: number }[]
+  if (esito && esito.busy) {
+    throw new Error('L’archivio è occupato e la copia non sarebbe completa. Riprova tra poco.')
+  }
+}
+
+function fileDaCopiare(): { db: string; auth: string | null } {
+  const origine = cartellaDati()
+  const db = join(origine, DB)
+  if (!existsSync(db)) throw new Error('Non c’è ancora un archivio da copiare.')
+  const auth = join(origine, AUTH)
+  return { db, auth: existsSync(auth) ? auth : null }
+}
+
+// L'ultimo passo, uguale per tutte le copie: la cartella provvisoria completa
+// prende il nome vero. Se `dest` c'e' gia' (due copie nello stesso minuto) la
+// vecchia si mette da parte e si toglie solo dopo che la nuova ha preso il suo
+// posto.
+function daiIlNome(provvisoria: string, dest: string): void {
+  const daTogliere = `${dest}.da-togliere`
+  rmSync(daTogliere, { recursive: true, force: true })
+  const cera = existsSync(dest)
+  if (cera) renameSync(dest, daTogliere)
+  try {
+    renameSync(provvisoria, dest)
+  } catch (e) {
+    if (cera) renameSync(daTogliere, dest)
+    throw e
+  }
+  if (cera) rmSync(daTogliere, { recursive: true, force: true })
+}
+
+// Apre la copia appena fatta e controlla cosa contiene. Aprirla lascia accanto
+// i file di servizio di SQLite: nella copia non servono.
+function controllaCopia(provvisoria: string, completo: boolean): void {
+  const esito = ispeziona(join(provvisoria, DB), completo)
+  for (const extra of [`${DB}-wal`, `${DB}-shm`]) {
+    rmSync(join(provvisoria, extra), { force: true })
+  }
+  if (!esito.ok) throw new Error(esito.messaggio)
+}
+
 // Copia l'archivio nella cartella `dest` senza lasciare mai una copia a meta'.
 //
 // I file arrivano prima in una cartella provvisoria accanto, e prendono il nome
@@ -117,45 +205,89 @@ const SUFFISSO_PROVVISORIO = /\.(in-corso|da-togliere)$/
 // si apre anche davvero (chiavi, integrita' delle pagine) prima di prendere il
 // nome: serve quando la copia nuova ne sostituisce una buona.
 //
-// Se `dest` c'e' gia' (due copie nello stesso minuto) la vecchia si mette da
-// parte e si toglie solo dopo che la nuova ha preso il suo posto.
+// Questa blocca il programma finche' non ha finito: serve dove non si puo'
+// aspettare (prima di aggiornare l'archivio, alla chiusura, prima di un
+// ripristino). Copiare il file e' veloce; e' il controllo completo a pesare.
 function copiaIn(dest: string, verifica: boolean): void {
-  const origine = cartellaDati()
-  const db = join(origine, DB)
-  if (!existsSync(db)) throw new Error('Non c’è ancora un archivio da copiare.')
-
-  // le ultime scritture devono essere nel file, non nel giornale
-  if (dbAperto()) getDb().pragma('wal_checkpoint(TRUNCATE)')
-
+  if (copiaInCorso()) {
+    throw new Error('C’è già una copia in corso: aspetta che finisca e riprova.')
+  }
+  const { db, auth } = fileDaCopiare()
+  checkpoint()
   const provvisoria = `${dest}.in-corso`
-  const daTogliere = `${dest}.da-togliere`
   rmSync(provvisoria, { recursive: true, force: true })
   try {
     mkdirSync(provvisoria, { recursive: true })
     copyFileSync(db, join(provvisoria, DB))
-    const auth = join(origine, AUTH)
-    if (existsSync(auth)) copyFileSync(auth, join(provvisoria, AUTH))
-    if (verifica) {
-      const esito = ispeziona(join(provvisoria, DB))
-      // aprirla lascia accanto i file di servizio di SQLite: nella copia non servono
-      for (const extra of [`${DB}-wal`, `${DB}-shm`]) {
-        rmSync(join(provvisoria, extra), { force: true })
-      }
-      if (!esito.ok) throw new Error(esito.messaggio)
-    }
-    rmSync(daTogliere, { recursive: true, force: true })
-    const cera = existsSync(dest)
-    if (cera) renameSync(dest, daTogliere)
-    try {
-      renameSync(provvisoria, dest)
-    } catch (e) {
-      if (cera) renameSync(daTogliere, dest)
-      throw e
-    }
-    if (cera) rmSync(daTogliere, { recursive: true, force: true })
+    if (auth) copyFileSync(auth, join(provvisoria, AUTH))
+    if (verifica) controllaCopia(provvisoria, true)
+    daiIlNome(provvisoria, dest)
   } catch (e) {
     rmSync(provvisoria, { recursive: true, force: true })
     throw e
+  }
+}
+
+// La stessa copia, ma il programma intanto resta usabile: i file si copiano
+// "in sottofondo", e il controllo confronta la copia con l'archivio byte per
+// byte (anche questo in sottofondo) invece di ricontrollarne tutte le pagine.
+//
+// Per tutto il tempo il file dell'archivio deve restare fermo: dopo il
+// checkpoint, le scritture di chi continua a lavorare restano nel giornale
+// (WAL), e il checkpoint automatico che le riporterebbe nel file aspetta la
+// fine della copia. La copia e' quindi l'archivio com'era quando e' partita.
+async function copiaInSenzaBloccare(dest: string, verifica: boolean): Promise<void> {
+  const { db, auth } = fileDaCopiare()
+  checkpoint()
+  const conn = dbAperto() ? getDb() : null
+  const automatico = conn ? (conn.pragma('wal_autocheckpoint', { simple: true }) as number) : 0
+  conn?.pragma('wal_autocheckpoint = 0')
+  const provvisoria = `${dest}.in-corso`
+  try {
+    rmSync(provvisoria, { recursive: true, force: true })
+    mkdirSync(provvisoria, { recursive: true })
+    await copyFile(db, join(provvisoria, DB))
+    if (auth) await copyFile(auth, join(provvisoria, AUTH))
+    if (verifica && !(await stessiByte(db, join(provvisoria, DB)))) {
+      throw new Error('La copia non è uguale all’archivio: il supporto potrebbe essere pieno o difettoso.')
+    }
+  } catch (e) {
+    rmSync(provvisoria, { recursive: true, force: true })
+    throw e
+  } finally {
+    // la connessione potrebbe essere cambiata nel frattempo (non dovrebbe: chi
+    // la chiude aspetta la fila), e quella nuova ha gia' il suo valore
+    if (conn && dbAperto() && getDb() === conn) conn.pragma(`wal_autocheckpoint = ${automatico}`)
+  }
+  try {
+    // si apre davvero, con le chiavi di adesso; le pagine sono quelle
+    // dell'archivio, appena confrontate
+    if (verifica) controllaCopia(provvisoria, false)
+    daiIlNome(provvisoria, dest)
+  } catch (e) {
+    rmSync(provvisoria, { recursive: true, force: true })
+    throw e
+  }
+}
+
+// Due file uguali, letti a pezzi senza fermare il programma.
+async function stessiByte(a: string, b: string): Promise<boolean> {
+  const [fa, fb] = await Promise.all([open(a, 'r'), open(b, 'r')])
+  try {
+    const [sa, sb] = await Promise.all([fa.stat(), fb.stat()])
+    if (sa.size !== sb.size) return false
+    const pezzo = 1 << 20
+    const ba = Buffer.alloc(pezzo)
+    const bb = Buffer.alloc(pezzo)
+    for (let pos = 0; pos < sa.size; ) {
+      const [ra, rb] = await Promise.all([fa.read(ba, 0, pezzo, pos), fb.read(bb, 0, pezzo, pos)])
+      if (ra.bytesRead === 0 || ra.bytesRead !== rb.bytesRead) return false
+      if (!ba.subarray(0, ra.bytesRead).equals(bb.subarray(0, rb.bytesRead))) return false
+      pos += ra.bytesRead
+    }
+    return true
+  } finally {
+    await Promise.all([fa.close(), fb.close()])
   }
 }
 
@@ -164,6 +296,17 @@ export function eseguiBackup(prefisso = '', cartellaDestinazione = cartellaBacku
   copiaIn(dest, false)
   ruota(cartellaDestinazione)
   return dest
+}
+
+// "Fai una copia": il programma resta usabile mentre la copia si fa.
+export function eseguiBackupSenzaBloccare(): Promise<string> {
+  return inFila(async () => {
+    const dir = cartellaBackup()
+    const dest = join(dir, nomeCartella())
+    await copiaInSenzaBloccare(dest, false)
+    ruota(dir)
+    return dest
+  })
 }
 
 // Una copia automatica non riuscita: nel registro, e da dire al prossimo
@@ -217,25 +360,35 @@ export function copiaPrimaDellaMigrazione(versione: number): void {
 // rompe o il computer sparisce, se ne vanno insieme all'originale. Questa e'
 // l'unica copia che puo' trovarsi altrove. Non entra nella rotazione e non
 // cancella niente: quello che c'e' nella cartella scelta resta dov'e'.
-export function copiaFuori(destinazione: string): string {
-  // Su una chiavetta che si stacca a meta' e' il caso piu' probabile di copia
-  // interrotta: si controlla che si apra prima di darle il nome.
-  const dest = join(destinazione, `riabilitazione_${nomeCartella()}`)
-  copiaIn(dest, true)
-  return dest
+//
+// Su una chiavetta lenta la copia puo' durare parecchio: si fa senza bloccare
+// il programma.
+export function copiaFuori(destinazione: string): Promise<string> {
+  return inFila(async () => {
+    // Su una chiavetta che si stacca a meta' e' il caso piu' probabile di copia
+    // interrotta: si controlla che sia uguale all'archivio e che si apra prima
+    // di darle il nome.
+    const dest = join(destinazione, `riabilitazione_${nomeCartella()}`)
+    await copiaInSenzaBloccare(dest, true)
+    return dest
+  })
 }
 
 // Backup automatico: uno al giorno basta, il resto sarebbero copie identiche.
-export function backupSeServe(): void {
-  if (!backupAttivo()) return
-  try {
+// Parte all'accesso e non lo fa aspettare: la copia e' l'archivio com'era
+// quando e' partita, anche se intanto si comincia a lavorare.
+export function backupSeServe(): Promise<void> {
+  if (!backupAttivo()) return Promise.resolve()
+  return inFila(async () => {
+    const dir = cartellaBackup()
     const oggi = nomeCartella().slice(0, 10)
-    if (elencoBackup().some((v) => v.nome.startsWith(oggi))) return
-    eseguiBackup()
-  } catch (e) {
+    if (elencoBackup(dir).some((v) => v.nome.startsWith(oggi))) return
+    await copiaInSenzaBloccare(join(dir, nomeCartella()), false)
+    ruota(dir)
+  }).catch((e) => {
     // una copia non riuscita non deve impedire di usare l'app, ma va detta
     segnaCopiaFallita("all'accesso", e)
-  }
+  })
 }
 
 // Backup di chiusura: prende il posto di quello del giorno, cosi' contiene
@@ -316,7 +469,11 @@ export interface EsitoControllo {
 // toccare l'archivio in uso. Serve due volte: per controllare una copia prima
 // di averne bisogno, e per controllare il file appena copiato durante un
 // ripristino, prima di lasciargli prendere il posto dell'archivio.
-function ispeziona(percorsoDb: string): EsitoControllo {
+//
+// Con `completo` a falso non si ricontrollano tutte le pagine: serve dopo una
+// copia gia' confrontata byte per byte con l'archivio, dove resta da sapere
+// solo che si apre con le chiavi di adesso.
+function ispeziona(percorsoDb: string, completo = true): EsitoControllo {
   let conn: ReturnType<typeof apriAltroDb> | null = null
   try {
     conn = apriAltroDb(percorsoDb)
@@ -331,7 +488,7 @@ function ispeziona(percorsoDb: string): EsitoControllo {
           'Questa copia è stata fatta da una versione più recente del programma: aggiorna il programma per poterla usare.'
       }
     }
-    const male = conn.pragma('integrity_check', { simple: true })
+    const male = completo ? conn.pragma('integrity_check', { simple: true }) : 'ok'
     if (male !== 'ok') {
       return { ok: false, messaggio: `Il database di questa copia è danneggiato (${male}).` }
     }

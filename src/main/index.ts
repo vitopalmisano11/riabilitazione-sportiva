@@ -7,7 +7,7 @@ import {
   migraDaUserData,
   posizioneFinestra
 } from './impostazioni'
-import { backupDiChiusura, copiaPrimaDellaMigrazione } from './backup'
+import { attendiCopie, backupDiChiusura, copiaInCorso, copiaPrimaDellaMigrazione } from './backup'
 import { impostaCopiaPrimaDelleMigrazioni } from './db'
 import { barraDisegnata } from './finestre'
 import { ripulisciTemporanei, usaCartellaTemporanei } from './temporanei'
@@ -175,7 +175,22 @@ app.whenReady().then(() => {
 
 // Alla chiusura si aggiorna la copia del giorno, cosi' contiene anche il lavoro
 // appena fatto e non solo com'era l'archivio all'accesso.
-app.on('before-quit', () => {
+//
+// Una copia ancora in corso (quella dell'accesso, una sulla chiavetta) si lascia
+// finire: interrotta lascerebbe solo un provvisorio da buttare, e la copia di
+// chiusura toccherebbe il file mentre l'altra lo sta leggendo. Si aspetta al
+// massimo un paio di minuti: una chiavetta bloccata non deve tenere il
+// programma aperto per sempre.
+let copiaAttesa = false
+app.on('before-quit', (evento) => {
+  if (copiaInCorso() && !copiaAttesa) {
+    evento.preventDefault()
+    copiaAttesa = true
+    void Promise.race([attendiCopie(), new Promise((fine) => setTimeout(fine, 2 * 60_000))]).finally(
+      () => app.quit()
+    )
+    return
+  }
   backupDiChiusura()
   // Quello che un altro programma tiene ancora aperto resta: lo toglie il
   // prossimo avvio.

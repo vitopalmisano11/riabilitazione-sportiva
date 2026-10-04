@@ -53,9 +53,10 @@ import {
   svuotaCestino
 } from './cestino'
 import {
+  attendiCopie,
   copiaFuori,
   elencoBackup,
-  eseguiBackup,
+  eseguiBackupSenzaBloccare,
   backupSeServe,
   cartellaOneDrive,
   controllaBackup,
@@ -222,8 +223,9 @@ export function registerIpc(): void {
     const dekHex = loginAuth(authPath(), password)
     initDb(dbPath(), dekHex)
     // una copia al giorno, appena si entra: conserva com'era l'archivio prima
-    // della sessione, anche se quella precedente e' finita male
-    backupSeServe()
+    // della sessione, anche se quella precedente e' finita male. Non si
+    // aspetta: la copia e' l'archivio di questo momento anche se finisce dopo.
+    void backupSeServe()
     // Il cestino tiene un mese, e la pulizia si fa a ogni accesso: prima era
     // solo alla creazione dell'archivio, quando il cestino e' vuoto, e le voci
     // (con dentro anche i referti dei pazienti eliminati) restavano per sempre.
@@ -324,12 +326,16 @@ export function registerIpc(): void {
   handle('backup:usaOneDrive', () => usaOneDrive())
   handle('backup:setAttivo', (attivo: boolean) => impostaBackupAttivo(attivo))
   handle('backup:setDaTenere', (n: number) => impostaBackupDaTenere(n))
-  handle('backup:eseguiOra', () => eseguiBackup())
+  handle('backup:eseguiOra', () => eseguiBackupSenzaBloccare())
   handle('backup:apriCartella', () => {
     void shell.openPath(cartellaBackup())
   })
   handle('backup:controlla', (nome: string) => controllaBackup(nome))
-  handle('backup:ripristina', (nome: string) => ripristinaBackup(nome))
+  handle('backup:ripristina', async (nome: string) => {
+    // l'archivio sta per essere sostituito: prima finiscono le copie in corso
+    await attendiCopie()
+    ripristinaBackup(nome)
+  })
   // Copia leggibile fuori dall'app: tabelle CSV, non un backup.
   handle('backup:esportaArchivio', async () => {
     const { canceled, filePaths } = await dialog.showOpenDialog({
@@ -351,7 +357,7 @@ export function registerIpc(): void {
     })
     if (canceled || filePaths.length === 0) return null
     impostaCartellaCopia(filePaths[0])
-    const dest = copiaFuori(filePaths[0])
+    const dest = await copiaFuori(filePaths[0])
     // Solo a copia riuscita e controllata: e' da qui che parte il conto dei giorni.
     try {
       impostaUltimaCopiaFuori(new Date().toISOString())
@@ -420,6 +426,8 @@ export function registerIpc(): void {
     const nuova = filePaths[0]
     const vecchia = cartellaDati()
     if (nuova === vecchia) return nuova
+    // i file stanno per spostarsi: prima finiscono le copie in corso
+    await attendiCopie()
     closeDb()
     try {
       spostaFileDati(vecchia, nuova)

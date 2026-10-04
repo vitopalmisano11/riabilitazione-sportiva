@@ -23,6 +23,9 @@ import { avvisoCopiaFuori } from '../../../shared/copie'
 export default function PannelloBackup(): React.JSX.Element {
   const [info, setInfo] = useState<InfoBackup | null>(null)
   const [menuCopia, setMenuCopia] = useState(false)
+  // Le copie si fanno senza bloccare il programma: intanto il pulsante lo dice,
+  // e non ne fa partire un'altra.
+  const [copiaInCorso, setCopiaInCorso] = useState(false)
   // L'esito del controllo di ogni copia, da quando lo si chiede: 'attesa'
   // mentre la copia viene aperta.
   const [esiti, setEsiti] = useState<Record<string, EsitoControllo | 'attesa'>>({})
@@ -54,6 +57,15 @@ export default function PannelloBackup(): React.JSX.Element {
       await carica()
     } catch (e) {
       toastErrore(errMsg(e))
+    }
+  }
+
+  const copia = async (fn: () => Promise<unknown>): Promise<void> => {
+    setCopiaInCorso(true)
+    try {
+      await run(fn)
+    } finally {
+      setCopiaInCorso(false)
     }
   }
 
@@ -207,9 +219,9 @@ export default function PannelloBackup(): React.JSX.Element {
             su una chiavetta, o in tabelle leggibili. Un pulsante solo con il
             menu, invece di tre in fila che sbordavano dal riquadro. */}
         <span className="menu-wrapper">
-          <button className="primary" onClick={() => setMenuCopia(!menuCopia)}>
-            <Save size={16} /> Fai una copia
-            <ChevronDown size={15} />
+          <button className="primary" disabled={copiaInCorso} onClick={() => setMenuCopia(!menuCopia)}>
+            <Save size={16} /> {copiaInCorso ? 'Copia in corso…' : 'Fai una copia'}
+            {!copiaInCorso && <ChevronDown size={15} />}
           </button>
           {menuCopia && (
             <>
@@ -218,7 +230,7 @@ export default function PannelloBackup(): React.JSX.Element {
                 <button
                   onClick={() => {
                     setMenuCopia(false)
-                    void run(async () => {
+                    void copia(async () => {
                       await window.api.backup.eseguiOra()
                       toast('Copia di sicurezza creata.')
                     })
@@ -229,7 +241,7 @@ export default function PannelloBackup(): React.JSX.Element {
                 <button
                   onClick={() => {
                     setMenuCopia(false)
-                    void run(async () => {
+                    void copia(async () => {
                       const dove = await window.api.backup.copiaFuori()
                       if (dove) toast('Copia salvata sul supporto scelto.')
                     })

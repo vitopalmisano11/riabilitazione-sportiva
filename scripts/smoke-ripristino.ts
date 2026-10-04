@@ -43,7 +43,11 @@ import {
 import {
   backupDiChiusura,
   controllaBackup,
+  attendiCopie,
+  backupSeServe,
   copiaFuori,
+  copiaInCorso,
+  eseguiBackupSenzaBloccare,
   copiaPrimaDellaMigrazione,
   elencoBackup,
   eseguiBackup,
@@ -71,8 +75,8 @@ const authApp = join(dati, AUTH)
 
 // --- piccolo banco di prova ---
 let fatti = 0
-function controllo(titolo: string, corpo: () => void): void {
-  corpo()
+async function controllo(titolo: string, corpo: () => void | Promise<void>): Promise<void> {
+  await corpo()
   fatti++
   console.log(`  ok  ${titolo}`)
 }
@@ -122,7 +126,7 @@ const provvisori = [`${DB}.nuovo`, `${AUTH}.nuovo`, `${DB}.nuovo-wal`, `${DB}.nu
 const restiProvvisori = (): string[] =>
   readdirSync(dati).filter((f) => f.includes('.nuovo'))
 
-function prove(): void {
+async function prove(): Promise<void> {
   // --- preparazione: un archivio con dentro qualcosa ---
   const { dekHex } = setupAuth(authApp, 'prova-di-prova')
   initDb(dbApp, dekHex)
@@ -131,7 +135,7 @@ function prove(): void {
 
   // 1 — una copia sana si riconosce come sana
   const sana = copiaChiamata('2020-01-01_0900')
-  controllo('una copia sana si apre e racconta cosa contiene', () => {
+  await controllo('una copia sana si apre e racconta cosa contiene', () => {
     const esito = controllaBackup('2020-01-01_0900')
     assert.equal(esito.ok, true, esito.messaggio)
     assert.equal(esito.pazienti, 2)
@@ -139,7 +143,7 @@ function prove(): void {
   })
 
   // 2 — i nomi di cartella che non abbiamo scritto noi non sono copie
-  controllo('un nome di cartella non nostro viene rifiutato', () => {
+  await controllo('un nome di cartella non nostro viene rifiutato', () => {
     for (const nome of ['Documenti', '2020-01-01', '../fuori', '2020-13-99_9999x']) {
       const esito = controllaBackup(nome)
       assert.equal(esito.ok, false)
@@ -148,7 +152,7 @@ function prove(): void {
   })
 
   // 3 — una copia senza il database
-  controllo('una copia senza il database lo dice', () => {
+  await controllo('una copia senza il database lo dice', () => {
     cartellaCopia('2020-01-02_0900')
     const esito = controllaBackup('2020-01-02_0900')
     assert.equal(esito.ok, false)
@@ -156,7 +160,7 @@ function prove(): void {
   })
 
   // 4 — una copia senza le chiavi: il database da solo non si riaprirebbe
-  controllo('una copia senza auth.json lo dice', () => {
+  await controllo('una copia senza auth.json lo dice', () => {
     const dir = cartellaCopia('2020-01-03_0900')
     copyFileSync(join(sana, DB), join(dir, DB))
     const esito = controllaBackup('2020-01-03_0900')
@@ -165,7 +169,7 @@ function prove(): void {
   })
 
   // 5 — un file rovinato, e uno che viene da un altro archivio
-  controllo('una copia rovinata o di un altro archivio non si apre', () => {
+  await controllo('una copia rovinata o di un altro archivio non si apre', () => {
     const rotta = cartellaCopia('2020-01-04_0900')
     writeFileSync(join(rotta, DB), 'questo non e un database')
     copyFileSync(authApp, join(rotta, AUTH))
@@ -182,7 +186,7 @@ function prove(): void {
   })
 
   // 6 — l'elenco delle copie: solo le nostre, dalla piu' recente
-  controllo('l’elenco mostra solo le copie nostre, dalla piu’ recente', () => {
+  await controllo('l’elenco mostra solo le copie nostre, dalla piu’ recente', () => {
     mkdirSync(join(copie, 'una cartella qualsiasi'), { recursive: true })
     const nomi = elencoBackup().map((v) => v.nome)
     assert.equal(nomi.includes('una cartella qualsiasi'), false)
@@ -191,7 +195,7 @@ function prove(): void {
   })
 
   // 7 — se la copia e' cattiva il ripristino non parte nemmeno
-  controllo('con una copia cattiva il ripristino non parte e l’archivio resta com’era', () => {
+  await controllo('con una copia cattiva il ripristino non parte e l’archivio resta com’era', () => {
     const prima = pazienti()
     const copiePrima = elencoBackup().length
     assert.throws(() => eseguiRipristino('2020-01-04_0900'), /rimasto com'era/)
@@ -201,7 +205,7 @@ function prove(): void {
   })
 
   // 8 — il ripristino riuscito: i dati tornano quelli della copia
-  controllo('una copia sana si ripristina e i dati sono quelli della copia', () => {
+  await controllo('una copia sana si ripristina e i dati sono quelli della copia', () => {
     aggiungiPaziente('Tre') // dopo la copia: deve sparire con il ripristino
     assert.deepEqual(pazienti(), ['Due', 'Tre', 'Uno'])
     eseguiRipristino('2020-01-01_0900')
@@ -210,7 +214,7 @@ function prove(): void {
   })
 
   // 9 — prima di sostituire, lo stato di adesso viene messo da parte
-  controllo('prima di sostituire viene presa la copia "prima del ripristino"', () => {
+  await controllo('prima di sostituire viene presa la copia "prima del ripristino"', () => {
     const rete = elencoBackup().filter((v) => v.nome.startsWith('prima-del-ripristino_'))
     assert.equal(rete.length >= 1, true, 'manca la rete di sicurezza')
     const esito = controllaBackup(rete[0].nome)
@@ -220,7 +224,7 @@ function prove(): void {
   })
 
   // 10 — dopo il ripristino non restano i giornali dell'archivio di prima
-  controllo('dopo il ripristino non restano giornali vecchi ne’ file provvisori', () => {
+  await controllo('dopo il ripristino non restano giornali vecchi ne’ file provvisori', () => {
     closeDb()
     for (const f of provvisori) assert.equal(existsSync(join(dati, f)), false, f)
     // il db e' chiuso: i giornali di questa sessione non ci sono piu'
@@ -230,7 +234,7 @@ function prove(): void {
   })
 
   // 11 — un ripristino che si rompe a meta' lascia l'archivio di prima intatto
-  controllo('un ripristino che si rompe a meta’ non tocca l’archivio', () => {
+  await controllo('un ripristino che si rompe a meta’ non tocca l’archivio', () => {
     aggiungiPaziente('Quattro')
     const prima = pazienti()
     // copia con il database buono ma le chiavi impossibili da copiare: e' il
@@ -248,7 +252,7 @@ function prove(): void {
   })
 
   // 12 — i resti di un ripristino interrotto non disturbano quello nuovo
-  controllo('i resti di un ripristino interrotto vengono ripuliti', () => {
+  await controllo('i resti di un ripristino interrotto vengono ripuliti', () => {
     for (const f of provvisori) writeFileSync(join(dati, f), 'spazzatura')
     assert.equal(restiProvvisori().length, provvisori.length)
     eseguiRipristino('2020-01-01_0900')
@@ -259,7 +263,7 @@ function prove(): void {
 
   // 13 — una copia fatta con una versione vecchia del programma
   const fino = Math.floor(MIGRATIONS.length / 2)
-  controllo('una copia vecchia si riconosce e si apre', () => {
+  await controllo('una copia vecchia si riconosce e si apre', () => {
     const vecchia = cartellaCopia('2020-01-07_0900')
     archivioVecchio(join(vecchia, DB), dekHex, fino)
     copyFileSync(authApp, join(vecchia, AUTH))
@@ -268,7 +272,7 @@ function prove(): void {
     assert.equal(esito.pazienti, 1)
   })
 
-  controllo('ripristinando una copia vecchia l’archivio si aggiorna da solo', () => {
+  await controllo('ripristinando una copia vecchia l’archivio si aggiorna da solo', () => {
     eseguiRipristino('2020-01-07_0900')
     initDb(dbApp, dekHex)
     assert.equal(
@@ -280,7 +284,7 @@ function prove(): void {
     assert.deepEqual(pazienti(), ['Anziani'])
   })
 
-  controllo('l’archivio aggiornato regge una riapertura senza cambiare piu’ niente', () => {
+  await controllo('l’archivio aggiornato regge una riapertura senza cambiare piu’ niente', () => {
     closeDb()
     initDb(dbApp, dekHex)
     assert.equal(getDb().pragma('user_version', { simple: true }), MIGRATIONS.length)
@@ -291,7 +295,7 @@ function prove(): void {
   impostaCopiaPrimaDelleMigrazioni(copiaPrimaDellaMigrazione)
   const partenza = Math.max(1, MIGRATIONS.length - 3)
   let nomeCopiaMigrazione = ''
-  controllo('aprendo un archivio da aggiornare resta una copia com’era prima', () => {
+  await controllo('aprendo un archivio da aggiornare resta una copia com’era prima', () => {
     closeDb()
     for (const f of [DB, `${DB}-wal`, `${DB}-shm`]) rmSync(join(dati, f), { force: true })
     archivioVecchio(dbApp, dekHex, partenza)
@@ -311,7 +315,7 @@ function prove(): void {
     assert.ok(existsSync(join(copie, nomeCopiaMigrazione, AUTH)), 'servono anche le chiavi')
   })
 
-  controllo('riaprendo l’archivio già aggiornato non si fa un’altra copia', () => {
+  await controllo('riaprendo l’archivio già aggiornato non si fa un’altra copia', () => {
     closeDb()
     initDb(dbApp, dekHex)
     assert.equal(
@@ -320,7 +324,7 @@ function prove(): void {
     )
   })
 
-  controllo('le copie prima di un aggiornamento si tengono nelle ultime tre, a parte', () => {
+  await controllo('le copie prima di un aggiornamento si tengono nelle ultime tre, a parte', () => {
     for (let g = 1; g <= 5; g++) {
       const dir = cartellaCopia(`prima-della-migrazione-v${g * 9}_2020-02-0${g}_0900`)
       copyFileSync(dbApp, join(dir, DB))
@@ -338,7 +342,7 @@ function prove(): void {
     assert.ok(elencoBackup().filter((v) => !v.nome.startsWith('prima-')).length >= normaliPrima)
   })
 
-  controllo('le copie prima di un ripristino si tengono nelle ultime cinque', () => {
+  await controllo('le copie prima di un ripristino si tengono nelle ultime cinque', () => {
     for (let g = 1; g <= 7; g++) {
       const dir = cartellaCopia(`prima-del-ripristino_2020-04-0${g}_0900`)
       copyFileSync(dbApp, join(dir, DB))
@@ -353,7 +357,7 @@ function prove(): void {
   })
 
   // 15 — una copia di una versione piu' recente non si ripristina
-  controllo('una copia di una versione più recente si rifiuta, e l’archivio resta com’era', () => {
+  await controllo('una copia di una versione più recente si rifiuta, e l’archivio resta com’era', () => {
     const futura = cartellaCopia('2020-03-01_0900')
     archivioVecchio(join(futura, DB), dekHex, MIGRATIONS.length)
     const raw = new Database(join(futura, DB))
@@ -387,7 +391,7 @@ function prove(): void {
     copiaChiamata(nome)
   }
 
-  controllo('la copia di chiusura prende il posto di quella di oggi, con il lavoro fatto', () => {
+  await controllo('la copia di chiusura prende il posto di quella di oggi, con il lavoro fatto', () => {
     stamattina(`${oggi}_0001`)
     aggiungiPaziente('Cinque')
     backupDiChiusura()
@@ -401,7 +405,7 @@ function prove(): void {
     assert.equal(copiaFallita(), null)
   })
 
-  controllo('se la copia di chiusura non passa il controllo resta quella di stamattina, e lo si dice', () => {
+  await controllo('se la copia di chiusura non passa il controllo resta quella di stamattina, e lo si dice', () => {
     stamattina(`${oggi}_0002`)
     // un archivio che la copia nuova non saprebbe riaprire: la verifica la boccia
     getDb().pragma(`user_version = ${MIGRATIONS.length + 1}`)
@@ -418,14 +422,14 @@ function prove(): void {
     assert.match(avviso.messaggio, /chiusura/)
   })
 
-  controllo('una chiusura riuscita toglie l’avviso', () => {
+  await controllo('una chiusura riuscita toglie l’avviso', () => {
     backupDiChiusura()
     assert.equal(copiaFallita(), null)
     assert.equal(diOggi().length, 1)
     assert.notEqual(diOggi()[0], `${oggi}_0002`)
   })
 
-  controllo('senza accesso la chiusura non tocca le copie', () => {
+  await controllo('senza accesso la chiusura non tocca le copie', () => {
     const prima = diOggi()
     closeDb()
     backupDiChiusura()
@@ -434,7 +438,7 @@ function prove(): void {
   })
 
   // 17 — i resti di una copia interrotta non sono copie, e se ne vanno
-  controllo('i resti di una copia interrotta non compaiono e si ripuliscono', () => {
+  await controllo('i resti di una copia interrotta non compaiono e si ripuliscono', () => {
     const resto = join(copie, '2020-05-01_0900.in-corso')
     mkdirSync(resto, { recursive: true })
     writeFileSync(join(resto, DB), 'a meta')
@@ -447,10 +451,10 @@ function prove(): void {
   })
 
   // 18 — la copia su chiavetta arriva intera e controllata
-  controllo('la copia fuori dal computer contiene database e chiavi, e niente di provvisorio', () => {
+  await controllo('la copia fuori dal computer contiene database e chiavi, e niente di provvisorio', async () => {
     const chiavetta = join(dati, '..', 'chiavetta') // dentro alla cartella di prova
     mkdirSync(chiavetta, { recursive: true })
-    const dest = copiaFuori(chiavetta)
+    const dest = await copiaFuori(chiavetta)
     assert.ok(existsSync(join(dest, DB)))
     assert.ok(existsSync(join(dest, AUTH)))
     assert.deepEqual(
@@ -460,13 +464,59 @@ function prove(): void {
     assert.deepEqual(readdirSync(chiavetta).filter((n) => n.includes('.in-corso')), [])
   })
 
+  // 18b — le copie che non bloccano il programma: si lavora intanto, e la copia
+  // e' l'archivio com'era quando e' partita
+  await controllo('una copia fatta mentre si lavora e’ l’archivio di quando e’ partita', async () => {
+    const prima = pazienti().length
+    const automatico = getDb().pragma('wal_autocheckpoint', { simple: true })
+    const fatta = eseguiBackupSenzaBloccare()
+    assert.equal(copiaInCorso(), true)
+    // finche' la copia non e' finita il file dell'archivio resta fermo
+    assert.equal(getDb().pragma('wal_autocheckpoint', { simple: true }), 0)
+    // intanto si lavora: anche molto, piu' di quanto il giornale terrebbe da solo
+    aggiungiPaziente('Durante')
+    const grosso = getDb().prepare('INSERT INTO pazienti (nome, cognome, diagnosi) VALUES (?, ?, ?)')
+    grosso.run('Prova', 'Pesante', 'x'.repeat(6_000_000))
+    // una copia che blocca, nel frattempo, non parte
+    assert.throws(() => eseguiBackup(), /già una copia in corso/)
+    const dest = await fatta
+    assert.equal(copiaInCorso(), false)
+    assert.equal(getDb().pragma('wal_autocheckpoint', { simple: true }), automatico, 'torna come prima')
+    const nome = dest.split(/[\\/]/).pop()!
+    const esito = controllaBackup(nome)
+    assert.equal(esito.ok, true, esito.messaggio)
+    assert.equal(esito.pazienti, prima, 'la copia non vede il lavoro fatto dopo la partenza')
+    assert.equal(pazienti().length, prima + 2, 'e l’archivio non l’ha perso')
+    getDb().prepare("DELETE FROM pazienti WHERE cognome IN ('Durante', 'Pesante')").run()
+  })
+
+  await controllo('le copie che non bloccano stanno in fila, una alla volta', async () => {
+    const chiavetta = join(dati, '..', 'chiavetta-fila')
+    mkdirSync(chiavetta, { recursive: true })
+    const [a, b] = await Promise.all([eseguiBackupSenzaBloccare(), copiaFuori(chiavetta)])
+    assert.equal(controllaBackup(a.split(/[\\/]/).pop()!).ok, true)
+    assert.ok(existsSync(join(b, DB)) && existsSync(join(b, AUTH)))
+    assert.equal(copiaInCorso(), false)
+    await attendiCopie() // con la fila vuota non aspetta niente
+  })
+
+  await controllo('la copia dell’accesso: una al giorno, senza far aspettare', async () => {
+    impostaBackupAttivo(true)
+    for (const n of diOggi()) rmSync(join(copie, n), { recursive: true, force: true })
+    await backupSeServe()
+    assert.equal(diOggi().length, 1)
+    await backupSeServe()
+    assert.equal(diOggi().length, 1, 'la seconda volta nello stesso giorno non serve')
+    assert.equal(controllaBackup(diOggi()[0]).ok, true)
+  })
+
   // 19 — prima dell'accesso: un archivio che non si trova non diventa "primo avvio"
-  controllo('con archivio e chiavi si chiede la password', () => {
+  await controllo('con archivio e chiavi si chiede la password', () => {
     assert.deepEqual(statoAccesso(), { stato: 'login', cartella: dati })
     assert.throws(() => controllaSetup(dati), /accedi con quella/)
   })
 
-  controllo('senza auth.json accanto all’archivio non si propone un archivio nuovo', () => {
+  await controllo('senza auth.json accanto all’archivio non si propone un archivio nuovo', () => {
     renameSync(authApp, `${authApp}.via`)
     try {
       assert.deepEqual(statoAccesso(), { stato: 'chiavi-mancanti', cartella: dati })
@@ -476,7 +526,7 @@ function prove(): void {
     }
   })
 
-  controllo('una cartella dei dati che non si raggiunge non si crea vuota', () => {
+  await controllo('una cartella dei dati che non si raggiunge non si crea vuota', () => {
     const sparita = join(dati, '..', 'disco-staccato', 'Riabilitazione')
     impostaCartellaDati(sparita)
     try {
@@ -489,7 +539,7 @@ function prove(): void {
     assert.equal(statoAccesso().stato, 'login')
   })
 
-  controllo('una cartella vuota scelta per i dati e’ un primo avvio, e si sa dove', () => {
+  await controllo('una cartella vuota scelta per i dati e’ un primo avvio, e si sa dove', () => {
     const vuota = join(dati, '..', 'cartella-vuota')
     mkdirSync(vuota, { recursive: true })
     impostaCartellaDati(vuota)
@@ -501,7 +551,7 @@ function prove(): void {
     }
   })
 
-  controllo('impostazioni illeggibili: non si ripiega su Documenti, e si riparte indicando la cartella', () => {
+  await controllo('impostazioni illeggibili: non si ripiega su Documenti, e si riparte indicando la cartella', () => {
     const file = percorsoImpostazioni()
     const buono = readFileSync(file, 'utf-8')
     writeFileSync(file, '{ rotto')
@@ -520,9 +570,11 @@ function prove(): void {
 }
 
 let uscita = 0
+// (il file e' caricato da un require: niente await in cima, si va per funzione)
+void (async (): Promise<void> => {
 try {
   console.log('Prova del ripristino delle copie di sicurezza')
-  prove()
+  await prove()
   console.log(`\n${fatti} controlli, tutti verdi.`)
 } catch (e) {
   console.error('\nControllo fallito:')
@@ -537,3 +589,4 @@ try {
   rmSync(base, { recursive: true, force: true })
 }
 app.exit(uscita)
+})()
