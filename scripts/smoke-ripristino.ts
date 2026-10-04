@@ -415,12 +415,12 @@ async function prove(): Promise<void> {
   }
 
   await controllo('la copia di chiusura prende il posto di quella di oggi, con il lavoro fatto', () => {
-    stamattina(`${oggi}_0001`)
+    stamattina(`${oggi}_9901`)
     aggiungiPaziente('Cinque')
     backupDiChiusura()
     const fatte = diOggi()
     assert.equal(fatte.length, 1)
-    assert.notEqual(fatte[0], `${oggi}_0001`)
+    assert.notEqual(fatte[0], `${oggi}_9901`)
     const esito = controllaBackup(fatte[0])
     assert.equal(esito.ok, true, esito.messaggio)
     assert.equal(esito.pazienti, pazienti().length)
@@ -429,7 +429,7 @@ async function prove(): Promise<void> {
   })
 
   await controllo('se la copia di chiusura non passa il controllo resta quella di stamattina, e lo si dice', () => {
-    stamattina(`${oggi}_0002`)
+    stamattina(`${oggi}_9902`)
     // un archivio che la copia nuova non saprebbe riaprire: la verifica la boccia
     getDb().pragma(`user_version = ${MIGRATIONS.length + 1}`)
     try {
@@ -437,8 +437,8 @@ async function prove(): Promise<void> {
     } finally {
       getDb().pragma(`user_version = ${MIGRATIONS.length}`)
     }
-    assert.deepEqual(diOggi(), [`${oggi}_0002`], 'la copia buona del giorno deve restare')
-    assert.equal(controllaBackup(`${oggi}_0002`).ok, true)
+    assert.deepEqual(diOggi(), [`${oggi}_9902`], 'la copia buona del giorno deve restare')
+    assert.equal(controllaBackup(`${oggi}_9902`).ok, true)
     assert.deepEqual(restiCopie(), [], 'nessuna cartella provvisoria')
     const avviso = copiaFallita()
     assert.ok(avviso, 'la copia non riuscita va segnata per il prossimo accesso')
@@ -449,7 +449,7 @@ async function prove(): Promise<void> {
     backupDiChiusura()
     assert.equal(copiaFallita(), null)
     assert.equal(diOggi().length, 1)
-    assert.notEqual(diOggi()[0], `${oggi}_0002`)
+    assert.notEqual(diOggi()[0], `${oggi}_9902`)
   })
 
   await controllo('senza accesso la chiusura non tocca le copie', () => {

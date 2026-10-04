@@ -64,6 +64,48 @@ supera con *Ulteriori informazioni → Esegui comunque*.
 Le versioni vere dell'app sono quelle di `package.json` e dei tag `vX.Y.Z`: le sezioni «giro di
 feedback» qui sopra sono precedenti e usavano una numerazione propria.
 
+### v0.5.6
+
+**Prima di tutto:** questa versione si installa a mano, una volta (scaricare l'installer da
+GitHub e installarci sopra: i dati restano). Dalla prossima, il programma controlla da solo se
+c'è una versione nuova, la scarica in sottofondo e la installa quando lo chiudi. In fondo al menu
+compare «Aggiorna alla…» per farlo subito. All'aggiornamento il programma fa da solo una copia
+dell'archivio prima di cambiarlo.
+
+- Aggiornamenti automatici dai Releases di GitHub. Per controllare se c'è una versione nuova il
+  programma contatta GitHub: non invia nessun dato dei pazienti (l'aggiornamento non ha accesso
+  all'archivio)
+- Salvataggio: una regola sola in tutte le schede. Quello che scrivi si salva da solo quando esci
+  o chiudi il programma, e «Salva» (o Ctrl+S) lo fa subito. Accanto al pulsante si legge sempre
+  «Modifiche non salvate», «Salvato» oppure «Non salvato» col motivo, che resta scritto finché un
+  salvataggio non riesce. Indicazioni per casa, peso e altezza e profilo prima perdevano le
+  modifiche se uscivi senza premere Salva
+- Copie di sicurezza: la copia dell'accesso, «Fai una copia» e la copia su chiavetta non bloccano
+  più il programma. La copia su chiavetta si confronta con l'archivio prima di prendere il nome.
+  Chiudere il programma o ripristinare una copia aspetta che le copie in corso finiscano
+- Copie di sicurezza: un promemoria quando l'ultima copia fuori dal computer è vecchia di oltre
+  30 giorni; il ripristino spiega che serve la password in uso alla data della copia
+- Password: una password nuova deve avere almeno 10 caratteri, non solo numeri e non essere tra le
+  più comuni; sotto il campo si legge cosa non va. Indovinarla da una copia rubata costa circa
+  quattro volte di più. Quella che usi già continua a funzionare. Prima di mettere le copie in
+  OneDrive il programma spiega il rischio e, se la password è debole, suggerisce di cambiarla
+- Questionari: punteggi e fascia restano quelli del giorno della compilazione. Se cambi le regole
+  di un questionario, le compilazioni vecchie mostrano «Calcolata con regole diverse» e un
+  pulsante «Ricalcola» (anche per tutte insieme, dopo conferma). Rinominare un punteggio non fa più
+  perdere il confronto con la prima compilazione
+- Soglie e fasce: la configurazione dice subito se una fascia lascia buchi o una soglia non si
+  può mai raggiungere
+- Seduta: un valore del segno non numerico lo dice invece di sparire, e la bozza di una seduta
+  appena salvata non ricompare più
+- Cestino: un paziente torna a posto anche se nel frattempo è stato tolto un punteggio del
+  questionario che aveva compilato, e l'elenco è più veloce con i pazienti più ricchi
+
+**Dietro le quinte:** il codice dei pazienti, delle sedute, dell'anamnesi e degli altri archivi
+principali è separato dai canali dell'interfaccia e provato con 98 prove automatiche (prima erano
+uno script solo); la CI prova anche su Windows. Nessuna modifica al formato dei dati oltre alle
+migrazioni 54 e 55 (una colonna nel cestino e il collegamento dei punteggi dei questionari al loro
+punteggio), che si applicano da sole all'apertura.
+
 ### v0.5.5
 
 - Cestino: un paziente con le misure dei segni (le due o tre cose che si ricontrollano) ora si
