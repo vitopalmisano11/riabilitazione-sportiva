@@ -74,6 +74,22 @@ import {
 } from './pazienti'
 import { archiviaTecnica, creaTecnica, elencoTecniche } from './tecniche'
 import {
+  aggiornaEsercizio,
+  archiviaEsercizio,
+  creaCategoria,
+  creaEsercizio,
+  elencoCategorie,
+  elencoEsercizi,
+  eliminaCategoria,
+  eliminaEsercizio,
+  impostaCluster,
+  impostaImmagine,
+  impostaPadre,
+  impostaRir,
+  leggiImmagine,
+  rinominaCategoria
+} from './esercizi'
+import {
   aggiornaObiettivoTerapeutico,
   creaObiettivoTerapeutico,
   elencoObiettiviTerapeutici,
@@ -806,159 +822,43 @@ export function registerIpc(): void {
   handle('testAvanzamento:reorder', (ids: number[]) => riordina('test_avanzamento', ids))
 
   // ---- Categorie ----
+  // La logica di categorie ed esercizi sta in esercizi.ts: qui solo i canali.
   // In ordine alfabetico: le categorie sono tante e si cercano per nome, e un
   // ordine deciso a mano andava tenuto aggiornato a ogni aggiunta. L'ordine lo
   // decide qui, non nella query: COLLATE NOCASE dell'SQL confonde le lettere
   // accentate (es. "Mobilità" finiva fuori posto), mentre localeCompare
   // conosce le regole dell'italiano.
-  handle('categorie:list', () =>
-    (getDb().prepare('SELECT * FROM categorie').all() as { nome: string }[]).sort((a, b) =>
-      a.nome.localeCompare(b.nome, 'it')
-    )
-  )
-  handle('categorie:create', (nome: string) => {
-    const db = getDb()
-    const { next } = db
-      .prepare('SELECT COALESCE(MAX(ordine), -1) + 1 AS next FROM categorie')
-      .get() as { next: number }
-    return Number(
-      db.prepare('INSERT INTO categorie (nome, ordine) VALUES (?, ?)').run(nome.trim(), next)
-        .lastInsertRowid
-    )
-  })
+  handle('categorie:list', () => elencoCategorie())
+  handle('categorie:create', (nome: string) => creaCategoria(nome))
   handle('categorie:reorder', (ids: number[]) => riordina('categorie', ids))
-  handle('categorie:update', (id: number, nome: string) => {
-    getDb().prepare('UPDATE categorie SET nome = ? WHERE id = ?').run(nome.trim(), id)
-  })
+  handle('categorie:update', (id: number, nome: string) => rinominaCategoria(id, nome))
   // Il dosaggio a cluster ha senso in poche categorie (la pliometria estensiva):
   // la spunta sta qui, cosi' le altre restano com'erano, senza campi in piu'.
-  handle('categorie:setCluster', (id: number, attivo: boolean) => {
-    getDb()
-      .prepare('UPDATE categorie SET dosaggio_cluster = ? WHERE id = ?')
-      .run(attivo ? 1 : 0, id)
-  })
+  handle('categorie:setCluster', (id: number, attivo: boolean) => impostaCluster(id, attivo))
   // Stessa cosa per le ripetizioni di riserva: hanno senso nella forza, non
   // nella mobilita'.
-  handle('categorie:setRir', (id: number, attivo: boolean) => {
-    getDb().prepare('UPDATE categorie SET dosaggio_rir = ? WHERE id = ?').run(attivo ? 1 : 0, id)
-  })
+  handle('categorie:setRir', (id: number, attivo: boolean) => impostaRir(id, attivo))
   // Un solo livello: una categoria che ha gia' dei distretti dentro non puo'
   // finire dentro a un'altra, e non ci si puo' mettere dentro a se stessa.
-  handle('categorie:setPadre', (id: number, padreId: number | null) => {
-    const db = getDb()
-    if (padreId != null) {
-      if (padreId === id) throw new Error('Una categoria non puo\' stare dentro a se stessa.')
-      const figlie = db
-        .prepare('SELECT COUNT(*) AS n FROM categorie WHERE padre_id = ?')
-        .get(id) as { n: number }
-      if (figlie.n > 0) {
-        throw new Error(
-          'Questa categoria ha gia\' dei distretti dentro: prima spostali, poi potrai metterla dentro a un\'altra.'
-        )
-      }
-      const padre = db.prepare('SELECT padre_id FROM categorie WHERE id = ?').get(padreId) as
-        | { padre_id: number | null }
-        | undefined
-      if (padre?.padre_id != null) {
-        throw new Error('Si puo\' scendere di un livello solo: quella categoria e\' gia\' dentro a un\'altra.')
-      }
-    }
-    db.prepare('UPDATE categorie SET padre_id = ? WHERE id = ?').run(padreId, id)
-  })
-  handle('categorie:delete', (id: number) => {
-    eliminaConCestino('categorie', id, 'Categoria di esercizi', nomeDi('categorie', id))
-  })
+  handle('categorie:setPadre', (id: number, padreId: number | null) => impostaPadre(id, padreId))
+  handle('categorie:delete', (id: number) => eliminaCategoria(id))
 
   // ---- Esercizi ----
   // Colonne esplicite: `e.*` trascinerebbe anche `immagine` in ogni elenco.
-  handle('esercizi:list', (includiArchiviati: boolean) =>
-    getDb()
-      .prepare(
-        `SELECT e.id, e.nome, e.categoria_id, e.serie_default, e.cluster_default,
-                e.ripetizioni_default, e.rir_default, e.carico_default, e.unita_carico,
-                e.recupero_cluster_default,
-                e.recupero_default, e.nota_tecnica, e.link, e.archiviato,
-                c.nome AS categoria_nome, c.dosaggio_cluster, c.dosaggio_rir,
-                (SELECT COUNT(*) FROM seduta_esercizi se WHERE se.esercizio_id = e.id) AS usi,
-                (e.immagine IS NOT NULL) AS ha_immagine
-         FROM esercizi e JOIN categorie c ON c.id = e.categoria_id
-         ${includiArchiviati ? '' : 'WHERE e.archiviato = 0'}
-         ORDER BY e.nome`
-      )
-      .all()
-  )
-  handle('esercizi:create', (data: EsercizioInput) => {
-    validaLink(data.link, 'Il link del video')
-    return Number(
-      getDb()
-        .prepare(
-          `INSERT INTO esercizi (nome, categoria_id, serie_default, cluster_default,
-                                 ripetizioni_default, rir_default, carico_default, unita_carico,
-                                 recupero_cluster_default,
-                                 recupero_default, nota_tecnica, link)
-           VALUES (@nome, @categoria_id, @serie_default, @cluster_default,
-                   @ripetizioni_default, @rir_default, @carico_default, @unita_carico,
-                   @recupero_cluster_default,
-                   @recupero_default, @nota_tecnica, @link)`
-        )
-        .run({ ...data, nome: data.nome.trim(), link: data.link?.trim() || null }).lastInsertRowid
-    )
-  })
-  handle('esercizi:update', (id: number, data: EsercizioInput) => {
-    validaLink(data.link, 'Il link del video')
-    getDb()
-      .prepare(
-        `UPDATE esercizi SET nome = @nome, categoria_id = @categoria_id,
-         serie_default = @serie_default, cluster_default = @cluster_default,
-         ripetizioni_default = @ripetizioni_default, rir_default = @rir_default,
-         carico_default = @carico_default,
-         unita_carico = @unita_carico,
-         recupero_cluster_default = @recupero_cluster_default,
-         recupero_default = @recupero_default,
-         nota_tecnica = @nota_tecnica, link = @link
-         WHERE id = @id`
-      )
-      .run({ ...data, nome: data.nome.trim(), link: data.link?.trim() || null, id })
-  })
-  handle('esercizi:setArchiviato', (id: number, archiviato: boolean) => {
-    getDb().prepare('UPDATE esercizi SET archiviato = ? WHERE id = ?').run(archiviato ? 1 : 0, id)
-  })
-  handle('esercizi:delete', (id: number) => {
-    // Un esercizio citato da una seduta non si cancella: le sedute passate
-    // devono restare leggibili. Il vincolo del database lo impedisce comunque,
-    // ma da solo direbbe "FOREIGN KEY constraint failed": qui si dice cosa fare.
-    const usi = getDb()
-      .prepare('SELECT COUNT(*) AS n FROM seduta_esercizi WHERE esercizio_id = ?')
-      .get(id) as { n: number }
-    if (usi.n > 0) {
-      throw new Error(
-        `Questo esercizio è usato in ${usi.n === 1 ? 'una seduta' : `${usi.n} sedute`} già registrate e non si può eliminare: usa "Archivia" per toglierlo dall'elenco senza perdere quelle sedute.`
-      )
-    }
-    eliminaConCestino('esercizi', id, 'Esercizio', nomeDi('esercizi', id))
-  })
+  handle('esercizi:list', (includiArchiviati: boolean) => elencoEsercizi(includiArchiviati))
+  handle('esercizi:create', (data: EsercizioInput) => creaEsercizio(data))
+  handle('esercizi:update', (id: number, data: EsercizioInput) => aggiornaEsercizio(id, data))
+  handle('esercizi:setArchiviato', (id: number, archiviato: boolean) => archiviaEsercizio(id, archiviato))
+  handle('esercizi:delete', (id: number) => eliminaEsercizio(id))
 
   // ---- Immagine dell'esercizio ----
-  // Sta nel database (quindi cifrata e inclusa nel backup della cartella) come
-  // data URL. Larghezza massima e peso massimo tengono il file sotto controllo.
+  // L'immagine sta nel database come data URL (vedi esercizi.ts); la larghezza
+  // massima, che tiene il file sotto controllo, si applica qui, scegliendola.
   const IMG_LARGHEZZA_MAX = 1000
-  const IMG_PESO_MAX = 3 * 1024 * 1024
 
-  handle('esercizi:immagine', (id: number) => {
-    const riga = getDb().prepare('SELECT immagine FROM esercizi WHERE id = ?').get(id) as
-      | { immagine: string | null }
-      | undefined
-    if (!riga) throw new Error('Esercizio non trovato.')
-    return riga.immagine
-  })
+  handle('esercizi:immagine', (id: number) => leggiImmagine(id))
 
-  handle('esercizi:setImmagine', (id: number, dataUrl: string | null) => {
-    if (dataUrl != null && dataUrl.length > IMG_PESO_MAX) {
-      throw new Error('Immagine troppo pesante.')
-    }
-    validaImmagine(dataUrl)
-    getDb().prepare('UPDATE esercizi SET immagine = ? WHERE id = ?').run(dataUrl, id)
-  })
+  handle('esercizi:setImmagine', (id: number, dataUrl: string | null) => impostaImmagine(id, dataUrl))
 
   handle('scegliImmagine', async () => {
     const { canceled, filePaths } = await dialog.showOpenDialog({
