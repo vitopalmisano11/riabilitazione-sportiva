@@ -35,6 +35,14 @@ interface Impostazioni {
   ingrandimento?: number
   cartellaCopia?: string
   cartellaTabelle?: string
+  copiaFallita?: CopiaFallita | null
+}
+
+// Una copia automatica non riuscita. Quella di chiusura fallisce quando non c'e'
+// piu' nessuno davanti allo schermo: si scrive qui e si dice al prossimo accesso.
+export interface CopiaFallita {
+  quando: string
+  messaggio: string
 }
 
 const percorsoFile = (): string => join(app.getPath('userData'), 'impostazioni.json')
@@ -227,6 +235,14 @@ export function backupAttivo(): boolean {
 
 export function impostaBackupAttivo(attivo: boolean): void {
   salva({ backupAttivo: attivo })
+}
+
+export function copiaFallita(): CopiaFallita | null {
+  return leggi().copiaFallita ?? null
+}
+
+export function impostaCopiaFallita(c: CopiaFallita | null): void {
+  salva({ copiaFallita: c })
 }
 
 export function backupDaTenere(): number {

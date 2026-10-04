@@ -29,9 +29,16 @@ import { join } from 'node:path'
 import { MIGRATIONS } from '../src/main/migrations'
 import { setupAuth } from '../src/main/auth'
 import { apriAltroDb, closeDb, getDb, impostaCopiaPrimaDelleMigrazioni, initDb } from '../src/main/db'
-import { impostaCartellaBackup, impostaCartellaDati } from '../src/main/impostazioni'
 import {
+  copiaFallita,
+  impostaBackupAttivo,
+  impostaCartellaBackup,
+  impostaCartellaDati
+} from '../src/main/impostazioni'
+import {
+  backupDiChiusura,
   controllaBackup,
+  copiaFuori,
   copiaPrimaDellaMigrazione,
   elencoBackup,
   eseguiBackup,
@@ -340,7 +347,7 @@ function prove(): void {
     assert.ok(ripristini.some((v) => v.nome.endsWith('2020-04-07_0900')))
   })
 
-  // 15 — una copia di una versione piu' recente non si ripristina
+  // 15 — una copia di una versione piu' recente non si ripristina
   controllo('una copia di una versione più recente si rifiuta, e l’archivio resta com’era', () => {
     const futura = cartellaCopia('2020-03-01_0900')
     archivioVecchio(join(futura, DB), dekHex, MIGRATIONS.length)
@@ -356,6 +363,96 @@ function prove(): void {
     const prima = pazienti()
     assert.throws(() => eseguiRipristino('2020-03-01_0900'), /versione più recente/)
     assert.deepEqual(pazienti(), prima)
+  })
+
+  // 16 — la copia di chiusura: prima la nuova, controllata, poi via la vecchia
+  impostaBackupAttivo(true)
+  const d = new Date()
+  const due = (n: number): string => String(n).padStart(2, '0')
+  const oggi = `${d.getFullYear()}-${due(d.getMonth() + 1)}-${due(d.getDate())}`
+  const diOggi = (): string[] =>
+    elencoBackup()
+      .filter((v) => v.nome.startsWith(oggi))
+      .map((v) => v.nome)
+  const restiCopie = (): string[] =>
+    readdirSync(copie).filter((n) => /\.(in-corso|da-togliere)$/.test(n))
+  // una copia "di stamattina" con un nome che si riconosce, e nient'altro di oggi
+  const stamattina = (nome: string): void => {
+    for (const n of diOggi()) rmSync(join(copie, n), { recursive: true, force: true })
+    copiaChiamata(nome)
+  }
+
+  controllo('la copia di chiusura prende il posto di quella di oggi, con il lavoro fatto', () => {
+    stamattina(`${oggi}_0001`)
+    aggiungiPaziente('Cinque')
+    backupDiChiusura()
+    const fatte = diOggi()
+    assert.equal(fatte.length, 1)
+    assert.notEqual(fatte[0], `${oggi}_0001`)
+    const esito = controllaBackup(fatte[0])
+    assert.equal(esito.ok, true, esito.messaggio)
+    assert.equal(esito.pazienti, pazienti().length)
+    assert.deepEqual(restiCopie(), [], 'nessuna cartella provvisoria')
+    assert.equal(copiaFallita(), null)
+  })
+
+  controllo('se la copia di chiusura non passa il controllo resta quella di stamattina, e lo si dice', () => {
+    stamattina(`${oggi}_0002`)
+    // un archivio che la copia nuova non saprebbe riaprire: la verifica la boccia
+    getDb().pragma(`user_version = ${MIGRATIONS.length + 1}`)
+    try {
+      backupDiChiusura()
+    } finally {
+      getDb().pragma(`user_version = ${MIGRATIONS.length}`)
+    }
+    assert.deepEqual(diOggi(), [`${oggi}_0002`], 'la copia buona del giorno deve restare')
+    assert.equal(controllaBackup(`${oggi}_0002`).ok, true)
+    assert.deepEqual(restiCopie(), [], 'nessuna cartella provvisoria')
+    const avviso = copiaFallita()
+    assert.ok(avviso, 'la copia non riuscita va segnata per il prossimo accesso')
+    assert.match(avviso.messaggio, /chiusura/)
+  })
+
+  controllo('una chiusura riuscita toglie l’avviso', () => {
+    backupDiChiusura()
+    assert.equal(copiaFallita(), null)
+    assert.equal(diOggi().length, 1)
+    assert.notEqual(diOggi()[0], `${oggi}_0002`)
+  })
+
+  controllo('senza accesso la chiusura non tocca le copie', () => {
+    const prima = diOggi()
+    closeDb()
+    backupDiChiusura()
+    assert.deepEqual(diOggi(), prima)
+    initDb(dbApp, dekHex)
+  })
+
+  // 17 — i resti di una copia interrotta non sono copie, e se ne vanno
+  controllo('i resti di una copia interrotta non compaiono e si ripuliscono', () => {
+    const resto = join(copie, '2020-05-01_0900.in-corso')
+    mkdirSync(resto, { recursive: true })
+    writeFileSync(join(resto, DB), 'a meta')
+    const estraneo = join(copie, 'appunti.in-corso')
+    mkdirSync(estraneo, { recursive: true })
+    assert.equal(elencoBackup().some((v) => v.nome.includes('2020-05-01')), false)
+    eseguiBackup()
+    assert.equal(existsSync(resto), false)
+    assert.equal(existsSync(estraneo), true, 'quello che non e’ nostro non si tocca')
+  })
+
+  // 18 — la copia su chiavetta arriva intera e controllata
+  controllo('la copia fuori dal computer contiene database e chiavi, e niente di provvisorio', () => {
+    const chiavetta = join(dati, '..', 'chiavetta') // dentro alla cartella di prova
+    mkdirSync(chiavetta, { recursive: true })
+    const dest = copiaFuori(chiavetta)
+    assert.ok(existsSync(join(dest, DB)))
+    assert.ok(existsSync(join(dest, AUTH)))
+    assert.deepEqual(
+      readdirSync(dest).filter((f) => f.endsWith('-wal') || f.endsWith('-shm')),
+      []
+    )
+    assert.deepEqual(readdirSync(chiavetta).filter((n) => n.includes('.in-corso')), [])
   })
 }
 

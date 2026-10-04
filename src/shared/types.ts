@@ -1100,6 +1100,9 @@ export interface InfoBackup {
   attivo: boolean
   daTenere: number
   copie: VoceBackup[]
+  // L'ultima copia automatica non riuscita, finche' una copia di chiusura non
+  // riesce di nuovo. Solo con le copie automatiche accese.
+  copiaFallita: { quando: string; messaggio: string } | null
 }
 
 // Cosa si e' trovato dentro una copia di sicurezza aprendola davvero.

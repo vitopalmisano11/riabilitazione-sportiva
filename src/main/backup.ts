@@ -17,15 +17,17 @@ import {
   statSync
 } from 'fs'
 import { join, sep } from 'path'
-import { apriAltroDb, closeDb, getDb, riapriDb } from './db'
+import { apriAltroDb, closeDb, dbAperto, getDb, riapriDb } from './db'
 import { VERSIONE_SCHEMA } from './migrations'
 import {
   cartellaBackup,
   backupAttivo,
   backupDaTenere,
   cartellaDati,
-  impostaCartellaBackup
+  impostaCartellaBackup,
+  impostaCopiaFallita
 } from './impostazioni'
+import { registraErrore } from './registro'
 
 const DB = 'riabilitazione.db'
 const AUTH = 'auth.json'
@@ -81,6 +83,14 @@ export function elencoBackup(dir = cartellaBackup()): VoceBackup[] {
 // Quelle prima di un ripristino e quelle prima di una migrazione si tengono
 // nelle ultime poche, ognuna per conto suo.
 function ruota(dir = cartellaBackup()): void {
+  // Resti di una copia interrotta a meta' (vedi copiaIn): sono nostri, perche'
+  // il nome senza il suffisso e' quello di una copia.
+  for (const nome of readdirSync(dir)) {
+    const m = nome.match(SUFFISSO_PROVVISORIO)
+    if (m && NOME_BACKUP.test(nome.slice(0, m.index))) {
+      rmSync(join(dir, nome), { recursive: true, force: true })
+    }
+  }
   const tutte = elencoBackup(dir)
   const normali = tutte.filter((v) => !v.nome.startsWith('prima-'))
   for (const v of normali.slice(backupDaTenere())) {
@@ -96,25 +106,78 @@ function ruota(dir = cartellaBackup()): void {
   }
 }
 
-export function eseguiBackup(prefisso = '', cartellaDestinazione = cartellaBackup()): string {
+const SUFFISSO_PROVVISORIO = /\.(in-corso|da-togliere)$/
+
+// Copia l'archivio nella cartella `dest` senza lasciare mai una copia a meta'.
+//
+// I file arrivano prima in una cartella provvisoria accanto, e prendono il nome
+// vero solo quando sono completi: un disco che si riempie, una chiavetta
+// staccata o il computer che si spegne lasciano al massimo un provvisorio da
+// buttare, mai una copia che sembra buona e non lo e'. Con `verifica` la copia
+// si apre anche davvero (chiavi, integrita' delle pagine) prima di prendere il
+// nome: serve quando la copia nuova ne sostituisce una buona.
+//
+// Se `dest` c'e' gia' (due copie nello stesso minuto) la vecchia si mette da
+// parte e si toglie solo dopo che la nuova ha preso il suo posto.
+function copiaIn(dest: string, verifica: boolean): void {
   const origine = cartellaDati()
   const db = join(origine, DB)
   if (!existsSync(db)) throw new Error('Non c’è ancora un archivio da copiare.')
 
   // le ultime scritture devono essere nel file, non nel giornale
-  try {
-    getDb().pragma('wal_checkpoint(TRUNCATE)')
-  } catch {
-    // database non aperto: il file e' comunque coerente
-  }
+  if (dbAperto()) getDb().pragma('wal_checkpoint(TRUNCATE)')
 
+  const provvisoria = `${dest}.in-corso`
+  const daTogliere = `${dest}.da-togliere`
+  rmSync(provvisoria, { recursive: true, force: true })
+  try {
+    mkdirSync(provvisoria, { recursive: true })
+    copyFileSync(db, join(provvisoria, DB))
+    const auth = join(origine, AUTH)
+    if (existsSync(auth)) copyFileSync(auth, join(provvisoria, AUTH))
+    if (verifica) {
+      const esito = ispeziona(join(provvisoria, DB))
+      // aprirla lascia accanto i file di servizio di SQLite: nella copia non servono
+      for (const extra of [`${DB}-wal`, `${DB}-shm`]) {
+        rmSync(join(provvisoria, extra), { force: true })
+      }
+      if (!esito.ok) throw new Error(esito.messaggio)
+    }
+    rmSync(daTogliere, { recursive: true, force: true })
+    const cera = existsSync(dest)
+    if (cera) renameSync(dest, daTogliere)
+    try {
+      renameSync(provvisoria, dest)
+    } catch (e) {
+      if (cera) renameSync(daTogliere, dest)
+      throw e
+    }
+    if (cera) rmSync(daTogliere, { recursive: true, force: true })
+  } catch (e) {
+    rmSync(provvisoria, { recursive: true, force: true })
+    throw e
+  }
+}
+
+export function eseguiBackup(prefisso = '', cartellaDestinazione = cartellaBackup()): string {
   const dest = join(cartellaDestinazione, nomeCartella(prefisso))
-  mkdirSync(dest, { recursive: true })
-  copyFileSync(db, join(dest, DB))
-  const auth = join(origine, AUTH)
-  if (existsSync(auth)) copyFileSync(auth, join(dest, AUTH))
+  copiaIn(dest, false)
   ruota(cartellaDestinazione)
   return dest
+}
+
+// Una copia automatica non riuscita: nel registro, e da dire al prossimo
+// accesso. Non deve mai diventare essa stessa un errore.
+function segnaCopiaFallita(momento: string, errore: unknown): void {
+  registraErrore(`backup (${momento})`, errore)
+  try {
+    impostaCopiaFallita({
+      quando: new Date().toISOString(),
+      messaggio: `${momento}: ${errore instanceof Error ? errore.message : String(errore)}`
+    })
+  } catch {
+    // il file delle impostazioni non si scrive: resta la riga nel registro
+  }
 }
 
 // La copia da fare prima di applicare le migrazioni di un aggiornamento.
@@ -155,21 +218,10 @@ export function copiaPrimaDellaMigrazione(versione: number): void {
 // l'unica copia che puo' trovarsi altrove. Non entra nella rotazione e non
 // cancella niente: quello che c'e' nella cartella scelta resta dov'e'.
 export function copiaFuori(destinazione: string): string {
-  const origine = cartellaDati()
-  const db = join(origine, DB)
-  if (!existsSync(db)) throw new Error('Non c’è ancora un archivio da copiare.')
-
-  try {
-    getDb().pragma('wal_checkpoint(TRUNCATE)')
-  } catch {
-    // database non aperto: il file e' comunque coerente
-  }
-
+  // Su una chiavetta che si stacca a meta' e' il caso piu' probabile di copia
+  // interrotta: si controlla che si apra prima di darle il nome.
   const dest = join(destinazione, `riabilitazione_${nomeCartella()}`)
-  mkdirSync(dest, { recursive: true })
-  copyFileSync(db, join(dest, DB))
-  const auth = join(origine, AUTH)
-  if (existsSync(auth)) copyFileSync(auth, join(dest, AUTH))
+  copiaIn(dest, true)
   return dest
 }
 
@@ -180,24 +232,42 @@ export function backupSeServe(): void {
     const oggi = nomeCartella().slice(0, 10)
     if (elencoBackup().some((v) => v.nome.startsWith(oggi))) return
     eseguiBackup()
-  } catch {
-    // una copia non riuscita non deve impedire di usare l'app
+  } catch (e) {
+    // una copia non riuscita non deve impedire di usare l'app, ma va detta
+    segnaCopiaFallita("all'accesso", e)
   }
 }
 
-// Backup di chiusura: sostituisce quello del giorno, cosi' contiene anche il
-// lavoro appena fatto.
+// Backup di chiusura: prende il posto di quello del giorno, cosi' contiene
+// anche il lavoro appena fatto.
+//
+// Prima si cancellava la copia di oggi e poi si faceva la nuova: se la nuova
+// non riusciva (disco pieno, cartella non raggiungibile) non restava nessuna
+// copia del giorno, e nessuno lo sapeva. Adesso la nuova si fa per prima, si
+// controlla che si apra, e solo allora le altre di oggi se ne vanno. Se
+// l'archivio stesso e' rovinato la nuova non passa il controllo e resta la
+// copia buona di stamattina.
+//
+// Senza accesso l'archivio non e' cambiato: la copia di stamattina va bene com'e'.
 export function backupDiChiusura(): void {
-  if (!backupAttivo()) return
+  if (!backupAttivo() || !dbAperto()) return
   try {
-    const oggi = nomeCartella().slice(0, 10)
     const dir = cartellaBackup()
-    for (const v of elencoBackup().filter((x) => x.nome.startsWith(oggi) && !x.nome.startsWith('prima'))) {
+    const nome = nomeCartella()
+    const oggi = nome.slice(0, 10)
+    copiaIn(join(dir, nome), true)
+    for (const v of elencoBackup(dir).filter((x) => x.nome.startsWith(oggi) && x.nome !== nome)) {
       rmSync(join(dir, v.nome), { recursive: true, force: true })
     }
-    eseguiBackup()
-  } catch {
-    // in chiusura non ha senso disturbare con un errore
+    ruota(dir)
+    // una copia controllata e' riuscita: un avviso rimasto da prima non vale piu'
+    try {
+      impostaCopiaFallita(null)
+    } catch {
+      // resta l'avviso: meglio uno di troppo che nessuno
+    }
+  } catch (e) {
+    segnaCopiaFallita('alla chiusura', e)
   }
 }
 

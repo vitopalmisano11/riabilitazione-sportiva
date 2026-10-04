@@ -193,6 +193,23 @@ export default function App(): React.JSX.Element {
       })
       .catch(() => {})
   }
+  // Una copia automatica non riuscita (di solito quella di chiusura, quando
+  // nessuno guarda piu' lo schermo) si dice appena si rientra. I dettagli
+  // restano in Impostazioni, nelle copie di sicurezza.
+  useEffect(() => {
+    if (!sbloccata) return
+    window.api.backup
+      .info()
+      .then(({ copiaFallita }) => {
+        if (copiaFallita) {
+          toastErrore(
+            "L'ultima copia di sicurezza automatica non è riuscita. Trovi cosa è successo in Impostazioni › Dati e backup."
+          )
+        }
+      })
+      .catch(() => undefined)
+  }, [sbloccata])
+
   useEffect(() => {
     if (!sbloccata) return
     contaDaSentire()

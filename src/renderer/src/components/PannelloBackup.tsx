@@ -129,6 +129,18 @@ export default function PannelloBackup(): React.JSX.Element {
       </label>
 
       <div className="cartella-path">{info.cartella}</div>
+      {info.copiaFallita && (
+        <span className="esito-copia esito-guasto">
+          <CircleAlert size={15} /> L&apos;ultima copia automatica non è riuscita (
+          {new Date(info.copiaFallita.quando).toLocaleString('it-IT', {
+            dateStyle: 'short',
+            timeStyle: 'short'
+          })}
+          , {info.copiaFallita.messaggio}). Le copie di prima ci sono ancora. Prova «Fai una copia» ›
+          «Qui, nella cartella delle copie»: se non riesce, controlla che la cartella delle copie sia raggiungibile. Alla
+          prossima chiusura riuscita questo avviso sparisce.
+        </span>
+      )}
       {info.inOneDrive && (
         <span className="esito-copia esito-buono">
           <Cloud size={15} /> Queste copie finiscono anche online, in OneDrive: se il computer si

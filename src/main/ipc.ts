@@ -8,6 +8,7 @@ import {
   cartellaExport,
   backupAttivo,
   backupDaTenere,
+  copiaFallita,
   impostaBackupAttivo,
   impostaBackupDaTenere,
   impostaCartellaBackup,
@@ -248,7 +249,8 @@ export function registerIpc(): void {
     cartella: cartellaBackup(),
     attivo: backupAttivo(),
     daTenere: backupDaTenere(),
-    copie: elencoBackup()
+    copie: elencoBackup(),
+    copiaFallita: backupAttivo() ? copiaFallita() : null
   }))
   handle('backup:cambiaCartella', async () => {
     const { canceled, filePaths } = await dialog.showOpenDialog({

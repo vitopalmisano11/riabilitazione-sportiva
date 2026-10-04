@@ -139,6 +139,11 @@ export function controllaArchivio(): EsitoArchivio {
   return { ok: true, messaggio: 'Tutto in ordine.', pazienti, sedute }
 }
 
+// Vero dopo l'accesso: prima l'archivio e' chiuso e nessuno l'ha toccato.
+export function dbAperto(): boolean {
+  return db != null
+}
+
 export function getDb(): Database.Database {
   if (!db) throw new Error('Database non inizializzato')
   return db
