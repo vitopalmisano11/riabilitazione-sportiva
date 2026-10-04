@@ -27,6 +27,19 @@ usaCartellaTemporanei(
   join(app.getPath('temp'), app.isPackaged ? 'riabilitazione-sportiva' : 'riabilitazione-sportiva (dev)')
 )
 
+// Una sola copia del programma alla volta: l'archivio e' cifrato e si apre con
+// la password, e due copie aperte insieme (due avvii, un doppio clic, un
+// collegamento premuto due volte) finivano con due finestre di accesso una
+// sopra l'altra. Chi parte per secondo riporta in primo piano la prima e si
+// chiude. Il blocco e' legato alla cartella dati dell'app (userData), quindi la
+// versione di prova e quella installata non si bloccano a vicenda.
+const primaCopia = app.requestSingleInstanceLock()
+if (!primaCopia) {
+  app.quit()
+}
+
+let principale: BrowserWindow | null = null
+
 function createWindow(): void {
   const salvata = posizioneFinestra()
   const win = new BrowserWindow({
@@ -43,6 +56,8 @@ function createWindow(): void {
       sandbox: false
     }
   })
+
+  principale = win
 
   // Quanto grande si vede il programma. Si applica qui, alla finestra, e solo
   // a pagina caricata: chiamarlo prima (dal ponte, con webFrame) faceva morire
@@ -133,7 +148,15 @@ app.on('web-contents-created', (_evento, contenuti) => {
   })
 })
 
+app.on('second-instance', () => {
+  // Si riporta davanti la finestra principale, non quelle dei documenti.
+  if (!principale || principale.isDestroyed()) return
+  if (principale.isMinimized()) principale.restore()
+  principale.focus()
+})
+
 app.whenReady().then(() => {
+  if (!primaCopia) return
   // Prima di ogni aggiornamento dello schema dell'archivio, una copia com'era.
   impostaCopiaPrimaDelleMigrazioni(copiaPrimaDellaMigrazione)
   // Resti di una chiusura andata male: un referto rimasto aperto altrove, o

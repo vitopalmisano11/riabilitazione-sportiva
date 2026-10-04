@@ -26,7 +26,7 @@ import ConfermaHost from './components/Conferma'
 import { errMsg, oggiIso } from './lib'
 import { bloccaScorciatoie } from './scorciatoie'
 import type { Tema } from '../../shared/temi'
-import iconaApp from '../../../resources/icon.png'
+import LogoApp from './components/LogoApp'
 
 type Sezione =
   | 'settimana'
@@ -269,7 +269,7 @@ export default function App(): React.JSX.Element {
           ne' con Tab. Resta montata (il lavoro non si perde), ma inerte. */}
       <aside className="sidebar" inert={bloccata}>
         <h1>
-          <img className="logo-app" src={iconaApp} alt="" />
+          <LogoApp className="logo-app" />
           Gestionale Fisioterapia
         </h1>
         <nav>

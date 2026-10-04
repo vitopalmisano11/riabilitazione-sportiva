@@ -382,6 +382,9 @@ export function eseguiRipristino(nome: string): void {
 // riapre da solo sui dati appena ripristinati.
 export function ripristinaBackup(nome: string): void {
   eseguiRipristino(nome)
+  // Il blocco di "una sola copia" va liberato prima: la copia che riparte non
+  // deve trovare questa ancora segnata come aperta e richiudersi subito.
+  app.releaseSingleInstanceLock()
   app.relaunch()
   app.exit(0)
 }

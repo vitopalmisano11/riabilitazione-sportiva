@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { errMsg } from '../lib'
-import iconaApp from '../../../../resources/icon.png'
+import LogoApp from './LogoApp'
 
 type Modo = 'caricamento' | 'setup' | 'chiave' | 'login' | 'recupero'
 
@@ -74,7 +74,7 @@ export default function AuthGate({ onUnlocked }: { onUnlocked: () => void }): Re
   return (
     <div className="auth-screen">
       <div className="auth-card">
-        <img className="auth-logo-app" src={iconaApp} alt="" />
+        <LogoApp className="auth-logo-app" />
         {modo === 'setup' && (
           <>
             <h1>Gestionale Fisioterapia</h1>

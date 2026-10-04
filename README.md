@@ -7,7 +7,7 @@ riabilitazione sportiva. Sostituisce la gestione via file Word. Specifica comple
 ## Stack
 
 - **Electron + TypeScript + React** (bundling con electron-vite)
-- **SQLite** via `better-sqlite3-multiple-ciphers` (predisposto per cifratura SQLCipher)
+- **SQLite** via `better-sqlite3-multiple-ciphers` con cifratura SQLCipher (vedi «Dove stanno i dati e come sono protetti»)
 - **electron-builder** per l'installer Windows
 
 ## Comandi
@@ -27,7 +27,7 @@ L'installer Windows si costruisce automaticamente con GitHub Actions: pubblicand
 scaricare. L'eseguibile non è firmato: al primo avvio Windows SmartScreen mostra un avviso, si
 supera con *Ulteriori informazioni → Esegui comunque*.
 
-## v1.1 (feedback dal primo utilizzo)
+## Primo giro di feedback (prima della 0.5)
 
 - Struttura della seduta per fase: sezioni ordinate (es. Riscaldamento, Rinforzo) con
   categorie associate e ordinabili; usata come template alla creazione della seduta e
@@ -41,7 +41,7 @@ supera con *Ulteriori informazioni → Esegui comunque*.
 - Menu: "Diario pazienti" in alto; "Configurazione" in fondo, pannello unico a tab
 - Fix layout: campi che uscivano dal riquadro dello schema seduta, testo spezzato male
 
-## v1.2 (secondo giro di feedback)
+## Secondo giro di feedback (prima della 0.5)
 
 - Link video opzionale per esercizio: icona ▶ accanto al nome (libreria e builder),
   apre il browser predefinito; nessun testo sottolineato
@@ -50,7 +50,7 @@ supera con *Ulteriori informazioni → Esegui comunque*.
   con breadcrumb per tornare indietro
 - Fix: nomi delle sezioni non si spezzano più a metà parola (colonne con larghezza minima)
 
-## v1.3 (terzo giro di feedback — rifiniture)
+## Terzo giro di feedback — rifiniture (prima della 0.5)
 
 - Libreria esercizi: colonna nome senza a capo, numero serie centrato,
   serie/ripetizioni/carico/recupero sulla stessa riga nel form
@@ -58,6 +58,32 @@ supera con *Ulteriori informazioni → Esegui comunque*.
   rimosse le frecce non necessarie in "categorie della sezione" e spaziatura compattata
 - Diario: "Apri" rinominato in "Modifica"; PDF/Word sostituiti da un'icona di
   download con menu a tendina
+
+## Novità per versione
+
+Le versioni vere dell'app sono quelle di `package.json` e dei tag `vX.Y.Z`: le sezioni «giro di
+feedback» qui sopra sono precedenti e usavano una numerazione propria.
+
+### v0.5.3
+
+- Fix: la X in alto a destra non chiudeva la finestra se si premeva spingendo il mouse
+  nell'angolo dello schermo (il pulsante si abbassava di un pixel e il clic andava perso)
+
+### v0.5.2
+
+- Il logo dell'app dentro al programma (barra laterale e schermata di accesso) prende il
+  colore del tema; il riquadro bianco resta com'è
+- Una sola copia del programma alla volta: riaprirlo porta in primo piano la finestra già
+  aperta, invece di aprirne una seconda con l'accesso sotto
+
+### v0.5.1
+
+- L'app si chiama Gestionale Fisioterapia e mostra la sua icona nella barra laterale e
+  all'accesso
+
+### v0.5.0
+
+- Body chart e valutazione: salvando, non si salvano una seconda volta chiudendosi
 
 ## Sviluppare (anche su Windows)
 
