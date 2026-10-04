@@ -1769,6 +1769,112 @@ assert.equal(
   svuotaCestino()
 }
 
+// --- Cestino: un paziente completo torna identico, anche con le misure dei segni ---
+// La misura di un segno sta sotto la seduta e sotto il segno: veniva fotografata
+// due volte e rimessa prima del segno, e il ripristino falliva sempre. Si
+// confronta l'intero archivio prima di eliminare e dopo aver rimesso a posto:
+// deve essere identico, riga per riga.
+{
+  const c = getDb()
+  const ins = (sql: string, ...a: unknown[]): number =>
+    Number(c.prepare(sql).run(...a).lastInsertRowid)
+  const fotografiaArchivio = (): string => {
+    const tabelle = (
+      c
+        .prepare(
+          "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name <> 'cestino' ORDER BY name"
+        )
+        .all() as { name: string }[]
+    ).map((r) => r.name)
+    // le righe in ordine di contenuto: le tabelle di collegamento non hanno un
+    // id, e rimesse a posto possono cambiare posizione senza cambiare niente
+    return JSON.stringify(
+      tabelle.map((t) => [
+        t,
+        (c.prepare(`SELECT * FROM ${t}`).all() as unknown[]).map((r) => JSON.stringify(r)).sort()
+      ])
+    )
+  }
+  svuotaCestino()
+
+  const pz = ins("INSERT INTO pazienti (nome, cognome) VALUES ('Tutto', 'Completo')")
+  const cat = ins("INSERT INTO categorie (nome) VALUES ('Cat completo')")
+  const es = ins('INSERT INTO esercizi (nome, categoria_id) VALUES (?, ?)', 'Es completo', cat)
+  const tec = ins("INSERT INTO tecniche (nome) VALUES ('Tecnica completo')")
+  const segno1 = ins("INSERT INTO segni (paziente_id, nome) VALUES (?, 'Dolore squat')", pz)
+  const segno2 = ins("INSERT INTO segni (paziente_id, nome, unita) VALUES (?, 'Flessione', '°')", pz)
+  for (const data of ['2026-09-01', '2026-09-03']) {
+    const sed = ins('INSERT INTO sedute (paziente_id, data, dolore) VALUES (?, ?, 4)', pz, data)
+    const sez = ins("INSERT INTO seduta_sezioni (seduta_id, nome, ordine) VALUES (?, 'Rinforzo', 0)", sed)
+    ins(
+      "INSERT INTO seduta_esercizi (seduta_id, esercizio_id, serie, ordine, seduta_sezione_id) VALUES (?, ?, '3', 0, ?)",
+      sed,
+      es,
+      sez
+    )
+    ins("INSERT INTO seduta_esercizi (seduta_id, nome_libero, ordine) VALUES (?, 'Al volo', 1)", sed)
+    c.prepare('INSERT INTO seduta_tecniche (seduta_id, tecnica_id) VALUES (?, ?)').run(sed, tec)
+    c.prepare('INSERT INTO segno_valori (segno_id, seduta_id, valore) VALUES (?, ?, ?)').run(segno1, sed, 5)
+    c.prepare('INSERT INTO segno_valori (segno_id, seduta_id, valore) VALUES (?, ?, ?)').run(segno2, sed, 110)
+  }
+  const sint = ins("INSERT INTO anamnesi_sintomi (paziente_id, descrizione) VALUES (?, 'Dolore anteriore')", pz)
+  ins("INSERT INTO sintomo_punti (sintomo_id, grafico, minuti, dolore) VALUES (?, 'giorno', 60, 3)", sint)
+  const chart = ins("INSERT INTO body_chart (paziente_id, data, tipo) VALUES (?, '2026-09-01', 'corpo')", pz)
+  ins("INSERT INTO body_chart_segni (chart_id, vista, tipo, x, y) VALUES (?, 'davanti', 'dolore', 0.5, 0.4)", chart)
+  ins(
+    "INSERT INTO bioimmagini (paziente_id, nome, tipo, contenuto, data) VALUES (?, 'rm.jpg', 'image/jpeg', 'data:image/jpeg;base64,AA==', '2026-09-01')",
+    pz
+  )
+  ins("INSERT INTO obiettivi_terapeutici (paziente_id, testo, termine, ordine) VALUES (?, 'Correre', 'lungo', 0)", pz)
+
+  const prima = fotografiaArchivio()
+  eliminaConCestino('pazienti', pz, 'Paziente', 'Completo Tutto')
+  assert.notEqual(fotografiaArchivio(), prima)
+  // ogni riga una volta sola: le misure dei segni sono 4, non 8
+  const voce = elencoCestino()[0]
+  const contenuto = JSON.parse(
+    (c.prepare('SELECT contenuto FROM cestino WHERE id = ?').get(voce.id) as { contenuto: string })
+      .contenuto
+  ) as { tabella: string; righe: unknown[] }[]
+  const misure = contenuto.filter((f) => f.tabella === 'segno_valori')
+  assert.equal(misure.length, 1)
+  assert.equal(misure[0].righe.length, 4)
+  // i segni vengono prima delle loro misure
+  const ordine = contenuto.map((f) => f.tabella)
+  assert.ok(ordine.indexOf('segni') < ordine.indexOf('segno_valori'), ordine.join(' > '))
+  assert.ok(ordine.indexOf('sedute') < ordine.indexOf('segno_valori'), ordine.join(' > '))
+
+  ripristina(voce.id)
+  assert.equal(fotografiaArchivio(), prima)
+  assert.equal(elencoCestino().length, 0)
+
+  // Una voce scritta dalla versione di prima: misure doppie e messe prima dei
+  // segni. Si deve poter rimettere a posto lo stesso.
+  eliminaConCestino('pazienti', pz, 'Paziente', 'Completo Tutto')
+  const id = elencoCestino()[0].id
+  const vecchio = contenuto.flatMap((f) =>
+    f.tabella === 'segni'
+      ? [f, contenuto.find((x) => x.tabella === 'segno_valori')!]
+      : f.tabella === 'sedute'
+        ? [f, contenuto.find((x) => x.tabella === 'segno_valori')!]
+        : f.tabella === 'segno_valori'
+          ? []
+          : [f]
+  )
+  // le misure compaiono due volte, la prima subito dopo le sedute (prima dei segni)
+  assert.equal(vecchio.filter((f) => f.tabella === 'segno_valori').length, 2)
+  assert.ok(
+    vecchio.findIndex((f) => f.tabella === 'segno_valori') <
+      vecchio.findIndex((f) => f.tabella === 'segni')
+  )
+  c.prepare('UPDATE cestino SET contenuto = ? WHERE id = ?').run(JSON.stringify(vecchio), id)
+  // contate senza doppioni
+  assert.equal(elencoCestino()[0].righe, voce.righe)
+  ripristina(id)
+  assert.equal(fotografiaArchivio(), prima)
+  svuotaCestino()
+}
+
 // --- Quanto tempo e' passato dall'intervento ---
 // Si conta in mesi e settimane, buttando via i giorni che avanzano: e' il modo
 // in cui si ragiona in riabilitazione.

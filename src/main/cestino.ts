@@ -63,8 +63,9 @@ function figli(db: Db): Map<string, [string, string][]> {
   return mappa
 }
 
-// Fotografia della riga e di tutto quello che le sta appeso, dal padre ai figli:
-// rimettendole in quest'ordine i vincoli sono sempre soddisfatti.
+// Fotografia della riga e di tutto quello che le sta appeso, dal padre ai figli.
+// La stessa riga puo' arrivare da due strade (la misura di un segno sta sotto
+// la seduta e sotto il segno): l'ordine e i doppioni li sistema normalizza().
 function raccogli(db: Db, tabella: string, ids: number[], mappa: Map<string, [string, string][]>): Fotografia[] {
   if (ids.length === 0) return []
   const segnaposto = ids.map(() => '?').join(', ')
@@ -91,12 +92,62 @@ function raccogli(db: Db, tabella: string, ids: number[], mappa: Map<string, [st
   return raccolto
 }
 
+// Una riga si riconosce dal suo id. Le tabelle di collegamento non ce l'hanno:
+// li' la riga intera fa da chiave (le colonne arrivano sempre nello stesso
+// ordine, da SELECT *).
+function chiaveRiga(riga: Record<string, unknown>): string {
+  return typeof riga.id === 'number' ? `id:${riga.id}` : JSON.stringify(riga)
+}
+
+// La fotografia pronta da rimettere: una voce per tabella, ogni riga una volta
+// sola, e le tabelle in un ordine in cui ogni riga trova gia' al suo posto
+// quello a cui punta.
+//
+// Prima le righe si rimettevano nell'ordine in cui erano state trovate, e la
+// stessa riga poteva esserci due volte: un paziente con le misure dei segni
+// rimetteva le misure prima dei segni, e il ripristino falliva sempre. Si
+// normalizza anche quando si ripristina, perche' le voci gia' nel cestino sono
+// state scritte cosi'.
+function normalizza(db: Db, foto: Fotografia[]): Fotografia[] {
+  const perTabella = new Map<string, Map<string, Record<string, unknown>>>()
+  for (const { tabella, righe } of foto) {
+    const giaViste = perTabella.get(tabella) ?? new Map<string, Record<string, unknown>>()
+    for (const riga of righe) {
+      const chiave = chiaveRiga(riga)
+      if (!giaViste.has(chiave)) giaViste.set(chiave, riga)
+    }
+    perTabella.set(tabella, giaViste)
+  }
+
+  // Da chi dipende ogni tabella, fra quelle della fotografia. Un rimando a se
+  // stessa (una categoria dentro un'altra) non decide l'ordine: lo regge il
+  // controllo rinviato alla fine del ripristino.
+  const tabelle = [...perTabella.keys()]
+  const padri = new Map(
+    tabelle.map((t) => [
+      t,
+      (db.pragma(`foreign_key_list('${t}')`) as { table: string }[])
+        .map((l) => l.table)
+        .filter((p) => p !== t && perTabella.has(p))
+    ])
+  )
+  const ordine: string[] = []
+  const restanti = [...tabelle]
+  while (restanti.length > 0) {
+    // la prima, nell'ordine di prima, che ha gia' tutti i padri al loro posto;
+    // in un giro chiuso (non dovrebbe esserci) si va avanti con la prima
+    const i = restanti.findIndex((t) => padri.get(t)!.every((p) => ordine.includes(p)))
+    ordine.push(restanti.splice(Math.max(i, 0), 1)[0])
+  }
+  return ordine.map((t) => ({ tabella: t, righe: [...perTabella.get(t)!.values()] }))
+}
+
 // Elimina mettendo prima da parte la fotografia. L'etichetta e' quello che si
 // legge nel cestino ("Rossi Marco", "Seduta del 03/09/2026").
 export function eliminaConCestino(tabella: string, id: number, tipo: string, etichetta: string): void {
   const db = getDb()
   db.transaction(() => {
-    const foto = raccogli(db, tabella, [id], figli(db))
+    const foto = normalizza(db, raccogli(db, tabella, [id], figli(db)))
     if (foto.length === 0) return
     db.prepare(
       'INSERT INTO cestino (tipo, etichetta, quando, contenuto) VALUES (?, ?, ?, ?)'
@@ -106,13 +157,18 @@ export function eliminaConCestino(tabella: string, id: number, tipo: string, eti
 }
 
 export function elencoCestino(): VoceCestino[] {
+  const db = getDb()
   return (
-    getDb()
+    db
       .prepare('SELECT id, tipo, etichetta, quando, contenuto FROM cestino ORDER BY quando DESC')
       .all() as (VoceCestino & { contenuto: string })[]
   ).map(({ contenuto, ...v }) => ({
     ...v,
-    righe: (JSON.parse(contenuto) as Fotografia[]).reduce((n, f) => n + f.righe.length, 0)
+    // contate senza doppioni: le voci scritte prima ne possono avere
+    righe: normalizza(db, JSON.parse(contenuto) as Fotografia[]).reduce(
+      (n, f) => n + f.righe.length,
+      0
+    )
   }))
 }
 
@@ -203,7 +259,7 @@ export function ripristina(idCestino: number): void {
     | { contenuto: string }
     | undefined
   if (!voce) throw new Error('Questa voce del cestino non c’è più.')
-  const foto = JSON.parse(voce.contenuto) as Fotografia[]
+  const foto = normalizza(db, JSON.parse(voce.contenuto) as Fotografia[])
 
   const mancano = mancanti(db, foto, idCestino)
   if (mancano.length > 0) {
@@ -217,6 +273,11 @@ export function ripristina(idCestino: number): void {
 
   try {
     db.transaction(() => {
+      // I collegamenti si controllano tutti insieme alla fine, quando ogni riga
+      // e' tornata al suo posto: una riga che punta a un'altra della stessa
+      // tabella non dipende piu' dall'ordine. Se alla fine manca qualcosa, non
+      // si rimette niente. Il rinvio vale solo per questo ripristino.
+      db.pragma('defer_foreign_keys = ON')
       for (const { tabella, righe } of foto) {
         for (const riga of righe) {
           const colonne = Object.keys(riga)
