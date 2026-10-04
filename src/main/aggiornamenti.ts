@@ -18,7 +18,10 @@ import electronUpdater from 'electron-updater'
 import type { StatoAggiornamento } from '../shared/types'
 import { registraErrore } from './registro'
 
-const { autoUpdater } = electronUpdater
+// Il gestore degli aggiornamenti si crea solo quando serve, cioe' nel programma
+// installato: toccarlo all'avvio, anche nella versione di prova, lo
+// costruirebbe per niente.
+const aggiornatore = (): typeof electronUpdater.autoUpdater => electronUpdater.autoUpdater
 
 const PRIMO_CONTROLLO = 15_000
 const OGNI = 6 * 60 * 60 * 1000
@@ -38,6 +41,7 @@ export function statoAggiornamento(): StatoAggiornamento {
 
 export function avviaAggiornamenti(): void {
   if (!app.isPackaged) return
+  const autoUpdater = aggiornatore()
   // niente righe su ogni controllo: nel registro vanno solo gli errori
   autoUpdater.logger = null
   autoUpdater.autoDownload = true
@@ -63,7 +67,7 @@ export function avviaAggiornamenti(): void {
   // L'installer parte solo all'ultimo, quando le finestre sono gia' chiuse:
   // vedi installaAdesso.
   app.on('will-quit', () => {
-    if (riapriDopo && stato.stato === 'pronto') autoUpdater.quitAndInstall(true, true)
+    if (riapriDopo && stato.stato === 'pronto') aggiornatore().quitAndInstall(true, true)
   })
 }
 
