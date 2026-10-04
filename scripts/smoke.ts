@@ -39,6 +39,8 @@ import { esportaArchivio } from '../src/main/esporta-archivio'
 import { leggiTest, salvaTest } from '../src/main/test-valutazione'
 import { esito, lsi, riassumi, superaSoglia, valoreDi } from '../src/shared/misure'
 import { avvisoPunteggio } from '../src/shared/punteggio'
+import { controllaIntervalli, frasiControllo, unitaDiTempo } from '../src/shared/soglie'
+import { avvisoCopiaFuori, giorniDallaCopiaFuori } from '../src/shared/copie'
 import { etaInAnni } from '../src/shared/eta'
 import {
   elencoCestino,
@@ -104,7 +106,7 @@ db.pragma('foreign_keys = ON')
 
 runMigrations(db)
 runMigrations(db) // idempotente
-assert.equal(db.pragma('user_version', { simple: true }), 53)
+assert.equal(db.pragma('user_version', { simple: true }), 54)
 // gli indici delle ricerche frequenti ci sono
 for (const indice of ['idx_segno_valori_seduta', 'idx_compilazione_punteggi_compilazione', 'idx_sedute_data']) {
   assert.ok(
@@ -1874,6 +1876,121 @@ assert.equal(
   ripristina(id)
   assert.equal(fotografiaArchivio(), prima)
   svuotaCestino()
+}
+
+// --- Cestino: il numero di righe sta in una colonna, e l'elenco non apre le voci ---
+{
+  const c = getDb()
+  const ins = (sql: string, ...a: unknown[]): number => Number(c.prepare(sql).run(...a).lastInsertRowid)
+  svuotaCestino()
+  const pz = ins("INSERT INTO pazienti (nome, cognome) VALUES ('Righe', 'Prova')")
+  ins("INSERT INTO sedute (paziente_id, data) VALUES (?, '2026-09-01')", pz)
+  eliminaConCestino('pazienti', pz, 'Paziente', 'Prova Righe')
+  const voce = c.prepare('SELECT righe, contenuto FROM cestino').get() as {
+    righe: number | null
+    contenuto: string
+  }
+  assert.equal(voce.righe, 2) // il paziente e la sua seduta
+  assert.equal(elencoCestino()[0].righe, 2)
+  // l'elenco legge solo la colonna: con un contenuto illeggibile funziona lo stesso
+  c.prepare('UPDATE cestino SET contenuto = ?').run('non e json')
+  assert.equal(elencoCestino()[0].righe, 2)
+  // una voce di prima dell'aggiornamento: senza numero. L'elenco la conta lo
+  // stesso e la pulizia dell'accesso lo scrive
+  c.prepare('UPDATE cestino SET righe = NULL, contenuto = ?').run(voce.contenuto)
+  assert.equal(elencoCestino()[0].righe, 2)
+  assert.equal((c.prepare('SELECT righe FROM cestino').get() as { righe: number | null }).righe, null)
+  ripuliscilCestino()
+  assert.equal((c.prepare('SELECT righe FROM cestino').get() as { righe: number | null }).righe, 2)
+  svuotaCestino()
+}
+
+// --- Soglie e fasce: i buchi, le soglie che non si avverano, quelle al contrario ---
+{
+  // 0-89 e 90-100: l'89,5 non cade da nessuna parte (percentuali, un decimale)
+  assert.deepEqual(
+    controllaIntervalli([{ minimo: null, massimo: 89 }, { minimo: 90, massimo: 100 }], 1).buchi,
+    ['i valori da 89,1 a 89,9', 'i valori sopra 100']
+  )
+  // 9,99 e 10 si toccano: con due decimali non c'e' un valore in mezzo
+  assert.deepEqual(
+    controllaIntervalli(
+      [{ minimo: null, massimo: 9.99 }, { minimo: 10, massimo: 13 }, { minimo: 13.01, massimo: null }],
+      2
+    ).buchi,
+    []
+  )
+  // un'estremita' lasciata aperta e' un buco: sotto 90 non si avvera niente
+  assert.deepEqual(
+    controllaIntervalli([{ minimo: 95.01, massimo: null }, { minimo: 90, massimo: 95 }], 2).buchi,
+    ['i valori sotto 90']
+  )
+  // un buco di un valore solo
+  assert.deepEqual(
+    controllaIntervalli([{ minimo: null, massimo: 5 }, { minimo: 7, massimo: null }], 0).buchi,
+    ['il valore 6']
+  )
+  // una soglia gia' coperta da quelle sopra non si avvera mai
+  const coperta = controllaIntervalli([{ minimo: null, massimo: null }, { minimo: 0, massimo: 10 }], 2)
+  assert.deepEqual(coperta.maiAvverate, [1])
+  assert.deepEqual(coperta.buchi, [])
+  assert.deepEqual(controllaIntervalli([{ minimo: 0, massimo: 10 }, { minimo: 5, massimo: 20 }], 2).maiAvverate, [])
+  // scritta al contrario
+  const alContrario = controllaIntervalli([{ minimo: 10, massimo: 5 }], 2)
+  assert.deepEqual(alContrario.invertite, [0])
+  assert.deepEqual(alContrario.buchi, ['tutti i valori'])
+  // nessuna soglia: tutto fuori
+  assert.deepEqual(controllaIntervalli([], 2).buchi, ['tutti i valori'])
+  // le fasce di un totale: non scende sotto 0 ne' supera il massimo
+  const fasce = [{ minimo: 7, massimo: null }, { minimo: 0, massimo: 6 }]
+  assert.deepEqual(controllaIntervalli(fasce, 0, { da: 0 }).buchi, [])
+  assert.deepEqual(controllaIntervalli(fasce, 0).buchi, ['i valori sotto 0'])
+  assert.deepEqual(
+    controllaIntervalli([{ minimo: 0, massimo: 6 }, { minimo: 7, massimo: 10 }], 0, { da: 0, a: 10 }).buchi,
+    []
+  )
+  assert.deepEqual(
+    controllaIntervalli([{ minimo: 0, massimo: 6 }, { minimo: 8, massimo: 10 }], 0, { da: 0, a: 10 }).buchi,
+    ['il valore 7']
+  )
+  // le frasi
+  assert.deepEqual(frasiControllo(controllaIntervalli([{ minimo: 0, massimo: 10 }], 0, { da: 0, a: 10 }), 'x'), [])
+  assert.match(
+    frasiControllo(controllaIntervalli([{ minimo: null, massimo: 89 }, { minimo: 90, massimo: null }], 1), 'resta fuori')[0],
+    /Nessuna riga comprende i valori da 89,1 a 89,9: resta fuori\./
+  )
+  assert.match(
+    frasiControllo(controllaIntervalli([{ minimo: null, massimo: null }, { minimo: 0, massimo: 1 }], 1), 'x')[0],
+    /La riga 2 non si avvera mai/
+  )
+  // le unita' di tempo
+  for (const u of ['s', 'sec', 'Secondi', ' ms ', 'min']) assert.equal(unitaDiTempo(u), true, u)
+  for (const u of ['cm', 'kg', '%', 'N', null, '']) assert.equal(unitaDiTempo(u as string | null), false, String(u))
+}
+
+// --- Promemoria: l'ultima copia fuori dal computer ---
+{
+  const giorno = (a: number, m: number, g: number, h = 12): Date => new Date(a, m - 1, g, h)
+  const fa = (d: Date): string => d.toISOString()
+  assert.equal(giorniDallaCopiaFuori(null), null)
+  assert.equal(giorniDallaCopiaFuori('non una data'), null)
+  // giorni di calendario, non ore: da tarda sera a primo mattino e' un giorno
+  assert.equal(giorniDallaCopiaFuori(fa(giorno(2026, 9, 1, 23)), giorno(2026, 9, 2, 0)), 1)
+  assert.equal(giorniDallaCopiaFuori(fa(giorno(2026, 9, 1)), giorno(2026, 9, 1)), 0)
+  const info = (ultima: string | null, inOneDrive = false): Parameters<typeof avvisoCopiaFuori>[0] => ({
+    inOneDrive,
+    attivo: true,
+    ultimaCopiaFuori: ultima
+  })
+  // mai fatta una copia fuori
+  assert.match(avvisoCopiaFuori(info(null), giorno(2026, 9, 1))!, /Non hai ancora portato una copia fuori/)
+  // recente: niente da dire
+  assert.equal(avvisoCopiaFuori(info(fa(giorno(2026, 9, 1))), giorno(2026, 9, 30)), null) // 29 giorni
+  // da 30 giorni in su si ricorda, con il numero
+  assert.match(avvisoCopiaFuori(info(fa(giorno(2026, 9, 1))), giorno(2026, 10, 1))!, /di 30 giorni fa/)
+  // con le copie gia' in OneDrive sono fuori da sole: non si dice niente
+  assert.equal(avvisoCopiaFuori(info(null, true), giorno(2026, 10, 1)), null)
+  assert.equal(avvisoCopiaFuori(info(fa(giorno(2025, 1, 1)), true), giorno(2026, 10, 1)), null)
 }
 
 // --- Quanto tempo e' passato dall'intervento ---

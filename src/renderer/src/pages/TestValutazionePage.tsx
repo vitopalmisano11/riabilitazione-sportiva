@@ -16,6 +16,7 @@ import Modale from '../components/Modale'
 import ElencoCategorie from '../components/ElencoCategorie'
 import Aiuto from '../components/Aiuto'
 import { errMsg } from '../lib'
+import { unitaDiTempo } from '../../../shared/soglie'
 import { useRileggiDopoSalvataggio, useSalvaUscendo } from '../salvaUscendo'
 import { sposta, useRiordino } from '../riordino'
 
@@ -617,6 +618,12 @@ function Misure({
                 <option value="min">alto (altezze, distanze, forza)</option>
                 <option value="max">basso (tempi)</option>
               </select>
+              {unitaDiTempo(m.unita) && m.cutoff_direzione !== 'max' && (
+                <span className="hint esito-attenzione">
+                  È un tempo: di solito è meglio più basso. Con «alto» la prova migliore sarebbe
+                  quella più lenta.
+                </span>
+              )}
             </div>
 
             <div className="regola-fascia">

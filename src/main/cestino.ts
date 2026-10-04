@@ -150,26 +150,54 @@ export function eliminaConCestino(tabella: string, id: number, tipo: string, eti
     const foto = normalizza(db, raccogli(db, tabella, [id], figli(db)))
     if (foto.length === 0) return
     db.prepare(
-      'INSERT INTO cestino (tipo, etichetta, quando, contenuto) VALUES (?, ?, ?, ?)'
-    ).run(tipo, etichetta, new Date().toISOString(), JSON.stringify(foto))
+      'INSERT INTO cestino (tipo, etichetta, quando, contenuto, righe) VALUES (?, ?, ?, ?, ?)'
+    ).run(tipo, etichetta, new Date().toISOString(), JSON.stringify(foto), contaRighe(foto))
     db.prepare(`DELETE FROM ${tabella} WHERE id = ?`).run(id)
   })()
 }
 
+// Le righe di una fotografia, ognuna una volta sola.
+function contaRighe(foto: Fotografia[]): number {
+  return foto.reduce((n, f) => n + f.righe.length, 0)
+}
+
+// L'elenco non apre il contenuto delle voci: con i referti dentro sarebbe
+// leggere e interpretare megabyte per mostrare un numero. Quel numero sta in una
+// colonna, scritta quando la voce entra nel cestino.
 export function elencoCestino(): VoceCestino[] {
+  return getDb()
+    .prepare('SELECT id, tipo, etichetta, quando, righe FROM cestino ORDER BY quando DESC')
+    .all()
+    .map((v) => {
+      const r = v as Omit<VoceCestino, 'righe'> & { righe: number | null }
+      // una voce di prima della migrazione 54 che la pulizia non ha ancora
+      // completato (succede solo fra l'aggiornamento e il primo accesso)
+      return { ...r, righe: r.righe ?? righeDellaVoce(r.id) }
+    })
+}
+
+// Conta le righe di una voce dal suo contenuto, senza doppioni: le voci scritte
+// prima della correzione del cestino ne possono avere.
+function righeDellaVoce(id: number): number {
   const db = getDb()
-  return (
-    db
-      .prepare('SELECT id, tipo, etichetta, quando, contenuto FROM cestino ORDER BY quando DESC')
-      .all() as (VoceCestino & { contenuto: string })[]
-  ).map(({ contenuto, ...v }) => ({
-    ...v,
-    // contate senza doppioni: le voci scritte prima ne possono avere
-    righe: normalizza(db, JSON.parse(contenuto) as Fotografia[]).reduce(
-      (n, f) => n + f.righe.length,
-      0
-    )
-  }))
+  const voce = db.prepare('SELECT contenuto FROM cestino WHERE id = ?').get(id) as
+    | { contenuto: string }
+    | undefined
+  if (!voce) return 0
+  try {
+    return contaRighe(normalizza(db, JSON.parse(voce.contenuto) as Fotografia[]))
+  } catch {
+    return 0
+  }
+}
+
+// Completa il numero delle voci che non ce l'hanno. Si fa a ogni accesso, con la
+// pulizia: e' un lavoro da fare una volta sola per voce, e non in una lettura.
+function completaRighe(): void {
+  const db = getDb()
+  const senza = db.prepare('SELECT id FROM cestino WHERE righe IS NULL').all() as { id: number }[]
+  const scrivi = db.prepare('UPDATE cestino SET righe = ? WHERE id = ?')
+  for (const { id } of senza) scrivi.run(righeDellaVoce(id), id)
 }
 
 // Come si chiama, in parole semplici, la cosa che manca.
@@ -313,6 +341,7 @@ export function ripuliscilCestino(): void {
   const limite = new Date(Date.now() - GIORNI_IN_CESTINO * 24 * 60 * 60 * 1000).toISOString()
   try {
     getDb().prepare('DELETE FROM cestino WHERE quando < ?').run(limite)
+    completaRighe()
   } catch {
     // database non ancora aperto: si ripulira' al prossimo accesso
   }

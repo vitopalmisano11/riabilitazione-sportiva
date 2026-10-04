@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Plus, X } from 'lucide-react'
+import { CircleAlert, Plus, X } from 'lucide-react'
 import type {
   FasciaPunteggio,
   PunteggioProtocollo,
@@ -11,6 +11,8 @@ import Aiuto from './Aiuto'
 import { errMsg } from '../lib'
 import { toastErrore } from './Toast'
 import { avvisoPunteggio, puntiTesto } from '../../../shared/punteggio'
+import { DECIMALI_MISURA, DECIMALI_PERCENTUALE } from '../../../shared/misure'
+import { controllaIntervalli, frasiControllo } from '../../../shared/soglie'
 
 // Il punteggio del cluster, nella configurazione del protocollo.
 //
@@ -252,6 +254,20 @@ export default function PunteggioCluster({
                       </button>
                     </div>
                   ))}
+                  {/* Gli errori tipici delle soglie si vedono qui, mentre si
+                      scrivono: un buco farebbe uscire il valore "fuori dalle
+                      soglie" davanti al paziente. */}
+                  {frasiControllo(
+                    controllaIntervalli(
+                      r.soglie,
+                      r.lato === 'lsi' && fonte?.perLato ? DECIMALI_PERCENTUALE : DECIMALI_MISURA
+                    ),
+                    'in quel caso il valore resta fuori dalle soglie e il totale è parziale'
+                  ).map((f) => (
+                    <span key={f} className="esito-copia esito-attenzione">
+                      <CircleAlert size={15} /> {f}
+                    </span>
+                  ))}
                   <div>
                     <button
                       className="btn-piccolo"
@@ -316,6 +332,30 @@ export default function PunteggioCluster({
                 </button>
               </div>
             ))}
+            {fasce.length > 0 &&
+              frasiControllo(
+                // i punti sono quasi sempre interi: un totale di 6,5 non esiste, e
+                // fra "da 0 a 6" e "da 7" non c'e' nessun buco
+                controllaIntervalli(
+                  fasce,
+                  regole.every((r) => r.soglie.every((s) => Number.isInteger(Number(s.punti))))
+                    ? 0
+                    : DECIMALI_MISURA,
+                  // il totale non scende sotto il minimo possibile ne' supera il massimo
+                  {
+                    da: regole.reduce(
+                      (somma, r) => somma + Math.min(0, ...r.soglie.map((s) => Number(s.punti) || 0)),
+                      0
+                    ),
+                    a: massimo
+                  }
+                ),
+                'in quel caso il totale resta senza fascia'
+              ).map((f) => (
+                <span key={f} className="esito-copia esito-attenzione">
+                  <CircleAlert size={15} /> {f}
+                </span>
+              ))}
             <div>
               <button
                 className="btn-piccolo"

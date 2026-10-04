@@ -1288,6 +1288,17 @@ export const MIGRATIONS: string[] = [
   //      Si spegne dal profilo, in Impostazioni.
   `
   ALTER TABLE profilo ADD COLUMN iscrizione_in_scheda INTEGER NOT NULL DEFAULT 1;
+  `,
+
+  // 54 - quante righe ha una voce del cestino.
+  //
+  //      L'elenco del cestino leggeva e interpretava il contenuto intero di ogni
+  //      voce (con dentro anche i referti dei pazienti) solo per contare le righe.
+  //      Adesso il numero si scrive quando la voce entra nel cestino. Le voci di
+  //      prima restano senza (NULL): le completa la pulizia del cestino, a ogni
+  //      accesso.
+  `
+  ALTER TABLE cestino ADD COLUMN righe INTEGER;
   `
 ]
 
