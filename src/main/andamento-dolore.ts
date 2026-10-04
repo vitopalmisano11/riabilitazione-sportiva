@@ -5,8 +5,8 @@
 // l'anamnesi iniziale. Qui le due fonti si uniscono in un'unica serie, gia'
 // ordinata, senza chiedere nessun dato nuovo al paziente.
 //
-// Sta in un file suo, senza niente di Electron dentro, cosi' lo smoke test
-// puo' eseguire davvero la query invece di limitarsi a compilarla.
+// Sta in un file suo, senza niente di Electron dentro, cosi' le prove automatiche
+// possono eseguire davvero la query invece di limitarsi a compilarla.
 import { getDb } from './db'
 import type { PuntoAndamentoDolore } from '../shared/types'
 

@@ -1,4 +1,4 @@
-# Controllo automatico a ogni push/pull request: typecheck, smoke test e build.
+# Controllo automatico a ogni push/pull request: typecheck, prove automatiche e build.
 # Non produce l'installer (quello lo fa release.yml sui tag): serve solo a
 # scoprire subito se una modifica rompe qualcosa.
 name: controlli
@@ -20,9 +20,26 @@ jobs:
       - run: npm ci
       - name: Typecheck
         run: npm run typecheck
-      - name: Smoke test (modulo nativo con ABI Node)
+      - name: Prove automatiche (modulo nativo con ABI Node)
         run: |
           npm rebuild better-sqlite3-multiple-ciphers
-          npm run smoke
+          npm run test:node
       - name: Build
         run: npm run build
+
+  # Lo stesso sistema dell'utente: le prove girano dentro a Electron, con il
+  # modulo SQLite compilato per l'app, e la prova del ripristino avvia
+  # Electron per davvero (cartelle dell'app, copie, aggiornamento di archivi vecchi).
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Prove automatiche (dentro a Electron)
+        run: npm test
+      - name: Prova del ripristino delle copie
+        run: npm run smoke:ripristino

@@ -4,7 +4,7 @@
 // Tutto quello che si stampa arriva gia' nei dati: chi lo genera (la finestra
 // nella scheda del paziente) ha gia' fatto compilare quello che mancava. Qui si
 // controlla solo che il foglio abbia senso e si compone l'HTML. Senza niente di
-// Electron dentro, cosi' si prova anche fuori dall'app (lo smoke test).
+// Electron dentro, cosi' si prova anche fuori dall'app (le prove automatiche).
 import { coloriTema } from '../shared/temi'
 import type { CertificatoInput } from '../shared/types'
 import { esc } from './html'

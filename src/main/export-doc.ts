@@ -1,5 +1,5 @@
 // Generazione documenti (HTML per il PDF, docx per Word) da dati già letti.
-// Nessuna dipendenza da Electron: testabile con Node (vedi scripts/smoke.ts).
+// Nessuna dipendenza da Electron: testabile con Node (vedi test/export-seduta.test.ts).
 import { coloriTema } from '../shared/temi'
 import { esc } from './html'
 import { leggiProfilo, righeProfilo, testoIscrizione } from './profilo'

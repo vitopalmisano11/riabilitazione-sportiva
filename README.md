@@ -16,7 +16,7 @@ riabilitazione sportiva. Sostituisce la gestione via file Word. Specifica comple
 npm install        # prima installazione
 npm run dev        # avvia l'app in sviluppo (hot reload)
 npm run typecheck  # controllo tipi
-npm run smoke      # smoke test del database (vedi nota in scripts/smoke.ts)
+npm test           # prove automatiche (cartella test/, vedi CLAUDE.md)
 npm run build:win  # produce l'installer Windows in dist/
 ```
 

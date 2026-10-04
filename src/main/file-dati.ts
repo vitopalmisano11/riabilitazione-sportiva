@@ -1,5 +1,5 @@
 // Spostamento dei file dati tra cartelle. Nessuna dipendenza da Electron:
-// testabile con Node (vedi scripts/smoke.ts).
+// testabile con Node (vedi test/file-dati.test.ts).
 import { copyFileSync, existsSync, mkdirSync, renameSync, rmSync, unlinkSync } from 'fs'
 import { join } from 'path'
 

@@ -40,10 +40,11 @@ npm run dev        # app in sviluppo con hot reload
                    # (per l'utente: scripts/avvia-prova.cmd, collegamento sul Desktop)
 npm run typecheck  # obbligatorio prima di committare
 npm run build      # build di produzione in out/
-npm run smoke:app  # test db/auth/export — da preferire, gira con l'ABI dell'app
-npm run smoke      # stesso test con Node — richiede la ricompilazione, vedi sotto
+npm test           # prove automatiche (Vitest, cartella test/) con l'ABI dell'app
+npm test -- cestino  # solo i file di prova che contengono "cestino"
+npm run test:node  # le stesse prove con Node — richiede la ricompilazione, vedi sotto
 npm run smoke:ripristino  # prova del ripristino delle copie e dell'aggiornamento di un archivio
-                   # vecchio — solo in locale, non in CI (avvia Electron per davvero)
+                   # vecchio (avvia Electron per davvero)
 npm run dev:reset  # azzera i dati di sviluppo (li archivia, non li cancella)
 npm run build:win  # installer Windows in dist/
 ```
@@ -58,18 +59,18 @@ contengono `(dev)` e archivia con un suffisso data/ora invece di cancellare.
 
 ### Trappola: modulo nativo e ABI
 `better-sqlite3-multiple-ciphers` è compilato una volta sola, per l'ABI di **Electron**, perché
-è quella che serve all'app. Node ne vuole un'altra, quindi `npm run smoke` (che gira con Node)
+è quella che serve all'app. Node ne vuole un'altra, quindi `npm run test:node` (che gira con Node)
 pretenderebbe di ricompilarlo avanti e indietro — e non ci riesce nemmeno, se l'app è aperta:
 tiene il file `.node` bloccato.
 
-**Usare `npm run smoke:app`**: esegue lo stesso test dentro il runtime di Electron avviato come
-Node (`ELECTRON_RUN_AS_NODE=1`), quindi con l'ABI già giusta. Nessuna ricompilazione, funziona
+**Usare `npm test`** (`scripts/test-app.mjs`): esegue Vitest dentro il runtime di Electron avviato
+come Node (`ELECTRON_RUN_AS_NODE=1`), quindi con l'ABI già giusta. Nessuna ricompilazione, funziona
 anche con l'app aperta.
 
-`npm run smoke` resta per la CI, dove non c'è un'app aperta; lì serve la sequenza:
+`npm run test:node` resta per la CI su Linux, dove non c'è un'app aperta; lì serve la sequenza:
 ```bash
-npm rebuild better-sqlite3-multiple-ciphers   # -> Node, per lo smoke
-npm run smoke
+npm rebuild better-sqlite3-multiple-ciphers   # -> Node, per le prove
+npm run test:node
 npx @electron/rebuild -f -m .                 # -> Electron, per far ripartire l'app (il -f e' obbligatorio)
 ```
 Se l'app si avvia "muta" senza finestra, è quasi sempre questo: rilanciare l'ultimo comando.
@@ -79,8 +80,15 @@ Se l'app si avvia "muta" senza finestra, è quasi sempre questo: rilanciare l'ul
 `ELECTRON_RUN_AS_NODE=1` non ci sono. `scripts/smoke-ripristino.js` riavvia quindi se stesso
 dentro a Electron avviato per davvero (togliendo `ELECTRON_RUN_AS_NODE` dall'ambiente) ed esegue
 `scripts/smoke-ripristino.ts` con il loader di `tsx`. ABI già giusta, nessuna ricompilazione in
-più. Resta fuori dalla CI, che gira su Linux senza un vero Electron: va lanciato a mano quando si
-tocca `backup.ts`, `db.ts` o le migrazioni. Lavora solo in cartelle temporanee.
+più. Gira nel job Windows della CI; in locale va lanciato quando si tocca `backup.ts`, `db.ts` o
+le migrazioni. Lavora solo in cartelle temporanee.
+
+### Le prove automatiche (`test/`)
+Un file per area (`cestino.test.ts`, `questionari.test.ts`, `auth.test.ts`…). Chi lavora sul
+database chiama `archivioDiProva()` (`test/archivio-di-prova.ts`): un archivio cifrato suo, in
+una cartella temporanea; le prove dello stesso file girano in fila su quell'archivio, file diversi
+non si vedono (un processo per file). Una funzionalità nuova porta con sé la sua prova nel file
+dell'area, o in un file nuovo. Niente dati veri: solo cartelle temporanee.
 
 ## Release
 1. Aggiornare `version` in `package.json` e la sezione novità nel `README.md`.
@@ -95,5 +103,6 @@ tocca `backup.ts`, `db.ts` o le migrazioni. Lavora solo in cartelle temporanee.
   in `main` quando `npm run typecheck` è verde.
 - Prima di iniziare `git pull`; prima di pushare `npm run typecheck`. Messaggi di commit in italiano,
   al presente, che descrivono il "cosa" per l'utente (es. "Diario: menu download PDF/Word").
-- A ogni push GitHub Actions (`.github/workflows/ci.yml`) esegue typecheck, smoke e build:
-  se il badge è rosso, non rilasciare finché non è verde.
+- A ogni push GitHub Actions (`.github/workflows/ci.yml`) esegue typecheck, prove e build su
+  Linux, e le prove più `smoke:ripristino` su Windows: se il badge è rosso, non rilasciare
+  finché non è verde.

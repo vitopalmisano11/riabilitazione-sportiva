@@ -7,7 +7,7 @@
 // l'app. E' piu' comoda della chiave di recupero ma piu' debole (una risposta si
 // indovina piu' facilmente di 32 caratteri a caso), percio' si aggiunge alla
 // chiave, non la sostituisce.
-// Nessuna dipendenza da Electron: testabile con Node (vedi scripts/smoke.ts).
+// Nessuna dipendenza da Electron: testabile con Node (vedi test/auth.test.ts).
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'crypto'
 import { existsSync, readFileSync } from 'fs'
 import { scriviAtomico } from './scrittura'
