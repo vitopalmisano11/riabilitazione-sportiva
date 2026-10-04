@@ -37,7 +37,7 @@ import { generaCertificatoHtml } from '../src/main/certificato'
 import { generaCartella, generaRelazione, SEZIONI } from '../src/main/export-cartella'
 import { esportaArchivio } from '../src/main/esporta-archivio'
 import { leggiTest, salvaTest } from '../src/main/test-valutazione'
-import { valoreDi } from '../src/shared/misure'
+import { esito, lsi, riassumi, superaSoglia, valoreDi } from '../src/shared/misure'
 import { etaInAnni } from '../src/shared/eta'
 import {
   elencoCestino,
@@ -2092,7 +2092,8 @@ assert.equal(
   assert.ok(riassunto.length > 0, 'il riassunto manca')
   assert.ok(riassunto.includes('<b>Forza</b>'), 'raggruppato per qualità')
   assert.ok(riassunto.includes('sul lato operato in Dinamometro'), 'deficit sul lato operato')
-  assert.ok(riassunto.includes('LSI 67%'))
+  // lo stesso numero, con lo stesso decimale, della tabella del report
+  assert.ok(riassunto.includes('LSI 66.7%'))
   assert.ok(riassunto.includes('<b>Reattività</b>: <span class="ok">nella norma</span>'))
   assert.ok(riassunto.includes('In miglioramento</span>: Drop jump prova – Altezza +18%'), 'miglioramento dal primo screening')
   // la variazione nella tabella sta tra parentesi, accanto al numero
@@ -2286,6 +2287,99 @@ assert.equal(etaInAnni('1990-05-10T00:00:00', new Date(2026, 4, 10)), 36)
 assert.equal(etaInAnni(null), null)
 assert.equal(etaInAnni('non una data'), null)
 assert.equal(etaInAnni('2999-01-01'), null) // nato nel futuro: nessuna eta'
+
+// --- Misure dove meno e' meglio (i tempi): prova migliore e LSI nel verso giusto ---
+// Prima "migliore" era sempre il valore piu' alto e l'LSI sempre operato ÷
+// sano: in un test a tempo si prendeva il tempo piu' lento, e un lato operato
+// piu' lento dava un LSI sopra il 100%, cioe' "superato".
+{
+  assert.equal(riassumi([2.4, 2.2], 'migliore', 'max'), 2.2)
+  assert.equal(riassumi([2.4, 2.2], 'peggiore', 'max'), 2.4)
+  assert.equal(riassumi([30, 34], 'migliore', 'min'), 34)
+  assert.equal(riassumi([30, 34], 'migliore', null), 34)
+  // operato (dx) piu' lento del sano: deficit, sotto il 100%
+  assert.equal(Math.round(lsi(2.2, 2.0, 'dx', 'max')! * 10) / 10, 90.9)
+  assert.equal(Math.round(lsi(30, 40, 'dx', 'min')! * 10) / 10, 75)
+  // senza lato operato: il rapporto minore ÷ maggiore, in tutte e due le direzioni
+  assert.equal(lsi(2.0, 2.5, null, 'max'), 80)
+  assert.equal(lsi(2.0, 2.5, null, 'min'), 80)
+  // la soglia si giudica sul numero come si vede (LSI con un decimale)
+  assert.equal(esito(89.96, 90), true) // si legge 90,0%
+  assert.equal(esito(89.94, 90), false) // si legge 89,9%
+  assert.equal(esito(null, 90), null)
+  assert.equal(esito(85, null), null)
+  // una misura con la soglia: al massimo 2,15 s, con due decimali
+  assert.equal(superaSoglia(2.154, 2.15, 'max', 2), true)
+  assert.equal(superaSoglia(2.156, 2.15, 'max', 2), false)
+  assert.equal(superaSoglia(29.996, 30, 'min', 2), true)
+
+  // Nel report: hop a tempo con il lato operato piu' lento
+  const db = getDb()
+  const paz = Number(
+    db.prepare("INSERT INTO pazienti (nome, cognome, arto_operato) VALUES ('Tempo', 'Prova', 'dx')")
+      .run().lastInsertRowid
+  )
+  const tHop = Number(
+    db.prepare(
+      "INSERT INTO test_valutazione (nome, prove, per_lato, lsi_cutoff, qualita) VALUES ('Hop a tempo', 2, 1, 90, 'Velocità')"
+    ).run().lastInsertRowid
+  )
+  // nessuna soglia sulla misura: il verso c'e' lo stesso
+  const mTempo = Number(
+    db.prepare(
+      "INSERT INTO test_misure (test_id, nome, unita, riassunto, cutoff_direzione) VALUES (?, 'Tempo', 's', 'migliore', 'max')"
+    ).run(tHop).lastInsertRowid
+  )
+  const prot = Number(
+    db.prepare("INSERT INTO screening_protocolli (nome, sport) VALUES ('RTP tempi', 'Calcio')").run()
+      .lastInsertRowid
+  )
+  const sez = Number(
+    db.prepare("INSERT INTO screening_sezioni (protocollo_id, nome) VALUES (?, 'Campo')")
+      .run(prot).lastInsertRowid
+  )
+  db.prepare('INSERT INTO screening_voci (sezione_id, test_id, ordine) VALUES (?, ?, 0)').run(sez, tHop)
+  const ses = Number(
+    db.prepare(
+      "INSERT INTO screening_sessioni (paziente_id, protocollo_id, protocollo_nome, sport, data) VALUES (?, ?, 'RTP tempi', 'Calcio', '2026-08-01')"
+    ).run(paz, prot).lastInsertRowid
+  )
+  const v = db.prepare(
+    'INSERT INTO screening_valori (sessione_id, misura_id, lato, prova, valore) VALUES (?, ?, ?, ?, ?)'
+  )
+  v.run(ses, mTempo, 'dx', 1, 2.5)
+  v.run(ses, mTempo, 'dx', 2, 2.4) // migliore a destra: 2,4 (non 2,5)
+  v.run(ses, mTempo, 'sx', 1, 2.0) // migliore a sinistra: 2,0
+  v.run(ses, mTempo, 'sx', 2, 2.1)
+  const { html } = generaReportScreening([ses])
+  const riassunto = html.slice(html.indexOf('class="riassunto"'), html.indexOf('</ul></div>'))
+  // LSI = sano ÷ operato = 2,0 ÷ 2,4 = 83,3%: sotto la soglia, deficit sul lato operato
+  assert.ok(
+    riassunto.includes('sul lato operato in Hop a tempo – Tempo (LSI 83.3%, soglia 90%)'),
+    riassunto
+  )
+  assert.ok(!html.includes('<span class="ok">superato</span>'), 'un lato operato piu’ lento non supera')
+}
+
+// --- Il verso della misura si salva anche senza soglia ---
+{
+  const db = getDb()
+  const t = Number(
+    db.prepare("INSERT INTO test_valutazione (nome, prove) VALUES ('Verso prova', 1)").run().lastInsertRowid
+  )
+  const base = leggiTest(t)
+  salvaTest({
+    ...base,
+    misure: [
+      {
+        id: null, nome: 'Tempo', unita: 's', per_prova: 1, riassunto: 'migliore', calcolo: null,
+        calcolo_a: null, calcolo_b: null, riferimento: null, cutoff: null, cutoff_direzione: 'max'
+      } as never
+    ]
+  })
+  assert.equal(leggiTest(t).misure[0].cutoff_direzione, 'max')
+  assert.equal(leggiTest(t).misure[0].cutoff, null)
+}
 
 // --- Misure calcolate: niente giri chiusi ---
 {

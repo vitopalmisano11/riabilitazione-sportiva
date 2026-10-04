@@ -27,6 +27,15 @@ import { RisultatoCluster } from '../components/PunteggioCluster'
 import MenuScelta from '../components/MenuScelta'
 import { useSalvaUscendo } from '../salvaUscendo'
 import { errMsg, formatData, oggiIso } from '../lib'
+import {
+  arrotonda,
+  DECIMALI_MISURA,
+  DECIMALI_PERCENTUALE,
+  esito,
+  lsi as lsiDi,
+  valoreDi,
+  type RigaValore
+} from '../../../shared/misure'
 
 // Esecuzione di uno screening: si sceglie il paziente e uno dei protocolli
 // programmati in Configurazione, e si scrivono i numeri misurati.
@@ -760,65 +769,39 @@ function Misura({
   // Le misure "a ogni prova" hanno una casella per prova; le altre una sola.
   const colonne = misura.per_prova === 1 ? Array.from({ length: prove }, (_, i) => i + 1) : [null]
 
-  const numero = (id: number, lato: 'dx' | 'sx' | null, prova: number | null): number | null => {
-    const t = valori[chiave(id, lato, prova)]
-    if (t == null || t.trim() === '') return null
-    const n = Number(t.replace(',', '.'))
-    return Number.isFinite(n) ? n : null
-  }
-
-  // Il valore che conta: la prova migliore, la media o la peggiore, come deciso
-  // sulla misura in libreria.
-  const riassumi = (id: number, come: string, lato: 'dx' | 'sx' | null): number | null => {
-    const presi = colonne.map((c) => numero(id, lato, c)).filter((x): x is number => x != null)
-    if (presi.length === 0) return null
-    if (come === 'media') return presi.reduce((a, b) => a + b, 0) / presi.length
-    if (come === 'peggiore') return Math.min(...presi)
-    return Math.max(...presi)
-  }
-
-  const fonte = (id: number | null, lato: 'dx' | 'sx' | null): number | null => {
-    const m = misure.find((x) => x.id === id)
-    return m?.id == null ? null : riassumi(m.id, m.riassunto, lato)
-  }
-
-  const sintesi = useMemo(() => {
-    const perLato = new Map<string, number | null>()
-    for (const lato of lati) {
-      if (calcolata) {
-        const a = fonte(misura.calcolo_a, lato)
-        const b = fonte(misura.calcolo_b, lato)
-        const v =
-          a == null || b == null
-            ? null
-            : misura.calcolo === 'rapporto'
-              ? b === 0
-                ? null
-                : a / b
-              : a - b
-        perLato.set(lato ?? '', v)
-        continue
+  // Le caselle diventano le stesse righe che il report legge dal database, e da
+  // li' i calcoli sono quelli di shared/misure: prova migliore nel verso giusto,
+  // misure calcolate anche da altre calcolate, LSI dei tempi girato. Prima qui
+  // c'era una copia a parte di quei calcoli, e schermo e report potevano dire
+  // due cose diverse.
+  const righe = useMemo((): RigaValore[] => {
+    const tutte: RigaValore[] = []
+    for (const m of misure) {
+      if (m.id == null) continue
+      const prove_ = m.per_prova === 1 ? Array.from({ length: prove }, (_, i) => i + 1) : [null]
+      for (const lato of lati) {
+        for (const prova of prove_) {
+          const t = valori[chiave(m.id, lato, prova)]
+          if (t == null || t.trim() === '') continue
+          const n = Number(t.replace(',', '.'))
+          if (Number.isFinite(n)) tutte.push({ misura_id: m.id, lato, prova, valore: n })
+        }
       }
-      perLato.set(lato ?? '', riassumi(misuraId, misura.riassunto, lato))
     }
-    return perLato
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [valori, misura.riassunto, misura.calcolo, prove])
+    return tutte
+  }, [valori, misure, lati, prove])
 
-  const dx = sintesi.get('dx')
-  const sx = sintesi.get('sx')
-  // L'LSI vero e' arto operato diviso arto sano. Senza sapere quale sia
+  const sintesi = new Map<string, number | null>(
+    lati.map((lato) => [lato ?? '', valoreDi(righe, misura, misure, lato)])
+  )
+
+  const dx = sintesi.get('dx') ?? null
+  const sx = sintesi.get('sx') ?? null
+  // L'LSI vero e' arto operato rispetto all'arto sano. Senza sapere quale sia
   // l'operato resta il confronto fra i due lati, che dice quanto sono diversi
   // ma non in che verso.
-  const operato = artoOperato === 'dx' ? dx : artoOperato === 'sx' ? sx : null
-  const sano = artoOperato === 'dx' ? sx : artoOperato === 'sx' ? dx : null
-  const lsi =
-    operato != null && sano != null && sano > 0
-      ? (operato / sano) * 100
-      : dx != null && sx != null && Math.max(dx, sx) > 0
-        ? (Math.min(dx, sx) / Math.max(dx, sx)) * 100
-        : null
-  const superato = lsi != null && lsiCutoff != null ? lsi >= lsiCutoff : null
+  const lsi = lati.length === 2 ? lsiDi(dx, sx, artoOperato, misura.cutoff_direzione) : null
+  const superato = esito(lsi, lsiCutoff)
 
   return (
     <div className="misura-riga">
@@ -870,7 +853,9 @@ function Misura({
                   ))}
                 <td className="valore-sintesi">
                   {sintesi.get(lato ?? '') != null
-                    ? Number(sintesi.get(lato ?? '')).toFixed(2)
+                    ? arrotonda(Number(sintesi.get(lato ?? '')), DECIMALI_MISURA).toFixed(
+                        DECIMALI_MISURA
+                      )
                     : '—'}
                 </td>
               </tr>
@@ -880,7 +865,8 @@ function Misura({
       </div>
       {lsi != null && (
         <p className={`asimmetria${superato === false ? ' alta' : ''}`}>
-          {artoOperato != null ? 'LSI' : 'Simmetria'} {lsi.toFixed(1)}%
+          {artoOperato != null ? 'LSI' : 'Simmetria'}{' '}
+          {arrotonda(lsi, DECIMALI_PERCENTUALE).toFixed(DECIMALI_PERCENTUALE)}%
           {lsiCutoff != null &&
             (superato ? ` — superato (soglia ${lsiCutoff}%)` : ` — sotto la soglia di ${lsiCutoff}%`)}
         </p>

@@ -602,18 +602,27 @@ function Misure({
               )}
             </div>
 
+            {/* Il verso e' della misura, non della soglia: decide anche qual e'
+                la prova migliore e come si gira l'LSI. Un tempo (salto a
+                cronometro, cambio di direzione) e' migliore quando e' piu'
+                basso, e senza dirlo veniva preso il tempo piu' lento. */}
             <div className="regola-fascia">
-              <span className="regola-parola">superato se</span>
+              <span className="regola-parola">è meglio se è più</span>
               <select
                 value={m.cutoff_direzione ?? 'min'}
-                disabled={m.cutoff == null}
                 onChange={(e) =>
                   modifica(i, { cutoff_direzione: e.target.value as DirezioneCutoff })
                 }
               >
-                <option value="min">almeno</option>
-                <option value="max">al massimo</option>
+                <option value="min">alto (altezze, distanze, forza)</option>
+                <option value="max">basso (tempi)</option>
               </select>
+            </div>
+
+            <div className="regola-fascia">
+              <span className="regola-parola">
+                superato se {m.cutoff_direzione === 'max' ? 'al massimo' : 'almeno'}
+              </span>
               <input
                 type="number"
                 placeholder="soglia"

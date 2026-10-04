@@ -148,7 +148,7 @@ export function calcolaPunteggio(sessioneId: number): RisultatoPunteggio | null 
           const dx = valoreDi(valori, m, tutte, 'dx')
           const sx = valoreDi(valori, m, tutte, 'sx')
           if (r.lato === 'lsi') {
-            valore = lsi(dx, sx, s.arto_operato)
+            valore = lsi(dx, sx, s.arto_operato, m.cutoff_direzione)
             unita = '%'
           } else {
             // Il lato interessato; se nel paziente non e' scritto, il lato

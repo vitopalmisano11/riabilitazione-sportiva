@@ -12,7 +12,17 @@ import { getDb } from './db'
 import { esc } from './html'
 import { coloriTema } from '../shared/temi'
 import { intestazioneHtml } from './export-doc'
-import { asimmetria, esito, lsi, valoreDi, type RigaValore } from '../shared/misure'
+import {
+  arrotonda,
+  asimmetria,
+  DECIMALI_MISURA,
+  DECIMALI_PERCENTUALE,
+  esito,
+  lsi,
+  superaSoglia,
+  valoreDi,
+  type RigaValore
+} from '../shared/misure'
 import type { MisuraTest, RisultatoPunteggio } from '../shared/types'
 import { calcolaPunteggio } from './screening-punteggio'
 
@@ -38,8 +48,10 @@ function distanza(da: string | null, a: string): string | null {
   return resto === 0 ? `${anni} anni` : `${anni} anni e ${resto} mesi`
 }
 
+// Arrotondato come si giudica (vedi arrotonda in shared/misure): il numero
+// stampato e' lo stesso confrontato con la soglia.
 function numero(v: number | null, decimali = 1): string {
-  return v == null ? '—' : v.toFixed(decimali)
+  return v == null ? '—' : arrotonda(v, decimali).toFixed(decimali)
 }
 
 // Quanto e' cambiato rispetto al primo screening del confronto, in percentuale.
@@ -416,7 +428,7 @@ export function generaReportScreening(sessioneIds: number[]): DatiReport {
               const iniziale = storico.length > 1 ? storico[0] : null
               const menoEMeglio = m.cutoff_direzione === 'max'
 
-              const valLsi = perLato ? lsi(dx, sx, latoInteressato) : null
+              const valLsi = perLato ? lsi(dx, sx, latoInteressato, m.cutoff_direzione) : null
               const valAsim = perLato ? asimmetria(dx, sx) : null
               const superato = esito(valLsi, soglia)
 
@@ -433,7 +445,7 @@ export function generaReportScreening(sessioneIds: number[]): DatiReport {
                 const debole: 'dx' | 'sx' =
                   latoInteressato ?? ((menoEMeglio ? dx > sx : dx < sx) ? 'dx' : 'sx')
                 g.deficit.push(
-                  `${nomeLato(debole)} in ${etichetta} (${latoInteressato ? 'LSI' : 'simmetria'} ${numero(valLsi, 0)}%, soglia ${soglia}%)`
+                  `${nomeLato(debole)} in ${etichetta} (${latoInteressato ? 'LSI' : 'simmetria'} ${numero(valLsi, DECIMALI_PERCENTUALE)}%, soglia ${soglia}%)`
                 )
               }
 
@@ -445,10 +457,9 @@ export function generaReportScreening(sessioneIds: number[]): DatiReport {
                 for (const [l, val] of lati) {
                   if (val == null) continue
                   g.giudicati++
-                  const passa = menoEMeglio ? val <= m.cutoff : val >= m.cutoff
-                  if (passa) continue
+                  if (superaSoglia(val, m.cutoff, m.cutoff_direzione, DECIMALI_MISURA)) continue
                   g.deficit.push(
-                    `${l ? `${nomeLato(l)} ` : ''}in ${etichetta} (${numero(val)}${m.unita ? ` ${m.unita}` : ''}, soglia ${menoEMeglio ? 'al massimo' : 'almeno'} ${m.cutoff})`
+                    `${l ? `${nomeLato(l)} ` : ''}in ${etichetta} (${arrotonda(val, DECIMALI_MISURA)}${m.unita ? ` ${m.unita}` : ''}, soglia ${menoEMeglio ? 'al massimo' : 'almeno'} ${m.cutoff})`
                   )
                 }
               }

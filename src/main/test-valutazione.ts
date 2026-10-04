@@ -125,8 +125,10 @@ function riscriviMisure(db: Db, testId: number, misure: MisuraTest[]): void {
     }
   }
   misure.forEach((m, i) => {
-    // senza soglia la direzione non ha significato
-    const direzione = m.cutoff == null ? null : (m.cutoff_direzione ?? 'min')
+    // Il verso (piu' alto o piu' basso e' meglio) e' della misura, non della
+    // soglia: serve anche senza soglia, per scegliere la prova migliore e per
+    // girare l'LSI dei tempi. Prima si perdeva quando la soglia non c'era.
+    const direzione = m.cutoff_direzione ?? 'min'
     const fontiOk =
       m.calcolo != null &&
       m.calcolo_a != null &&
