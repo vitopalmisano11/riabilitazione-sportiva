@@ -46,12 +46,24 @@ import { datiScheda } from './scheda-dati'
 import { esportaArchivio } from './esporta-archivio'
 import { percorsoRegistro, registraErrore, ultimiErrori } from './registro'
 import {
+  dataIt,
   elencoCestino,
   eliminaConCestino,
+  nomeDi,
   ripristina,
   ripuliscilCestino,
   svuotaCestino
 } from './cestino'
+import { elencoSemplice, riordina, type ElencoSemplice } from './elenchi'
+import {
+  aggiornaSeduta,
+  creaSeduta,
+  elencoSedute,
+  eliminaSeduta,
+  focusUsati,
+  leggiSeduta,
+  programmaSeduta
+} from './sedute'
 import {
   attendiCopie,
   copiaFuori,
@@ -129,9 +141,7 @@ import {
   validaData,
   validaImmagine,
   validaLink,
-  validaNumeroPositivo,
-  validaOra,
-  validaScala010
+  validaNumeroPositivo
 } from './validazione'
 import type {
   CertificatoInput,
@@ -176,13 +186,6 @@ function friendly(err: unknown): Error {
   return err instanceof Error ? err : new Error(msg)
 }
 
-// Data leggibile per le etichette del cestino: nel database sta al contrario.
-function dataIt(iso: string | undefined): string {
-  if (!iso) return ''
-  const [a, m, g] = iso.split('-')
-  return g && m && a ? `${g}/${m}/${a}` : iso
-}
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function handle(channel: string, fn: (...args: any[]) => unknown): void {
   ipcMain.handle(channel, async (_event, ...args) => {
@@ -196,6 +199,15 @@ function handle(channel: string, fn: (...args: any[]) => unknown): void {
       throw friendly(err)
     }
   })
+}
+
+// I cinque canali di un elenco fatto solo di nomi (vedi elenchi.ts).
+function registraElenco(prefisso: string, elenco: ElencoSemplice): void {
+  handle(`${prefisso}:list`, () => elenco.elenco())
+  handle(`${prefisso}:create`, (nome: string) => elenco.crea(nome))
+  handle(`${prefisso}:update`, (id: number, nome: string) => elenco.rinomina(id, nome))
+  handle(`${prefisso}:delete`, (id: number) => elenco.elimina(id))
+  handle(`${prefisso}:reorder`, (ids: number[]) => elenco.riordina(ids))
 }
 
 export function registerIpc(): void {
@@ -473,11 +485,7 @@ export function registerIpc(): void {
         .lastInsertRowid
     )
   })
-  handle('patologie:reorder', (ids: number[]) => {
-    const db = getDb()
-    const stmt = db.prepare('UPDATE patologie SET ordine = ? WHERE id = ?')
-    db.transaction(() => ids.forEach((id, i) => stmt.run(i, id)))()
-  })
+  handle('patologie:reorder', (ids: number[]) => riordina('patologie', ids))
   // Poche patologie hanno un percorso al campo: l'interruttore sta qui, cosi'
   // tutte le altre non vedono mai la parola "campo".
   handle('patologie:setCampo', (id: number, attivo: boolean) => {
@@ -486,42 +494,12 @@ export function registerIpc(): void {
   handle('patologie:update', (id: number, nome: string) => {
     getDb().prepare('UPDATE patologie SET nome = ? WHERE id = ?').run(nome.trim(), id)
   })
-  // Nel cestino una voce si riconosce dal nome: "Squat monopodalico", non
-  // "esercizio 42". Tutte le tabelle della libreria hanno la colonna nome.
-  const nomeDi = (tabella: string, id: number): string =>
-    (
-      getDb().prepare(`SELECT nome FROM ${tabella} WHERE id = ?`).get(id) as
-        | { nome: string }
-        | undefined
-    )?.nome ?? 'senza nome'
-
   handle('patologie:delete', (id: number) => {
     eliminaConCestino('patologie', id, 'Patologia', nomeDi('patologie', id))
   })
 
   // ---- Gruppi (dove segui il paziente: Centro, Studio, Domicilio...) ----
-  handle('gruppi:list', () => getDb().prepare('SELECT * FROM gruppi ORDER BY ordine, nome').all())
-  handle('gruppi:create', (nome: string) => {
-    const db = getDb()
-    const { next } = db
-      .prepare('SELECT COALESCE(MAX(ordine), -1) + 1 AS next FROM gruppi')
-      .get() as { next: number }
-    return Number(
-      db.prepare('INSERT INTO gruppi (nome, ordine) VALUES (?, ?)').run(nome.trim(), next)
-        .lastInsertRowid
-    )
-  })
-  handle('gruppi:reorder', (ids: number[]) => {
-    const db = getDb()
-    const stmt = db.prepare('UPDATE gruppi SET ordine = ? WHERE id = ?')
-    db.transaction(() => ids.forEach((id, i) => stmt.run(i, id)))()
-  })
-  handle('gruppi:update', (id: number, nome: string) => {
-    getDb().prepare('UPDATE gruppi SET nome = ? WHERE id = ?').run(nome.trim(), id)
-  })
-  handle('gruppi:delete', (id: number) => {
-    eliminaConCestino('gruppi', id, 'Gruppo', nomeDi('gruppi', id))
-  })
+  registraElenco('gruppi', elencoSemplice('gruppi', 'Gruppo'))
 
   // ---- Distretti (libreria della valutazione obiettiva) ----
   handle('distretti:list', () =>
@@ -542,11 +520,7 @@ export function registerIpc(): void {
   handle('distretti:delete', (id: number) => {
     eliminaConCestino('distretti', id, 'Distretto', nomeDi('distretti', id))
   })
-  handle('distretti:reorder', (ids: number[]) => {
-    const db = getDb()
-    const stmt = db.prepare('UPDATE distretti SET ordine = ? WHERE id = ?')
-    db.transaction(() => ids.forEach((id, i) => stmt.run(i, id)))()
-  })
+  handle('distretti:reorder', (ids: number[]) => riordina('distretti', ids))
 
   handle('patologie:distretti', (patologiaId: number) =>
     (
@@ -782,11 +756,7 @@ export function registerIpc(): void {
   handle('fasi:delete', (id: number) => {
     eliminaConCestino('fasi', id, 'Fase', nomeDi('fasi', id))
   })
-  handle('fasi:reorder', (ids: number[]) => {
-    const db = getDb()
-    const stmt = db.prepare('UPDATE fasi SET ordine = ? WHERE id = ?')
-    db.transaction(() => ids.forEach((id, i) => stmt.run(i, id)))()
-  })
+  handle('fasi:reorder', (ids: number[]) => riordina('fasi', ids))
 
   // ---- Obiettivi ----
   handle('obiettivi:list', (faseId: number) =>
@@ -808,11 +778,7 @@ export function registerIpc(): void {
   handle('obiettivi:delete', (id: number) => {
     eliminaConCestino('obiettivi', id, 'Obiettivo', nomeDi('obiettivi', id))
   })
-  handle('obiettivi:reorder', (ids: number[]) => {
-    const db = getDb()
-    const stmt = db.prepare('UPDATE obiettivi SET ordine = ? WHERE id = ?')
-    db.transaction(() => ids.forEach((id, i) => stmt.run(i, id)))()
-  })
+  handle('obiettivi:reorder', (ids: number[]) => riordina('obiettivi', ids))
 
   // ---- Sezioni (struttura della seduta per fase) ----
   handle('sezioni:list', (faseId: number) => {
@@ -844,11 +810,7 @@ export function registerIpc(): void {
   handle('sezioni:delete', (id: number) => {
     eliminaConCestino('sezioni', id, 'Sezione', nomeDi('sezioni', id))
   })
-  handle('sezioni:reorder', (ids: number[]) => {
-    const db = getDb()
-    const stmt = db.prepare('UPDATE sezioni SET ordine = ? WHERE id = ?')
-    db.transaction(() => ids.forEach((id, i) => stmt.run(i, id)))()
-  })
+  handle('sezioni:reorder', (ids: number[]) => riordina('sezioni', ids))
   handle('sezioni:setCategorie', (sezioneId: number, categoriaIds: number[]) => {
     const db = getDb()
     db.transaction(() => {
@@ -884,11 +846,7 @@ export function registerIpc(): void {
   handle('testAvanzamento:delete', (id: number) => {
     eliminaConCestino('test_avanzamento', id, 'Test di avanzamento', nomeDi('test_avanzamento', id))
   })
-  handle('testAvanzamento:reorder', (ids: number[]) => {
-    const db = getDb()
-    const stmt = db.prepare('UPDATE test_avanzamento SET ordine = ? WHERE id = ?')
-    db.transaction(() => ids.forEach((id, i) => stmt.run(i, id)))()
-  })
+  handle('testAvanzamento:reorder', (ids: number[]) => riordina('test_avanzamento', ids))
 
   // ---- Categorie ----
   // In ordine alfabetico: le categorie sono tante e si cercano per nome, e un
@@ -911,11 +869,7 @@ export function registerIpc(): void {
         .lastInsertRowid
     )
   })
-  handle('categorie:reorder', (ids: number[]) => {
-    const db = getDb()
-    const stmt = db.prepare('UPDATE categorie SET ordine = ? WHERE id = ?')
-    db.transaction(() => ids.forEach((id, i) => stmt.run(i, id)))()
-  })
+  handle('categorie:reorder', (ids: number[]) => riordina('categorie', ids))
   handle('categorie:update', (id: number, nome: string) => {
     getDb().prepare('UPDATE categorie SET nome = ? WHERE id = ?').run(nome.trim(), id)
   })
@@ -1198,11 +1152,7 @@ export function registerIpc(): void {
   handle('screening:delete', (id: number) => {
     eliminaConCestino('screening_protocolli', id, 'Protocollo di screening', nomeDi('screening_protocolli', id))
   })
-  handle('screening:reorder', (ids: number[]) => {
-    const db = getDb()
-    const stmt = db.prepare('UPDATE screening_protocolli SET ordine = ? WHERE id = ?')
-    db.transaction(() => ids.forEach((id, i) => stmt.run(i, id)))()
-  })
+  handle('screening:reorder', (ids: number[]) => riordina('screening_protocolli', ids))
 
   // ---- Screening eseguiti ----
   handle('screeningSvolti:list', (pazienteId: number | null) => elencoScreening(pazienteId))
@@ -1349,82 +1299,19 @@ export function registerIpc(): void {
   })
 
   // ---- Sedute ----
-  function insertFigliSeduta(sedutaId: number | bigint, input: SedutaInput): void {
-    const db = getDb()
-    // Le misure dei segni di riferimento seguono la seduta in cui sono state
-    // prese: si salvano e si cancellano con lei.
-    const insSegno = db.prepare(
-      'INSERT INTO segno_valori (segno_id, seduta_id, valore) VALUES (?, ?, ?)'
-    )
-    for (const v of input.segni) insSegno.run(v.segno_id, sedutaId, v.valore)
-    const insTecnica = db.prepare(
-      'INSERT OR IGNORE INTO seduta_tecniche (seduta_id, tecnica_id) VALUES (?, ?)'
-    )
-    for (const t of input.tecnica_ids ?? []) insTecnica.run(sedutaId, t)
-    const insSez = db.prepare(
-      'INSERT INTO seduta_sezioni (seduta_id, sezione_id, nome, ordine) VALUES (?, ?, ?, ?)'
-    )
-    const sezioneIds = input.sezioni.map(
-      (s, i) => Number(insSez.run(sedutaId, s.sezione_id, s.nome.trim(), i).lastInsertRowid)
-    )
-    const insEs = db.prepare(
-      `INSERT INTO seduta_esercizi (seduta_id, esercizio_id, nome_libero, serie, cluster,
-                                    ripetizioni, rir, carico, recupero_cluster, recupero, nota,
-                                    ordine, seduta_sezione_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    )
-    input.esercizi.forEach((e, i) =>
-      insEs.run(
-        sedutaId,
-        e.esercizio_id,
-        e.nome_libero,
-        e.serie,
-        e.cluster,
-        e.ripetizioni,
-        e.rir,
-        e.carico,
-        e.recupero_cluster,
-        e.recupero,
-        e.nota,
-        i,
-        e.sezioneIndex != null ? (sezioneIds[e.sezioneIndex] ?? null) : null
-      )
-    )
-  }
-
+  // La logica sta in sedute.ts (e' il modello per gli altri domini): qui solo
+  // i canali.
+  handle('sedute:list', (pazienteId: number) => elencoSedute(pazienteId))
+  handle('sedute:focusUsati', () => focusUsati())
+  handle('sedute:get', (id: number) => leggiSeduta(id))
+  handle('sedute:create', (input: SedutaInput) => creaSeduta(input))
+  handle('sedute:update', (id: number, input: SedutaInput) => aggiornaSeduta(id, input))
+  handle('sedute:programma', (origineId: number, date: string[], ora: string | null = null) =>
+    programmaSeduta(origineId, date, ora)
+  )
+  handle('sedute:delete', (id: number) => eliminaSeduta(id))
   // Le sedute di tutti, in un intervallo di date: la schermata della settimana.
   handle('sedute:settimana', (dal: string, al: string) => seduteDellaSettimana(dal, al))
-  handle('archivio:controlla', () => controllaArchivio())
-  handle('sedute:list', (pazienteId: number) =>
-    getDb()
-      .prepare(
-        `SELECT s.id, s.paziente_id, s.data, s.ora, s.focus, s.dolore, s.sforzo, f.nome AS fase_nome,
-           COALESCE(f.campo, 0) AS fase_campo, s.note,
-           s.riferito_andamento, s.riferito, s.trattamento,
-           (SELECT GROUP_CONCAT(t.nome, ' · ')
-              FROM seduta_tecniche st JOIN tecniche t ON t.id = st.tecnica_id
-              WHERE st.seduta_id = s.id) AS tecniche_nomi,
-           (SELECT COUNT(*) FROM seduta_esercizi se WHERE se.seduta_id = s.id) AS num_esercizi
-         FROM sedute s
-         LEFT JOIN fasi f ON f.id = s.fase_id
-         WHERE s.paziente_id = ?
-         ORDER BY s.data DESC, s.id DESC`
-      )
-      .all(pazienteId)
-  )
-  // I focus gia' scritti, dal piu' usato di recente: si ripropongono mentre si
-  // scrive, cosi' "preparazione corsa" si scrive una volta sola.
-  handle('sedute:focusUsati', () =>
-    (
-      getDb()
-        .prepare(
-          `SELECT focus FROM sedute
-           WHERE focus IS NOT NULL AND TRIM(focus) <> ''
-           GROUP BY focus ORDER BY MAX(data) DESC, MAX(id) DESC LIMIT 30`
-        )
-        .all() as { focus: string }[]
-    ).map((r) => r.focus)
-  )
   // Com'era dosato ogni esercizio l'ultima volta che questo paziente l'ha
   // fatto: la query sta in un file suo, cosi' il test la puo' eseguire.
   handle('sedute:ultimaVolta', (pazienteId: number, escludi: number | null) =>
@@ -1433,6 +1320,7 @@ export function registerIpc(): void {
   handle('sedute:precedente', (pazienteId: number, escludi: number | null, finoAl: string) =>
     sedutaPrecedente(pazienteId, escludi, finoAl)
   )
+  handle('archivio:controlla', () => controllaArchivio())
 
   // ---- Tecniche del trattamento ----
   handle('tecniche:list', (includiArchiviate: boolean) =>
@@ -1465,254 +1353,9 @@ export function registerIpc(): void {
   handle('tecniche:setArchiviata', (id: number, archiviata: boolean) => {
     getDb().prepare('UPDATE tecniche SET archiviata = ? WHERE id = ?').run(archiviata ? 1 : 0, id)
   })
-  handle('sedute:get', (id: number) => {
-    const db = getDb()
-    const seduta = db
-      .prepare(
-        'SELECT s.*, f.nome AS fase_nome FROM sedute s LEFT JOIN fasi f ON f.id = s.fase_id WHERE s.id = ?'
-      )
-      .get(id)
-    if (!seduta) throw new Error('Seduta non trovata.')
-    const sezioniRows = db
-      .prepare('SELECT id, sezione_id, nome FROM seduta_sezioni WHERE seduta_id = ? ORDER BY ordine, id')
-      .all(id) as { id: number; sezione_id: number | null; nome: string }[]
-    const esercizi = db
-      .prepare(
-        `SELECT se.esercizio_id, se.nome_libero,
-                COALESCE(e.nome, se.nome_libero) AS nome, c.nome AS categoria_nome, e.link,
-                e.unita_carico,
-                (e.immagine IS NOT NULL) AS ha_immagine,
-                se.serie, se.cluster, se.ripetizioni, se.rir, se.carico, se.recupero_cluster,
-                se.recupero, se.nota, se.seduta_sezione_id
-         FROM seduta_esercizi se
-         LEFT JOIN esercizi e ON e.id = se.esercizio_id
-         LEFT JOIN categorie c ON c.id = e.categoria_id
-         WHERE se.seduta_id = ?
-         ORDER BY se.ordine, se.id`
-      )
-      .all(id) as ({ seduta_sezione_id: number | null } & Record<string, unknown>)[]
-
-    const sezioni = sezioniRows.map((s) => ({
-      sezione_id: s.sezione_id,
-      nome: s.nome,
-      esercizi: esercizi
-        .filter((e) => e.seduta_sezione_id === s.id)
-        .map(({ seduta_sezione_id: _ignora, ...resto }) => resto)
-    }))
-    // esercizi senza sezione (sedute della v1): raggruppati in una sezione unica
-    const orfani = esercizi
-      .filter((e) => e.seduta_sezione_id == null)
-      .map(({ seduta_sezione_id: _ignora, ...resto }) => resto)
-    if (orfani.length > 0) {
-      sezioni.push({ sezione_id: null, nome: 'Esercizi', esercizi: orfani })
-    }
-    const tecnica_ids = (
-      db.prepare('SELECT tecnica_id FROM seduta_tecniche WHERE seduta_id = ?').all(id) as {
-        tecnica_id: number
-      }[]
-    ).map((t) => t.tecnica_id)
-    return { ...seduta, tecnica_ids, sezioni }
-  })
-  function validaSeduta(input: SedutaInput): void {
-    validaData(input.data, 'La data della seduta', { obbligatoria: true })
-    validaOra(input.ora, "L'orario della seduta")
-    validaScala010(input.dolore, 'Il dolore')
-    validaScala010(input.sforzo, 'Lo sforzo percepito')
-    // Ogni riga viene dalla libreria (esercizio_id) oppure e' scritta al volo
-    // per questa seduta (nome_libero): mai tutte e due, mai nessuna delle due.
-    for (const e of input.esercizi) {
-      if ((e.esercizio_id == null) === (e.nome_libero == null)) {
-        throw new Error(
-          "Un esercizio della seduta non ha ne' un esercizio di libreria ne' un nome: riprova."
-        )
-      }
-    }
-  }
-
-  handle('sedute:create', (input: SedutaInput) => {
-    validaSeduta(input)
-    const db = getDb()
-    return db.transaction(() => {
-      const sid = db
-        .prepare(
-          `INSERT INTO sedute (paziente_id, data, ora, fase_id, focus, dolore, sforzo,
-                               riferito_andamento, riferito, trattamento, note)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-        )
-        .run(
-          input.paziente_id,
-          input.data,
-          input.ora,
-          input.fase_id,
-          input.focus,
-          input.dolore,
-          input.sforzo,
-          input.riferito_andamento ?? null,
-          input.riferito ?? null,
-          input.trattamento ?? null,
-          input.note
-        ).lastInsertRowid
-      insertFigliSeduta(sid, input)
-      return Number(sid)
-    })()
-  })
-  // Programmare la settimana: la stessa seduta copiata su piu' giorni. Chi
-  // prepara il lunedi', il mercoledi' e il venerdi' lo fa una volta sola, e poi
-  // il giorno stesso apre quella del giorno e cambia i due esercizi che vuole.
-  handle('sedute:programma', (origineId: number, date: string[], ora: string | null = null) => {
-    validaOra(ora, "L'orario della seduta")
-    for (const data of date) validaData(data, 'La data della seduta', { obbligatoria: true })
-    const db = getDb()
-    const sorgente = db.prepare('SELECT * FROM sedute WHERE id = ?').get(origineId) as
-      | { paziente_id: number; fase_id: number | null; focus: string | null; note: string | null }
-      | undefined
-    if (!sorgente) throw new Error('Seduta da copiare non trovata.')
-    const sezioni = db
-      .prepare('SELECT id, sezione_id, nome FROM seduta_sezioni WHERE seduta_id = ? ORDER BY ordine, id')
-      .all(origineId) as { id: number; sezione_id: number | null; nome: string }[]
-    const esercizi = db
-      .prepare(
-        `SELECT esercizio_id, nome_libero, serie, cluster, ripetizioni, rir, carico,
-                recupero_cluster, recupero, nota, seduta_sezione_id
-         FROM seduta_esercizi WHERE seduta_id = ? ORDER BY ordine, id`
-      )
-      .all(origineId) as {
-      esercizio_id: number | null
-      nome_libero: string | null
-      serie: string | null
-      cluster: string | null
-      ripetizioni: string | null
-      rir: string | null
-      carico: string | null
-      recupero_cluster: string | null
-      recupero: string | null
-      nota: string | null
-      seduta_sezione_id: number | null
-    }[]
-
-    return db.transaction(() => {
-      const create: number[] = []
-      for (const data of date) {
-        const sid = db
-          .prepare(
-            'INSERT INTO sedute (paziente_id, data, ora, fase_id, focus, note) VALUES (?, ?, ?, ?, ?, ?)'
-          )
-          .run(sorgente.paziente_id, data, ora, sorgente.fase_id, sorgente.focus, sorgente.note)
-          .lastInsertRowid
-        insertFigliSeduta(sid, {
-          paziente_id: sorgente.paziente_id,
-          data,
-          // L'orario e' quello scelto per il nuovo appuntamento, non quello
-          // (se mai ce l'aveva) della seduta da cui si copia il programma.
-          ora,
-          fase_id: sorgente.fase_id,
-          focus: sorgente.focus,
-          // Dolore e sforzo non si copiano: sono come e' andata quella volta,
-          // non qualcosa da programmare.
-          dolore: null,
-          sforzo: null,
-          segni: [],
-          // Nemmeno cosa riferisce e il trattamento: si scrivono il giorno stesso.
-          riferito_andamento: null,
-          riferito: null,
-          tecnica_ids: [],
-          trattamento: null,
-          note: sorgente.note,
-          sezioni: sezioni.map((z) => ({ sezione_id: z.sezione_id, nome: z.nome })),
-          esercizi: esercizi.map((e) => ({
-            esercizio_id: e.esercizio_id,
-            nome_libero: e.nome_libero,
-            serie: e.serie,
-            cluster: e.cluster,
-            ripetizioni: e.ripetizioni,
-            rir: e.rir,
-            carico: e.carico,
-            recupero_cluster: e.recupero_cluster,
-            recupero: e.recupero,
-            nota: e.nota,
-            sezioneIndex:
-              e.seduta_sezione_id == null
-                ? null
-                : (() => {
-                    const i = sezioni.findIndex((z) => z.id === e.seduta_sezione_id)
-                    return i < 0 ? null : i
-                  })()
-          }))
-        })
-        create.push(Number(sid))
-      }
-      return create
-    })()
-  })
-  handle('sedute:update', (id: number, input: SedutaInput) => {
-    validaSeduta(input)
-    const db = getDb()
-    db.transaction(() => {
-      db.prepare(
-        `UPDATE sedute SET data = ?, ora = ?, fase_id = ?, focus = ?, dolore = ?, sforzo = ?,
-           riferito_andamento = ?, riferito = ?, trattamento = ?, note = ?
-         WHERE id = ?`
-      ).run(
-        input.data,
-        input.ora,
-        input.fase_id,
-        input.focus,
-        input.dolore,
-        input.sforzo,
-        input.riferito_andamento ?? null,
-        input.riferito ?? null,
-        input.trattamento ?? null,
-        input.note,
-        id
-      )
-      db.prepare('DELETE FROM segno_valori WHERE seduta_id = ?').run(id)
-      db.prepare('DELETE FROM seduta_tecniche WHERE seduta_id = ?').run(id)
-      db.prepare('DELETE FROM seduta_esercizi WHERE seduta_id = ?').run(id)
-      db.prepare('DELETE FROM seduta_sezioni WHERE seduta_id = ?').run(id)
-      insertFigliSeduta(id, input)
-    })()
-  })
-  handle('sedute:delete', (id: number) => {
-    const s = getDb()
-      .prepare(
-        `SELECT s.data, p.nome, p.cognome FROM sedute s
-         JOIN pazienti p ON p.id = s.paziente_id WHERE s.id = ?`
-      )
-      .get(id) as { data: string; nome: string; cognome: string } | undefined
-    eliminaConCestino(
-      'sedute',
-      id,
-      'Seduta',
-      `Seduta del ${dataIt(s?.data)} — ${s?.cognome ?? ''} ${s?.nome ?? ''}`.trim()
-    )
-  })
 
   // ---- Categorie dei questionari ----
-  handle('questionariCategorie:list', () =>
-    getDb().prepare('SELECT * FROM questionario_categorie ORDER BY ordine, nome').all()
-  )
-  handle('questionariCategorie:create', (nome: string) => {
-    const db = getDb()
-    const { next } = db
-      .prepare('SELECT COALESCE(MAX(ordine), -1) + 1 AS next FROM questionario_categorie')
-      .get() as { next: number }
-    return Number(
-      db
-        .prepare('INSERT INTO questionario_categorie (nome, ordine) VALUES (?, ?)')
-        .run(nome.trim(), next).lastInsertRowid
-    )
-  })
-  handle('questionariCategorie:update', (id: number, nome: string) => {
-    getDb().prepare('UPDATE questionario_categorie SET nome = ? WHERE id = ?').run(nome.trim(), id)
-  })
-  handle('questionariCategorie:delete', (id: number) => {
-    eliminaConCestino('questionario_categorie', id, 'Categoria di questionari', nomeDi('questionario_categorie', id))
-  })
-  handle('questionariCategorie:reorder', (ids: number[]) => {
-    const db = getDb()
-    const stmt = db.prepare('UPDATE questionario_categorie SET ordine = ? WHERE id = ?')
-    db.transaction(() => ids.forEach((id, i) => stmt.run(i, id)))()
-  })
+  registraElenco('questionariCategorie', elencoSemplice('questionario_categorie', 'Categoria di questionari'))
 
   // ---- Questionari (PROM) ----
   handle('questionari:list', (includiArchiviati: boolean) =>
@@ -1757,11 +1400,7 @@ export function registerIpc(): void {
     }
     eliminaConCestino('questionari', id, 'Questionario', nomeDi('questionari', id))
   })
-  handle('questionari:reorder', (ids: number[]) => {
-    const db = getDb()
-    const stmt = db.prepare('UPDATE questionari SET ordine = ? WHERE id = ?')
-    db.transaction(() => ids.forEach((id, i) => stmt.run(i, id)))()
-  })
+  handle('questionari:reorder', (ids: number[]) => riordina('questionari', ids))
 
   // ---- Compilazioni di un paziente ----
   handle('compilazioni:list', (pazienteId: number) => elencoCompilazioni(pazienteId))
@@ -1791,30 +1430,7 @@ export function registerIpc(): void {
   })
 
   // ---- Categorie dei test ----
-  handle('testCategorie:list', () =>
-    getDb().prepare('SELECT * FROM test_categorie ORDER BY ordine, nome').all()
-  )
-  handle('testCategorie:create', (nome: string) => {
-    const db = getDb()
-    const { next } = db
-      .prepare('SELECT COALESCE(MAX(ordine), -1) + 1 AS next FROM test_categorie')
-      .get() as { next: number }
-    return Number(
-      db.prepare('INSERT INTO test_categorie (nome, ordine) VALUES (?, ?)').run(nome.trim(), next)
-        .lastInsertRowid
-    )
-  })
-  handle('testCategorie:update', (id: number, nome: string) => {
-    getDb().prepare('UPDATE test_categorie SET nome = ? WHERE id = ?').run(nome.trim(), id)
-  })
-  handle('testCategorie:delete', (id: number) => {
-    eliminaConCestino('test_categorie', id, 'Categoria di test', nomeDi('test_categorie', id))
-  })
-  handle('testCategorie:reorder', (ids: number[]) => {
-    const db = getDb()
-    const stmt = db.prepare('UPDATE test_categorie SET ordine = ? WHERE id = ?')
-    db.transaction(() => ids.forEach((id, i) => stmt.run(i, id)))()
-  })
+  registraElenco('testCategorie', elencoSemplice('test_categorie', 'Categoria di test'))
 
   // ---- Test di valutazione ----
   handle('testValutazione:list', (includiArchiviati: boolean) =>
@@ -1843,11 +1459,7 @@ export function registerIpc(): void {
   handle('testValutazione:delete', (id: number) => {
     eliminaConCestino('test_valutazione', id, 'Test', nomeDi('test_valutazione', id))
   })
-  handle('testValutazione:reorder', (ids: number[]) => {
-    const db = getDb()
-    const stmt = db.prepare('UPDATE test_valutazione SET ordine = ? WHERE id = ?')
-    db.transaction(() => ids.forEach((id, i) => stmt.run(i, id)))()
-  })
+  handle('testValutazione:reorder', (ids: number[]) => riordina('test_valutazione', ids))
 
   // ---- Anamnesi prossima ----
   handle('anamnesi:get', (pazienteId: number) => {
@@ -2135,11 +1747,7 @@ export function registerIpc(): void {
   handle('obiettiviTerapeutici:remove', (id: number) => {
     getDb().prepare('DELETE FROM obiettivi_terapeutici WHERE id = ?').run(id)
   })
-  handle('obiettiviTerapeutici:reorder', (ids: number[]) => {
-    const db = getDb()
-    const stmt = db.prepare('UPDATE obiettivi_terapeutici SET ordine = ? WHERE id = ?')
-    db.transaction(() => ids.forEach((id, i) => stmt.run(i, id)))()
-  })
+  handle('obiettiviTerapeutici:reorder', (ids: number[]) => riordina('obiettivi_terapeutici', ids))
 
   handle('bioimmagini:list', (pazienteId: number) =>
     getDb()

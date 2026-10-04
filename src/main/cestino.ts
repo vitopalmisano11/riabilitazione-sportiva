@@ -144,6 +144,22 @@ function normalizza(db: Db, foto: Fotografia[]): Fotografia[] {
 
 // Elimina mettendo prima da parte la fotografia. L'etichetta e' quello che si
 // legge nel cestino ("Rossi Marco", "Seduta del 03/09/2026").
+// Data leggibile per le etichette del cestino: nel database sta al contrario.
+export function dataIt(iso: string | undefined): string {
+  if (!iso) return ''
+  const [a, m, g] = iso.split('-')
+  return g && m && a ? `${g}/${m}/${a}` : iso
+}
+
+// Nel cestino una voce si riconosce dal nome: "Squat monopodalico", non
+// "esercizio 42". Tutte le tabelle della libreria hanno la colonna nome.
+export function nomeDi(tabella: string, id: number): string {
+  return (
+    (getDb().prepare(`SELECT nome FROM ${tabella} WHERE id = ?`).get(id) as { nome: string } | undefined)
+      ?.nome ?? 'senza nome'
+  )
+}
+
 export function eliminaConCestino(tabella: string, id: number, tipo: string, etichetta: string): void {
   const db = getDb()
   db.transaction(() => {

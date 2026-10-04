@@ -7,7 +7,7 @@ Specifica originale e feedback dell'utente sono nei file `prompt-*.md` alla radi
 ## Stack e struttura
 - Electron + TypeScript + React, bundling con **electron-vite**; SQLite via
   `better-sqlite3-multiple-ciphers` (SQLCipher); Word con `docx`; PDF con `printToPDF`.
-- `src/main/` processo principale: `ipc.ts` (tutti gli handler, uno per canale `entita:azione`),
+- `src/main/` processo principale: `ipc.ts` (tutti i canali, uno per `entita:azione`),
   `db.ts` (apertura db cifrato, migrazioni), `migrations.ts` (array di SQL versionate),
   `auth.ts` (password, recovery key, DEK avvolta), `export*.ts` (PDF/Word),
   `impostazioni.ts` (cartella dati/export), `file-dati.ts` (spostamento file).
@@ -32,8 +32,16 @@ Specifica originale e feedback dell'utente sono nei file `prompt-*.md` alla radi
 ## Regole che contano
 - **Migrazioni**: mai modificare una migrazione già rilasciata; aggiungerne una nuova in coda a
   `MIGRATIONS` in `src/main/migrations.ts`. Il db dell'utente si aggiorna da solo al login.
-- **Nuova funzionalità end-to-end** = tipo in `shared/types.ts` (interfaccia `Api`) → handler in
-  `main/ipc.ts` → voce in `preload/index.ts` → uso in `renderer`. Il typecheck impone la coerenza.
+- **Nuova funzionalità end-to-end** = tipo in `shared/types.ts` (interfaccia `Api`) → logica in un
+  modulo di servizio in `main/` → canale in `main/ipc.ts` → voce in `preload/index.ts` → uso in
+  `renderer`. Il typecheck impone la coerenza.
+- **Logica fuori dai canali**: SQL, validazione e transazioni stanno in un modulo per dominio senza
+  Electron (modello: `main/sedute.ts`; anche `questionari.ts`, `screening.ts`, `valutazione.ts`…);
+  in `ipc.ts` il canale chiama solo il servizio (`handle('sedute:get', (id) => leggiSeduta(id))`).
+  Così le prove in `test/` chiamano il codice vero invece di ricopiarne le query. Gli elenchi
+  ordinabili usano `main/elenchi.ts`: `riordina`, `prossimoOrdine`, e per quelli fatti solo di nomi
+  `elencoSemplice` + `registraElenco` in `ipc.ts`. Diversi domini hanno ancora la logica dentro
+  `ipc.ts`: si spostano a uno a uno con lo stesso modello, ognuno con la sua prova.
 - I dati delle sedute sono **snapshot** (serie/ripetizioni/carico/recupero copiati), gli
   esercizi usati nello storico non si eliminano (si archiviano). La fase è fotografata sulla seduta.
 - Niente `alert()`: usare `toast()` / `toastErrore()` da `components/Toast.tsx`. I `confirm()`
