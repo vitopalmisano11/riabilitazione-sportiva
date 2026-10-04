@@ -243,6 +243,7 @@ function mancanti(db: Db, foto: Fotografia[], idCestino: number): string[] {
       table: string
       from: string
       to: string | null
+      on_delete: string
     }[]
     for (const riga of righe) {
       for (const l of legami) {
@@ -250,6 +251,9 @@ function mancanti(db: Db, foto: Fotografia[], idCestino: number): string[] {
         if (valore == null) continue
         const colonna = l.to ?? 'id'
         if (colonna === 'id' && riportato.has(`${l.table}:${String(valore)}`)) continue
+        // Un legame che il database stesso azzererebbe (ON DELETE SET NULL) non
+        // ferma il ripristino: si azzera anche qui (vedi azzeraLegamiPersi).
+        if (l.on_delete === 'SET NULL') continue
         if (cerca(l.table, colonna, valore)) continue
         persi.set(`${l.table}:${colonna}:${String(valore)}`, { tabella: l.table, colonna, valore })
       }
@@ -281,6 +285,38 @@ function mancanti(db: Db, foto: Fotografia[], idCestino: number): string[] {
   return [...messaggi]
 }
 
+// I legami ON DELETE SET NULL verso qualcosa che non c'e' piu' si azzerano,
+// come avrebbe fatto il database se quella cosa fosse sparita con la riga al
+// suo posto: per esempio il punteggio di un questionario tolto dopo aver messo
+// nel cestino il paziente che l'aveva compilato. Il punteggio salvato resta,
+// con il suo nome; perde solo il rimando.
+function azzeraLegamiPersi(db: Db, foto: Fotografia[]): void {
+  const riportato = new Set<string>()
+  for (const { tabella, righe } of foto) {
+    for (const r of righe) if (typeof r.id === 'number') riportato.add(`${tabella}:${r.id}`)
+  }
+  for (const { tabella, righe } of foto) {
+    const legami = (
+      db.pragma(`foreign_key_list('${tabella}')`) as {
+        table: string
+        from: string
+        to: string | null
+        on_delete: string
+      }[]
+    ).filter((l) => l.on_delete === 'SET NULL')
+    for (const riga of righe) {
+      for (const l of legami) {
+        const valore = riga[l.from]
+        if (valore == null) continue
+        const colonna = l.to ?? 'id'
+        if (colonna === 'id' && riportato.has(`${l.table}:${String(valore)}`)) continue
+        const trovato = db.prepare(`SELECT 1 FROM ${l.table} WHERE ${colonna} = ?`).get(valore)
+        if (trovato === undefined) riga[l.from] = null
+      }
+    }
+  }
+}
+
 export function ripristina(idCestino: number): void {
   const db = getDb()
   const voce = db.prepare('SELECT contenuto FROM cestino WHERE id = ?').get(idCestino) as
@@ -288,6 +324,7 @@ export function ripristina(idCestino: number): void {
     | undefined
   if (!voce) throw new Error('Questa voce del cestino non c’è più.')
   const foto = normalizza(db, JSON.parse(voce.contenuto) as Fotografia[])
+  azzeraLegamiPersi(db, foto)
 
   const mancano = mancanti(db, foto, idCestino)
   if (mancano.length > 0) {
