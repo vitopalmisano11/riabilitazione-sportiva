@@ -64,6 +64,24 @@ supera con *Ulteriori informazioni → Esegui comunque*.
 Le versioni vere dell'app sono quelle di `package.json` e dei tag `vX.Y.Z`: le sezioni «giro di
 feedback» qui sopra sono precedenti e usavano una numerazione propria.
 
+### v0.5.5
+
+- Cestino: un paziente con le misure dei segni (le due o tre cose che si ricontrollano) ora si
+  rimette a posto; prima il ripristino falliva sempre
+- Copie di sicurezza: la copia di chiusura non cancella più quella buona del giorno se la nuova
+  non riesce. Ogni copia si completa prima di prendere il suo nome; se una copia automatica non
+  riesce lo dice all'accesso e in Impostazioni › Dati e backup
+- Screening: nei test a tempo (dove meno è meglio) la prova migliore è quella più bassa e l'LSI si
+  calcola sano ÷ operato. **Da fare una volta:** in Configurazione › Test di valutazione, sulle
+  misure a tempo scegliere «è meglio se è più basso»
+- Screening: le soglie si giudicano sul numero come si vede (niente più «LSI 90,0% — sotto la
+  soglia di 90%»); nel riassunto l'LSI ha un decimale, come nella tabella
+- Punteggio del cluster: un valore che non rientra in nessuna soglia non vale più zero punti in
+  silenzio; compare «fuori dalle soglie» e il totale resta parziale
+- Accesso: se l'archivio non si trova (disco staccato, OneDrive non sincronizzato, impostazioni
+  rovinate, file auth.json mancante) il programma lo dice e fa scegliere cosa fare, invece di
+  proporre un archivio nuovo
+
 ### v0.5.4
 
 - Fix: premendo due volte "Salva seduta" (o Ctrl+S) la seduta finiva due volte nel diario
