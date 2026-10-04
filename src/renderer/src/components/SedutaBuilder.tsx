@@ -555,6 +555,12 @@ export default function SedutaBuilder({
 
   // Vero dopo che un salvataggio della bozza e' fallito e finche' non ne riesce uno.
   const bozzaInErrore = useRef(false)
+  // Vero da quando la seduta si sta salvando (o si e' scelto di buttare la
+  // bozza): un salvataggio della bozza ancora in attesa non deve partire dopo
+  // che la bozza e' stata tolta, o ricompare "c'e' una seduta lasciata a meta'"
+  // per una seduta gia' salvata. Se il salvataggio della seduta fallisce torna
+  // falso e la bozza riprende a salvarsi.
+  const bozzaChiusa = useRef(false)
 
   // La bozza si mette da parte da sola mentre componi, un secondo dopo l'ultima
   // modifica: se l'app si chiude, alla riapertura la ritrovi. Vale solo per le
@@ -577,6 +583,7 @@ export default function SedutaBuilder({
       sezioni
     }
     const attesa = setTimeout(() => {
+      if (bozzaChiusa.current) return
       window.api.bozze
         .salva(paziente.id, JSON.stringify(bozza))
         .then(() => {
@@ -691,6 +698,7 @@ export default function SedutaBuilder({
         tecnicaIds.length > 0)
     ) {
       if (!(await chiedi('Tengo quello che hai messo, per riprenderlo dopo?'))) {
+        bozzaChiusa.current = true
         await window.api.bozze.elimina(paziente.id).catch(() => undefined)
       }
     }
@@ -712,6 +720,18 @@ export default function SedutaBuilder({
     // qualcosa — esercizi, trattamento, cosa riferisce o le note.
     if (!haQualcosa) {
       toastErrore('La seduta è vuota: scrivi cosa riferisce, il trattamento o aggiungi un esercizio.')
+      return false
+    }
+    // Una misura scritta ma non numerica ("5-6", "circa 7") non si puo'
+    // salvare: prima veniva scartata senza dire niente, e sembrava registrata.
+    const nonNumerico = segni.find((g) => {
+      const testo = (misure[g.id] ?? '').trim()
+      return testo !== '' && Number.isNaN(Number(testo.replace(',', '.')))
+    })
+    if (nonNumerico) {
+      toastErrore(
+        `Il valore di «${nonNumerico.nome}» deve essere un numero (per esempio 5 o 5,5): ora c'è scritto «${(misure[nonNumerico.id] ?? '').trim()}».`
+      )
       return false
     }
     const input: SedutaInput = {
@@ -749,6 +769,7 @@ export default function SedutaBuilder({
         }))
       )
     }
+    bozzaChiusa.current = true
     try {
       if (sedutaId == null) await window.api.sedute.create(input)
       else await window.api.sedute.update(sedutaId, input)
@@ -761,6 +782,7 @@ export default function SedutaBuilder({
       if (!smontata.current) onClose(true)
       return true
     } catch (e) {
+      bozzaChiusa.current = false
       toastErrore(errMsg(e))
       return false
     }
