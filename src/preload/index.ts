@@ -316,6 +316,8 @@ const api: Api = {
     create: (nome: string, categoriaId: number) =>
       invoke('questionari:create', nome, categoriaId),
     salva: (dati: QuestionarioCompleto) => invoke('questionari:salva', dati),
+    daRicalcolare: (id: number) => invoke('questionari:daRicalcolare', id),
+    ricalcolaCompilazioni: (id: number) => invoke('questionari:ricalcolaCompilazioni', id),
     setArchiviato: (id: number, archiviato: boolean) =>
       invoke('questionari:setArchiviato', id, archiviato),
     remove: (id: number) => invoke('questionari:delete', id),
@@ -326,6 +328,7 @@ const api: Api = {
     risposte: (compilazioneId: number) => invoke('compilazioni:risposte', compilazioneId),
     create: (dati: CompilazioneInput) => invoke('compilazioni:create', dati),
     update: (id: number, dati: CompilazioneInput) => invoke('compilazioni:update', id, dati),
+    ricalcola: (id: number) => invoke('compilazioni:ricalcola', id),
     remove: (id: number) => invoke('compilazioni:delete', id)
   },
   testCategorie: {

@@ -139,7 +139,8 @@ export function calcolaPunteggio(sessioneId: number): RisultatoPunteggio | null 
   const compilatoStmt = db.prepare(
     `SELECT cp.valore FROM screening_questionari sq
      JOIN compilazione_punteggi cp ON cp.compilazione_id = sq.compilazione_id
-     WHERE sq.sessione_id = ? AND sq.questionario_id = ? AND cp.nome = ?`
+     WHERE sq.sessione_id = ? AND sq.questionario_id = ?
+       AND (cp.punteggio_id = ? OR (cp.punteggio_id IS NULL AND cp.nome = ?))`
   )
 
   const voci: VoceRisultato[] = regole.map((r): VoceRisultato => {
@@ -179,7 +180,7 @@ export function calcolaPunteggio(sessioneId: number): RisultatoPunteggio | null 
         | { nome: string; questionario_id: number }
         | undefined
       if (p) {
-        const c = compilatoStmt.get(sessioneId, p.questionario_id, p.nome) as
+        const c = compilatoStmt.get(sessioneId, p.questionario_id, r.punteggio_id, p.nome) as
           | { valore: number }
           | undefined
         valore = c ? Number(c.valore) : null

@@ -59,9 +59,12 @@ import {
 } from '../src/main/screening'
 import {
   aggiornaCompilazione,
+  contaDaRicalcolare,
   elencoCompilazioni,
   leggiQuestionario,
   calcola,
+  ricalcolaCompilazione,
+  ricalcolaQuestionario,
   salvaCompilazione,
   salvaQuestionario
 } from '../src/main/questionari'
@@ -106,7 +109,7 @@ db.pragma('foreign_keys = ON')
 
 runMigrations(db)
 runMigrations(db) // idempotente
-assert.equal(db.pragma('user_version', { simple: true }), 54)
+assert.equal(db.pragma('user_version', { simple: true }), 55)
 // gli indici delle ricerche frequenti ci sono
 for (const indice of ['idx_segno_valori_seduta', 'idx_compilazione_punteggi_compilazione', 'idx_sedute_data']) {
   assert.ok(
@@ -732,11 +735,15 @@ assert.equal(
     }))
 
   // due sole risposte affermative -> totale 2 -> fascia bassa
+  const nomiValori = (p: { nome: string; valore: number }[]): { nome: string; valore: number }[] =>
+    p.map(({ nome, valore }) => ({ nome, valore }))
   let esito = calcola(qId, rispondi([1, 2]))
-  assert.deepEqual(esito.punteggi, [
+  assert.deepEqual(nomiValori(esito.punteggi), [
     { nome: 'Totale', valore: 2 },
     { nome: 'Sub', valore: 0 }
   ])
+  // ogni punteggio sa da quale punteggio del questionario viene
+  assert.ok(esito.punteggi.every((p) => typeof p.punteggio_id === 'number'))
   assert.equal(esito.fascia, 'Basso')
 
   // totale 5 ma sub 1: la regola "Alto" non si avvera, vince "Medio"
@@ -745,7 +752,7 @@ assert.equal(
 
   // totale 5 e sub 5: vince "Alto", che viene prima di "Medio"
   esito = calcola(qId, rispondi([5, 6, 7, 8, 9]))
-  assert.deepEqual(esito.punteggi, [
+  assert.deepEqual(nomiValori(esito.punteggi), [
     { nome: 'Totale', valore: 5 },
     { nome: 'Sub', valore: 5 }
   ])
@@ -833,9 +840,10 @@ assert.equal(
     risposte: []
   }), /non trovata/)
 
-  // Una fascia definita DOPO deve valere anche per le compilazioni gia' fatte:
-  // l'esito si ricalcola quando si legge, altrimenti lo stesso questionario
-  // mostrerebbe il profilo di rischio in certe date e in altre no.
+  // Una fascia definita DOPO: le compilazioni gia' fatte restano com'erano
+  // (punteggi e fascia sono una fotografia del giorno), ma si riconoscono come
+  // "da ricalcolare" e si ricalcolano quando lo si chiede. Leggere l'elenco non
+  // cambia niente nel database.
   const qTardi = Number(
     getDb()
       .prepare('INSERT INTO questionari (categoria_id, nome, ordine) VALUES (?, ?, 1)')
@@ -911,12 +919,16 @@ assert.equal(
       }
     ]
   })
-  const elenco = elencoCompilazioni(pazQ) as {
-    id: number
-    fascia: string | null
-    variazione: { punti: number; percentuale: number; significativa: boolean; dal: string } | null
-  }[]
+  const primaDelRicalcolo = elencoCompilazioni(pazQ).find((x) => x.id === compSenza)!
+  assert.equal(primaDelRicalcolo.fascia, null, 'la fascia di quel giorno non c’era')
+  assert.equal(primaDelRicalcolo.daRicalcolare, true)
+  assert.equal(fasciaSalvata(), null, 'leggere l’elenco non scrive niente')
+  assert.equal(contaDaRicalcolare(qTardi), 1)
+  assert.equal(ricalcolaQuestionario(qTardi), 1)
+  assert.equal(contaDaRicalcolare(qTardi), 0)
+  const elenco = elencoCompilazioni(pazQ)
   assert.equal(elenco.find((x) => x.id === compSenza)?.fascia, 'Presente')
+  assert.equal(elenco.find((x) => x.id === compSenza)?.daRicalcolare, false)
   // Il questionario senza soglia non dice niente sul cambiamento.
   assert.equal(elenco.find((x) => x.id === compSenza)?.variazione, null)
 
@@ -966,6 +978,50 @@ assert.equal(
   }
   // il valore ricalcolato resta scritto: anche la cartella stampata lo legge da li'
   assert.equal(fasciaSalvata(), 'Presente')
+
+  // --- Rinominare un punteggio non perde il confronto con la prima volta ---
+  {
+    const conVariazione = (): number =>
+      elencoCompilazioni(pazQ).filter((x) => x.questionario_id === qId && x.variazione != null).length
+    const prima = conVariazione()
+    assert.ok(prima > 0)
+    const def = leggiQuestionario(qId)
+    salvaQuestionario({
+      ...def,
+      punteggi: def.punteggi.map((p) => (p.nome === 'Totale' ? { ...p, nome: 'Totale ODI' } : p))
+    })
+    assert.equal(conVariazione(), prima, 'il confronto si aggancia all’id, non al nome')
+    // il nome e' cambiato, i numeri no: niente da ricalcolare
+    assert.equal(contaDaRicalcolare(qId), 0)
+    // il punteggio salvato si chiama ancora come quel giorno
+    const salvati = elencoCompilazioni(pazQ).find((x) => x.id === compId)!.punteggi
+    assert.ok(salvati.some((p) => p.nome === 'Totale'))
+
+    // Cambia la formula: "Sub" perde una domanda. Le compilazioni con una
+    // risposta su quella domanda diventano "da ricalcolare", e restano con i
+    // numeri di allora finche' non lo si chiede.
+    const def2 = leggiQuestionario(qId)
+    const sub = def2.punteggi.find((p) => p.nome === 'Sub')!
+    salvaQuestionario({
+      ...def2,
+      punteggi: def2.punteggi.map((p) =>
+        p.id === sub.id ? { ...p, domanda_ids: p.domanda_ids.slice(1) } : p
+      )
+    })
+    const daFare = contaDaRicalcolare(qId)
+    assert.ok(daFare > 0, 'una formula cambiata si vede')
+    const vecchio = elencoCompilazioni(pazQ).find((x) => x.id === compId)!
+    assert.equal(vecchio.daRicalcolare, true)
+    const subPrima = vecchio.punteggi.find((p) => p.nome === 'Sub')!.valore
+    ricalcolaCompilazione(compId)
+    const nuovo = elencoCompilazioni(pazQ).find((x) => x.id === compId)!
+    assert.equal(nuovo.daRicalcolare, false)
+    assert.equal(nuovo.punteggi.find((p) => p.nome === 'Sub')!.valore, subPrima - 1)
+    assert.equal(contaDaRicalcolare(qId), daFare - 1)
+    assert.equal(ricalcolaQuestionario(qId), daFare - 1)
+    assert.equal(contaDaRicalcolare(qId), 0)
+    assert.throws(() => ricalcolaCompilazione(999999), /non trovata/)
+  }
 }
 
 // --- Duplicare una valutazione: i rilievi si copiano, i racconti no ---
@@ -1993,6 +2049,79 @@ assert.equal(
   assert.equal(avvisoCopiaFuori(info(fa(giorno(2025, 1, 1)), true), giorno(2026, 10, 1)), null)
 }
 
+// --- Migrazione 55: i punteggi gia' salvati si agganciano al loro punteggio, per nome ---
+{
+  const cartella55 = mkdtempSync(join(tmpdir(), 'riab-m55-'))
+  const vecchio = new Database(join(cartella55, 'prima-della-55.db'))
+  vecchio.pragma('foreign_keys = ON')
+  for (let i = 0; i < 54; i++) {
+    vecchio.exec(MIGRATIONS[i])
+    vecchio.pragma(`user_version = ${i + 1}`)
+  }
+  const ins = (sql: string, ...a: unknown[]): number => Number(vecchio.prepare(sql).run(...a).lastInsertRowid)
+  const q1 = ins("INSERT INTO questionari (nome) VALUES ('Q uno')")
+  const q2 = ins("INSERT INTO questionari (nome) VALUES ('Q due')")
+  const tot1 = ins("INSERT INTO questionario_punteggi (questionario_id, nome, ordine) VALUES (?, 'Totale', 0)", q1)
+  const sub1 = ins("INSERT INTO questionario_punteggi (questionario_id, nome, ordine) VALUES (?, 'Sub', 1)", q1)
+  const tot2 = ins("INSERT INTO questionario_punteggi (questionario_id, nome, ordine) VALUES (?, 'Totale', 0)", q2)
+  const pz = ins("INSERT INTO pazienti (nome, cognome) VALUES ('Mig', 'Cinquantacinque')")
+  const c1 = ins("INSERT INTO paziente_questionari (paziente_id, questionario_id, data) VALUES (?, ?, '2026-01-01')", pz, q1)
+  const c2 = ins("INSERT INTO paziente_questionari (paziente_id, questionario_id, data) VALUES (?, ?, '2026-01-02')", pz, q2)
+  const punto = vecchio.prepare(
+    'INSERT INTO compilazione_punteggi (compilazione_id, nome, valore, ordine) VALUES (?, ?, ?, ?)'
+  )
+  punto.run(c1, 'Totale', 10, 0)
+  punto.run(c1, 'Sub', 3, 1)
+  punto.run(c1, 'Tolto da tempo', 1, 2)
+  punto.run(c2, 'Totale', 7, 0)
+  runMigrations(vecchio)
+  assert.equal(vecchio.pragma('user_version', { simple: true }), MIGRATIONS.length)
+  const agganci = vecchio
+    .prepare('SELECT compilazione_id AS c, nome, punteggio_id AS p FROM compilazione_punteggi ORDER BY c, ordine')
+    .all() as { c: number; nome: string; p: number | null }[]
+  assert.deepEqual(agganci, [
+    { c: c1, nome: 'Totale', p: tot1 },
+    { c: c1, nome: 'Sub', p: sub1 },
+    { c: c1, nome: 'Tolto da tempo', p: null }, // non c'e' piu': resta il nome
+    { c: c2, nome: 'Totale', p: tot2 } // lo stesso nome, ma del suo questionario
+  ])
+  // togliendo il punteggio dal questionario il rimando si azzera, il valore resta
+  vecchio.prepare('DELETE FROM questionario_punteggi WHERE id = ?').run(sub1)
+  assert.deepEqual(
+    vecchio.prepare("SELECT punteggio_id AS p, valore FROM compilazione_punteggi WHERE nome = 'Sub'").get(),
+    { p: null, valore: 3 }
+  )
+  vecchio.close()
+  rmSync(cartella55, { recursive: true, force: true })
+}
+
+// --- Cestino: un rimando che il database azzererebbe non blocca il ripristino ---
+// Il paziente va nel cestino; poi dal questionario che aveva compilato si toglie
+// un punteggio. Rimettendolo a posto, il punteggio salvato torna con il suo nome
+// e senza il rimando, invece di bloccare tutto.
+{
+  const c = getDb()
+  const ins = (sql: string, ...a: unknown[]): number => Number(c.prepare(sql).run(...a).lastInsertRowid)
+  svuotaCestino()
+  const q = ins("INSERT INTO questionari (nome) VALUES ('Cestino e punteggi')")
+  const tot = ins("INSERT INTO questionario_punteggi (questionario_id, nome, ordine) VALUES (?, 'Totale', 0)", q)
+  const pz = ins("INSERT INTO pazienti (nome, cognome) VALUES ('Set', 'Null')")
+  const comp = ins("INSERT INTO paziente_questionari (paziente_id, questionario_id, data) VALUES (?, ?, '2026-09-01')", pz, q)
+  ins(
+    "INSERT INTO compilazione_punteggi (compilazione_id, punteggio_id, nome, valore, ordine) VALUES (?, ?, 'Totale', 12, 0)",
+    comp,
+    tot
+  )
+  eliminaConCestino('pazienti', pz, 'Paziente', 'Null Set')
+  c.prepare('DELETE FROM questionario_punteggi WHERE id = ?').run(tot)
+  ripristina(elencoCestino()[0].id)
+  assert.deepEqual(
+    c.prepare('SELECT punteggio_id AS p, nome, valore FROM compilazione_punteggi WHERE compilazione_id = ?').get(comp),
+    { p: null, nome: 'Totale', valore: 12 }
+  )
+  assert.equal(elencoCestino().length, 0)
+}
+
 // --- Quanto tempo e' passato dall'intervento ---
 // Si conta in mesi e settimane, buttando via i giorni che avanzano: e' il modo
 // in cui si ragiona in riabilitazione.
@@ -2409,6 +2538,12 @@ assert.equal(
   assert.equal(arrotondato.voci[2].valore, 95)
   assert.equal(arrotondato.voci[2].punti, 1)
   db.prepare('UPDATE compilazione_punteggi SET valore = 96 WHERE compilazione_id = ?').run(comp)
+
+  // il punteggio del questionario si ritrova per id: rinominarlo non lo perde
+  db.prepare('UPDATE compilazione_punteggi SET punteggio_id = ? WHERE compilazione_id = ?').run(pFaam, comp)
+  db.prepare("UPDATE questionario_punteggi SET nome = 'Totale ADL' WHERE id = ?").run(pFaam)
+  assert.equal(calcolaPunteggio(sessione)!.voci[2].punti, 2)
+  db.prepare("UPDATE questionario_punteggi SET nome = 'Totale' WHERE id = ?").run(pFaam)
 
   // un totale completo che non cade in nessuna fascia si dice
   assert.match(

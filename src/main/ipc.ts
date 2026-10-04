@@ -89,7 +89,10 @@ import {
 } from './export'
 import {
   aggiornaCompilazione,
+  contaDaRicalcolare,
   leggiQuestionario,
+  ricalcolaCompilazione,
+  ricalcolaQuestionario,
   salvaCompilazione,
   salvaQuestionario,
   elencoCompilazioni
@@ -1707,6 +1710,8 @@ export function registerIpc(): void {
     )
   })
   handle('questionari:salva', (dati: QuestionarioCompleto) => salvaQuestionario(dati))
+  handle('questionari:daRicalcolare', (id: number) => contaDaRicalcolare(id))
+  handle('questionari:ricalcolaCompilazioni', (id: number) => ricalcolaQuestionario(id))
   handle('questionari:setArchiviato', (id: number, archiviato: boolean) => {
     getDb().prepare('UPDATE questionari SET archiviato = ? WHERE id = ?').run(archiviato ? 1 : 0, id)
   })
@@ -1742,6 +1747,7 @@ export function registerIpc(): void {
   handle('compilazioni:update', (id: number, dati: CompilazioneInput) =>
     aggiornaCompilazione(id, dati)
   )
+  handle('compilazioni:ricalcola', (id: number) => ricalcolaCompilazione(id))
   handle('compilazioni:delete', (id: number) => {
     const c = getDb()
       .prepare(

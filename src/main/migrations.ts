@@ -1299,6 +1299,34 @@ export const MIGRATIONS: string[] = [
   //      accesso.
   `
   ALTER TABLE cestino ADD COLUMN righe INTEGER;
+  `,
+
+  // 55 - il punteggio salvato di una compilazione sa da quale punteggio del
+  //      questionario viene.
+  //
+  //      Fino a qui si riconosceva solo dal nome: rinominare "Totale" in
+  //      "Punteggio totale" faceva sparire il confronto con la prima volta (il
+  //      cambiamento che conta), e il punteggio di un questionario dentro il
+  //      cluster dello screening. Il nome resta, perche' e' come si chiamava
+  //      quel giorno; l'id serve a ritrovarlo. Se il punteggio viene tolto dal
+  //      questionario l'id diventa NULL e resta il nome.
+  //
+  //      Le compilazioni gia' fatte si agganciano per nome, dentro al loro
+  //      questionario.
+  `
+  ALTER TABLE compilazione_punteggi ADD COLUMN punteggio_id INTEGER
+    REFERENCES questionario_punteggi(id) ON DELETE SET NULL;
+
+  UPDATE compilazione_punteggi SET punteggio_id = (
+    SELECT qp.id FROM questionario_punteggi qp
+    JOIN paziente_questionari pq ON pq.questionario_id = qp.questionario_id
+    WHERE pq.id = compilazione_punteggi.compilazione_id
+      AND qp.nome = compilazione_punteggi.nome
+    ORDER BY qp.ordine, qp.id
+    LIMIT 1
+  );
+
+  CREATE INDEX idx_compilazione_punteggi_punteggio ON compilazione_punteggi(punteggio_id);
   `
 ]
 

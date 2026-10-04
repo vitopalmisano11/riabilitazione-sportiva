@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Eye, Pencil, Plus, Trash2 } from 'lucide-react'
+import { Eye, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react'
 import type {
   CategoriaQuestionario,
   CompilazioneRiepilogo,
   PazienteDettaglio,
   Questionario
 } from '../../../shared/types'
-import { toastErrore } from './Toast'
+import { toast, toastErrore } from './Toast'
 import { chiedi } from './Conferma'
 import Modale from './Modale'
 import { errMsg, formatData } from '../lib'
@@ -57,6 +57,30 @@ export default function QuestionariPaziente({
     }
   }
 
+  // Punteggi e fascia sono quelli del giorno della compilazione: se nel
+  // frattempo le regole del questionario sono cambiate, si ricalcolano solo
+  // quando lo si chiede.
+  const ricalcola = async (c: CompilazioneRiepilogo): Promise<void> => {
+    if (
+      !(await chiedi({
+        titolo: 'Ricalcolare questa compilazione?',
+        testo:
+          `Punteggi e fascia si ricalcolano con le regole di adesso di «${c.questionario_nome}». ` +
+          'Le risposte non cambiano. I valori di prima non si potranno ritrovare.',
+        conferma: 'Ricalcola'
+      }))
+    ) {
+      return
+    }
+    try {
+      await window.api.compilazioni.ricalcola(c.id)
+      toast('Compilazione ricalcolata.')
+      await load()
+    } catch (e) {
+      toastErrore(errMsg(e))
+    }
+  }
+
   return (
     <section className="card">
       <div className="card-header-row">
@@ -88,6 +112,14 @@ export default function QuestionariPaziente({
                 <span className="seduta-data">{formatData(c.data)}</span>
                 <span className="seduta-meta">{c.questionario_nome}</span>
                 {c.note && <span className="seduta-obiettivi">{c.note}</span>}
+                {c.daRicalcolare && (
+                  <span className="hint esito-attenzione">
+                    Calcolata con regole del questionario diverse da quelle di adesso.{' '}
+                    <button className="link-btn" onClick={() => void ricalcola(c)}>
+                      <RefreshCw size={13} /> Ricalcola
+                    </button>
+                  </span>
+                )}
                 {/* Quanto e' cambiato rispetto alla prima volta, e se il
                     cambiamento e' abbastanza grande da contare: compare solo
                     per i questionari che hanno la soglia scritta. */}

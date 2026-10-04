@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ChevronRight, Copy, Pencil, Plus, X } from 'lucide-react'
+import { ChevronRight, CircleAlert, Copy, Pencil, Plus, RefreshCw, X } from 'lucide-react'
 import type {
   CategoriaQuestionario,
   DomandaQuestionario,
@@ -322,13 +322,25 @@ function EditorQuestionario({
   const [modificato, setModificato] = useState(false)
   // uscendo con modifiche non salvate, si salvano da sole
   const salvaUscendo = useSalvaUscendo(modificato)
+  // Le compilazioni gia' fatte che con le regole di adesso darebbero punteggi o
+  // fascia diversi: restano com'erano finche' non si chiede di ricalcolarle.
+  const [daRicalcolare, setDaRicalcolare] = useState(0)
+  const contaDaRicalcolare = useCallback(
+    (): Promise<void> =>
+      window.api.questionari
+        .daRicalcolare(id)
+        .then(setDaRicalcolare)
+        .catch(() => undefined),
+    [id]
+  )
 
   useEffect(() => {
     window.api.questionari
       .get(id)
       .then(setDati)
       .catch((e) => toastErrore(errMsg(e)))
-  }, [id])
+    void contaDaRicalcolare()
+  }, [id, contaDaRicalcolare])
 
   if (!dati) return <p className="hint">Caricamento…</p>
 
@@ -344,6 +356,7 @@ function EditorQuestionario({
       setDati(fresco)
       setModificato(false)
       await onChanged()
+      await contaDaRicalcolare()
       toast('Questionario salvato.')
       return true
     } catch (e) {
@@ -352,6 +365,28 @@ function EditorQuestionario({
     }
   }
   salvaUscendo.current = salva
+
+  const ricalcolaTutte = async (): Promise<void> => {
+    if (
+      !(await chiedi({
+        titolo: 'Ricalcolare le compilazioni già fatte?',
+        testo:
+          `${daRicalcolare === 1 ? 'Una compilazione' : `${daRicalcolare} compilazioni`} di «${dati.questionario.nome}» ` +
+          'avranno punteggi e fascia calcolati con le regole di adesso. Le risposte non cambiano. ' +
+          'I valori di prima non si potranno ritrovare.',
+        conferma: 'Ricalcola'
+      }))
+    ) {
+      return
+    }
+    try {
+      const fatte = await window.api.questionari.ricalcolaCompilazioni(id)
+      toast(fatte === 1 ? 'Ricalcolata una compilazione.' : `Ricalcolate ${fatte} compilazioni.`)
+      await contaDaRicalcolare()
+    } catch (e) {
+      toastErrore(errMsg(e))
+    }
+  }
 
   return (
     <section className="card">
@@ -401,6 +436,21 @@ function EditorQuestionario({
           punteggi={dati.punteggi}
           onChange={(questionario) => aggiorna({ questionario })}
         />
+      )}
+
+      {daRicalcolare > 0 && !modificato && (
+        <div className="esito-copia esito-attenzione">
+          <CircleAlert size={15} />
+          <span>
+            {daRicalcolare === 1
+              ? 'Una compilazione già fatta è stata calcolata'
+              : `${daRicalcolare} compilazioni già fatte sono state calcolate`}{' '}
+            con regole diverse da quelle di adesso: mostrano ancora punteggi e fascia di allora.{' '}
+            <button className="link-btn" onClick={() => void ricalcolaTutte()}>
+              <RefreshCw size={13} /> Ricalcolale con le regole di adesso
+            </button>
+          </span>
+        </div>
       )}
 
       <div className="modal-actions">

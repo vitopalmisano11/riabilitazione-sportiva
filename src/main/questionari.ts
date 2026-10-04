@@ -6,12 +6,14 @@ import { eliminaMancanti } from './figli'
 import { validaData } from './validazione'
 import type {
   CompilazioneInput,
+  CompilazioneRiepilogo,
   DomandaQuestionario,
   FasciaQuestionario,
   OpzioneDomanda,
   PunteggioQuestionario,
   Questionario,
-  QuestionarioCompleto
+  QuestionarioCompleto,
+  VariazioneCompilazione
 } from '../shared/types'
 
 export function leggiQuestionario(id: number): QuestionarioCompleto {
@@ -198,18 +200,35 @@ export function salvaQuestionario(dati: QuestionarioCompleto): void {
 
 // ---- Calcolo di punteggi e fascia ----
 
+// Un punteggio calcolato: il nome com'era quel giorno (resta leggibile anche se
+// il punteggio viene rinominato o tolto) e il punteggio del questionario da cui
+// viene, a cui si aggancia il confronto con la prima volta.
+export interface PunteggioCalcolato {
+  punteggio_id: number | null
+  nome: string
+  valore: number
+}
+
+export interface Risultato {
+  punteggi: PunteggioCalcolato[]
+  fascia: string | null
+}
+
+// `definizione` si passa quando si calcolano tante compilazioni dello stesso
+// questionario: si legge una volta sola.
 export function calcola(
   questionarioId: number,
-  risposte: { domanda_id: number; valore: number }[]
-): { punteggi: { nome: string; valore: number }[]; fascia: string | null } {
-  const { punteggi, fasce } = leggiQuestionario(questionarioId)
+  risposte: { domanda_id: number; valore: number }[],
+  definizione: QuestionarioCompleto = leggiQuestionario(questionarioId)
+): Risultato {
+  const { punteggi, fasce } = definizione
   const perDomanda = new Map(risposte.map((r) => [r.domanda_id, r.valore]))
 
   const valori = new Map<number, number>()
   const risultato = punteggi.map((p) => {
     const valore = p.domanda_ids.reduce((somma, did) => somma + (perDomanda.get(did) ?? 0), 0)
     if (p.id != null) valori.set(p.id, valore)
-    return { nome: p.nome, valore }
+    return { punteggio_id: p.id ?? null, nome: p.nome, valore }
   })
 
   // Le fasce si leggono in ordine: vince la prima regola che si avvera.
@@ -229,13 +248,78 @@ export function calcola(
   return { punteggi: risultato, fascia: fascia?.etichetta ?? null }
 }
 
-// Le compilazioni di un paziente, con l'esito ricalcolato sulle fasce di oggi.
+// Il risultato di una compilazione si fotografa quando la si salva, come le
+// sedute: punteggi e fascia restano quelli di quel giorno, calcolati con le
+// regole di quel giorno, e stanno sempre insieme.
 //
-// L'esito veniva solo letto com'era stato salvato, e allora una fascia definita
-// dopo non compariva sulle compilazioni gia' fatte: lo stesso questionario
-// mostrava il profilo di rischio in alcune date e in altre no. Qui si ricalcola
-// dalle risposte, che non cambiano mai, e si riscrive se e' diverso — cosi'
-// anche la cartella stampata, che legge il valore memorizzato, resta allineata.
+// Prima la fascia si ricalcolava a ogni lettura con le regole di oggi, mentre i
+// punteggi restavano quelli salvati: cambiando la formula di un punteggio, lo
+// storico mostrava i numeri vecchi accanto a fasce calcolate coi numeri nuovi.
+// E guardare l'elenco cambiava i dati. Adesso cambiare le regole non tocca
+// niente da solo: le compilazioni fatte con regole diverse si riconoscono (vedi
+// daRicalcolare) e si ricalcolano quando lo si chiede.
+function scriviRisultato(compilazioneId: number, r: Risultato): void {
+  const db = getDb()
+  db.prepare('UPDATE paziente_questionari SET fascia = ? WHERE id = ?').run(r.fascia, compilazioneId)
+  db.prepare('DELETE FROM compilazione_punteggi WHERE compilazione_id = ?').run(compilazioneId)
+  const ins = db.prepare(
+    `INSERT INTO compilazione_punteggi (compilazione_id, punteggio_id, nome, valore, ordine)
+     VALUES (?, ?, ?, ?, ?)`
+  )
+  r.punteggi.forEach((p, i) => ins.run(compilazioneId, p.punteggio_id, p.nome, p.valore, i))
+}
+
+function scriviRisposte(compilazioneId: number, risposte: CompilazioneInput['risposte']): void {
+  const db = getDb()
+  db.prepare('DELETE FROM questionario_risposte WHERE compilazione_id = ?').run(compilazioneId)
+  const ins = db.prepare(
+    'INSERT INTO questionario_risposte (compilazione_id, domanda_id, valore) VALUES (?, ?, ?)'
+  )
+  for (const r of risposte) ins.run(compilazioneId, r.domanda_id, r.valore)
+}
+
+// Il risultato salvato e' ancora quello che darebbero le regole di oggi? Si
+// confrontano i numeri e la fascia, non i nomi: rinominare un punteggio non
+// rende una compilazione "da ricalcolare".
+function stessoRisultato(salvato: Risultato, adesso: Risultato): boolean {
+  if (salvato.fascia !== adesso.fascia) return false
+  if (salvato.punteggi.length !== adesso.punteggi.length) return false
+  return salvato.punteggi.every((p, i) => {
+    const q = adesso.punteggi[i]
+    const stesso = p.punteggio_id != null ? p.punteggio_id === q.punteggio_id : p.nome === q.nome
+    return stesso && p.valore === q.valore
+  })
+}
+
+// Le definizioni dei questionari, lette una volta per elenco invece che una
+// volta per compilazione.
+function definizioni(): (id: number) => QuestionarioCompleto {
+  const lette = new Map<number, QuestionarioCompleto>()
+  return (id) => {
+    let q = lette.get(id)
+    if (!q) {
+      q = leggiQuestionario(id)
+      lette.set(id, q)
+    }
+    return q
+  }
+}
+
+function risposteDi(compilazioneId: number): { domanda_id: number; valore: number }[] {
+  return getDb()
+    .prepare('SELECT domanda_id, valore FROM questionario_risposte WHERE compilazione_id = ?')
+    .all(compilazioneId) as { domanda_id: number; valore: number }[]
+}
+
+function punteggiSalvati(compilazioneId: number): PunteggioCalcolato[] {
+  return getDb()
+    .prepare(
+      `SELECT punteggio_id, nome, valore FROM compilazione_punteggi
+       WHERE compilazione_id = ? ORDER BY ordine`
+    )
+    .all(compilazioneId) as PunteggioCalcolato[]
+}
+
 // Quanto e' cambiato il punteggio rispetto alla prima volta, e se il
 // cambiamento e' grande abbastanza da contare.
 //
@@ -255,7 +339,7 @@ function variazione(
   adesso: number,
   prima: number,
   dal: string
-): Record<string, unknown> | null {
+): VariazioneCompilazione | null {
   if (q.mcid_punti == null && q.mcid_percentuale == null) return null
   const grezza = adesso - prima
   const punti = q.mcid_migliora_calando ? -grezza : grezza
@@ -273,7 +357,23 @@ function variazione(
   }
 }
 
-export function elencoCompilazioni(pazienteId: number): Record<string, unknown>[] {
+// Il punteggio su cui si misura il cambiamento, fra quelli salvati di una
+// compilazione: per id, cosi' rinominarlo non perde il confronto. Le
+// compilazioni salvate prima che si scrivesse l'id si riconoscono dal nome.
+function punteggioMcid(
+  salvati: PunteggioCalcolato[],
+  mcidId: number,
+  mcidNome: string
+): PunteggioCalcolato | undefined {
+  return (
+    salvati.find((p) => p.punteggio_id === mcidId) ??
+    salvati.find((p) => p.punteggio_id == null && p.nome === mcidNome)
+  )
+}
+
+// Le compilazioni di un paziente, con il risultato salvato. Solo lettura: non
+// cambia niente nel database.
+export function elencoCompilazioni(pazienteId: number): CompilazioneRiepilogo[] {
   const db = getDb()
   const righe = db
     .prepare(
@@ -287,50 +387,97 @@ export function elencoCompilazioni(pazienteId: number): Record<string, unknown>[
     id: number
     data: string
     questionario_id: number
+    questionario_nome: string
     fascia: string | null
+    note: string | null
     mcid_punteggio_id: number | null
     mcid_punti: number | null
     mcid_percentuale: number | null
     mcid_migliora_calando: number
   }[]
 
-  const risposteStmt = db.prepare(
-    'SELECT domanda_id, valore FROM questionario_risposte WHERE compilazione_id = ?'
-  )
-  const punteggiStmt = db.prepare(
-    'SELECT nome, valore FROM compilazione_punteggi WHERE compilazione_id = ? ORDER BY ordine'
-  )
-  const aggiorna = db.prepare('UPDATE paziente_questionari SET fascia = ? WHERE id = ?')
-
-  // Il nome del punteggio su cui si misura il cambiamento, e la prima
-  // compilazione di ogni questionario: le righe arrivano dalla piu' recente,
-  // quindi la prima e' l'ultima dell'elenco.
+  const definizione = definizioni()
   const nomePunteggio = db.prepare('SELECT nome FROM questionario_punteggi WHERE id = ?')
+  // la prima compilazione di ogni questionario: le righe arrivano dalla piu'
+  // recente, quindi e' l'ultima che si incontra
   const prime = new Map<number, { id: number; data: string }>()
   for (const r of righe) prime.set(r.questionario_id, { id: r.id, data: r.data })
 
   return righe.map((r) => {
-    const risposte = risposteStmt.all(r.id) as { domanda_id: number; valore: number }[]
-    const { fascia } = calcola(r.questionario_id, risposte)
-    if (fascia !== r.fascia) aggiorna.run(fascia, r.id)
-    const punteggi = punteggiStmt.all(r.id) as { nome: string; valore: number }[]
+    const { mcid_punteggio_id, mcid_punti, mcid_percentuale, mcid_migliora_calando, ...base } = r
+    const punteggi = punteggiSalvati(r.id)
+    const adesso = calcola(r.questionario_id, risposteDi(r.id), definizione(r.questionario_id))
 
-    let var_: Record<string, unknown> | null = null
+    let var_: VariazioneCompilazione | null = null
     const prima = prime.get(r.questionario_id)
-    const rif = r.mcid_punteggio_id == null ? null : (nomePunteggio.get(r.mcid_punteggio_id) as
-      | { nome: string }
-      | undefined)
+    const rif =
+      mcid_punteggio_id == null
+        ? undefined
+        : (nomePunteggio.get(mcid_punteggio_id) as { nome: string } | undefined)
     if (rif && prima && prima.id !== r.id) {
-      const adesso = punteggi.find((p) => p.nome === rif.nome)
-      const allora = (punteggiStmt.all(prima.id) as { nome: string; valore: number }[]).find(
-        (p) => p.nome === rif.nome
-      )
-      if (adesso && allora) {
-        var_ = variazione(r, rif.nome, adesso.valore, allora.valore, prima.data)
+      const ora = punteggioMcid(punteggi, mcid_punteggio_id!, rif.nome)
+      const allora = punteggioMcid(punteggiSalvati(prima.id), mcid_punteggio_id!, rif.nome)
+      if (ora && allora) {
+        var_ = variazione(
+          { mcid_punteggio_id, mcid_punti, mcid_percentuale, mcid_migliora_calando },
+          rif.nome,
+          ora.valore,
+          allora.valore,
+          prima.data
+        )
       }
     }
-    return { ...r, fascia, punteggi, variazione: var_ }
+    return {
+      ...base,
+      punteggi: punteggi.map(({ nome, valore }) => ({ nome, valore })),
+      variazione: var_,
+      daRicalcolare: !stessoRisultato({ punteggi, fascia: r.fascia }, adesso)
+    }
   })
+}
+
+// Ricalcola una compilazione con le regole di oggi del suo questionario. Le
+// risposte non cambiano: cambiano punteggi e fascia.
+export function ricalcolaCompilazione(id: number): void {
+  const db = getDb()
+  const riga = db
+    .prepare('SELECT questionario_id FROM paziente_questionari WHERE id = ?')
+    .get(id) as { questionario_id: number } | undefined
+  if (!riga) throw new Error('Compilazione non trovata.')
+  const risultato = calcola(riga.questionario_id, risposteDi(id))
+  db.transaction(() => scriviRisultato(id, risultato))()
+}
+
+// Le compilazioni di un questionario fatte con regole diverse da quelle di oggi.
+function compilazioniDaRicalcolare(questionarioId: number): { id: number; adesso: Risultato }[] {
+  const db = getDb()
+  const definizione = leggiQuestionario(questionarioId)
+  const righe = db
+    .prepare('SELECT id, fascia FROM paziente_questionari WHERE questionario_id = ?')
+    .all(questionarioId) as { id: number; fascia: string | null }[]
+  const fuori: { id: number; adesso: Risultato }[] = []
+  for (const r of righe) {
+    const adesso = calcola(questionarioId, risposteDi(r.id), definizione)
+    if (!stessoRisultato({ punteggi: punteggiSalvati(r.id), fascia: r.fascia }, adesso)) {
+      fuori.push({ id: r.id, adesso })
+    }
+  }
+  return fuori
+}
+
+export function contaDaRicalcolare(questionarioId: number): number {
+  return compilazioniDaRicalcolare(questionarioId).length
+}
+
+// Ricalcola tutte le compilazioni del questionario che ne hanno bisogno, in una
+// volta sola. Torna quante ne ha cambiate.
+export function ricalcolaQuestionario(questionarioId: number): number {
+  const db = getDb()
+  return db.transaction(() => {
+    const fuori = compilazioniDaRicalcolare(questionarioId)
+    for (const { id, adesso } of fuori) scriviRisultato(id, adesso)
+    return fuori.length
+  })()
 }
 
 // Correzione di una compilazione gia' salvata: risposte e punteggi si
@@ -345,44 +492,32 @@ export function aggiornaCompilazione(id: number, dati: CompilazioneInput): void 
     .get(id) as { questionario_id: number } | undefined
   if (!riga) throw new Error('Compilazione non trovata.')
 
-  const { punteggi, fascia } = calcola(riga.questionario_id, dati.risposte)
+  const risultato = calcola(riga.questionario_id, dati.risposte)
   db.transaction(() => {
-    db.prepare(
-      'UPDATE paziente_questionari SET data = ?, fascia = ?, note = ? WHERE id = ?'
-    ).run(dati.data, fascia, dati.note, id)
-    db.prepare('DELETE FROM questionario_risposte WHERE compilazione_id = ?').run(id)
-    db.prepare('DELETE FROM compilazione_punteggi WHERE compilazione_id = ?').run(id)
-    const insR = db.prepare(
-      'INSERT INTO questionario_risposte (compilazione_id, domanda_id, valore) VALUES (?, ?, ?)'
+    db.prepare('UPDATE paziente_questionari SET data = ?, note = ? WHERE id = ?').run(
+      dati.data,
+      dati.note,
+      id
     )
-    for (const r of dati.risposte) insR.run(id, r.domanda_id, r.valore)
-    const insP = db.prepare(
-      'INSERT INTO compilazione_punteggi (compilazione_id, nome, valore, ordine) VALUES (?, ?, ?, ?)'
-    )
-    punteggi.forEach((p, i) => insP.run(id, p.nome, p.valore, i))
+    scriviRisposte(id, dati.risposte)
+    scriviRisultato(id, risultato)
   })()
 }
 
 export function salvaCompilazione(dati: CompilazioneInput): number {
   validaData(dati.data, 'La data della compilazione', { obbligatoria: true })
   const db = getDb()
-  const { punteggi, fascia } = calcola(dati.questionario_id, dati.risposte)
+  const risultato = calcola(dati.questionario_id, dati.risposte)
   return db.transaction(() => {
     const id = Number(
       db
         .prepare(
-          'INSERT INTO paziente_questionari (paziente_id, questionario_id, data, fascia, note) VALUES (?, ?, ?, ?, ?)'
+          'INSERT INTO paziente_questionari (paziente_id, questionario_id, data, note) VALUES (?, ?, ?, ?)'
         )
-        .run(dati.paziente_id, dati.questionario_id, dati.data, fascia, dati.note).lastInsertRowid
+        .run(dati.paziente_id, dati.questionario_id, dati.data, dati.note).lastInsertRowid
     )
-    const insR = db.prepare(
-      'INSERT INTO questionario_risposte (compilazione_id, domanda_id, valore) VALUES (?, ?, ?)'
-    )
-    for (const r of dati.risposte) insR.run(id, r.domanda_id, r.valore)
-    const insP = db.prepare(
-      'INSERT INTO compilazione_punteggi (compilazione_id, nome, valore, ordine) VALUES (?, ?, ?, ?)'
-    )
-    punteggi.forEach((p, i) => insP.run(id, p.nome, p.valore, i))
+    scriviRisposte(id, dati.risposte)
+    scriviRisultato(id, risultato)
     return id
   })()
 }

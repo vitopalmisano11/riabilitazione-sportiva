@@ -559,6 +559,9 @@ export interface CompilazioneRiepilogo {
   note: string | null
   punteggi: { nome: string; valore: number }[]
   variazione: VariazioneCompilazione | null
+  // Punteggi e fascia sono quelli del giorno della compilazione. Vero se con
+  // le regole di oggi del questionario verrebbero diversi.
+  daRicalcolare: boolean
 }
 
 // ---- Test di valutazione (da letteratura) ----
@@ -1432,6 +1435,10 @@ export interface Api {
     // proprio id, quelle sparite vengono eliminate. Cosi' le compilazioni gia'
     // fatte continuano a puntare alle domande giuste.
     salva(dati: QuestionarioCompleto): Promise<void>
+    // Quante compilazioni gia' fatte darebbero un risultato diverso con le
+    // regole di oggi, e il ricalcolo di tutte quelle (ritorna quante).
+    daRicalcolare(id: number): Promise<number>
+    ricalcolaCompilazioni(id: number): Promise<number>
     setArchiviato(id: number, archiviato: boolean): Promise<void>
     remove(id: number): Promise<void>
     reorder(ids: number[]): Promise<void>
@@ -1443,6 +1450,8 @@ export interface Api {
     create(dati: CompilazioneInput): Promise<number>
     // Riscrive risposte e punteggi di una compilazione gia' salvata.
     update(id: number, dati: CompilazioneInput): Promise<void>
+    // Ricalcola punteggi e fascia con le regole di oggi del questionario.
+    ricalcola(id: number): Promise<void>
     remove(id: number): Promise<void>
   }
   testCategorie: {
