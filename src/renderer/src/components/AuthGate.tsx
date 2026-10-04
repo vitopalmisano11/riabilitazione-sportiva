@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react'
 import { errMsg } from '../lib'
 import LogoApp from './LogoApp'
+import type { InfoAccesso, StatoAccesso } from '../../../shared/types'
 
-type Modo = 'caricamento' | 'setup' | 'chiave' | 'login' | 'recupero'
+// Oltre ai passi dell'accesso, i casi in cui l'archivio non si trova (vedi
+// main/accesso.ts): ognuno ha la sua schermata, e nessuno propone di creare un
+// archivio nuovo.
+type Modo = 'caricamento' | StatoAccesso | 'chiave' | 'recupero' | 'errore'
 
 export default function AuthGate({ onUnlocked }: { onUnlocked: () => void }): React.JSX.Element {
   const [modo, setModo] = useState<Modo>('caricamento')
@@ -18,9 +22,22 @@ export default function AuthGate({ onUnlocked }: { onUnlocked: () => void }): Re
   const [copiata, setCopiata] = useState(false)
   const [errore, setErrore] = useState('')
   const [occupato, setOccupato] = useState(false)
+  // dove stanno (o dovrebbero stare) i dati: si mostra, cosi' si sa di cosa si parla
+  const [cartella, setCartella] = useState('')
+
+  const aggiorna = (info: InfoAccesso): void => {
+    setCartella(info.cartella)
+    setModo(info.stato)
+  }
 
   useEffect(() => {
-    void window.api.auth.status().then(setModo)
+    window.api.auth
+      .status()
+      .then(aggiorna)
+      .catch((e) => {
+        setErrore(errMsg(e))
+        setModo('errore')
+      })
     void window.api.auth
       .domanda()
       .then(setDomanda)
@@ -63,6 +80,23 @@ export default function AuthGate({ onUnlocked }: { onUnlocked: () => void }): Re
       onUnlocked()
     })
 
+  const rileggi = (): Promise<void> =>
+    run(async () => {
+      aggiorna(await window.api.auth.status())
+    })
+
+  const scegliCartella = (): Promise<void> =>
+    run(async () => {
+      const info = await window.api.auth.scegliCartellaDati()
+      if (info) aggiorna(info)
+    })
+
+  const prendiChiavi = (): Promise<void> =>
+    run(async () => {
+      const info = await window.api.auth.prendiChiavi()
+      if (info) aggiorna(info)
+    })
+
   const copia = (): void => {
     void navigator.clipboard.writeText(chiave).then(() => setCopiata(true))
   }
@@ -82,6 +116,8 @@ export default function AuthGate({ onUnlocked }: { onUnlocked: () => void }): Re
               Primo avvio: scegli la password che proteggerà i dati dei pazienti. Il database
               viene cifrato con questa chiave.
             </p>
+            <p className="hint">L&apos;archivio verrà creato in:</p>
+            <div className="cartella-path">{cartella}</div>
             <form
               className="auth-form"
               onSubmit={(e) => {
@@ -107,6 +143,92 @@ export default function AuthGate({ onUnlocked }: { onUnlocked: () => void }): Re
                 {occupato ? 'Creazione in corso…' : 'Crea password e cifra i dati'}
               </button>
             </form>
+            <div className="auth-links">
+              <button className="link-btn" disabled={occupato} onClick={() => void scegliCartella()}>
+                Hai già un archivio? Scegli la cartella dove si trova
+              </button>
+            </div>
+          </>
+        )}
+
+        {modo === 'cartella-assente' && (
+          <>
+            <h1>Non trovo i tuoi dati</h1>
+            <p>I dati dei pazienti stanno in una cartella che adesso non si raggiunge:</p>
+            <div className="cartella-path">{cartella}</div>
+            <p>
+              Se è su un disco esterno o una chiavetta, collegala. Se è in OneDrive, aspetta che
+              finisca di sincronizzarsi. Poi premi «Riprova». I dati non sono stati toccati.
+            </p>
+            {errore && <p className="auth-error">{errore}</p>}
+            <button className="primary" disabled={occupato} onClick={() => void rileggi()}>
+              Riprova
+            </button>
+            <div className="auth-links">
+              <button className="link-btn" disabled={occupato} onClick={() => void scegliCartella()}>
+                I dati sono in un&apos;altra cartella: sceglila
+              </button>
+            </div>
+          </>
+        )}
+
+        {modo === 'chiavi-mancanti' && (
+          <>
+            <h1>Manca il file delle chiavi</h1>
+            <p>
+              Nella cartella dei dati c&apos;è l&apos;archivio, ma non il file{' '}
+              <strong>auth.json</strong> che lo apre:
+            </p>
+            <div className="cartella-path">{cartella}</div>
+            <p>
+              Lo trovi in ogni copia di sicurezza: nella cartella «Backup» o in una copia su
+              chiavetta. Prendilo da lì, poi entra con la password che usavi quando è stata fatta
+              quella copia. Non creare un archivio nuovo: quello che c&apos;è non si aprirebbe più.
+            </p>
+            {errore && <p className="auth-error">{errore}</p>}
+            <button className="primary" disabled={occupato} onClick={() => void prendiChiavi()}>
+              Prendi le chiavi da una copia…
+            </button>
+            <div className="auth-links">
+              <button className="link-btn" disabled={occupato} onClick={() => void rileggi()}>
+                Riprova
+              </button>
+            </div>
+          </>
+        )}
+
+        {modo === 'impostazioni-illeggibili' && (
+          <>
+            <h1>Non so dove sono i tuoi dati</h1>
+            <p>
+              Il file delle impostazioni del programma non si legge, e dentro c&apos;è scritto dove
+              stanno i dati:
+            </p>
+            <div className="cartella-path">{cartella}</div>
+            <p>
+              Riprova fra un momento. Se non passa, indica tu la cartella dei dati (quella con
+              riabilitazione.db, di solito Documenti › Riabilitazione): colori e preferenze tornano
+              quelli di partenza, i dati restano.
+            </p>
+            {errore && <p className="auth-error">{errore}</p>}
+            <button className="primary" disabled={occupato} onClick={() => void rileggi()}>
+              Riprova
+            </button>
+            <div className="auth-links">
+              <button className="link-btn" disabled={occupato} onClick={() => void scegliCartella()}>
+                Scegli la cartella dei dati
+              </button>
+            </div>
+          </>
+        )}
+
+        {modo === 'errore' && (
+          <>
+            <h1>Qualcosa non va all&apos;avvio</h1>
+            {errore && <p className="auth-error">{errore}</p>}
+            <button className="primary" disabled={occupato} onClick={() => void rileggi()}>
+              Riprova
+            </button>
           </>
         )}
 

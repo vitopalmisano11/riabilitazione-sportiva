@@ -9,7 +9,7 @@ import {
   temaValido,
   type Tema
 } from '../shared/temi'
-import { existsSync, mkdirSync, readFileSync } from 'fs'
+import { copyFileSync, existsSync, mkdirSync, readFileSync } from 'fs'
 import { join } from 'path'
 import { spostaFileDati } from './file-dati'
 import { leggiJsonPerScrivere, scriviAtomico } from './scrittura'
@@ -70,10 +70,62 @@ const nomeCartellaDati = (): string =>
 // generatori dei documenti, che non possono aprire questo file da soli.
 impostaTemaCorrente(temaValido(leggi().tema))
 
+// Dove dovrebbero stare i dati, senza creare niente: serve prima
+// dell'accesso, per capire se l'archivio c'e'.
+export interface DoveDati {
+  percorso: string
+  // scelta da chi usa il programma (non quella di partenza in Documenti)
+  personalizzata: boolean
+}
+
+export function doveDati(): DoveDati {
+  const scelta = leggi().cartellaDati
+  return scelta
+    ? { percorso: scelta, personalizzata: true }
+    : { percorso: join(app.getPath('documents'), nomeCartellaDati()), personalizzata: false }
+}
+
+// La cartella dei dati. Quella di partenza si crea se non c'e'; una scelta da
+// chi usa il programma no: se manca (il disco esterno staccato, OneDrive non
+// ancora sincronizzato su un computer nuovo) crearla vuota faceva sembrare
+// sparito l'archivio, e il programma proponeva di farne uno nuovo.
 export function cartellaDati(): string {
-  const dir = leggi().cartellaDati || join(app.getPath('documents'), nomeCartellaDati())
-  mkdirSync(dir, { recursive: true })
-  return dir
+  const { percorso, personalizzata } = doveDati()
+  if (personalizzata) {
+    if (!existsSync(percorso)) {
+      throw new Error(
+        `Non trovo la cartella dei dati (${percorso}). Se è su un disco esterno o una chiavetta, collegala; se è in OneDrive, aspetta che finisca di sincronizzarsi.`
+      )
+    }
+    return percorso
+  }
+  mkdirSync(percorso, { recursive: true })
+  return percorso
+}
+
+// Il file delle impostazioni si legge? Uno che c'e' ma non si legge non e'
+// "nessuna impostazione": dentro c'e' dove stanno i dati, e ripartire da
+// Documenti vorrebbe dire non trovarli piu'.
+export function impostazioniLeggibili(): boolean {
+  try {
+    leggiJsonPerScrivere(percorsoFile())
+    return true
+  } catch {
+    return false
+  }
+}
+
+export function percorsoImpostazioni(): string {
+  return percorsoFile()
+}
+
+// Quando il file delle impostazioni non si legge piu', l'unico modo di andare
+// avanti e' ricominciarlo: il vecchio resta accanto con un altro nome, il nuovo
+// dice solo dove sono i dati. Colori e preferenze tornano quelli di partenza.
+export function ricominciaImpostazioni(dir: string): void {
+  const file = percorsoFile()
+  if (existsSync(file)) copyFileSync(file, `${file}.illeggibile-${Date.now()}`)
+  scriviAtomico(file, JSON.stringify({ cartellaDati: dir }, null, 2))
 }
 
 export function impostaCartellaDati(dir: string): void {
@@ -216,6 +268,11 @@ export function impostaCartellaExport(dir: string): void {
   salva({ cartellaExport: dir })
 }
 
+// Dove sono le copie, senza crearla: per cercarci dentro prima dell'accesso.
+export function cartellaBackupSenzaCreare(dati: string): string {
+  return leggi().cartellaBackup || join(dati, 'Backup')
+}
+
 // Le copie di sicurezza: di default in una sottocartella dell'archivio, ma si
 // puo' puntare altrove — dentro OneDrive, per esempio, e finiscono online da
 // sole.
@@ -257,15 +314,17 @@ export function impostaBackupDaTenere(n: number): void {
 // Migrazione una tantum: le versioni precedenti salvavano db e auth in userData.
 export function migraDaUserData(): void {
   const legacy = join(app.getPath('userData'), 'riabilitazione.db')
-  const dest = cartellaDati()
-  if (existsSync(legacy) && !existsSync(join(dest, 'riabilitazione.db'))) {
-    try {
-      spostaFileDati(app.getPath('userData'), dest)
-    } catch (e) {
-      // Succede all'avvio, prima di qualunque finestra: un errore qui non
-      // dev'essere quello che impedisce al programma di aprirsi. Se la
-      // destinazione non e' libera i vecchi file restano dove sono, intatti.
-      registraErrore('migraDaUserData', e)
-    }
+  if (!existsSync(legacy)) return
+  try {
+    // dentro al try: una cartella dei dati che non si trova non deve impedire
+    // al programma di aprirsi (la schermata d'accesso spiega cosa fare)
+    const dest = cartellaDati()
+    if (existsSync(join(dest, 'riabilitazione.db'))) return
+    spostaFileDati(app.getPath('userData'), dest)
+  } catch (e) {
+    // Succede all'avvio, prima di qualunque finestra: un errore qui non
+    // dev'essere quello che impedisce al programma di aprirsi. Se la
+    // destinazione non e' libera i vecchi file restano dove sono, intatti.
+    registraErrore('migraDaUserData', e)
   }
 }

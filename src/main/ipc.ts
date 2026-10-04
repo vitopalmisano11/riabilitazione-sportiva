@@ -1,7 +1,8 @@
 import { BrowserWindow, dialog, ipcMain, nativeImage, shell } from 'electron'
 import { basename, join } from 'path'
-import { readFileSync } from 'fs'
-import { closeDb, controllaArchivio, getDb, initDb, riapriDb } from './db'
+import { copyFileSync, existsSync, readFileSync } from 'fs'
+import { closeDb, controllaArchivio, dbAperto, getDb, initDb, riapriDb } from './db'
+import { controllaSetup, FILE_CHIAVI, FILE_DB, statoAccesso } from './accesso'
 import {
   cartellaBackup,
   cartellaDati,
@@ -17,7 +18,11 @@ import {
   blocco,
   impostaBlocco,
   barraScura,
+  cartellaBackupSenzaCreare,
   cartellaCopia,
+  doveDati,
+  impostazioniLeggibili,
+  ricominciaImpostazioni,
   cartellaTabelle,
   impostaBarraScura,
   impostaCartellaCopia,
@@ -198,9 +203,10 @@ export function registerIpc(): void {
   const authPath = (): string => join(cartellaDati(), 'auth.json')
   const dbPath = (): string => join(cartellaDati(), 'riabilitazione.db')
 
-  handle('auth:status', () => (authExists(authPath()) ? 'login' : 'setup'))
+  handle('auth:status', () => statoAccesso())
   handle('auth:setup', (password: string) => {
     if (password.length < 8) throw new Error('La password deve avere almeno 8 caratteri.')
+    controllaSetup(cartellaDati())
     const { dekHex, recoveryKey } = setupAuth(authPath(), password)
     initDb(dbPath(), dekHex)
     // il cestino tiene un mese: le voci piu' vecchie se ne vanno all'accesso
@@ -225,6 +231,53 @@ export function registerIpc(): void {
     const dekHex = recoverAuth(authPath(), recoveryKey, nuovaPassword)
     initDb(dbPath(), dekHex)
     ripuliscilCestino()
+  })
+  // Prima dell'accesso, quando l'archivio non si trova: si indica la cartella
+  // che lo contiene. Da archivio aperto la cartella si sposta da Impostazioni,
+  // che porta con se' i file.
+  handle('auth:scegliCartellaDati', async () => {
+    if (dbAperto()) throw new Error('L’archivio è già aperto: la cartella si cambia da Impostazioni.')
+    const attuale = doveDati().percorso
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+      title: 'Scegli la cartella dove sono i dati (quella con riabilitazione.db)',
+      defaultPath: existsSync(attuale) ? attuale : undefined,
+      properties: ['openDirectory']
+    })
+    if (canceled || filePaths.length === 0) return null
+    const scelta = filePaths[0]
+    if (!existsSync(join(scelta, FILE_DB))) {
+      throw new Error(
+        'In questa cartella non c’è l’archivio del programma (riabilitazione.db): scegli la cartella che lo contiene.'
+      )
+    }
+    if (impostazioniLeggibili()) impostaCartellaDati(scelta)
+    else ricominciaImpostazioni(scelta)
+    return statoAccesso()
+  })
+  // Prima dell'accesso, quando accanto all'archivio manca auth.json: lo si
+  // prende da una copia di sicurezza. La chiave che cifra l'archivio non cambia
+  // mai (cambiare password la ri-avvolge soltanto), quindi le chiavi di
+  // qualunque copia dello stesso archivio lo aprono, con la password che si
+  // usava quando la copia e' stata fatta.
+  handle('auth:prendiChiavi', async () => {
+    if (dbAperto()) throw new Error('L’archivio è già aperto.')
+    const dati = cartellaDati()
+    if (existsSync(join(dati, FILE_CHIAVI))) return statoAccesso()
+    const copie = cartellaBackupSenzaCreare(dati)
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+      title: 'Scegli una copia di sicurezza (la cartella che contiene auth.json)',
+      defaultPath: existsSync(copie) ? copie : dati,
+      properties: ['openDirectory']
+    })
+    if (canceled || filePaths.length === 0) return null
+    const sorgente = join(filePaths[0], FILE_CHIAVI)
+    if (!existsSync(sorgente)) {
+      throw new Error(
+        'In questa cartella non c’è auth.json: scegli la cartella di una copia di sicurezza (per esempio dentro «Backup»).'
+      )
+    }
+    copyFileSync(sorgente, join(dati, FILE_CHIAVI))
+    return statoAccesso()
   })
   handle('auth:cambiaPassword', (vecchia: string, nuova: string) => {
     if (nuova.length < 8) throw new Error('La nuova password deve avere almeno 8 caratteri.')

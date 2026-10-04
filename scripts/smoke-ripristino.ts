@@ -21,19 +21,24 @@ import {
   existsSync,
   mkdirSync,
   readdirSync,
+  readFileSync,
   renameSync,
   rmSync,
   writeFileSync
 } from 'node:fs'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
+import { controllaSetup, statoAccesso } from '../src/main/accesso'
 import { MIGRATIONS } from '../src/main/migrations'
 import { setupAuth } from '../src/main/auth'
 import { apriAltroDb, closeDb, getDb, impostaCopiaPrimaDelleMigrazioni, initDb } from '../src/main/db'
 import {
+  cartellaDati,
   copiaFallita,
   impostaBackupAttivo,
   impostaCartellaBackup,
-  impostaCartellaDati
+  impostaCartellaDati,
+  percorsoImpostazioni,
+  ricominciaImpostazioni
 } from '../src/main/impostazioni'
 import {
   backupDiChiusura,
@@ -453,6 +458,64 @@ function prove(): void {
       []
     )
     assert.deepEqual(readdirSync(chiavetta).filter((n) => n.includes('.in-corso')), [])
+  })
+
+  // 19 — prima dell'accesso: un archivio che non si trova non diventa "primo avvio"
+  controllo('con archivio e chiavi si chiede la password', () => {
+    assert.deepEqual(statoAccesso(), { stato: 'login', cartella: dati })
+    assert.throws(() => controllaSetup(dati), /accedi con quella/)
+  })
+
+  controllo('senza auth.json accanto all’archivio non si propone un archivio nuovo', () => {
+    renameSync(authApp, `${authApp}.via`)
+    try {
+      assert.deepEqual(statoAccesso(), { stato: 'chiavi-mancanti', cartella: dati })
+      assert.throws(() => controllaSetup(dati), /non ne creo uno nuovo/)
+    } finally {
+      renameSync(`${authApp}.via`, authApp)
+    }
+  })
+
+  controllo('una cartella dei dati che non si raggiunge non si crea vuota', () => {
+    const sparita = join(dati, '..', 'disco-staccato', 'Riabilitazione')
+    impostaCartellaDati(sparita)
+    try {
+      assert.deepEqual(statoAccesso(), { stato: 'cartella-assente', cartella: sparita })
+      assert.throws(() => cartellaDati(), /Non trovo la cartella dei dati/)
+      assert.equal(existsSync(sparita), false, 'non va creata')
+    } finally {
+      impostaCartellaDati(dati)
+    }
+    assert.equal(statoAccesso().stato, 'login')
+  })
+
+  controllo('una cartella vuota scelta per i dati e’ un primo avvio, e si sa dove', () => {
+    const vuota = join(dati, '..', 'cartella-vuota')
+    mkdirSync(vuota, { recursive: true })
+    impostaCartellaDati(vuota)
+    try {
+      assert.deepEqual(statoAccesso(), { stato: 'setup', cartella: vuota })
+      controllaSetup(vuota) // qui si puo'
+    } finally {
+      impostaCartellaDati(dati)
+    }
+  })
+
+  controllo('impostazioni illeggibili: non si ripiega su Documenti, e si riparte indicando la cartella', () => {
+    const file = percorsoImpostazioni()
+    const buono = readFileSync(file, 'utf-8')
+    writeFileSync(file, '{ rotto')
+    try {
+      assert.equal(statoAccesso().stato, 'impostazioni-illeggibili')
+      ricominciaImpostazioni(dati)
+      assert.deepEqual(statoAccesso(), { stato: 'login', cartella: dati })
+      assert.ok(
+        readdirSync(dirname(file)).some((n) => n.startsWith('impostazioni.json.illeggibile-')),
+        'il file rovinato resta da parte'
+      )
+    } finally {
+      writeFileSync(file, buono)
+    }
   })
 }
 

@@ -1098,6 +1098,24 @@ export interface VoceBackup {
   dimensione: number
 }
 
+// Cosa mostrare prima dell'accesso (vedi main/accesso.ts).
+export type StatoAccesso =
+  // nessun archivio: si sceglie la password e se ne crea uno
+  | 'setup'
+  | 'login'
+  // la cartella scelta per i dati non c'e' (disco staccato, OneDrive)
+  | 'cartella-assente'
+  // c'e' l'archivio ma non il file delle chiavi che lo apre
+  | 'chiavi-mancanti'
+  // il file delle impostazioni non si legge: non si sa dove sono i dati
+  | 'impostazioni-illeggibili'
+
+export interface InfoAccesso {
+  stato: StatoAccesso
+  // la cartella dei dati; per 'impostazioni-illeggibili' il file delle impostazioni
+  cartella: string
+}
+
 export interface InfoBackup {
   cartella: string
   // Se su questo computer c'e' OneDrive, e se le copie ci stanno gia' dentro.
@@ -1145,7 +1163,13 @@ export interface Api {
   // Apre il dialogo file e ritorna l'immagine gia' ridimensionata, o null.
   scegliImmagine(): Promise<string | null>
   auth: {
-    status(): Promise<'setup' | 'login'>
+    status(): Promise<InfoAccesso>
+    // Prima dell'accesso, quando l'archivio non si trova: si indica la cartella
+    // che contiene riabilitazione.db. null se si annulla.
+    scegliCartellaDati(): Promise<InfoAccesso | null>
+    // Prima dell'accesso, quando accanto all'archivio manca auth.json: lo si
+    // prende da una copia di sicurezza. null se si annulla.
+    prendiChiavi(): Promise<InfoAccesso | null>
     setup(password: string): Promise<string> // ritorna la recovery key
     login(password: string): Promise<void>
     recover(recoveryKey: string, nuovaPassword: string): Promise<void>

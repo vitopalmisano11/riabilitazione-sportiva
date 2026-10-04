@@ -88,6 +88,8 @@ const api: Api = {
   scegliImmagine: () => invoke('scegliImmagine'),
   auth: {
     status: () => invoke('auth:status'),
+    scegliCartellaDati: () => invoke('auth:scegliCartellaDati'),
+    prendiChiavi: () => invoke('auth:prendiChiavi'),
     setup: (password: string) => invoke('auth:setup', password),
     login: (password: string) => invoke('auth:login', password),
     recover: (recoveryKey: string, nuovaPassword: string) =>
