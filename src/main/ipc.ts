@@ -74,6 +74,24 @@ import {
 } from './pazienti'
 import { archiviaTecnica, creaTecnica, elencoTecniche } from './tecniche'
 import {
+  creaIndicazione,
+  elencoIndicazioni,
+  eliminaIndicazione,
+  impostaIndicazioniDelPaziente,
+  indicazioniDelPaziente,
+  rinominaIndicazione
+} from './indicazioni'
+import { creaMassimale, elencoMassimali, eliminaMassimale, impostaMisure } from './atleta'
+import {
+  andamentoSegni,
+  creaSegno,
+  elencoSegni,
+  eliminaSegno,
+  rinominaSegno,
+  segniDellaSeduta
+} from './segni'
+import { eliminaBozza, leggiBozza, salvaBozza } from './bozze'
+import {
   aggiornaEsercizio,
   archiviaEsercizio,
   creaCategoria,
@@ -215,14 +233,7 @@ import { sedutaPrecedente } from './seduta-precedente'
 import { controllaPassword } from '../shared/password'
 import { installaAdesso, statoAggiornamento } from './aggiornamenti'
 import { leggiProfilo, salvaProfilo } from './profilo'
-import {
-  erroreSenzaDatiNelRegistro,
-  richiedeTesto,
-  validaData,
-  validaImmagine,
-  validaLink,
-  validaNumeroPositivo
-} from './validazione'
+import { erroreSenzaDatiNelRegistro, validaData } from './validazione'
 import type {
   CertificatoInput,
   TipoChart,
@@ -632,154 +643,46 @@ export function registerIpc(): void {
     })()
   })
   // ---- Indicazioni per casa ----
-  handle('indicazioni:list', () =>
-    getDb().prepare('SELECT * FROM indicazioni ORDER BY ordine, id').all()
-  )
-  handle('indicazioni:create', (testo: string) => {
-    const db = getDb()
-    const { next } = db
-      .prepare('SELECT COALESCE(MAX(ordine), -1) + 1 AS next FROM indicazioni')
-      .get() as { next: number }
-    return Number(
-      db.prepare('INSERT INTO indicazioni (testo, ordine) VALUES (?, ?)').run(testo.trim(), next)
-        .lastInsertRowid
-    )
-  })
-  handle('indicazioni:rinomina', (id: number, testo: string) => {
-    getDb().prepare('UPDATE indicazioni SET testo = ? WHERE id = ?').run(testo.trim(), id)
-  })
-  handle('indicazioni:delete', (id: number) => {
-    getDb().prepare('DELETE FROM indicazioni WHERE id = ?').run(id)
-  })
-  handle('indicazioni:delPaziente', (pazienteId: number) =>
-    (
-      getDb()
-        .prepare('SELECT indicazione_id FROM paziente_indicazioni WHERE paziente_id = ?')
-        .all(pazienteId) as { indicazione_id: number }[]
-    ).map((r) => r.indicazione_id)
-  )
-  handle(
-    'indicazioni:setDelPaziente',
-    (pazienteId: number, ids: number[], frequenza: string | null) => {
-      const db = getDb()
-      db.transaction(() => {
-        db.prepare('DELETE FROM paziente_indicazioni WHERE paziente_id = ?').run(pazienteId)
-        const ins = db.prepare(
-          'INSERT INTO paziente_indicazioni (paziente_id, indicazione_id) VALUES (?, ?)'
-        )
-        for (const id of ids) ins.run(pazienteId, id)
-        db.prepare('UPDATE pazienti SET frequenza_casa = ? WHERE id = ?').run(
-          frequenza?.trim() || null,
-          pazienteId
-        )
-      })()
-    }
+  // La logica sta in indicazioni.ts, atleta.ts e segni.ts: qui solo i canali.
+  handle('indicazioni:list', () => elencoIndicazioni())
+  handle('indicazioni:create', (testo: string) => creaIndicazione(testo))
+  handle('indicazioni:rinomina', (id: number, testo: string) => rinominaIndicazione(id, testo))
+  handle('indicazioni:delete', (id: number) => eliminaIndicazione(id))
+  handle('indicazioni:delPaziente', (pazienteId: number) => indicazioniDelPaziente(pazienteId))
+  handle('indicazioni:setDelPaziente', (pazienteId: number, ids: number[], frequenza: string | null) =>
+    impostaIndicazioniDelPaziente(pazienteId, ids, frequenza)
   )
 
   // ---- Massimali e misure dell'atleta ----
-  handle('massimali:list', (pazienteId: number) =>
-    getDb()
-      .prepare('SELECT * FROM massimali WHERE paziente_id = ? ORDER BY data DESC, id DESC')
-      .all(pazienteId)
-  )
+  handle('massimali:list', (pazienteId: number) => elencoMassimali(pazienteId))
   handle(
     'massimali:create',
-    (pazienteId: number, esercizio: string, valore: number, unita: string | null, data: string) => {
-      richiedeTesto(esercizio, "Il nome dell'esercizio")
-      validaNumeroPositivo(valore, 'Il valore')
-      validaData(data, 'La data', { obbligatoria: true })
-      return Number(
-        getDb()
-          .prepare(
-            'INSERT INTO massimali (paziente_id, esercizio, valore, unita, data) VALUES (?, ?, ?, ?, ?)'
-          )
-          .run(pazienteId, esercizio.trim(), valore, unita?.trim() || null, data).lastInsertRowid
-      )
-    }
+    (pazienteId: number, esercizio: string, valore: number, unita: string | null, data: string) =>
+      creaMassimale(pazienteId, esercizio, valore, unita, data)
   )
-  handle('massimali:delete', (id: number) => {
-    getDb().prepare('DELETE FROM massimali WHERE id = ?').run(id)
-  })
-  handle('massimali:setMisure', (pazienteId: number, peso: number | null, altezza: number | null) => {
-    if (peso != null) validaNumeroPositivo(peso, 'Il peso')
-    if (altezza != null) validaNumeroPositivo(altezza, "L'altezza")
-    getDb().prepare('UPDATE pazienti SET peso = ?, altezza = ? WHERE id = ?').run(peso, altezza, pazienteId)
-  })
+  handle('massimali:delete', (id: number) => eliminaMassimale(id))
+  handle('massimali:setMisure', (pazienteId: number, peso: number | null, altezza: number | null) =>
+    impostaMisure(pazienteId, peso, altezza)
+  )
 
   // ---- Segni di riferimento: le due o tre cose che si ricontrollano ----
-  handle('segni:list', (pazienteId: number) =>
-    getDb()
-      .prepare('SELECT * FROM segni WHERE paziente_id = ? ORDER BY ordine, id')
-      .all(pazienteId)
+  handle('segni:list', (pazienteId: number) => elencoSegni(pazienteId))
+  handle('segni:andamento', (pazienteId: number) => andamentoSegni(pazienteId))
+  handle('segni:create', (pazienteId: number, nome: string, unita: string | null) =>
+    creaSegno(pazienteId, nome, unita)
   )
-  // Prima misura e ultima, con le date: e' quello che si legge nella scheda
-  // ("dolore nello squat: da 7 a 3"). Il resto delle misure non serve li'.
-  handle('segni:andamento', (pazienteId: number) =>
-    getDb()
-      .prepare(
-        `SELECT g.*,
-           (SELECT s.data FROM segno_valori v JOIN sedute s ON s.id = v.seduta_id
-             WHERE v.segno_id = g.id ORDER BY s.data, s.id LIMIT 1) AS prima_data,
-           (SELECT v.valore FROM segno_valori v JOIN sedute s ON s.id = v.seduta_id
-             WHERE v.segno_id = g.id ORDER BY s.data, s.id LIMIT 1) AS prima_valore,
-           (SELECT s.data FROM segno_valori v JOIN sedute s ON s.id = v.seduta_id
-             WHERE v.segno_id = g.id ORDER BY s.data DESC, s.id DESC LIMIT 1) AS ultima_data,
-           (SELECT v.valore FROM segno_valori v JOIN sedute s ON s.id = v.seduta_id
-             WHERE v.segno_id = g.id ORDER BY s.data DESC, s.id DESC LIMIT 1) AS ultima_valore,
-           (SELECT COUNT(*) FROM segno_valori v WHERE v.segno_id = g.id) AS misure
-         FROM segni g WHERE g.paziente_id = ? ORDER BY g.ordine, g.id`
-      )
-      .all(pazienteId)
-  )
-  handle('segni:create', (pazienteId: number, nome: string, unita: string | null) => {
-    const db = getDb()
-    const { next } = db
-      .prepare('SELECT COALESCE(MAX(ordine), -1) + 1 AS next FROM segni WHERE paziente_id = ?')
-      .get(pazienteId) as { next: number }
-    return Number(
-      db
-        .prepare('INSERT INTO segni (paziente_id, nome, unita, ordine) VALUES (?, ?, ?, ?)')
-        .run(pazienteId, nome.trim(), unita?.trim() || null, next).lastInsertRowid
-    )
-  })
-  handle('segni:rinomina', (id: number, nome: string, unita: string | null) => {
-    getDb()
-      .prepare('UPDATE segni SET nome = ?, unita = ? WHERE id = ?')
-      .run(nome.trim(), unita?.trim() || null, id)
-  })
-  // Eliminando il segno se ne vanno anche le misure: senza il segno non
-  // vogliono dire piu' niente.
-  handle('segni:delete', (id: number) => {
-    getDb().prepare('DELETE FROM segni WHERE id = ?').run(id)
-  })
-  handle('segni:dellaSeduta', (sedutaId: number) =>
-    getDb()
-      .prepare('SELECT segno_id, valore FROM segno_valori WHERE seduta_id = ?')
-      .all(sedutaId)
-  )
+  handle('segni:rinomina', (id: number, nome: string, unita: string | null) => rinominaSegno(id, nome, unita))
+  handle('segni:delete', (id: number) => eliminaSegno(id))
+  handle('segni:dellaSeduta', (sedutaId: number) => segniDellaSeduta(sedutaId))
 
   // ---- Chi firma i fogli stampati ----
   handle('profilo:leggi', () => leggiProfilo())
   handle('profilo:salva', (p: Profilo) => salvaProfilo(p))
 
   // ---- Bozza della seduta in costruzione ----
-  handle('bozze:leggi', (pazienteId: number) =>
-    getDb()
-      .prepare('SELECT aggiornata_il, contenuto FROM bozze_seduta WHERE paziente_id = ?')
-      .get(pazienteId) ?? null
-  )
-  handle('bozze:salva', (pazienteId: number, contenuto: string) => {
-    getDb()
-      .prepare(
-        `INSERT INTO bozze_seduta (paziente_id, aggiornata_il, contenuto) VALUES (?, ?, ?)
-         ON CONFLICT(paziente_id) DO UPDATE SET aggiornata_il = excluded.aggiornata_il,
-           contenuto = excluded.contenuto`
-      )
-      .run(pazienteId, new Date().toISOString(), contenuto)
-  })
-  handle('bozze:elimina', (pazienteId: number) => {
-    getDb().prepare('DELETE FROM bozze_seduta WHERE paziente_id = ?').run(pazienteId)
-  })
+  handle('bozze:leggi', (pazienteId: number) => leggiBozza(pazienteId))
+  handle('bozze:salva', (pazienteId: number, contenuto: string) => salvaBozza(pazienteId, contenuto))
+  handle('bozze:elimina', (pazienteId: number) => eliminaBozza(pazienteId))
 
   handle('valutazioni:duplica', (id: number, data: string) => duplicaValutazione(id, data))
   handle('valutazioni:salva', (dati: ValutazioneCompleta) => salvaValutazione(dati))

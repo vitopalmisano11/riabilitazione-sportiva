@@ -40,8 +40,12 @@ Specifica originale e feedback dell'utente sono nei file `prompt-*.md` alla radi
   in `ipc.ts` il canale chiama solo il servizio (`handle('sedute:get', (id) => leggiSeduta(id))`).
   Così le prove in `test/` chiamano il codice vero invece di ricopiarne le query. Gli elenchi
   ordinabili usano `main/elenchi.ts`: `riordina`, `prossimoOrdine`, e per quelli fatti solo di nomi
-  `elencoSemplice` + `registraElenco` in `ipc.ts`. Diversi domini hanno ancora la logica dentro
-  `ipc.ts`: si spostano a uno a uno con lo stesso modello, ognuno con la sua prova.
+  `elencoSemplice` + `registraElenco` in `ipc.ts`. Già spostati: sedute, pazienti (anche follow-up),
+  tecniche, percorso (patologie/fasi/obiettivi/sezioni/test), anamnesi, esercizi e categorie,
+  obiettivi terapeutici, body chart, indicazioni, massimali, segni, bozze. Restano in `ipc.ts`:
+  distretti, parti di questionari/screening/test di valutazione, e tutto ciò che apre un dialogo o
+  tocca una finestra (auth, copie, impostazioni, export, referti): lì il canale ha davvero della
+  logica di Electron. Un dominio che si tocca si sposta con lo stesso modello, con la sua prova.
 - I dati delle sedute sono **snapshot** (serie/ripetizioni/carico/recupero copiati), gli
   esercizi usati nello storico non si eliminano (si archiviano). La fase è fotografata sulla seduta.
 - Niente `alert()`: usare `toast()` / `toastErrore()` da `components/Toast.tsx`. I `confirm()`

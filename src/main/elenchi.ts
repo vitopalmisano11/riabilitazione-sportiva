@@ -27,6 +27,8 @@ export type TabellaOrdinabile =
   | 'test_categorie'
   | 'test_valutazione'
   | 'obiettivi_terapeutici'
+  | 'indicazioni'
+  | 'segni'
 
 // L'ordine e' quello in cui arrivano gli id: il primo va in cima.
 export function riordina(tabella: TabellaOrdinabile, ids: number[]): void {
