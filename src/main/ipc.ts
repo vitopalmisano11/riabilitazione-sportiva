@@ -56,6 +56,24 @@ import {
 } from './cestino'
 import { elencoSemplice, riordina, type ElencoSemplice } from './elenchi'
 import {
+  aggiornaPaziente,
+  andamentoDolore,
+  creaPaziente,
+  eliminaPaziente,
+  elencoFollowUp,
+  elencoPazienti,
+  impostaFollowUp,
+  impostaObiettivoRaggiunto,
+  impostaPatologiaFase,
+  impostaRecensione,
+  impostaStato,
+  impostaValoreTest,
+  obiettiviRaggiunti,
+  segnaContattato,
+  valoriTest
+} from './pazienti'
+import { archiviaTecnica, creaTecnica, elencoTecniche } from './tecniche'
+import {
   aggiornaSeduta,
   creaSeduta,
   elencoSedute,
@@ -130,7 +148,6 @@ import {
 import type { Tema } from '../shared/temi'
 import { seduteDellaSettimana } from './settimana'
 import { ultimaVoltaPerPaziente } from './ultima-volta'
-import { andamentoDolorePerPaziente } from './andamento-dolore'
 import { sedutaPrecedente } from './seduta-precedente'
 import { controllaPassword } from '../shared/password'
 import { installaAdesso, statoAggiornamento } from './aggiornamenti'
@@ -153,7 +170,6 @@ import type {
   CompilazioneInput,
   EsercizioInput,
   PazienteCreateInput,
-  PazienteDettaglio,
   PazienteInput,
   Profilo,
   DistrettoCompleto,
@@ -1022,91 +1038,15 @@ export function registerIpc(): void {
   })
 
   // ---- Pazienti ----
-  // La fase corrente deve appartenere alla patologia assegnata al paziente.
-  function checkFaseCoerente(patologiaId: number | null, faseId: number | null): void {
-    if (faseId == null) return
-    if (patologiaId == null) throw new Error('Imposta prima la patologia del paziente.')
-    const fase = getDb()
-      .prepare('SELECT patologia_id, campo FROM fasi WHERE id = ?')
-      .get(faseId) as { patologia_id: number; campo: number } | undefined
-    if (!fase || fase.patologia_id !== patologiaId) {
-      throw new Error('La fase selezionata non appartiene alla patologia del paziente.')
-    }
-    // Il campo e' un percorso parallelo: la fase corrente e' sempre di palestra,
-    // altrimenti "Avanza" non saprebbe da dove ripartire.
-    if (fase.campo === 1) {
-      throw new Error(
-        'Una fase del campo non si imposta come fase corrente: il campo si sceglie sulla singola seduta.'
-      )
-    }
-  }
-
-  // L'ultima seduta e' l'ultima fatta, non l'ultima in calendario: una seduta
-  // gia' fissata per la settimana prossima portava il paziente in cima
-  // all'elenco prima ancora di vederlo.
-  handle('pazienti:list', () =>
-    getDb()
-      .prepare(
-        `SELECT p.*, pat.nome AS patologia_nome, f.nome AS fase_nome, g.nome AS gruppo_nome,
-                (SELECT MAX(s.data) FROM sedute s
-                 WHERE s.paziente_id = p.id AND s.data <= date('now', 'localtime')) AS ultima_seduta
-         FROM pazienti p
-         LEFT JOIN patologie pat ON pat.id = p.patologia_id
-         LEFT JOIN fasi f ON f.id = p.fase_corrente_id
-         LEFT JOIN gruppi g ON g.id = p.gruppo_id
-         -- in cima chi ha la seduta piu' recente; chi non ne ha ancora resta in
-         -- fondo, in ordine alfabetico
-         ORDER BY ultima_seduta IS NULL, ultima_seduta DESC, p.cognome, p.nome`
-      )
-      .all()
+  // La logica sta in pazienti.ts: qui solo i canali.
+  handle('pazienti:list', () => elencoPazienti())
+  handle('pazienti:create', (data: PazienteCreateInput) => creaPaziente(data))
+  handle('pazienti:update', (id: number, data: PazienteInput) => aggiornaPaziente(id, data))
+  handle('pazienti:setPatologiaFase', (id: number, patologiaId: number | null, faseId: number | null) =>
+    impostaPatologiaFase(id, patologiaId, faseId)
   )
-  handle('pazienti:create', (data: PazienteCreateInput) => {
-    richiedeTesto(data.nome, 'Il nome')
-    richiedeTesto(data.cognome, 'Il cognome')
-    validaData(data.data_nascita, 'La data di nascita')
-    validaData(data.data_intervento, "La data dell'intervento")
-    checkFaseCoerente(data.patologia_id, data.fase_corrente_id)
-    return Number(
-      getDb()
-        .prepare(
-          `INSERT INTO pazienti
-             (nome, cognome, data_nascita, codice_fiscale, telefono, email, lavoro, inviato_da, sport, diagnosi,
-              tipo_intervento, data_intervento, precauzioni, patologia_id, fase_corrente_id, gruppo_id)
-           VALUES
-             (@nome, @cognome, @data_nascita, @codice_fiscale, @telefono, @email, @lavoro, @inviato_da, @sport, @diagnosi,
-              @tipo_intervento, @data_intervento, @precauzioni, @patologia_id, @fase_corrente_id, @gruppo_id)`
-        )
-        .run({ ...data, nome: data.nome.trim(), cognome: data.cognome.trim() }).lastInsertRowid
-    )
-  })
-  handle('pazienti:update', (id: number, data: PazienteInput) => {
-    richiedeTesto(data.nome, 'Il nome')
-    richiedeTesto(data.cognome, 'Il cognome')
-    validaData(data.data_nascita, 'La data di nascita')
-    validaData(data.data_intervento, "La data dell'intervento")
-    getDb()
-      .prepare(
-        `UPDATE pazienti SET nome = @nome, cognome = @cognome,
-         data_nascita = @data_nascita, codice_fiscale = @codice_fiscale, telefono = @telefono, email = @email,
-         lavoro = @lavoro, inviato_da = @inviato_da, sport = @sport, diagnosi = @diagnosi,
-         tipo_intervento = @tipo_intervento, data_intervento = @data_intervento,
-         precauzioni = @precauzioni, arto_operato = @arto_operato, gruppo_id = @gruppo_id
-         WHERE id = @id`
-      )
-      .run({ ...data, nome: data.nome.trim(), cognome: data.cognome.trim(), id })
-  })
-  handle('pazienti:setPatologiaFase', (id: number, patologiaId: number | null, faseId: number | null) => {
-    checkFaseCoerente(patologiaId, faseId)
-    getDb()
-      .prepare('UPDATE pazienti SET patologia_id = ?, fase_corrente_id = ? WHERE id = ?')
-      .run(patologiaId, faseId, id)
-  })
-  handle('pazienti:delete', (id: number) => {
-    const p = getDb().prepare('SELECT nome, cognome FROM pazienti WHERE id = ?').get(id) as
-      | { nome: string; cognome: string }
-      | undefined
-    eliminaConCestino('pazienti', id, 'Paziente', `${p?.cognome ?? ''} ${p?.nome ?? ''}`.trim())
-  })
+  handle('pazienti:delete', (id: number) => eliminaPaziente(id))
+
   // ---- Screening ----
   handle('screening:sport', () =>
     (
@@ -1192,111 +1132,24 @@ export function registerIpc(): void {
   })
 
   // ---- Follow-up ----
-  // Le due liste escono dalla stessa query dell'elenco pazienti, divise per
-  // stato: in trattamento in ordine di seduta piu' recente, in follow-up in
-  // ordine di data da contattare (chi non ne ha in fondo).
-  handle('followUp:list', () => {
-    const righe = getDb()
-      .prepare(
-        `SELECT p.*, pat.nome AS patologia_nome, f.nome AS fase_nome,
-                (SELECT MAX(s.data) FROM sedute s
-                 WHERE s.paziente_id = p.id AND s.data <= date('now', 'localtime')) AS ultima_seduta
-         FROM pazienti p
-         LEFT JOIN patologie pat ON pat.id = p.patologia_id
-         LEFT JOIN fasi f ON f.id = p.fase_corrente_id
-         ORDER BY p.cognome, p.nome`
-      )
-      .all() as (PazienteDettaglio & { stato: StatoPaziente })[]
-
-    const perSeduta = (a: PazienteDettaglio, b: PazienteDettaglio): number =>
-      (b.ultima_seduta ?? '').localeCompare(a.ultima_seduta ?? '')
-    // chi ha una data da rispettare viene prima, in ordine di scadenza
-    const perScadenza = (a: PazienteDettaglio, b: PazienteDettaglio): number => {
-      if (a.follow_up_il == null) return b.follow_up_il == null ? 0 : 1
-      if (b.follow_up_il == null) return -1
-      return a.follow_up_il.localeCompare(b.follow_up_il)
-    }
-    return {
-      trattamento: righe.filter((p) => p.stato !== 'concluso').sort(perSeduta),
-      concluso: righe.filter((p) => p.stato === 'concluso').sort(perScadenza)
-    }
-  })
-
-  handle(
-    'followUp:setStato',
-    (id: number, stato: StatoPaziente, followUpIl: string | null) => {
-      getDb()
-        .prepare('UPDATE pazienti SET stato = ?, follow_up_il = ? WHERE id = ?')
-        .run(stato, stato === 'concluso' ? followUpIl : null, id)
-    }
+  handle('followUp:list', () => elencoFollowUp())
+  handle('followUp:setStato', (id: number, stato: StatoPaziente, followUpIl: string | null) =>
+    impostaStato(id, stato, followUpIl)
   )
-  handle('followUp:setFollowUp', (id: number, followUpIl: string | null) => {
-    getDb().prepare('UPDATE pazienti SET follow_up_il = ? WHERE id = ?').run(followUpIl, id)
-  })
-  // Spuntare "contattato" segna la data di oggi e libera il prossimo contatto:
-  // se ne serve un altro, la data la si rimette a mano.
-  handle('followUp:segnaContattato', (id: number, contattato: boolean) => {
-    const db = getDb()
-    if (contattato) {
-      db.prepare(
-        "UPDATE pazienti SET contattato_il = date('now', 'localtime'), follow_up_il = NULL WHERE id = ?"
-      ).run(id)
-    } else {
-      db.prepare('UPDATE pazienti SET contattato_il = NULL WHERE id = ?').run(id)
-    }
-  })
-  handle('followUp:setRecensione', (id: number, recensione: boolean) => {
-    getDb()
-      .prepare('UPDATE pazienti SET recensione = ? WHERE id = ?')
-      .run(recensione ? 1 : 0, id)
-  })
+  handle('followUp:setFollowUp', (id: number, followUpIl: string | null) => impostaFollowUp(id, followUpIl))
+  handle('followUp:segnaContattato', (id: number, contattato: boolean) => segnaContattato(id, contattato))
+  handle('followUp:setRecensione', (id: number, recensione: boolean) => impostaRecensione(id, recensione))
 
-  handle('pazienti:obiettiviRaggiunti', (pazienteId: number) =>
-    (
-      getDb()
-        .prepare('SELECT obiettivo_id FROM paziente_obiettivi WHERE paziente_id = ?')
-        .all(pazienteId) as { obiettivo_id: number }[]
-    ).map((r) => r.obiettivo_id)
+  handle('pazienti:obiettiviRaggiunti', (pazienteId: number) => obiettiviRaggiunti(pazienteId))
+  handle('pazienti:setObiettivoRaggiunto', (pazienteId: number, obiettivoId: number, raggiunto: boolean) =>
+    impostaObiettivoRaggiunto(pazienteId, obiettivoId, raggiunto)
   )
-  handle('pazienti:setObiettivoRaggiunto', (pazienteId: number, obiettivoId: number, raggiunto: boolean) => {
-    if (raggiunto) {
-      getDb()
-        .prepare(
-          `INSERT OR IGNORE INTO paziente_obiettivi (paziente_id, obiettivo_id, raggiunto_il)
-           VALUES (?, ?, date('now', 'localtime'))`
-        )
-        .run(pazienteId, obiettivoId)
-    } else {
-      getDb()
-        .prepare('DELETE FROM paziente_obiettivi WHERE paziente_id = ? AND obiettivo_id = ?')
-        .run(pazienteId, obiettivoId)
-    }
-  })
-  // Il dolore nel tempo per la linguetta "Quadro": la query sta in un file
-  // suo, cosi' il test la puo' eseguire.
-  handle('pazienti:andamentoDolore', (pazienteId: number) => andamentoDolorePerPaziente(pazienteId))
-  handle('pazienti:testValori', (pazienteId: number, faseId: number) =>
-    getDb()
-      .prepare(
-        `SELECT t.id AS test_id, t.nome,
-                COALESCE(pt.eseguito, 0) AS eseguito,
-                pt.valore
-         FROM test_avanzamento t
-         LEFT JOIN paziente_test pt ON pt.test_id = t.id AND pt.paziente_id = ?
-         WHERE t.fase_id = ?
-         ORDER BY t.ordine, t.id`
-      )
-      .all(pazienteId, faseId)
+  // Il dolore nel tempo per la linguetta "Quadro".
+  handle('pazienti:andamentoDolore', (pazienteId: number) => andamentoDolore(pazienteId))
+  handle('pazienti:testValori', (pazienteId: number, faseId: number) => valoriTest(pazienteId, faseId))
+  handle('pazienti:setTestValore', (pazienteId: number, testId: number, eseguito: boolean, valore: string | null) =>
+    impostaValoreTest(pazienteId, testId, eseguito, valore)
   )
-  handle('pazienti:setTestValore', (pazienteId: number, testId: number, eseguito: boolean, valore: string | null) => {
-    getDb()
-      .prepare(
-        `INSERT INTO paziente_test (paziente_id, test_id, eseguito, valore)
-         VALUES (?, ?, ?, ?)
-         ON CONFLICT(paziente_id, test_id) DO UPDATE SET eseguito = excluded.eseguito, valore = excluded.valore`
-      )
-      .run(pazienteId, testId, eseguito ? 1 : 0, valore)
-  })
 
   // ---- Sedute ----
   // La logica sta in sedute.ts (e' il modello per gli altri domini): qui solo
@@ -1323,36 +1176,9 @@ export function registerIpc(): void {
   handle('archivio:controlla', () => controllaArchivio())
 
   // ---- Tecniche del trattamento ----
-  handle('tecniche:list', (includiArchiviate: boolean) =>
-    getDb()
-      .prepare(
-        `SELECT * FROM tecniche ${includiArchiviate ? '' : 'WHERE archiviata = 0'}
-         ORDER BY ordine, nome`
-      )
-      .all()
-  )
-  handle('tecniche:crea', (nome: string) => {
-    const db = getDb()
-    const pulito = nome.trim()
-    if (!pulito) throw new Error('Scrivi il nome della tecnica.')
-    // Se c'era gia' (magari archiviata) si rimette in elenco invece di duplicarla.
-    const esiste = db.prepare('SELECT id FROM tecniche WHERE nome = ? COLLATE NOCASE').get(pulito) as
-      | { id: number }
-      | undefined
-    if (esiste) {
-      db.prepare('UPDATE tecniche SET archiviata = 0 WHERE id = ?').run(esiste.id)
-      return esiste.id
-    }
-    const { next } = db
-      .prepare('SELECT COALESCE(MAX(ordine), -1) + 1 AS next FROM tecniche')
-      .get() as { next: number }
-    return Number(
-      db.prepare('INSERT INTO tecniche (nome, ordine) VALUES (?, ?)').run(pulito, next).lastInsertRowid
-    )
-  })
-  handle('tecniche:setArchiviata', (id: number, archiviata: boolean) => {
-    getDb().prepare('UPDATE tecniche SET archiviata = ? WHERE id = ?').run(archiviata ? 1 : 0, id)
-  })
+  handle('tecniche:list', (includiArchiviate: boolean) => elencoTecniche(includiArchiviate))
+  handle('tecniche:crea', (nome: string) => creaTecnica(nome))
+  handle('tecniche:setArchiviata', (id: number, archiviata: boolean) => archiviaTecnica(id, archiviata))
 
   // ---- Categorie dei questionari ----
   registraElenco('questionariCategorie', elencoSemplice('questionario_categorie', 'Categoria di questionari'))
