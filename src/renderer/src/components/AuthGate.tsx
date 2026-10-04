@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { errMsg } from '../lib'
 import LogoApp from './LogoApp'
+import ConsiglioPassword from './ConsiglioPassword'
+import { controllaPassword } from '../../../shared/password'
 import type { InfoAccesso, StatoAccesso } from '../../../shared/types'
 
 // Oltre ai passi dell'accesso, i casi in cui l'archivio non si trova (vedi
@@ -58,7 +60,8 @@ export default function AuthGate({ onUnlocked }: { onUnlocked: () => void }): Re
 
   const setup = (): Promise<void> =>
     run(async () => {
-      if (pw.length < 8) throw new Error('La password deve avere almeno 8 caratteri.')
+      const debole = controllaPassword(pw)
+      if (debole) throw new Error(debole)
       if (pw !== pw2) throw new Error('Le password non coincidono.')
       const k = await window.api.auth.setup(pw)
       setChiave(k)
@@ -73,7 +76,8 @@ export default function AuthGate({ onUnlocked }: { onUnlocked: () => void }): Re
 
   const recupera = (): Promise<void> =>
     run(async () => {
-      if (pw.length < 8) throw new Error('La nuova password deve avere almeno 8 caratteri.')
+      const debole = controllaPassword(pw)
+      if (debole) throw new Error(debole)
       if (pw !== pw2) throw new Error('Le password non coincidono.')
       if (conDomanda) await window.api.auth.recoverDomanda(risposta, pw)
       else await window.api.auth.recover(rk, pw)
@@ -126,13 +130,14 @@ export default function AuthGate({ onUnlocked }: { onUnlocked: () => void }): Re
               }}
             >
               <label className="field">
-                Password (min 8 caratteri)
+                Password (almeno 10 caratteri: meglio una frase di qualche parola)
                 <input
                   type="password"
                   autoFocus
                   value={pw}
                   onChange={(e) => setPw(e.target.value)}
                 />
+                <ConsiglioPassword password={pw} />
               </label>
               <label className="field">
                 Conferma password
@@ -366,8 +371,9 @@ export default function AuthGate({ onUnlocked }: { onUnlocked: () => void }): Re
                 </label>
               )}
               <label className="field">
-                Nuova password (min 8 caratteri)
+                Nuova password (almeno 10 caratteri: meglio una frase di qualche parola)
                 <input type="password" value={pw} onChange={(e) => setPw(e.target.value)} />
+                <ConsiglioPassword password={pw} />
               </label>
               <label className="field">
                 Conferma nuova password

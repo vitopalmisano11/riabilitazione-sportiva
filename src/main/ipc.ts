@@ -120,6 +120,7 @@ import { seduteDellaSettimana } from './settimana'
 import { ultimaVoltaPerPaziente } from './ultima-volta'
 import { andamentoDolorePerPaziente } from './andamento-dolore'
 import { sedutaPrecedente } from './seduta-precedente'
+import { controllaPassword } from '../shared/password'
 import { leggiProfilo, salvaProfilo } from './profilo'
 import {
   erroreSenzaDatiNelRegistro,
@@ -209,9 +210,20 @@ export function registerIpc(): void {
   const authPath = (): string => join(cartellaDati(), 'auth.json')
   const dbPath = (): string => join(cartellaDati(), 'riabilitazione.db')
 
+  // Una password nuova deve reggere chi la prova su una copia rubata.
+  const passwordNuova = (password: string): void => {
+    const errore = controllaPassword(password)
+    if (errore) throw new Error(errore)
+  }
+  // La password usata per entrare e' di quelle che oggi non si accetterebbero
+  // piu'? Si ricorda solo questo, mai la password: serve a suggerire di
+  // cambiarla prima di mettere le copie online.
+  let passwordDebole = false
+
   handle('auth:status', () => statoAccesso())
+  handle('auth:passwordDebole', () => passwordDebole)
   handle('auth:setup', (password: string) => {
-    if (password.length < 8) throw new Error('La password deve avere almeno 8 caratteri.')
+    passwordNuova(password)
     controllaSetup(cartellaDati())
     const { dekHex, recoveryKey } = setupAuth(authPath(), password)
     initDb(dbPath(), dekHex)
@@ -222,6 +234,7 @@ export function registerIpc(): void {
   handle('auth:login', (password: string) => {
     const dekHex = loginAuth(authPath(), password)
     initDb(dbPath(), dekHex)
+    passwordDebole = controllaPassword(password) != null
     // una copia al giorno, appena si entra: conserva com'era l'archivio prima
     // della sessione, anche se quella precedente e' finita male. Non si
     // aspetta: la copia e' l'archivio di questo momento anche se finisce dopo.
@@ -234,7 +247,7 @@ export function registerIpc(): void {
     ripuliscilCestino()
   })
   handle('auth:recover', (recoveryKey: string, nuovaPassword: string) => {
-    if (nuovaPassword.length < 8) throw new Error('La password deve avere almeno 8 caratteri.')
+    passwordNuova(nuovaPassword)
     const dekHex = recoverAuth(authPath(), recoveryKey, nuovaPassword)
     initDb(dbPath(), dekHex)
     ripuliscilCestino()
@@ -287,8 +300,9 @@ export function registerIpc(): void {
     return statoAccesso()
   })
   handle('auth:cambiaPassword', (vecchia: string, nuova: string) => {
-    if (nuova.length < 8) throw new Error('La nuova password deve avere almeno 8 caratteri.')
+    passwordNuova(nuova)
     cambiaPasswordAuth(authPath(), vecchia, nuova)
+    passwordDebole = false
   })
   handle('auth:domanda', () => domandaAuth(authPath()))
   handle('auth:impostaDomanda', (password: string, domanda: string, risposta: string) =>
@@ -296,7 +310,7 @@ export function registerIpc(): void {
   )
   handle('auth:togliDomanda', (password: string) => togliDomandaAuth(authPath(), password))
   handle('auth:recoverDomanda', (risposta: string, nuovaPassword: string) => {
-    if (nuovaPassword.length < 8) throw new Error('La password deve avere almeno 8 caratteri.')
+    passwordNuova(nuovaPassword)
     const dekHex = recoverDomandaAuth(authPath(), risposta, nuovaPassword)
     initDb(dbPath(), dekHex)
     ripuliscilCestino()

@@ -42,10 +42,16 @@ export default function PannelloBackup(): React.JSX.Element {
   // La domanda di recupero apre l'archivio come la password: se le copie stanno
   // online, chi le ottenesse potrebbe provare a indovinarne la risposta.
   const [conDomanda, setConDomanda] = useState(false)
+  // Lo stesso per una password corta: online, la si prova all'infinito.
+  const [passwordDebole, setPasswordDebole] = useState(false)
   useEffect(() => {
     window.api.auth
       .domanda()
       .then((d) => setConDomanda(d != null))
+      .catch(() => undefined)
+    window.api.auth
+      .passwordDebole()
+      .then(setPasswordDebole)
       .catch(() => undefined)
   }, [])
 
@@ -166,6 +172,13 @@ export default function PannelloBackup(): React.JSX.Element {
           rompe, i dati non si perdono.
         </span>
       )}
+      {info.inOneDrive && passwordDebole && (
+        <span className="esito-copia esito-guasto">
+          <CircleAlert size={15} /> Le copie stanno online e la tua password è corta o facile da
+          indovinare: chi si procurasse una copia potrebbe provarne quante vuole. Cambiala da
+          Impostazioni, in «Cambia password»: meglio una frase di qualche parola.
+        </span>
+      )}
       {info.inOneDrive && conDomanda && (
         <span className="esito-copia esito-guasto">
           <CircleAlert size={15} /> Hai una domanda di recupero, e le copie stanno online: chi
@@ -207,6 +220,23 @@ export default function PannelloBackup(): React.JSX.Element {
           <button
             onClick={() =>
               void run(async () => {
+                // Online le copie sono fuori dal computer, ed e' il bello; ma
+                // chi se ne procura una puo' provare password senza limiti.
+                const ok = await chiedi({
+                  titolo: 'Mettere le copie in OneDrive?',
+                  testo:
+                    'Le copie restano cifrate: senza la password, o la chiave di recupero, non si aprono.\n\n' +
+                    'Ma online chi se ne procurasse una potrebbe provare password quante vuole, senza che tu lo sappia: ' +
+                    'conta che la password sia lunga e non comune.' +
+                    (passwordDebole
+                      ? '\n\nLa tua password è corta o facile da indovinare: dopo, cambiala da Impostazioni, in «Cambia password».'
+                      : '') +
+                    (conDomanda
+                      ? '\n\nHai anche una domanda di recupero: vale lo stesso per la sua risposta.'
+                      : ''),
+                  conferma: 'Metti in OneDrive'
+                })
+                if (!ok) return
                 await window.api.backup.usaOneDrive()
                 toast('Le copie andranno in OneDrive.')
               })

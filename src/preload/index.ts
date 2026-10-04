@@ -101,7 +101,8 @@ const api: Api = {
       invoke('auth:impostaDomanda', password, domanda, risposta),
     togliDomanda: (password: string) => invoke('auth:togliDomanda', password),
     recoverDomanda: (risposta: string, nuovaPassword: string) =>
-      invoke('auth:recoverDomanda', risposta, nuovaPassword)
+      invoke('auth:recoverDomanda', risposta, nuovaPassword),
+    passwordDebole: () => invoke('auth:passwordDebole')
   },
   distretti: {
     list: () => invoke('distretti:list'),

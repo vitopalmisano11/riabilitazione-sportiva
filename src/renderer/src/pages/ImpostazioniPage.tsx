@@ -5,6 +5,8 @@ import type { EsitoArchivio, Profilo, VoceCestino } from '../../../shared/types'
 import { TEMI } from '../../../shared/temi'
 import PannelloBackup from '../components/PannelloBackup'
 import GuidaDati from '../components/GuidaDati'
+import ConsiglioPassword from '../components/ConsiglioPassword'
+import { controllaPassword } from '../../../shared/password'
 import {
   BookOpen,
   FolderOpen,
@@ -641,8 +643,9 @@ function SchedaPassword(): React.JSX.Element {
 
   const salva = async (): Promise<void> => {
     setErrore('')
-    if (nuova.length < 8) {
-      setErrore('La nuova password deve avere almeno 8 caratteri.')
+    const debole = controllaPassword(nuova)
+    if (debole) {
+      setErrore(debole)
       return
     }
     if (nuova !== conferma) {
@@ -671,8 +674,9 @@ function SchedaPassword(): React.JSX.Element {
         <input type="password" value={vecchia} onChange={(e) => setVecchia(e.target.value)} />
       </label>
       <label>
-        Nuova password (min 8 caratteri)
+        Nuova password (almeno 10 caratteri: meglio una frase di qualche parola)
         <input type="password" value={nuova} onChange={(e) => setNuova(e.target.value)} />
+        <ConsiglioPassword password={nuova} />
       </label>
       <label>
         Conferma nuova password

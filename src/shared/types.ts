@@ -1185,6 +1185,10 @@ export interface Api {
     impostaDomanda(password: string, domanda: string, risposta: string): Promise<void>
     togliDomanda(password: string): Promise<void>
     recoverDomanda(risposta: string, nuovaPassword: string): Promise<void>
+    // La password usata per entrare non reggerebbe le regole di oggi per una
+    // password nuova (vedi shared/password.ts): da cambiare prima di mettere le
+    // copie online.
+    passwordDebole(): Promise<boolean>
   }
   distretti: {
     list(): Promise<Distretto[]>
