@@ -1,0 +1,27 @@
+[
+  {
+    "versione": "0.1.0",
+    "migrazioni": 1,
+    "sha256": "0e48a378ed1d2ec931c5768bacfcbd7a9ecc0f547744d5e704e85c736096a199"
+  },
+  {
+    "versione": "0.2.0",
+    "migrazioni": 2,
+    "sha256": "a8aae70964c1a317c3e5be2c46e935285242feba7eef82fe4bfb47beef6e23ac"
+  },
+  {
+    "versione": "0.3.0",
+    "migrazioni": 3,
+    "sha256": "28eb6f19fdb84387a88a03e2b5f2f781f2e01d06238fdb7fc9ccde7e900a788a"
+  },
+  {
+    "versione": "0.4.0",
+    "migrazioni": 4,
+    "sha256": "4736e3270ef2a979be24d4accf557b14644140fe9819356b265a9ee708a52310"
+  },
+  {
+    "versione": "0.5.5",
+    "migrazioni": 53,
+    "sha256": "cb107ab03beab3b547b5c092bdb5056e8c654f144354d7e85e740917c3cedebf"
+  }
+]

@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSalvaUscendo } from './salvaUscendo'
 import { ascoltaErrori, toastErrore } from './components/Toast'
 import { errMsg } from './lib'
+import { unoAllaVolta } from './unoAllaVolta'
 
 // Il salvataggio, con una regola sola per tutte le schede.
 //
@@ -42,7 +43,6 @@ export function useSalvataggio(
   } = {}
 ): Salvataggio {
   const funzione = useRef<(() => Promise<boolean | void>) | null>(null)
-  const inCorso = useRef<Promise<boolean> | null>(null)
   const montato = useRef(true)
   useEffect(() => {
     montato.current = true
@@ -57,33 +57,31 @@ export function useSalvataggio(
   // Un salvataggio alla volta: Ctrl+S premuto due volte, un doppio clic o
   // l'uscita che salva mentre un salvataggio e' gia' partito aspettano quello,
   // invece di farne un altro.
-  const salvaOra = useCallback((): Promise<boolean> => {
-    if (inCorso.current) return inCorso.current
-    if (montato.current) setSalvando(true)
-    let messaggio: string | null = null
-    const smetti = ascoltaErrori((testo) => {
-      messaggio = testo
-    })
-    const corrente = (async (): Promise<boolean> => {
-      try {
-        return funzione.current ? (await funzione.current()) !== false : true
-      } catch (e) {
-        toastErrore(errMsg(e))
-        return false
-      }
-    })().then((ok) => {
-      smetti()
-      inCorso.current = null
-      if (montato.current) {
-        setSalvando(false)
-        setErrore(ok ? null : (messaggio ?? 'Non è stato salvato.'))
-        if (ok) setSalvatoUnaVolta(true)
-      }
-      return ok
-    })
-    inCorso.current = corrente
-    return corrente
-  }, [])
+  const salvaOra = useMemo(
+    () =>
+      unoAllaVolta(async (): Promise<boolean> => {
+        if (montato.current) setSalvando(true)
+        let messaggio: string | null = null
+        const smetti = ascoltaErrori((testo) => {
+          messaggio = testo
+        })
+        let ok: boolean
+        try {
+          ok = funzione.current ? (await funzione.current()) !== false : true
+        } catch (e) {
+          toastErrore(errMsg(e))
+          ok = false
+        }
+        smetti()
+        if (montato.current) {
+          setSalvando(false)
+          setErrore(ok ? null : (messaggio ?? 'Non è stato salvato.'))
+          if (ok) setSalvatoUnaVolta(true)
+        }
+        return ok
+      }),
+    []
+  )
 
   const uscendo = useSalvaUscendo(opzioni.uscendo !== false && modificato)
   uscendo.current = salvaOra

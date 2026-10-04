@@ -29,7 +29,7 @@ import {
 import { dirname, join } from 'node:path'
 import { controllaSetup, statoAccesso } from '../src/main/accesso'
 import { MIGRATIONS } from '../src/main/migrations'
-import { setupAuth } from '../src/main/auth'
+import { cambiaPasswordAuth, loginAuth, recoverAuth, setupAuth } from '../src/main/auth'
 import { apriAltroDb, closeDb, getDb, impostaCopiaPrimaDelleMigrazioni, initDb } from '../src/main/db'
 import {
   cartellaDati,
@@ -128,7 +128,7 @@ const restiProvvisori = (): string[] =>
 
 async function prove(): Promise<void> {
   // --- preparazione: un archivio con dentro qualcosa ---
-  const { dekHex } = setupAuth(authApp, 'prova-di-prova')
+  const { dekHex, recoveryKey } = setupAuth(authApp, 'prova-di-prova')
   initDb(dbApp, dekHex)
   aggiungiPaziente('Uno')
   aggiungiPaziente('Due')
@@ -231,6 +231,29 @@ async function prove(): Promise<void> {
     assert.equal(existsSync(join(dati, `${DB}-wal`)), false)
     assert.equal(existsSync(join(dati, `${DB}-shm`)), false)
     initDb(dbApp, dekHex)
+  })
+
+  // 10b — la password cambiata dopo la copia: la copia ha le chiavi di allora
+  await controllo('ripristinando una copia fatta prima di cambiare password, vale la password di allora', () => {
+    copiaChiamata('2020-02-02_0900')
+    cambiaPasswordAuth(authApp, 'prova-di-prova', 'password-cambiata-dopo')
+    // prima del ripristino vale la password nuova
+    assert.equal(loginAuth(authApp, 'password-cambiata-dopo'), dekHex)
+    assert.throws(() => loginAuth(authApp, 'prova-di-prova'), /Password errata/)
+
+    closeDb()
+    initDb(dbApp, dekHex)
+    eseguiRipristino('2020-02-02_0900')
+    initDb(dbApp, dekHex)
+
+    // dopo, vale quella di quando e' stata fatta la copia: quella nuova no
+    assert.equal(loginAuth(authApp, 'prova-di-prova'), dekHex)
+    assert.throws(() => loginAuth(authApp, 'password-cambiata-dopo'), /Password errata/)
+    // la chiave di recupero apre comunque, ed e' la via d'uscita se la password si e' persa
+    assert.equal(recoverAuth(authApp, recoveryKey, 'password-di-ripiego'), dekHex)
+    assert.equal(loginAuth(authApp, 'password-di-ripiego'), dekHex)
+    // e l'archivio e' quello della copia, aperto con la stessa chiave di sempre
+    assert.deepEqual(pazienti(), ['Due', 'Uno'])
   })
 
   // 11 — un ripristino che si rompe a meta' lascia l'archivio di prima intatto

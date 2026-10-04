@@ -106,7 +106,10 @@ non si vedono (un processo per file). Una funzionalità nuova porta con sé la s
 dell'area, o in un file nuovo. Niente dati veri: solo cartelle temporanee.
 
 ## Release
-1. Aggiornare `version` in `package.json` e la sezione novità nel `README.md`.
+1. Aggiornare `version` in `package.json` e la sezione novità nel `README.md`. Se la versione porta
+   migrazioni nuove, aggiungere una riga a `test/migrazioni-rilasciate.json` (versione, quante
+   migrazioni, impronta: si ricava come nel test `test/migrazioni.test.ts`): da quel momento non si
+   toccano più, e il test lo fa rispettare.
 2. `git commit`, `git push`, poi `git tag vX.Y.Z && git push --tags`.
 3. GitHub Actions (`.github/workflows/release.yml`) compila l'installer Windows e lo pubblica
    nei Releases in ~3 minuti. Poi `gh release edit vX.Y.Z --notes "..."` con le note in italiano.
