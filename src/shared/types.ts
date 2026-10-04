@@ -1127,6 +1127,9 @@ export interface InfoBackup {
   // L'ultima copia automatica non riuscita, finche' una copia di chiusura non
   // riesce di nuovo. Solo con le copie automatiche accese.
   copiaFallita: { quando: string; messaggio: string } | null
+  // Quando e' stata fatta l'ultima copia fuori dal computer (ISO), o null se
+  // non ne e' mai stata fatta una da questo programma.
+  ultimaCopiaFuori: string | null
 }
 
 // Cosa si e' trovato dentro una copia di sicurezza aprendola davvero.

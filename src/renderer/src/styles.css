@@ -50,6 +50,8 @@
   --campo: #ffffff;
   --danger: #d64545;
   --success: #1f9d61;
+  /* un promemoria o un dubbio, non un guasto: ambra, fra il verde e il rosso */
+  --attenzione: #b7791f;
   --radius: 10px;
   --radius-sm: 8px;
   /* Lo spazio fra una sezione e l'altra e' sempre questo, e il riquadro di una
@@ -2496,6 +2498,11 @@ details[open] > :not(summary) {
 
 .esito-guasto {
   color: var(--danger);
+}
+
+/* un promemoria, non un guasto */
+.esito-attenzione {
+  color: var(--attenzione);
 }
 
 .riga-copia .esito-copia svg {

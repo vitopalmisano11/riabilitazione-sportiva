@@ -10,6 +10,8 @@ import {
   backupAttivo,
   backupDaTenere,
   copiaFallita,
+  impostaUltimaCopiaFuori,
+  ultimaCopiaFuori,
   impostaBackupAttivo,
   impostaBackupDaTenere,
   impostaCartellaBackup,
@@ -303,7 +305,8 @@ export function registerIpc(): void {
     attivo: backupAttivo(),
     daTenere: backupDaTenere(),
     copie: elencoBackup(),
-    copiaFallita: backupAttivo() ? copiaFallita() : null
+    copiaFallita: backupAttivo() ? copiaFallita() : null,
+    ultimaCopiaFuori: ultimaCopiaFuori()
   }))
   handle('backup:cambiaCartella', async () => {
     const { canceled, filePaths } = await dialog.showOpenDialog({
@@ -346,6 +349,12 @@ export function registerIpc(): void {
     if (canceled || filePaths.length === 0) return null
     impostaCartellaCopia(filePaths[0])
     const dest = copiaFuori(filePaths[0])
+    // Solo a copia riuscita e controllata: e' da qui che parte il conto dei giorni.
+    try {
+      impostaUltimaCopiaFuori(new Date().toISOString())
+    } catch {
+      // la copia c'e' lo stesso: al piu' l'avviso resta quello di prima
+    }
     shell.showItemInFolder(dest)
     return dest
   })

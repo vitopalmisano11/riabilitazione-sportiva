@@ -21,7 +21,8 @@ import SettimanaPage from './pages/SettimanaPage'
 import ImpostazioniPage from './pages/ImpostazioniPage'
 import AuthGate from './components/AuthGate'
 import SchermoBloccato from './components/SchermoBloccato'
-import ToastHost, { toastErrore } from './components/Toast'
+import ToastHost, { toast, toastErrore } from './components/Toast'
+import { avvisoCopiaFuori } from '../../shared/copie'
 import ConfermaHost from './components/Conferma'
 import { errMsg, oggiIso } from './lib'
 import { bloccaScorciatoie } from './scorciatoie'
@@ -200,12 +201,16 @@ export default function App(): React.JSX.Element {
     if (!sbloccata) return
     window.api.backup
       .info()
-      .then(({ copiaFallita }) => {
-        if (copiaFallita) {
+      .then((info) => {
+        if (info.copiaFallita) {
           toastErrore(
             "L'ultima copia di sicurezza automatica non è riuscita. Trovi cosa è successo in Impostazioni › Dati e backup."
           )
+          return
         }
+        // Un avviso solo, e non rosso: e' un promemoria, non un guasto.
+        const promemoria = avvisoCopiaFuori(info)
+        if (promemoria) toast(`${promemoria} Si fa da Impostazioni › Dati e backup.`)
       })
       .catch(() => undefined)
   }, [sbloccata])

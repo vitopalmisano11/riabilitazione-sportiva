@@ -36,6 +36,9 @@ interface Impostazioni {
   cartellaCopia?: string
   cartellaTabelle?: string
   copiaFallita?: CopiaFallita | null
+  // Quando e' stata fatta l'ultima copia fuori dal computer (chiavetta, disco
+  // esterno): le copie automatiche stanno sullo stesso disco dell'archivio.
+  ultimaCopiaFuori?: string
 }
 
 // Una copia automatica non riuscita. Quella di chiusura fallisce quando non c'e'
@@ -292,6 +295,14 @@ export function backupAttivo(): boolean {
 
 export function impostaBackupAttivo(attivo: boolean): void {
   salva({ backupAttivo: attivo })
+}
+
+export function ultimaCopiaFuori(): string | null {
+  return leggi().ultimaCopiaFuori ?? null
+}
+
+export function impostaUltimaCopiaFuori(quando: string): void {
+  salva({ ultimaCopiaFuori: quando })
 }
 
 export function copiaFallita(): CopiaFallita | null {

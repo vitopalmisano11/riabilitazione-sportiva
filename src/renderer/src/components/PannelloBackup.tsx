@@ -16,6 +16,7 @@ import type { EsitoControllo, InfoBackup } from '../../../shared/types'
 import { toast, toastErrore } from './Toast'
 import { chiedi } from './Conferma'
 import { errMsg, formatData } from '../lib'
+import { avvisoCopiaFuori } from '../../../shared/copie'
 
 // Copie di sicurezza dell'archivio. Ogni copia contiene il database cifrato e
 // il file delle chiavi: servono entrambi, uno solo non riapre niente.
@@ -100,7 +101,7 @@ export default function PannelloBackup(): React.JSX.Element {
           `Riportare l'archivio a com'era il ${quando(nome)}?\n\n` +
           'Tutto quello che hai aggiunto dopo quella data sparirà dall’app.\n' +
           'Prima di procedere viene fatta una copia dello stato attuale, così è comunque recuperabile.\n\n' +
-          "L'app si riavvierà e dovrai rientrare con la password.",
+          "L'app si riavvierà e dovrai rientrare con la password che usavi in quella data: se nel frattempo l'hai cambiata, la nuova non vale per questa copia (resta la chiave di recupero).",
         // è l'azione che sostituisce l'archivio: rossa, come "Elimina"
         conferma: 'Ripristina',
         pericolo: true
@@ -129,6 +130,12 @@ export default function PannelloBackup(): React.JSX.Element {
       </label>
 
       <div className="cartella-path">{info.cartella}</div>
+      {avvisoCopiaFuori(info) && (
+        <span className="esito-copia esito-attenzione">
+          <HardDriveDownload size={15} /> {avvisoCopiaFuori(info)} Usa «Fai una copia» ›
+          «Su chiavetta o disco esterno».
+        </span>
+      )}
       {info.copiaFallita && (
         <span className="esito-copia esito-guasto">
           <CircleAlert size={15} /> L&apos;ultima copia automatica non è riuscita (
