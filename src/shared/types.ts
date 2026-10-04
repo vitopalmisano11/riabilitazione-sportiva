@@ -709,8 +709,12 @@ export interface VoceRisultato {
   // null se in questo screening il valore non c'e'
   valore: number | null
   unita: string | null
+  // null se manca il valore, o se il valore non rientra in nessuna soglia
   punti: number | null
   massimo: number
+  // c'e' un valore ma nessuna soglia lo comprende: e' un buco nelle soglie del
+  // protocollo, non zero punti
+  fuoriFascia: boolean
 }
 
 export interface RisultatoPunteggio {
@@ -719,6 +723,8 @@ export interface RisultatoPunteggio {
   // solo a punteggio completo
   fascia: string | null
   completo: boolean
+  // punteggio completo ma il totale non cade in nessuna fascia
+  fasciaMancante: boolean
   voci: VoceRisultato[]
 }
 

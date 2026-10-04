@@ -38,6 +38,7 @@ import { generaCartella, generaRelazione, SEZIONI } from '../src/main/export-car
 import { esportaArchivio } from '../src/main/esporta-archivio'
 import { leggiTest, salvaTest } from '../src/main/test-valutazione'
 import { esito, lsi, riassumi, superaSoglia, valoreDi } from '../src/shared/misure'
+import { avvisoPunteggio } from '../src/shared/punteggio'
 import { etaInAnni } from '../src/shared/eta'
 import {
   elencoCestino,
@@ -2269,6 +2270,34 @@ assert.equal(
   assert.equal(risultato?.fascia, 'Recupero probabile')
   const reportPunti = generaReportScreening([sessione]).html
   assert.ok(reportPunti.includes('Punteggio: 8 / 8') && reportPunti.includes('Recupero probabile'))
+  assert.equal(avvisoPunteggio(risultato!), null)
+  assert.ok(risultato!.voci.every((v) => !v.fuoriFascia))
+
+  // Un valore che cade in un buco fra le soglie (FAAM: 90–95 e da 95,01) non
+  // vale zero punti in silenzio: e' "fuori dalle soglie", il totale e'
+  // parziale e la fascia non si da'.
+  db.prepare('UPDATE compilazione_punteggi SET valore = 85 WHERE compilazione_id = ?').run(comp)
+  const buco = calcolaPunteggio(sessione)!
+  assert.deepEqual(buco.voci.map((v) => v.punti), [4, 2, null])
+  assert.deepEqual(buco.voci.map((v) => v.fuoriFascia), [false, false, true])
+  assert.equal(buco.completo, false)
+  assert.equal(buco.fascia, null)
+  assert.match(avvisoPunteggio(buco)!, /FAAM ADL non rientra in nessuna soglia/)
+  const reportBuco = generaReportScreening([sessione]).html
+  assert.ok(reportBuco.includes('fuori dalle soglie'))
+  assert.ok(reportBuco.includes('non rientra in nessuna soglia'))
+  // il valore si giudica arrotondato come si vede: 95,004 si legge 95 → 1 punto
+  db.prepare('UPDATE compilazione_punteggi SET valore = 95.004 WHERE compilazione_id = ?').run(comp)
+  const arrotondato = calcolaPunteggio(sessione)!
+  assert.equal(arrotondato.voci[2].valore, 95)
+  assert.equal(arrotondato.voci[2].punti, 1)
+  db.prepare('UPDATE compilazione_punteggi SET valore = 96 WHERE compilazione_id = ?').run(comp)
+
+  // un totale completo che non cade in nessuna fascia si dice
+  assert.match(
+    avvisoPunteggio({ ...risultato!, fascia: null, fasciaMancante: true })!,
+    /non rientra in nessuna fascia/
+  )
 
   // un protocollo senza punteggio non ne mostra
   const protSenza = ins("INSERT INTO screening_protocolli (nome, sport) VALUES ('Senza punti', 'Calcio')")

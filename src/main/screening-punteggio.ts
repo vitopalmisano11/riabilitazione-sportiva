@@ -13,7 +13,14 @@
 // Un protocollo senza regole non ha punteggio: in esecuzione e nel report non
 // compare niente.
 import { getDb } from './db'
-import { lsi, valoreDi, type RigaValore } from '../shared/misure'
+import {
+  arrotonda,
+  DECIMALI_MISURA,
+  DECIMALI_PERCENTUALE,
+  lsi,
+  valoreDi,
+  type RigaValore
+} from '../shared/misure'
 import type {
   FasciaPunteggio,
   MisuraTest,
@@ -95,12 +102,14 @@ function numero(v: unknown): number | null {
   return Number.isFinite(n) ? n : null
 }
 
-// La prima soglia che si avvera; nessuna, zero punti.
-export function puntiPer(valore: number, soglie: SogliaPunteggio[]): number {
+// La prima soglia che si avvera. Nessuna: null, cioe' "fuori dalle soglie".
+// Prima valeva zero punti, e un buco fra due soglie (0–89 e 90–100 con un
+// 89,5) toglieva punti dal totale senza che nessuno se ne accorgesse.
+export function puntiPer(valore: number, soglie: SogliaPunteggio[]): number | null {
   const s = soglie.find(
     (x) => (x.minimo == null || valore >= x.minimo) && (x.massimo == null || valore <= x.massimo)
   )
-  return s ? s.punti : 0
+  return s ? s.punti : null
 }
 
 export function calcolaPunteggio(sessioneId: number): RisultatoPunteggio | null {
@@ -177,12 +186,19 @@ export function calcolaPunteggio(sessioneId: number): RisultatoPunteggio | null 
       }
     }
 
+    // Si giudica il numero come lo si vede: le percentuali con un decimale, le
+    // misure e i punteggi con due.
+    if (valore != null) {
+      valore = arrotonda(valore, unita === '%' ? DECIMALI_PERCENTUALE : DECIMALI_MISURA)
+    }
+    const punti = valore == null ? null : puntiPer(valore, r.soglie)
     return {
       nome: r.nome,
       valore,
       unita,
-      punti: valore == null ? null : puntiPer(valore, r.soglie),
-      massimo
+      punti,
+      massimo,
+      fuoriFascia: valore != null && punti == null
     }
   })
 
@@ -196,6 +212,7 @@ export function calcolaPunteggio(sessioneId: number): RisultatoPunteggio | null 
         (f) => (f.minimo == null || totale >= f.minimo) && (f.massimo == null || totale <= f.massimo)
       )?.etichetta ?? null)
     : null
+  const fasciaMancante = completo && fasce.length > 0 && fascia == null
 
-  return { totale, massimo, fascia, completo, voci }
+  return { totale, massimo, fascia, completo, fasciaMancante, voci }
 }

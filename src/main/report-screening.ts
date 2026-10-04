@@ -25,6 +25,7 @@ import {
 } from '../shared/misure'
 import type { MisuraTest, RisultatoPunteggio } from '../shared/types'
 import { calcolaPunteggio } from './screening-punteggio'
+import { avvisoPunteggio, puntiTesto } from '../shared/punteggio'
 
 function data(iso: string | null): string {
   if (!iso) return ''
@@ -163,14 +164,15 @@ function punteggioHtml(
   prima: { data: string; risultato: RisultatoPunteggio | null }[]
 ): string {
   if (!risultato) return ''
-  const n = (v: number | null): string =>
-    v == null ? '—' : String(Math.round(v * 10) / 10).replace('.', ',')
+  // il valore e' gia' arrotondato come lo si giudica: si stampa tutto
+  const n = (v: number | null): string => (v == null ? '—' : String(v).replace('.', ','))
+  const avviso = avvisoPunteggio(risultato)
   const righe = risultato.voci
     .map(
       (v) =>
         `<tr><td class="voce">${esc(v.nome)}</td><td>${n(v.valore)}${
           v.valore != null && v.unita ? ` ${esc(v.unita)}` : ''
-        }</td><td>${v.punti == null ? '—' : `${n(v.punti)} / ${n(v.massimo)}`}</td></tr>`
+        }</td><td>${esc(puntiTesto(v, n))}</td></tr>`
     )
     .join('')
   const storico = prima.flatMap((p) =>
@@ -188,11 +190,7 @@ function punteggioHtml(
     }</h2>
     <table class="prove tabella-punteggio"><thead><tr><th>Voce</th><th>Valore</th><th>Punti</th></tr></thead>
     <tbody>${righe}</tbody></table>
-    ${
-      risultato.completo
-        ? ''
-        : '<p class="vuoto-test">Mancano i valori di qualche voce: il totale è parziale e la fascia non si calcola.</p>'
-    }
+    ${avviso ? `<p class="vuoto-test">${esc(avviso)}</p>` : ''}
     ${storico.length > 0 ? `<p class="storico-punteggio">Screening precedenti — ${storico.join(' · ')}</p>` : ''}
   </div>`
 }

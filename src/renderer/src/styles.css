@@ -6444,6 +6444,11 @@ input[type='checkbox'].interruttore:focus-visible {
   text-align: left;
 }
 
+/* un valore che nessuna soglia comprende: e' un buco nella configurazione */
+.tabella-punteggio td.fuori-fascia {
+  color: var(--danger);
+}
+
 .tabella-punteggio th {
   font-size: 13px;
   color: var(--text-dim);

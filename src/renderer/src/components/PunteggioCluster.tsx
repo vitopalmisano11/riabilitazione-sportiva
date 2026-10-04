@@ -10,6 +10,7 @@ import type {
 import Aiuto from './Aiuto'
 import { errMsg } from '../lib'
 import { toastErrore } from './Toast'
+import { avvisoPunteggio, puntiTesto } from '../../../shared/punteggio'
 
 // Il punteggio del cluster, nella configurazione del protocollo.
 //
@@ -345,8 +346,9 @@ export function RisultatoCluster({
   // ci sono valori scritti ma non ancora salvati
   daAggiornare: boolean
 }): React.JSX.Element {
-  const n = (v: number | null): string =>
-    v == null ? '—' : String(Math.round(v * 10) / 10).replace('.', ',')
+  // il valore e' gia' arrotondato come lo si giudica: si mostra tutto
+  const n = (v: number | null): string => (v == null ? '—' : String(v).replace('.', ','))
+  const avviso = avvisoPunteggio(risultato)
   return (
     <section className="card risultato-cluster">
       <div className="card-header-row">
@@ -372,16 +374,12 @@ export function RisultatoCluster({
                 {n(v.valore)}
                 {v.valore != null && v.unita ? ` ${v.unita}` : ''}
               </td>
-              <td>{v.punti == null ? '—' : `${n(v.punti)} / ${n(v.massimo)}`}</td>
+              <td className={v.fuoriFascia ? 'fuori-fascia' : undefined}>{puntiTesto(v, n)}</td>
             </tr>
           ))}
         </tbody>
       </table>
-      {!risultato.completo && (
-        <p className="hint">
-          Mancano i valori di qualche voce: il totale è parziale e la fascia non si calcola.
-        </p>
-      )}
+      {avviso && <p className="hint">{avviso}</p>}
     </section>
   )
 }
