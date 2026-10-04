@@ -104,6 +104,13 @@ export default function GuidaDati({ onChiudi }: { onChiudi: () => void }): React
           questionari, test). Da lì si rimette a posto com&apos;era, con tutto quello che ci stava
           attaccato.
         </p>
+        <p>
+          Se un paziente chiede di essere cancellato, nella sua scheda c&apos;è anche{' '}
+          <b>Elimina per sempre</b> (la gomma): sparisce subito dall&apos;archivio, senza passare dal
+          cestino. Restano però i file che stanno fuori dall&apos;archivio: le copie di sicurezza già
+          fatte, le tabelle Excel e i PDF che hai creato. Le copie automatiche più vecchie si
+          scartano da sole; il resto va cancellato a mano.
+        </p>
 
         <div className="sotto-titolo">La chiave di recupero</div>
         <p>

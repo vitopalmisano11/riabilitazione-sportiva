@@ -2,7 +2,7 @@
 // fase. Senza niente di Electron (modello: sedute.ts): in ipc.ts restano i
 // canali, e le prove automatiche chiamano questo codice (test/pazienti.test.ts).
 import { getDb } from './db'
-import { eliminaConCestino } from './cestino'
+import { eliminaConCestino, eliminaPazientePerSempre } from './cestino'
 import { richiedeTesto, validaData } from './validazione'
 import { andamentoDolorePerPaziente } from './andamento-dolore'
 import type {
@@ -100,6 +100,10 @@ export function eliminaPaziente(id: number): void {
     | { nome: string; cognome: string }
     | undefined
   eliminaConCestino('pazienti', id, 'Paziente', `${p?.cognome ?? ''} ${p?.nome ?? ''}`.trim())
+}
+
+export function eliminaPazienteDefinitivamente(id: number): void {
+  eliminaPazientePerSempre(id)
 }
 
 // ---- Follow-up ----

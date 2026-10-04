@@ -60,6 +60,7 @@ import {
   andamentoDolore,
   creaPaziente,
   eliminaPaziente,
+  eliminaPazienteDefinitivamente,
   elencoFollowUp,
   elencoPazienti,
   impostaFollowUp,
@@ -91,6 +92,7 @@ import {
   segniDellaSeduta
 } from './segni'
 import { eliminaBozza, leggiBozza, salvaBozza } from './bozze'
+import { cercaInArchivio } from './ricerca'
 import {
   aggiornaEsercizio,
   archiviaEsercizio,
@@ -233,7 +235,7 @@ import { sedutaPrecedente } from './seduta-precedente'
 import { controllaPassword } from '../shared/password'
 import { installaAdesso, statoAggiornamento } from './aggiornamenti'
 import { leggiProfilo, salvaProfilo } from './profilo'
-import { erroreSenzaDatiNelRegistro, validaData } from './validazione'
+import { controllaArgomenti, erroreSenzaDatiNelRegistro, validaData } from './validazione'
 import type {
   CertificatoInput,
   TipoChart,
@@ -280,6 +282,7 @@ function friendly(err: unknown): Error {
 function handle(channel: string, fn: (...args: any[]) => unknown): void {
   ipcMain.handle(channel, async (_event, ...args) => {
     try {
+      controllaArgomenti(args)
       return await fn(...args)
     } catch (err) {
       // Nel registro finisce il nome dell'operazione e l'errore, mai quello che
@@ -790,6 +793,7 @@ export function registerIpc(): void {
     impostaPatologiaFase(id, patologiaId, faseId)
   )
   handle('pazienti:delete', (id: number) => eliminaPaziente(id))
+  handle('pazienti:deleteForever', (id: number) => eliminaPazienteDefinitivamente(id))
 
   // ---- Screening ----
   handle('screening:sport', () =>
@@ -1206,6 +1210,7 @@ export function registerIpc(): void {
   })
 
   // ---- Cestino ----
+  handle('ricerca:cerca', (testo: string) => cercaInArchivio(testo))
   handle('cestino:list', () => elencoCestino())
   handle('cestino:ripristina', (id: number) => ripristina(id))
   handle('cestino:svuota', (id?: number) => svuotaCestino(id))

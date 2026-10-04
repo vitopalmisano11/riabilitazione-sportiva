@@ -5,6 +5,7 @@ import assert from 'node:assert/strict'
 import { getDb } from '../src/main/db'
 import {
   elencoCestino,
+  eliminaPazientePerSempre,
   eliminaConCestino,
   ripristina,
   ripuliscilCestino,
@@ -353,4 +354,93 @@ test('Cestino: un rimando che il database azzererebbe non blocca il ripristino',
     { p: null, nome: 'Totale', valore: 12 }
   )
   assert.equal(elencoCestino().length, 0)
+})
+
+// Eliminare una categoria toglie il rimando alle sotto-categorie, e eliminare
+// una sezione alle sedute gia' fatte (ON DELETE SET NULL): rimettendola a posto,
+// tornano dov'erano. Dove nel frattempo e' stato scelto un altro rimando, quello
+// scelto resta.
+test('Cestino: rimettere a posto ridà il rimando a chi lo aveva', () => {
+  const c = getDb()
+  const ins = (sql: string, ...a: unknown[]): number => Number(c.prepare(sql).run(...a).lastInsertRowid)
+  const leggi = (sql: string, ...a: unknown[]): unknown => (c.prepare(sql).get(...a) as { v: unknown }).v
+  svuotaCestino()
+  const padre = ins("INSERT INTO categorie (nome) VALUES ('Gambe')")
+  const f1 = ins("INSERT INTO categorie (nome, padre_id) VALUES ('Quadricipiti', ?)", padre)
+  const f2 = ins("INSERT INTO categorie (nome, padre_id) VALUES ('Glutei', ?)", padre)
+  const altra = ins("INSERT INTO categorie (nome) VALUES ('Core')")
+  const libera = ins("INSERT INTO categorie (nome) VALUES ('Libera')")
+
+  eliminaConCestino('categorie', padre, 'Categoria', 'Gambe')
+  assert.equal(leggi('SELECT padre_id AS v FROM categorie WHERE id = ?', f1), null)
+  // fra una cosa e l'altra, una sotto-categoria viene messa sotto un'altra
+  c.prepare('UPDATE categorie SET padre_id = ? WHERE id = ?').run(altra, f2)
+
+  ripristina(elencoCestino()[0].id)
+  assert.equal(leggi('SELECT padre_id AS v FROM categorie WHERE id = ?', f1), padre, 'torna sotto la sua')
+  assert.equal(leggi('SELECT padre_id AS v FROM categorie WHERE id = ?', f2), altra, 'la scelta fatta dopo resta')
+  assert.equal(leggi('SELECT padre_id AS v FROM categorie WHERE id = ?', libera), null, 'chi non lo aveva non lo riceve')
+  assert.equal(elencoCestino().length, 0)
+
+  // una seduta gia' fatta ritrova la sezione di cui faceva parte
+  const pat = ins("INSERT INTO patologie (nome) VALUES ('Rimandi')")
+  const fase = ins('INSERT INTO fasi (patologia_id, nome) VALUES (?, ?)', pat, 'Fase')
+  const sez = ins('INSERT INTO sezioni (fase_id, nome) VALUES (?, ?)', fase, 'Mobilita')
+  const pz = ins("INSERT INTO pazienti (nome, cognome) VALUES ('Ri', 'Mandi')")
+  const sed = ins("INSERT INTO sedute (paziente_id, data) VALUES (?, '2026-09-02')", pz)
+  const ss = ins('INSERT INTO seduta_sezioni (seduta_id, sezione_id, nome) VALUES (?, ?, ?)', sed, sez, 'Mobilita')
+  eliminaConCestino('sezioni', sez, 'Sezione', 'Mobilita')
+  assert.equal(leggi('SELECT sezione_id AS v FROM seduta_sezioni WHERE id = ?', ss), null)
+  ripristina(elencoCestino()[0].id)
+  assert.equal(leggi('SELECT sezione_id AS v FROM seduta_sezioni WHERE id = ?', ss), sez)
+})
+
+// La sotto-categoria eliminata dopo la sua categoria: la categoria torna, la
+// riga che non c'e' piu' non si inventa.
+test('Cestino: un rimando verso una riga che non esiste piu si salta', () => {
+  const c = getDb()
+  const ins = (sql: string, ...a: unknown[]): number => Number(c.prepare(sql).run(...a).lastInsertRowid)
+  const conta = (id: number): number =>
+    (c.prepare('SELECT COUNT(*) AS n FROM categorie WHERE id = ?').get(id) as { n: number }).n
+  svuotaCestino()
+  const cat = ins("INSERT INTO categorie (nome) VALUES ('Spalla')")
+  const sotto = ins("INSERT INTO categorie (nome, padre_id) VALUES ('Cuffia', ?)", cat)
+  eliminaConCestino('categorie', cat, 'Categoria', 'Spalla')
+  c.prepare('DELETE FROM categorie WHERE id = ?').run(sotto)
+  ripristina(elencoCestino()[0].id)
+  assert.equal(conta(sotto), 0)
+  assert.equal(conta(cat), 1)
+})
+
+// Il diritto alla cancellazione: il paziente se ne va subito, con quello che gli
+// sta appeso, e anche dal cestino; gli altri pazienti non si toccano.
+test('Cancellazione definitiva: il paziente sparisce dall\'archivio e dal cestino', () => {
+  const c = getDb()
+  const ins = (sql: string, ...a: unknown[]): number => Number(c.prepare(sql).run(...a).lastInsertRowid)
+  const conta = (sql: string, ...a: unknown[]): number => (c.prepare(sql).get(...a) as { n: number }).n
+  svuotaCestino()
+  const via = ins("INSERT INTO pazienti (nome, cognome) VALUES ('Da', 'Cancellare')")
+  const resta = ins("INSERT INTO pazienti (nome, cognome) VALUES ('Altro', 'Paziente')")
+  ins("INSERT INTO sedute (paziente_id, data) VALUES (?, '2026-09-01')", via)
+  const sedViaCestino = ins("INSERT INTO sedute (paziente_id, data) VALUES (?, '2026-09-02')", via)
+  ins("INSERT INTO sedute (paziente_id, data) VALUES (?, '2026-09-03')", resta)
+  const sedResta = ins("INSERT INTO sedute (paziente_id, data) VALUES (?, '2026-09-04')", resta)
+  // una seduta del paziente eliminata a parte, e una dell'altro
+  eliminaConCestino('sedute', sedViaCestino, 'Seduta', 'Seduta del 02/09/2026')
+  eliminaConCestino('sedute', sedResta, 'Seduta', 'Seduta del 04/09/2026')
+  assert.equal(elencoCestino().length, 2)
+
+  const prima = c.pragma('secure_delete', { simple: true })
+  eliminaPazientePerSempre(via)
+  assert.equal(c.pragma('secure_delete', { simple: true }), prima, 'l\'impostazione torna com\'era')
+  assert.equal(conta('SELECT COUNT(*) AS n FROM pazienti WHERE id = ?', via), 0)
+  assert.equal(conta('SELECT COUNT(*) AS n FROM sedute WHERE paziente_id = ?', via), 0)
+  assert.deepEqual(elencoCestino().map((v) => v.etichetta), ['Seduta del 04/09/2026'], 'dal cestino sparisce solo la sua')
+  // l'altro paziente e le sue cose sono al loro posto
+  assert.equal(conta('SELECT COUNT(*) AS n FROM pazienti WHERE id = ?', resta), 1)
+  assert.equal(conta('SELECT COUNT(*) AS n FROM sedute WHERE paziente_id = ?', resta), 1)
+  ripristina(elencoCestino()[0].id)
+  assert.equal(conta('SELECT COUNT(*) AS n FROM sedute WHERE paziente_id = ?', resta), 2)
+  // un paziente che non c'e' non da' errore
+  eliminaPazientePerSempre(via)
 })

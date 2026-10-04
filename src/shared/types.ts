@@ -1095,6 +1095,22 @@ export interface VoceCestino {
   righe: number
 }
 
+// Un punto dell'archivio dove la ricerca ha trovato quello che si cercava.
+export interface RisultatoRicerca {
+  tipo: 'paziente' | 'seduta' | 'anamnesi'
+  pazienteId: number
+  // solo per le sedute: quale aprire
+  sedutaId?: number
+  paziente: string
+  titolo: string
+  // solo per le sedute
+  data?: string
+  // in quale campo e' stato trovato ("Diagnosi", "Note"…); vuoto se e' il nome
+  campo: string
+  // il pezzo di testo intorno a quello che si cercava
+  estratto: string
+}
+
 export interface VoceBackup {
   nome: string
   quando: string
@@ -1229,6 +1245,10 @@ export interface Api {
     ultimi(): Promise<string>
     apri(): Promise<void>
   }
+  // Cerca in tutto l'archivio: pazienti, diario delle sedute, anamnesi.
+  ricerca: {
+    cerca(testo: string): Promise<RisultatoRicerca[]>
+  }
   // Quello che e' stato eliminato di recente e si puo' ancora rimettere.
   cestino: {
     list(): Promise<VoceCestino[]>
@@ -1329,6 +1349,8 @@ export interface Api {
     update(id: number, data: PazienteInput): Promise<void>
     setPatologiaFase(id: number, patologiaId: number | null, faseId: number | null): Promise<void>
     remove(id: number): Promise<void>
+    // via subito dall'archivio e dal cestino (diritto alla cancellazione)
+    removeForever(id: number): Promise<void>
     // obiettivi raggiunti (stato persistente sul paziente)
     obiettiviRaggiunti(pazienteId: number): Promise<number[]>
     setObiettivoRaggiunto(pazienteId: number, obiettivoId: number, raggiunto: boolean): Promise<void>

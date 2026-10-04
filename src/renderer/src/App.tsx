@@ -4,6 +4,7 @@ import {
   CalendarClock,
   ClipboardCheck,
   Download,
+  Search,
   Settings,
   SlidersHorizontal,
   Users
@@ -26,7 +27,8 @@ import ToastHost, { toast, toastErrore } from './components/Toast'
 import { avvisoCopiaFuori } from '../../shared/copie'
 import ConfermaHost from './components/Conferma'
 import { errMsg, oggiIso } from './lib'
-import { bloccaScorciatoie } from './scorciatoie'
+import { bloccaScorciatoie, useScorciatoie } from './scorciatoie'
+import RicercaGlobale from './components/RicercaGlobale'
 import type { Tema } from '../../shared/temi'
 import type { StatoAggiornamento } from '../../shared/types'
 import { chiedi } from './components/Conferma'
@@ -314,6 +316,12 @@ export default function App(): React.JSX.Element {
     setApriPaziente((p) => ({ id, duplicaDa: sedutaId, data, seq: (p?.seq ?? 0) + 1 }))
   }
 
+  // Ctrl+K apre la ricerca in tutto l'archivio, da qualunque pagina.
+  const [cercando, setCercando] = useState(false)
+  useScorciatoie([
+    { tasto: 'k', ctrl: true, azione: () => setCercando(true), attiva: sbloccata && !bloccata }
+  ])
+
   if (!sbloccata) {
     return <AuthGate onUnlocked={() => setSbloccata(true)} />
   }
@@ -365,6 +373,10 @@ export default function App(): React.JSX.Element {
           >
             <ClipboardCheck size={18} />
             Return To Play
+          </button>
+          <button onClick={() => setCercando(true)} title="Cerca in tutto l'archivio (Ctrl+K)">
+            <Search size={18} />
+            Cerca
           </button>
         </nav>
         <div className="sidebar-footer">
@@ -450,6 +462,13 @@ export default function App(): React.JSX.Element {
         )}
         </div>
       </main>
+      {cercando && !bloccata && (
+        <RicercaGlobale
+          onChiudi={() => setCercando(false)}
+          onApriPaziente={vaiAlPaziente}
+          onApriSeduta={(id, sedutaId) => vaiAllaSeduta(id, sedutaId, sezione)}
+        />
+      )}
       <ConfermaHost />
       <ToastHost />
       {/* Overlay, non un ramo che sostituisce l'app: sotto restano montati

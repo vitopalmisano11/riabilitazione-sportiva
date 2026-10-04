@@ -23,6 +23,7 @@ import {
 import { toast, toastErrore } from '../components/Toast'
 import { chiedi } from '../components/Conferma'
 import { errMsg } from '../lib'
+import { COSA_RESTA_NELLE_COPIE } from '../testiCancellazione'
 
 // Impostazioni dell'app: dove stanno i dati e le copie, la password, il colore.
 //
@@ -288,7 +289,11 @@ function SchedaCestino(): React.JSX.Element {
   }
 
   const butta = async (v: VoceCestino): Promise<void> => {
-    if (!(await chiedi(`Eliminare definitivamente “${v.etichetta}”? Non si torna indietro.`))) {
+    if (
+      !(await chiedi(
+        `Eliminare definitivamente “${v.etichetta}”? Non si torna indietro.\n${COSA_RESTA_NELLE_COPIE}`
+      ))
+    ) {
       return
     }
     try {

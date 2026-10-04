@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BadgeCheck, FileDown, Pencil, Trash2 } from 'lucide-react'
+import { BadgeCheck, Eraser, FileDown, Pencil, Trash2 } from 'lucide-react'
 import type {
   Fase,
   Gruppo,
@@ -14,6 +14,7 @@ import Modale from './Modale'
 import { errMsg, daQuando, eta, formatData } from '../lib'
 import EsportaCartella from './EsportaCartella'
 import CertificatoPaziente from './CertificatoPaziente'
+import { COSA_RESTA_NELLE_COPIE } from '../testiCancellazione'
 
 // Dati del paziente: si leggono, non si modificano per sbaglio. Per cambiarli
 // si apre la finestra con la matita, accanto al cestino.
@@ -33,13 +34,35 @@ export default function AnagraficaPaziente({
   const elimina = async (): Promise<void> => {
     if (
       !(await chiedi(
-        `Eliminare ${paziente.nome} ${paziente.cognome}?\nVerranno eliminate anche tutte le sue sedute (diario).`
+        `Eliminare ${paziente.nome} ${paziente.cognome}?\nVerranno eliminate anche tutte le sue sedute (diario). Va nel cestino: per un mese lo puoi rimettere a posto da Impostazioni.`
       ))
     ) {
       return
     }
     try {
       await window.api.pazienti.remove(paziente.id)
+      onDeleted()
+    } catch (e) {
+      toastErrore(errMsg(e))
+    }
+  }
+
+  // Il diritto alla cancellazione: via subito, senza passare dal cestino.
+  const eliminaPerSempre = async (): Promise<void> => {
+    const nome = `${paziente.nome} ${paziente.cognome}`
+    if (
+      !(await chiedi({
+        titolo: 'Eliminare per sempre?',
+        testo: `Eliminare per sempre ${nome}, con tutte le sue sedute e gli altri dati?\nSparisce subito dall'archivio e non si può rimettere a posto: non passa dal cestino.\n${COSA_RESTA_NELLE_COPIE}`,
+        conferma: 'Elimina per sempre',
+        pericolo: true
+      }))
+    ) {
+      return
+    }
+    try {
+      await window.api.pazienti.removeForever(paziente.id)
+      toast(`${nome} è stato eliminato per sempre dall'archivio.`)
       onDeleted()
     } catch (e) {
       toastErrore(errMsg(e))
@@ -102,6 +125,13 @@ export default function AnagraficaPaziente({
           </button>
           <button className="danger" title="Elimina paziente" onClick={() => void elimina()}>
             <Trash2 size={18} />
+          </button>
+          <button
+            className="danger"
+            title="Elimina per sempre, senza passare dal cestino"
+            onClick={() => void eliminaPerSempre()}
+          >
+            <Eraser size={18} />
           </button>
         </span>
       </div>

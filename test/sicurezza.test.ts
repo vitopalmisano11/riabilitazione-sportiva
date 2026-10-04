@@ -12,6 +12,7 @@ import {
   usaCartellaTemporanei
 } from '../src/main/temporanei'
 import {
+  controllaArgomenti,
   erroreSenzaDatiNelRegistro,
   LINK_WEB,
   testoErrorePerRegistro,
@@ -101,3 +102,25 @@ test('Scrittura atomica: il file c\'e\' intero, si sostituisce, non resta niente
   rmSync(f)
   rmSync(dir, { recursive: true, force: true })
 })
+
+test('Argomenti dei canali: NaN e infinito non passano, nemmeno dentro a elenchi e oggetti', () => {
+  // quello che e' normale passa
+  controllaArgomenti([])
+  controllaArgomenti([1, 'testo', null, undefined, true, 0, -5.5])
+  controllaArgomenti([{ serie: [{ peso: 12.5, nota: null }], ids: [1, 2, 3] }])
+  assert.throws(() => controllaArgomenti([Number.NaN]), /non è un numero valido/)
+  assert.throws(() => controllaArgomenti([1, Number.POSITIVE_INFINITY]), /non è un numero valido/)
+  assert.throws(() => controllaArgomenti([{ righe: [{ carico: Number.NaN }] }]), /non è un numero valido/)
+  assert.throws(() => controllaArgomenti([[[Number.NEGATIVE_INFINITY]]]), /non è un numero valido/)
+  // nel registro non c'e' il dato, solo la natura dell'errore
+  try {
+    controllaArgomenti([Number.NaN])
+  } catch (e) {
+    assert.match(testoErrorePerRegistro(e), /NaN o infinito/)
+  }
+  // un oggetto con un giro dentro non manda in loop: oltre la profondita' non si guarda
+  const giro: Record<string, unknown> = {}
+  giro.se = giro
+  controllaArgomenti([giro])
+})
+

@@ -169,6 +169,9 @@ const api: Api = {
     ultimi: () => invoke('registro:ultimi'),
     apri: () => invoke('registro:apri')
   },
+  ricerca: {
+    cerca: (testo: string) => invoke('ricerca:cerca', testo)
+  },
   cestino: {
     list: () => invoke('cestino:list'),
     ripristina: (id: number) => invoke('cestino:ripristina', id),
@@ -265,6 +268,7 @@ const api: Api = {
     setPatologiaFase: (id: number, patologiaId: number | null, faseId: number | null) =>
       invoke('pazienti:setPatologiaFase', id, patologiaId, faseId),
     remove: (id: number) => invoke('pazienti:delete', id),
+    removeForever: (id: number) => invoke('pazienti:deleteForever', id),
     obiettiviRaggiunti: (pazienteId: number) => invoke('pazienti:obiettiviRaggiunti', pazienteId),
     setObiettivoRaggiunto: (pazienteId: number, obiettivoId: number, raggiunto: boolean) =>
       invoke('pazienti:setObiettivoRaggiunto', pazienteId, obiettivoId, raggiunto),

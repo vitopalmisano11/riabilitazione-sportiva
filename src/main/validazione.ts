@@ -53,6 +53,27 @@ export function validaImmagine(dataUrl: string | null): void {
   }
 }
 
+// Quello che arriva dall'interfaccia a ogni canale, prima che lo guardi
+// chiunque: un numero che non e' un numero (NaN, infinito) non e' mai un dato
+// vero, e finirebbe nel database e poi stampato come "NaN" in un foglio. Si
+// guarda dentro a elenchi e oggetti (le righe di una seduta, i punteggi di un
+// questionario), fino a una profondita' ragionevole.
+export function controllaArgomenti(argomenti: unknown[]): void {
+  const MASSIMA_PROFONDITA = 8
+  const visita = (v: unknown, profondita: number): boolean => {
+    if (typeof v === 'number') return Number.isFinite(v)
+    if (v === null || typeof v !== 'object' || profondita > MASSIMA_PROFONDITA) return true
+    const valori = Array.isArray(v) ? v : Object.values(v as Record<string, unknown>)
+    return valori.every((x) => visita(x, profondita + 1))
+  }
+  if (!visita(argomenti, 0)) {
+    throw erroreSenzaDatiNelRegistro(
+      'Un valore non è un numero valido: controlla i campi numerici e riprova.',
+      'Argomento non numerico (NaN o infinito) in un canale.'
+    )
+  }
+}
+
 export function richiedeTesto(valore: string, etichetta: string): void {
   if (!valore.trim()) throw new Error(`${etichetta} non può essere vuoto.`)
 }

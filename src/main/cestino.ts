@@ -30,6 +30,19 @@ export interface VoceCestino {
 interface Fotografia {
   tabella: string
   righe: Record<string, unknown>[]
+  // Solo sul primo elemento di una voce: i rimandi che il database ha azzerato
+  // eliminando (vedi legamiAzzerati). Chi non li conosce li ignora.
+  azzerati?: Azzerato[]
+}
+
+// Una riga che restava dov'era ma puntava a quello che si e' eliminato: il
+// database le toglie il rimando (ON DELETE SET NULL). Qui si tiene a mente
+// quale riga puntava a quale, per rimetterlo se la voce torna a posto.
+interface Azzerato {
+  figlia: string
+  colonna: string
+  // [id della riga che puntava, id di quello a cui puntava]
+  coppie: [number, number][]
 }
 
 type Db = ReturnType<typeof getDb>
@@ -61,6 +74,62 @@ function figli(db: Db): Map<string, [string, string][]> {
     }
   }
   return mappa
+}
+
+// Per ogni tabella, chi la cita con un legame ON DELETE SET NULL: [tabella
+// figlia, colonna che punta qui]. Solo i legami verso la colonna id.
+function figliAzzerati(db: Db): Map<string, [string, string][]> {
+  const mappa = new Map<string, [string, string][]>()
+  const tabelle = (
+    db
+      .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'")
+      .all() as { name: string }[]
+  ).map((r) => r.name)
+  for (const t of tabelle) {
+    const riferimenti = db.pragma(`foreign_key_list('${t}')`) as {
+      table: string
+      from: string
+      to: string | null
+      on_delete: string
+    }[]
+    // senza una colonna id la riga non si ritrova (le tabelle di collegamento)
+    const haId = (db.pragma(`table_info('${t}')`) as { name: string }[]).some((c) => c.name === 'id')
+    for (const r of riferimenti) {
+      if (!haId || r.on_delete !== 'SET NULL' || (r.to ?? 'id') !== 'id') continue
+      const elenco = mappa.get(r.table) ?? []
+      elenco.push([t, r.from])
+      mappa.set(r.table, elenco)
+    }
+  }
+  return mappa
+}
+
+// Le righe che restano ma stanno per perdere il rimando a qualcosa che si sta
+// eliminando. Quelle che vanno nel cestino anche loro non servono: si portano
+// il rimando dentro la loro fotografia.
+function legamiAzzerati(db: Db, foto: Fotografia[]): Azzerato[] {
+  const mappa = figliAzzerati(db)
+  const nelCestino = new Set<string>()
+  for (const { tabella, righe } of foto) {
+    for (const r of righe) if (typeof r.id === 'number') nelCestino.add(`${tabella}:${r.id}`)
+  }
+  const trovati: Azzerato[] = []
+  for (const { tabella, righe } of foto) {
+    const ids = righe.map((r) => r.id).filter((x): x is number => typeof x === 'number')
+    if (ids.length === 0) continue
+    const segnaposto = ids.map(() => '?').join(', ')
+    for (const [figlia, colonna] of mappa.get(tabella) ?? []) {
+      const coppie = (
+        db
+          .prepare(`SELECT id, ${colonna} AS padre FROM ${figlia} WHERE ${colonna} IN (${segnaposto})`)
+          .all(...ids) as { id: unknown; padre: number }[]
+      )
+        .filter((r) => typeof r.id === 'number' && !nelCestino.has(`${figlia}:${r.id}`))
+        .map((r): [number, number] => [r.id as number, r.padre])
+      if (coppie.length > 0) trovati.push({ figlia, colonna, coppie })
+    }
+  }
+  return trovati
 }
 
 // Fotografia della riga e di tutto quello che le sta appeso, dal padre ai figli.
@@ -142,8 +211,6 @@ function normalizza(db: Db, foto: Fotografia[]): Fotografia[] {
   return ordine.map((t) => ({ tabella: t, righe: [...perTabella.get(t)!.values()] }))
 }
 
-// Elimina mettendo prima da parte la fotografia. L'etichetta e' quello che si
-// legge nel cestino ("Rossi Marco", "Seduta del 03/09/2026").
 // Data leggibile per le etichette del cestino: nel database sta al contrario.
 export function dataIt(iso: string | undefined): string {
   if (!iso) return ''
@@ -160,11 +227,15 @@ export function nomeDi(tabella: string, id: number): string {
   )
 }
 
+// Elimina mettendo prima da parte la fotografia. L'etichetta e' quello che si
+// legge nel cestino ("Rossi Marco", "Seduta del 03/09/2026").
 export function eliminaConCestino(tabella: string, id: number, tipo: string, etichetta: string): void {
   const db = getDb()
   db.transaction(() => {
     const foto = normalizza(db, raccogli(db, tabella, [id], figli(db)))
     if (foto.length === 0) return
+    const azzerati = legamiAzzerati(db, foto)
+    if (azzerati.length > 0) foto[0].azzerati = azzerati
     db.prepare(
       'INSERT INTO cestino (tipo, etichetta, quando, contenuto, righe) VALUES (?, ?, ?, ?, ?)'
     ).run(tipo, etichetta, new Date().toISOString(), JSON.stringify(foto), contaRighe(foto))
@@ -339,7 +410,9 @@ export function ripristina(idCestino: number): void {
     | { contenuto: string }
     | undefined
   if (!voce) throw new Error('Questa voce del cestino non c’è più.')
-  const foto = normalizza(db, JSON.parse(voce.contenuto) as Fotografia[])
+  const grezza = JSON.parse(voce.contenuto) as Fotografia[]
+  const azzerati = grezza.flatMap((f) => f.azzerati ?? [])
+  const foto = normalizza(db, grezza)
   azzeraLegamiPersi(db, foto)
 
   const mancano = mancanti(db, foto, idCestino)
@@ -368,6 +441,12 @@ export function ripristina(idCestino: number): void {
           ).run(riga)
         }
       }
+      // I rimandi che l'eliminazione aveva azzerato tornano dov'erano, ma solo
+      // dove sono ancora vuoti: se nel frattempo qualcuno ne ha messo un altro, resta.
+      for (const { figlia, colonna, coppie } of azzerati) {
+        const rimetti = db.prepare(`UPDATE ${figlia} SET ${colonna} = ? WHERE id = ? AND ${colonna} IS NULL`)
+        for (const [idRiga, padre] of coppie) rimetti.run(padre, idRiga)
+      }
       db.prepare('DELETE FROM cestino WHERE id = ?').run(idCestino)
     })()
   } catch (e) {
@@ -379,6 +458,41 @@ export function ripristina(idCestino: number): void {
       )
     }
     throw e
+  }
+}
+
+// Cancellazione definitiva di un paziente (diritto alla cancellazione): via
+// subito dall'archivio con tutto quello che gli sta appeso, senza passare dal
+// cestino, e via anche dal cestino se ci sono voci con i suoi dati (una seduta
+// eliminata a parte, per esempio). Le righe cancellate vengono sovrascritte con
+// zeri nel file (secure_delete) invece di restare fra le pagine libere.
+//
+// Restano le copie di sicurezza gia' fatte: sono file a parte, e qui non si
+// toccano. Lo dice chi chiama, a chi sta cancellando.
+export function eliminaPazientePerSempre(id: number): void {
+  const db = getDb()
+  const prima = db.pragma('secure_delete', { simple: true })
+  db.pragma('secure_delete = ON')
+  try {
+    db.transaction(() => {
+      db.prepare('DELETE FROM pazienti WHERE id = ?').run(id)
+      const voci = db.prepare('SELECT id, contenuto FROM cestino').all() as { id: number; contenuto: string }[]
+      const toglie = db.prepare('DELETE FROM cestino WHERE id = ?')
+      for (const v of voci) {
+        let foto: Fotografia[]
+        try {
+          foto = JSON.parse(v.contenuto) as Fotografia[]
+        } catch {
+          continue
+        }
+        const suo = foto.some(({ tabella, righe }) =>
+          righe.some((r) => (tabella === 'pazienti' ? r.id === id : r.paziente_id === id))
+        )
+        if (suo) toglie.run(v.id)
+      }
+    })()
+  } finally {
+    db.pragma(`secure_delete = ${prima ? 'ON' : 'OFF'}`)
   }
 }
 
