@@ -1,3 +1,5 @@
+// per primo: decide dove stanno impostazioni e dati (vedi il file)
+import './cartelle-di-avvio'
 import { app, BrowserWindow, shell } from 'electron'
 import { join } from 'path'
 import { registerIpc } from './ipc'
@@ -13,12 +15,6 @@ import { impostaCopiaPrimaDelleMigrazioni } from './db'
 import { barraDisegnata } from './finestre'
 import { ripulisciTemporanei, usaCartellaTemporanei } from './temporanei'
 import icona from '../../resources/icon.png?asset'
-
-// In sviluppo l'app tiene dati e cache propri: le prove — comprese le migrazioni,
-// che non si annullano — non toccano i dati dell'app installata.
-if (!app.isPackaged) {
-  app.setPath('userData', `${app.getPath('userData')} (dev)`)
-}
 
 // I file in chiaro che servono per un momento (un referto da aprire, l'anteprima
 // di una cartella) stanno tutti qui, e non in %TEMP% alla rinfusa. Anche qui la
@@ -53,17 +49,15 @@ function createWindow(): void {
     ...barraDisegnata(),
     icon: icona,
     webPreferences: {
+      // Il ponte e' un file solo e chiede a Electron solo contextBridge e
+      // ipcRenderer: puo' girare nel sandbox, come quelli delle altre finestre.
+      // La pagina non arriva a niente del sistema se non attraverso i canali.
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
+      sandbox: true
     }
   })
 
   principale = win
-
-  // Quanto grande si vede il programma. Si applica qui, alla finestra, e solo
-  // a pagina caricata: chiamarlo prima (dal ponte, con webFrame) faceva morire
-  // il renderer e la finestra non compariva piu'. Vale solo per questa
-  // finestra: quella della scheda del paziente ha la sua misura.
 
   // Quanto grande si vede il programma. Si applica qui, alla finestra, e a
   // pagina caricata. Non si fa dal ponte con webFrame: chiamato li', prima che

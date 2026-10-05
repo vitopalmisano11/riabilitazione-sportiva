@@ -43,3 +43,12 @@ jobs:
         run: npm test
       - name: Prova del ripristino delle copie
         run: npm run smoke:ripristino
+      - name: Prove dell'interfaccia (il programma costruito, guidato da Playwright)
+        run: npm run e2e
+      - name: Schermate delle prove dell'interfaccia
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: schermate-e2e
+          path: e2e-risultati/
+          if-no-files-found: ignore

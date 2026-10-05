@@ -110,6 +110,20 @@ una cartella temporanea; le prove dello stesso file girano in fila su quell'arch
 non si vedono (un processo per file). Una funzionalità nuova porta con sé la sua prova nel file
 dell'area, o in un file nuovo. Niente dati veri: solo cartelle temporanee.
 
+### Le prove dell'interfaccia (`e2e/`)
+`npm run e2e` costruisce il programma e lo guida con Playwright come lo userebbe una persona
+(primo avvio, pazienti, sedute, ricerca, protezioni della finestra). Ogni prova parte da una
+cartella temporanea sua: `e2e/app.ts` avvia Electron con `RIABILITAZIONE_CARTELLA_PROVA`, che
+`src/main/cartelle-di-avvio.ts` usa per impostazioni e dati (ignorata nel programma installato).
+Una prova fallisce anche se la pagina scrive errori nella console, comprese le violazioni della
+CSP. Le schermate restano in `e2e-risultati/schermate` (fuori da git): guardarle quando si tocca
+l'interfaccia. Gira nel job Windows della CI, che le allega come artefatto.
+
+La finestra principale gira nel **sandbox** con il ponte `src/preload/index.ts` (un file solo,
+importa da Electron solo `contextBridge` e `ipcRenderer`): il ponte non può importare moduli di
+Node. La CSP sta in `electron.vite.config.ts` e si scrive solo nella build; una risorsa nuova
+caricata da fuori (font, immagini, script) va dichiarata lì, e `e2e/protezioni.spec.ts` lo controlla.
+
 ## Release
 1. Aggiornare `version` in `package.json` e la sezione novità nel `README.md`. Se la versione porta
    migrazioni nuove, aggiungere una riga a `test/migrazioni-rilasciate.json` (versione, quante

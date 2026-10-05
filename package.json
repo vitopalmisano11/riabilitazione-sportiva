@@ -9,10 +9,11 @@
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
-    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json && tsc --noEmit -p tsconfig.e2e.json",
     "test": "node scripts/test-app.mjs",
     "test:node": "vitest run",
     "smoke:ripristino": "node scripts/smoke-ripristino.js",
+    "e2e": "electron-vite build && playwright test",
     "dev:reset": "tsx scripts/reset-dati.ts",
     "build:win": "electron-vite build && electron-builder --win --publish never",
     "postinstall": "electron-builder install-app-deps"
@@ -25,6 +26,7 @@
     "lucide-react": "^1.31.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@types/better-sqlite3": "^7.6.11",
     "@types/node": "^22.10.0",
     "@types/react": "^19.0.0",
