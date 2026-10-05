@@ -119,6 +119,13 @@ Una prova fallisce anche se la pagina scrive errori nella console, comprese le v
 CSP. Le schermate restano in `e2e-risultati/schermate` (fuori da git): guardarle quando si tocca
 l'interfaccia. Gira nel job Windows della CI, che le allega come artefatto.
 
+Il **contratto dei canali** sta in `src/shared/canali.ts`: `Canali` (firma di ogni canale) e
+`MAPPA_API` (metodo di `window.api` → canale). Da lì si ricavano il tipo `Api` (in `types.ts`, più
+`ApiExtra` per ciò che non è una chiamata) e il ponte, che costruisce `window.api` dalla mappa. In
+`ipc.ts` `handle()` accetta solo canali del contratto con gli argomenti giusti (`handleConFinestra`
+per chi deve sapere la finestra), e all'avvio controlla che ogni canale abbia il gestore. Funzione
+nuova = firma in `Canali` + voce in `MAPPA_API` + gestore.
+
 La finestra principale gira nel **sandbox** con il ponte `src/preload/index.ts` (un file solo,
 importa da Electron solo `contextBridge` e `ipcRenderer`): il ponte non può importare moduli di
 Node. La CSP sta in `electron.vite.config.ts` e si scrive solo nella build; una risorsa nuova

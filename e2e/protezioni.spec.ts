@@ -2,7 +2,22 @@
 // Policy non lascia ne' eseguire script scritti nella pagina ne' caricare
 // niente da internet. Se un giorno qualcuno le togliesse per sbaglio, qui si vede.
 import { test, expect } from '@playwright/test'
+import { readdirSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { avvia } from './app'
+
+// Nel sandbox un ponte puo' chiedere solo "electron" e non puo' caricare altri
+// file: se la build lo spezzasse in pezzi (un modulo in comune fra due ponti),
+// la finestra si aprirebbe senza window.api.
+test('i ponti costruiti sono un file solo ciascuno, e chiedono solo electron', () => {
+  const cartella = join(__dirname, '..', 'out', 'preload')
+  const file = readdirSync(cartella)
+  expect(file.sort()).toEqual(['finestra.js', 'index.js', 'scheda.js'])
+  for (const f of file) {
+    const richiesti = [...readFileSync(join(cartella, f), 'utf-8').matchAll(/require\("([^"]+)"\)/g)].map((m) => m[1])
+    expect(new Set(richiesti), f).toEqual(new Set(['electron']))
+  }
+})
 
 test('la finestra gira nel sandbox, con la CSP', async () => {
   const prova = await avvia()

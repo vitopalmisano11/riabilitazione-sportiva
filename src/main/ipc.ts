@@ -1,4 +1,5 @@
-import { BrowserWindow, dialog, ipcMain, nativeImage, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, nativeImage, shell, type IpcMainInvokeEvent } from 'electron'
+import { canaliDellaMappa, type Canali } from '../shared/canali'
 import { basename, join } from 'path'
 import { copyFileSync, existsSync, readFileSync } from 'fs'
 import { closeDb, controllaArchivio, dbAperto, getDb, initDb, riapriDb } from './db'
@@ -279,24 +280,47 @@ function friendly(err: unknown): Error {
   return err instanceof Error ? err : new Error(msg)
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function handle(channel: string, fn: (...args: any[]) => unknown): void {
-  ipcMain.handle(channel, async (_event, ...args) => {
+// I canali sono quelli del contratto (src/shared/canali.ts): handle() accetta
+// solo quelli, e controlla che il gestore prenda gli argomenti giusti. Quello
+// che il gestore restituisce no: le righe lette dal database arrivano senza
+// tipo, e il contratto lo dichiara per la pagina.
+type Argomenti<K extends keyof Canali> = Parameters<Canali[K]>
+
+const registrati = new Set<string>()
+
+function aggancia(canale: string, esegui: (evento: IpcMainInvokeEvent, argomenti: unknown[]) => unknown): void {
+  registrati.add(canale)
+  ipcMain.handle(canale, async (evento, ...argomenti) => {
     try {
-      controllaArgomenti(args)
-      return await fn(...args)
+      controllaArgomenti(argomenti)
+      return await esegui(evento, argomenti)
     } catch (err) {
       // Nel registro finisce il nome dell'operazione e l'errore, mai quello che
       // e' stato scritto: serve a capire cosa si e' rotto, non a rileggere i
       // dati dei pazienti.
-      registraErrore(channel, err)
+      registraErrore(canale, err)
       throw friendly(err)
     }
   })
 }
 
+function handle<K extends keyof Canali>(canale: K, fn: (...argomenti: Argomenti<K>) => unknown): void {
+  aggancia(canale, (_evento, argomenti) => fn(...(argomenti as Argomenti<K>)))
+}
+
+// Per i pochi canali che devono sapere da quale finestra arriva la richiesta
+// (ingrandire quella, chiudere quella).
+function handleConFinestra<K extends keyof Canali>(
+  canale: K,
+  fn: (evento: IpcMainInvokeEvent, ...argomenti: Argomenti<K>) => unknown
+): void {
+  aggancia(canale, (evento, argomenti) => fn(evento, ...(argomenti as Argomenti<K>)))
+}
+
 // I cinque canali di un elenco fatto solo di nomi (vedi elenchi.ts).
-function registraElenco(prefisso: string, elenco: ElencoSemplice): void {
+type PrefissoElenco = 'gruppi' | 'questionariCategorie' | 'testCategorie'
+
+function registraElenco(prefisso: PrefissoElenco, elenco: ElencoSemplice): void {
   handle(`${prefisso}:list`, () => elenco.elenco())
   handle(`${prefisso}:create`, (nome: string) => elenco.crea(nome))
   handle(`${prefisso}:update`, (id: number, nome: string) => elenco.rinomina(id, nome))
@@ -504,9 +528,8 @@ export function registerIpc(): void {
     barraScura: barraScura(),
     ingrandimento: ingrandimento()
   }))
-  // Non passa dal solito aiutante perche' serve sapere da quale finestra
-  // arriva: e' quella che va ingrandita.
-  ipcMain.handle('impostazioni:setIngrandimento', (evento, valore: number) => {
+  // Serve sapere da quale finestra arriva: e' quella che va ingrandita.
+  handleConFinestra('impostazioni:setIngrandimento', (evento, valore: number) => {
     impostaIngrandimento(valore)
     const finestra = BrowserWindow.fromWebContents(evento.sender)
     if (finestra && !finestra.isDestroyed()) {
@@ -699,7 +722,9 @@ export function registerIpc(): void {
 
   // ---- Fasi ----
   handle('fasi:list', (patologiaId: number) => elencoFasi(patologiaId))
-  handle('fasi:create', (patologiaId: number, nome: string, campo = false) => creaFase(patologiaId, nome, campo))
+  handle('fasi:create', (patologiaId: number, nome: string, campo?: boolean) =>
+    creaFase(patologiaId, nome, campo === true)
+  )
   handle('fasi:update', (id: number, nome: string) => rinominaFase(id, nome))
   handle('fasi:delete', (id: number) => eliminaFase(id))
   handle('fasi:reorder', (ids: number[]) => riordina('fasi', ids))
@@ -908,8 +933,8 @@ export function registerIpc(): void {
   handle('sedute:get', (id: number) => leggiSeduta(id))
   handle('sedute:create', (input: SedutaInput) => creaSeduta(input))
   handle('sedute:update', (id: number, input: SedutaInput) => aggiornaSeduta(id, input))
-  handle('sedute:programma', (origineId: number, date: string[], ora: string | null = null) =>
-    programmaSeduta(origineId, date, ora)
+  handle('sedute:programma', (origineId: number, date: string[], ora?: string | null) =>
+    programmaSeduta(origineId, date, ora ?? null)
   )
   handle('sedute:delete', (id: number) => eliminaSeduta(id))
   // Le sedute di tutti, in un intervallo di date: la schermata della settimana.
@@ -1054,9 +1079,8 @@ export function registerIpc(): void {
   handle('scheda:apri', (sedutaId: number) => apriScheda(sedutaId))
   handle('scheda:dati', (sedutaId: number) => datiScheda(sedutaId))
   // I pulsanti della barra disegnata in cima: comandano la finestra da cui
-  // arriva la richiesta. Non passano dal solito aiutante perche' serve sapere
-  // quale finestra e'.
-  ipcMain.handle('finestra:comando', (evento, comando: 'riduci' | 'ingrandisci' | 'chiudi') => {
+  // arriva la richiesta.
+  handleConFinestra('finestra:comando', (evento, comando: 'riduci' | 'ingrandisci' | 'chiudi') => {
     const finestra = BrowserWindow.fromWebContents(evento.sender)
     if (!finestra || finestra.isDestroyed()) return
     if (comando === 'riduci') finestra.minimize()
@@ -1065,7 +1089,7 @@ export function registerIpc(): void {
       else finestra.maximize()
     } else if (comando === 'chiudi') finestra.close()
   })
-  ipcMain.handle('finestra:ingrandita', (evento) => {
+  handleConFinestra('finestra:ingrandita', (evento) => {
     const finestra = BrowserWindow.fromWebContents(evento.sender)
     return finestra != null && !finestra.isDestroyed() && finestra.isMaximized()
   })
@@ -1217,4 +1241,14 @@ export function registerIpc(): void {
   handle('esporta:storico', (pazienteId: number, dal: string, al: string, formato: FormatoExport) =>
     esportaStorico(pazienteId, dal, al, formato)
   )
+
+  // Ogni canale del contratto ha il suo gestore: uno dimenticato sarebbe un
+  // pulsante che risponde "No handler registered". In sviluppo e nelle prove ci
+  // si ferma subito; nel programma installato si scrive nel registro.
+  const senzaGestore = canaliDellaMappa().filter((c) => !registrati.has(c))
+  if (senzaGestore.length > 0) {
+    const errore = new Error(`Canali senza gestore: ${senzaGestore.join(', ')}`)
+    registraErrore('registerIpc', errore)
+    if (!app.isPackaged) throw errore
+  }
 }
