@@ -9,6 +9,7 @@
 // violazioni della Content-Security-Policy) finisce in `errori`: una prova che
 // passa con errori nella console non e' una prova passata.
 import { _electron as electron, expect, type ElectronApplication, type Page } from '@playwright/test'
+import { execFileSync } from 'node:child_process'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -39,6 +40,12 @@ export async function avvia(cartella?: string): Promise<AppDiProva> {
       if (m.type() === 'error') errori.push(m.text())
     })
     p.on('pageerror', (e) => errori.push(e.message))
+    // Chiudendo con un editor aperto la pagina ferma la chiusura (beforeunload)
+    // per salvare, e poi chiude da se': non e' una finestra di dialogo vera, e
+    // Playwright non deve provare a risponderle.
+    p.on('dialog', (d) => {
+      if (d.type() !== 'beforeunload') void d.dismiss()
+    })
   }
   ascolta(pagina)
   app.on('window', ascolta)
@@ -53,6 +60,17 @@ export async function avvia(cartella?: string): Promise<AppDiProva> {
       if (!opzioni.tieniCartella) rmSync(dir, { recursive: true, force: true })
     }
   }
+}
+
+// Spegne il programma di colpo, come un computer che si stacca: niente
+// salvataggi in uscita. Su Windows serve fermare tutto l'albero dei processi,
+// altrimenti i figli restano e il programma fa in tempo a chiudersi per bene.
+export async function spegniDiColpo(app: ElectronApplication): Promise<void> {
+  const pid = app.process().pid
+  if (pid == null) throw new Error('Il programma non ha un processo da fermare.')
+  if (process.platform === 'win32') execFileSync('taskkill', ['/F', '/T', '/PID', String(pid)])
+  else process.kill(pid, 'SIGKILL')
+  await app.close().catch(() => undefined)
 }
 
 // Primo avvio: password, chiave di recupero, dentro.
