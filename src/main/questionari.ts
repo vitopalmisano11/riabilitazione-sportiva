@@ -2,6 +2,7 @@
 // Il calcolo sta qui, nel processo principale, e non nell'interfaccia: cosi' il
 // risultato memorizzato e' sempre quello prodotto dalle regole configurate.
 import { getDb } from './db'
+import { estremiDomanda, tipoPunteggioValido, valorePunteggio } from '../shared/punteggi-questionario'
 import { eliminaMancanti } from './figli'
 import { validaData } from './validazione'
 import type {
@@ -126,17 +127,20 @@ export function salvaQuestionario(dati: QuestionarioCompleto): void {
     eliminaMancanti(db, 'questionario_punteggi', 'questionario_id', qid, idsPunteggi)
 
     const insPun = db.prepare(
-      'INSERT INTO questionario_punteggi (questionario_id, nome, ordine) VALUES (?, ?, ?)'
+      'INSERT INTO questionario_punteggi (questionario_id, nome, tipo, ordine) VALUES (?, ?, ?, ?)'
     )
-    const updPun = db.prepare('UPDATE questionario_punteggi SET nome = ?, ordine = ? WHERE id = ?')
+    const updPun = db.prepare('UPDATE questionario_punteggi SET nome = ?, tipo = ?, ordine = ? WHERE id = ?')
     const idPunteggio = new Map<number, number>()
     dati.punteggi.forEach((p, i) => {
+      // un punteggio senza tipo (scritto da chi non lo conosce) e' una somma
+      const tipo = p.tipo ?? 'somma'
+      if (!tipoPunteggioValido(tipo)) throw new Error(`Il punteggio «${p.nome}» ha un modo di calcolo sconosciuto.`)
       let pid: number
       if (p.id == null || p.id < 0) {
-        pid = Number(insPun.run(qid, p.nome.trim(), i).lastInsertRowid)
+        pid = Number(insPun.run(qid, p.nome.trim(), tipo, i).lastInsertRowid)
         if (p.id != null) idPunteggio.set(p.id, pid)
       } else {
-        updPun.run(p.nome.trim(), i, p.id)
+        updPun.run(p.nome.trim(), tipo, i, p.id)
         pid = p.id
       }
       db.prepare('DELETE FROM punteggio_domande WHERE punteggio_id = ?').run(pid)
@@ -221,12 +225,21 @@ export function calcola(
   risposte: { domanda_id: number; valore: number }[],
   definizione: QuestionarioCompleto = leggiQuestionario(questionarioId)
 ): Risultato {
-  const { punteggi, fasce } = definizione
+  const { punteggi, fasce, domande } = definizione
   const perDomanda = new Map(risposte.map((r) => [r.domanda_id, r.valore]))
+  const estremi = new Map(domande.map((d) => [d.id, estremiDomanda(d)]))
 
   const valori = new Map<number, number>()
   const risultato = punteggi.map((p) => {
-    const valore = p.domanda_ids.reduce((somma, did) => somma + (perDomanda.get(did) ?? 0), 0)
+    // le risposte date alle domande del punteggio, con gli estremi della loro
+    // domanda (per la percentuale)
+    const date = p.domanda_ids.flatMap((did) => {
+      const v = perDomanda.get(did)
+      if (v == null) return []
+      const e = estremi.get(did) ?? { min: 0, max: 0 }
+      return [{ valore: v, min: e.min, max: e.max }]
+    })
+    const valore = valorePunteggio(p.tipo ?? 'somma', date)
     if (p.id != null) valori.set(p.id, valore)
     return { punteggio_id: p.id ?? null, nome: p.nome, valore }
   })

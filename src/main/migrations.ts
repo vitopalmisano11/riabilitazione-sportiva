@@ -1341,6 +1341,14 @@ export const MIGRATIONS: string[] = [
   //      migrazione l'archivio si compatta (VACUUM), per ridare lo spazio.
   `
   UPDATE bioimmagini SET contenuto = da_data_url(contenuto) WHERE typeof(contenuto) = 'text';
+  `,
+
+  // 57 - come si calcola un punteggio di questionario: somma (come sempre),
+  //      percentuale del massimo, percentuale inversa, media. Vedi
+  //      shared/punteggi-questionario.ts. I punteggi gia' configurati restano
+  //      somme: nessuna compilazione cambia.
+  `
+  ALTER TABLE questionario_punteggi ADD COLUMN tipo TEXT NOT NULL DEFAULT 'somma';
   `
 ]
 

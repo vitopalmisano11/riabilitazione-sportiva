@@ -499,9 +499,13 @@ export interface DomandaQuestionario {
 
 // Un punteggio somma le risposte di alcune domande (es. "Totale" = tutte,
 // "Sub" = dalla quinta alla nona).
+// Come si calcola un punteggio: vedi shared/punteggi-questionario.ts.
+export type TipoPunteggio = 'somma' | 'percentuale' | 'percentuale_inversa' | 'media'
+
 export interface PunteggioQuestionario {
   id: number | null
   nome: string
+  tipo: TipoPunteggio
   domanda_ids: number[]
 }
 

@@ -5,10 +5,12 @@ import type {
   DomandaQuestionario,
   FasciaQuestionario,
   PunteggioQuestionario,
+  TipoPunteggio,
   Questionario,
   QuestionarioCompleto,
   TipoDomanda
 } from '../../../shared/types'
+import { TIPI_PUNTEGGIO } from '../../../shared/punteggi-questionario'
 import { toast, toastErrore } from '../components/Toast'
 import { chiedi } from '../components/Conferma'
 import Modale from '../components/Modale'
@@ -682,9 +684,11 @@ function TabPunteggi({
   return (
     <div className="lista-domande">
       <p className="modal-testo">
-        Un punteggio è la somma di alcune domande. Di solito ne basta uno
-        (&ldquo;Totale&rdquo;, tutte le domande), ma puoi aggiungerne altri se il questionario lo
-        richiede — per esempio un sotto-punteggio calcolato solo sulle ultime domande.
+        Un punteggio si calcola da alcune domande: di solito è la somma, ma molte scale validate
+        si esprimono in percentuale del massimo (l&apos;ODI, l&apos;IKDC) o in percentuale inversa
+        (il KOOS, dove 100 vuol dire nessun problema). Spesso ne basta uno (&ldquo;Totale&rdquo;,
+        tutte le domande); se il questionario lo richiede se ne aggiungono altri, per esempio le
+        sottoscale.
       </p>
 
       {punteggi.map((p, i) => (
@@ -706,6 +710,20 @@ function TabPunteggi({
               </button>
             </span>
           </div>
+          <label className="field">
+            Come si calcola
+            <select
+              value={p.tipo}
+              onChange={(e) => modifica(i, { tipo: e.target.value as TipoPunteggio })}
+            >
+              {TIPI_PUNTEGGIO.map((t) => (
+                <option key={t.valore} value={t.valore}>
+                  {t.etichetta}
+                </option>
+              ))}
+            </select>
+            <span className="hint">{TIPI_PUNTEGGIO.find((t) => t.valore === p.tipo)?.spiegazione}</span>
+          </label>
           <ul className="checkbox-list">
             {domande.map((d, k) => {
               const rif = d.id ?? 0
@@ -736,7 +754,7 @@ function TabPunteggi({
 
       <button
         onClick={() =>
-          onChange([...punteggi, { id: idTemporaneo(), nome: '', domanda_ids: [] }])
+          onChange([...punteggi, { id: idTemporaneo(), nome: '', tipo: 'somma', domanda_ids: [] }])
         }
       >
         <Plus size={16} /> Aggiungi punteggio

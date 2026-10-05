@@ -68,8 +68,8 @@ test('Questionari: punteggi e fasce sul caso a due punteggi', () => {
     // tradurli nei veri id. Se non lo facesse, la fascia resterebbe agganciata
     // a un punteggio inesistente e l'esito sarebbe sempre vuoto.
     punteggi: [
-      { id: -101, nome: 'Totale', domanda_ids: domande.map((d) => d.id) },
-      { id: -102, nome: 'Sub', domanda_ids: [-5, -6, -7, -8, -9] }
+      { id: -101, nome: 'Totale', tipo: 'somma', domanda_ids: domande.map((d) => d.id) },
+      { id: -102, nome: 'Sub', tipo: 'somma', domanda_ids: [-5, -6, -7, -8, -9] }
     ],
     fasce: [
       { id: null, etichetta: 'Basso', punteggio_id: -101, minimo: null, massimo: 3,
@@ -250,7 +250,7 @@ test('Questionari: punteggi e fasce sul caso a due punteggi', () => {
         opzioni: []
       }
     ],
-    punteggi: [{ id: -101, nome: 'Totale', domanda_ids: [-1] }],
+    punteggi: [{ id: -101, nome: 'Totale', tipo: 'somma' as const, domanda_ids: [-1] }],
     fasce: []
   }
   salvaQuestionario(senzaFasce)
