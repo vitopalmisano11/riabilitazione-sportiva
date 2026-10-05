@@ -28,6 +28,10 @@ Specifica originale e feedback dell'utente sono nei file `prompt-*.md` alla radi
 - `src/renderer/src/` React: `App.tsx` (shell, sidebar, modali globali), `pages/`, `components/`,
   `styles.css` (indice che importa, in ordine, i file di `stili/` per area: l'ordine conta per la
   cascata; design token in `:root` dentro `stili/01-temi.css`).
+- La costruzione della seduta sta in `components/seduta/`: `modello.ts` (dati e trasformazioni senza
+  React, provati in `test/costruzione-seduta.test.ts`), `useSezioni` (reducer con Ctrl+Z), `useBozza`,
+  e i pezzi della schermata; `SedutaBuilder.tsx` carica, salva ed esce. È il modello per dividere gli
+  altri componenti grandi.
 - Lingua dell'interfaccia, dei commenti e dei commit: **italiano**.
 
 ## Regole che contano
