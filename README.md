@@ -64,6 +64,41 @@ supera con *Ulteriori informazioni → Esegui comunque*.
 Le versioni vere dell'app sono quelle di `package.json` e dei tag `vX.Y.Z`: le sezioni «giro di
 feedback» qui sopra sono precedenti e usavano una numerazione propria.
 
+### v0.5.7
+
+**Prima di tutto:** al primo accesso dopo l'aggiornamento il programma applica due modifiche al
+formato dell'archivio (migrazioni 56 e 57). Non si possono annullare, quindi prima fa da solo una
+copia dell'archivio, e poi lo compatta: il primo accesso può durare qualche secondo in più, una
+volta sola. Dai Releases di GitHub si installa da solo, come la 0.5.6.
+
+- Cerca (Ctrl+K, o «Cerca» nel menu): un campo solo per trovare un paziente, una frase del diario
+  delle sedute o dell'anamnesi, in tutto l'archivio. Maiuscole e accenti non contano; si apre
+  direttamente il paziente o la seduta
+- Elimina per sempre (scheda del paziente): toglie un paziente dall'archivio e dal cestino senza
+  possibilità di recupero, e sovrascrive le righe. La conferma dice cosa resta nelle copie di
+  sicurezza già fatte, che il programma non può modificare
+- Cestino: rimettendo a posto una voce tornano anche i collegamenti che l'eliminazione aveva
+  azzerato, dove sono ancora vuoti
+- Referti: salvati come file e non più come testo, quindi l'archivio e ogni copia pesano circa un
+  quarto in meno per ogni referto. Quelli che hai si convertono da soli; aprendoli escono identici
+- Questionari: ogni punteggio ha il suo modo di calcolo, scelto nell'editor alla voce «Come si
+  calcola». Somma (come prima), percentuale del massimo, percentuale inversa (100 = nessun
+  problema) e media. Percentuali e media contano solo le domande a cui si è risposto: è come si
+  calcolano l'ODI, l'IKDC soggettivo e le sottoscale del KOOS. I punteggi già configurati restano
+  somme e nessuna compilazione cambia. I questionari validati non sono inclusi: testi e regole
+  vanno inseriti e controllati da chi li usa
+- Seduta: riprendendo una bozza torna anche la sua fase (con nome, obiettivi e struttura), che
+  prima si perdeva; scrivere in una riga non rallenta più le sedute lunghe
+- Protezioni: la finestra principale gira isolata dal sistema (sandbox) e non può caricare nulla da
+  internet né eseguire script inseriti nella pagina. Ogni comando interno rifiuta numeri non validi
+- Impostazioni: lette dal disco solo se il file è cambiato
+
+**Dietro le quinte:** 126 prove automatiche e 12 prove dell'interfaccia che guidano il programma
+costruito come una persona (primo avvio, pazienti, sedute, referti, questionari, impostazioni,
+anamnesi, valutazione, bozza dopo uno spegnimento di colpo); girano anche nella CI su Windows. I
+file più grandi sono divisi per argomento, e l'elenco dei comandi interni sta in un posto solo
+(`src/shared/canali.ts`).
+
 ### v0.5.6
 
 **Prima di tutto:** questa versione si installa a mano, una volta (scaricare l'installer da

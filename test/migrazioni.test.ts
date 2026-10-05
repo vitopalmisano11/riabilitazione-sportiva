@@ -12,7 +12,7 @@ import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import Database from 'better-sqlite3-multiple-ciphers'
-import { MIGRATIONS, runMigrations } from '../src/main/migrations'
+import { MIGRATIONS, registraFunzioniMigrazioni, runMigrations } from '../src/main/migrations'
 
 interface Rilascio {
   versione: string
@@ -48,6 +48,8 @@ test('Un archivio di ogni versione rilasciata si aggiorna senza perdere niente',
   for (const r of rilasci) {
     const db = new Database(':memory:')
     db.pragma('foreign_keys = ON')
+    // le funzioni SQL che certe migrazioni chiamano (la 56) c'erano gia' in quella versione
+    registraFunzioniMigrazioni(db)
     for (let i = 0; i < r.migrazioni; i++) {
       db.exec(MIGRATIONS[i])
       db.pragma(`user_version = ${i + 1}`)

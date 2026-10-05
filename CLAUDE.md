@@ -32,6 +32,10 @@ Specifica originale e feedback dell'utente sono nei file `prompt-*.md` alla radi
   React, provati in `test/costruzione-seduta.test.ts`), `useSezioni` (reducer con Ctrl+Z), `useBozza`,
   e i pezzi della schermata; `SedutaBuilder.tsx` carica, salva ed esce. È il modello per dividere gli
   altri componenti grandi.
+- Le schermate grandi sono divise così: `pages/paziente/` (scheda, diario, obiettivi, scheda illustrata),
+  `pages/questionari/` (elenco, editor, una scheda per tab; costanti e id provvisori in `modello.ts`),
+  `pages/impostazioni/` (una scheda per file), `components/anamnesi/` e `components/valutazione/`. Il
+  file di prima (es. `PazientiPage.tsx`) resta il punto d'ingresso e tiene stato e caricamento.
 - Lingua dell'interfaccia, dei commenti e dei commit: **italiano**.
 
 ## Regole che contano
