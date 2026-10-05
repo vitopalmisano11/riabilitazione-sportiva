@@ -161,6 +161,34 @@ function raccogli(db: Db, tabella: string, ids: number[], mappa: Map<string, [st
   return raccolto
 }
 
+// La fotografia sta nel cestino come testo (JSON). I valori binari (i byte di
+// un referto, dalla migrazione 56) in JSON diventerebbero un elenco di numeri
+// lungo tre volte il file, e al ripristino non si rimetterebbero: si scrivono
+// come { $byte: "base64" } e tornano byte rimettendo a posto.
+function inTesto(foto: Fotografia[]): string {
+  return JSON.stringify(foto, function (chiave, valore: unknown) {
+    // JSON.stringify chiama prima toJSON: un Buffer arriva qui gia' come
+    // { type: 'Buffer', data: [...] }, quindi lo si prende dall'oggetto di partenza
+    const originale = (this as Record<string, unknown>)[chiave]
+    if (originale instanceof Uint8Array) return { $byte: Buffer.from(originale).toString('base64') }
+    return valore
+  })
+}
+
+function conByte(foto: Fotografia[]): Fotografia[] {
+  for (const { righe } of foto) {
+    for (const riga of righe) {
+      for (const [colonna, valore] of Object.entries(riga)) {
+        const v = valore as { $byte?: unknown } | null
+        if (v !== null && typeof v === 'object' && typeof v.$byte === 'string') {
+          riga[colonna] = Buffer.from(v.$byte, 'base64')
+        }
+      }
+    }
+  }
+  return foto
+}
+
 // Una riga si riconosce dal suo id. Le tabelle di collegamento non ce l'hanno:
 // li' la riga intera fa da chiave (le colonne arrivano sempre nello stesso
 // ordine, da SELECT *).
@@ -238,7 +266,7 @@ export function eliminaConCestino(tabella: string, id: number, tipo: string, eti
     if (azzerati.length > 0) foto[0].azzerati = azzerati
     db.prepare(
       'INSERT INTO cestino (tipo, etichetta, quando, contenuto, righe) VALUES (?, ?, ?, ?, ?)'
-    ).run(tipo, etichetta, new Date().toISOString(), JSON.stringify(foto), contaRighe(foto))
+    ).run(tipo, etichetta, new Date().toISOString(), inTesto(foto), contaRighe(foto))
     db.prepare(`DELETE FROM ${tabella} WHERE id = ?`).run(id)
   })()
 }
@@ -410,7 +438,7 @@ export function ripristina(idCestino: number): void {
     | { contenuto: string }
     | undefined
   if (!voce) throw new Error('Questa voce del cestino non c’è più.')
-  const grezza = JSON.parse(voce.contenuto) as Fotografia[]
+  const grezza = conByte(JSON.parse(voce.contenuto) as Fotografia[])
   const azzerati = grezza.flatMap((f) => f.azzerati ?? [])
   const foto = normalizza(db, grezza)
   azzeraLegamiPersi(db, foto)

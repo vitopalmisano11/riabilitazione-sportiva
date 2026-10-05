@@ -93,6 +93,7 @@ import {
 } from './segni'
 import { eliminaBozza, leggiBozza, salvaBozza } from './bozze'
 import { cercaInArchivio } from './ricerca'
+import { aggiungiReferto, elencoReferti, eliminaReferto, leggiReferto, PESO_MASSIMO_REFERTO } from './referti'
 import {
   aggiornaEsercizio,
   archiviaEsercizio,
@@ -1049,9 +1050,6 @@ export function registerIpc(): void {
   handle('anamnesi:remota', (pazienteId: number) => leggiRemota(pazienteId))
   handle('anamnesi:salvaRemota', (pazienteId: number, dati: AnamnesiRemota) => salvaRemota(pazienteId, dati))
 
-  // ---- Bioimmagini ----
-  const BIO_PESO_MAX = 12 * 1024 * 1024
-
   // ---- Scheda mostrata al paziente ----
   handle('scheda:apri', (sedutaId: number) => apriScheda(sedutaId))
   handle('scheda:dati', (sedutaId: number) => datiScheda(sedutaId))
@@ -1088,13 +1086,9 @@ export function registerIpc(): void {
   handle('obiettiviTerapeutici:remove', (id: number) => togliObiettivoTerapeutico(id))
   handle('obiettiviTerapeutici:reorder', (ids: number[]) => riordina('obiettivi_terapeutici', ids))
 
-  handle('bioimmagini:list', (pazienteId: number) =>
-    getDb()
-      .prepare(
-        'SELECT id, nome, tipo, data FROM bioimmagini WHERE paziente_id = ? ORDER BY ordine, id'
-      )
-      .all(pazienteId)
-  )
+  // ---- Referti (bioimmagini) ----
+  // L'archivio sta in referti.ts: qui la scelta dei file e la lettura dal disco.
+  handle('bioimmagini:list', (pazienteId: number) => elencoReferti(pazienteId))
 
   handle('bioimmagini:aggiungi', async (pazienteId: number) => {
     const { canceled, filePaths } = await dialog.showOpenDialog({
@@ -1103,35 +1097,26 @@ export function registerIpc(): void {
       filters: [{ name: 'Referti', extensions: ['png', 'jpg', 'jpeg', 'webp', 'pdf'] }]
     })
     if (canceled || filePaths.length === 0) return 0
-    const db = getDb()
-    const { next } = db
-      .prepare('SELECT COALESCE(MAX(ordine), -1) + 1 AS next FROM bioimmagini WHERE paziente_id = ?')
-      .get(pazienteId) as { next: number }
-    const ins = db.prepare(
-      `INSERT INTO bioimmagini (paziente_id, nome, tipo, contenuto, data, ordine)
-       VALUES (?, ?, ?, ?, date('now', 'localtime'), ?)`
-    )
     let aggiunti = 0
     for (const percorso of filePaths) {
       const nome = basename(percorso)
       const pdf = percorso.toLowerCase().endsWith('.pdf')
       let tipo: string
-      let dataUrl: string
+      let dati: Buffer
       // Il nome del file dice quasi sempre di chi e' il referto ("Rossi_Mario_RM
       // ginocchio.pdf"): chi usa il programma lo legge nell'errore, ma nel
       // registro degli errori non deve finire. Vale anche per gli errori del
       // sistema, che citano il percorso intero.
       try {
         if (pdf) {
-          const buf = readFileSync(percorso)
-          if (buf.length > BIO_PESO_MAX) {
+          dati = readFileSync(percorso)
+          if (dati.length > PESO_MASSIMO_REFERTO) {
             throw erroreSenzaDatiNelRegistro(
               `"${nome}" e' troppo pesante (oltre 12 MB).`,
               'Referto troppo pesante.'
             )
           }
           tipo = 'application/pdf'
-          dataUrl = `data:application/pdf;base64,${buf.toString('base64')}`
         } else {
           // le foto si rimpiccioliscono: un referto fotografato col telefono
           // arriva a diversi megabyte e farebbe crescere l'archivio senza motivo
@@ -1141,7 +1126,7 @@ export function registerIpc(): void {
           }
           if (img.getSize().width > 1600) img = img.resize({ width: 1600, quality: 'good' })
           tipo = 'image/jpeg'
-          dataUrl = `data:image/jpeg;base64,${img.toJPEG(82).toString('base64')}`
+          dati = img.toJPEG(82)
         }
       } catch (e) {
         if (e instanceof Error && 'perRegistro' in e) throw e
@@ -1150,25 +1135,21 @@ export function registerIpc(): void {
           'Referto non leggibile o non accessibile.'
         )
       }
-      ins.run(pazienteId, nome, tipo, dataUrl, next + aggiunti)
+      aggiungiReferto(pazienteId, nome, tipo, dati)
       aggiunti++
     }
     return aggiunti
   })
 
   handle('bioimmagini:apri', async (id: number) => {
-    const riga = getDb()
-      .prepare('SELECT nome, tipo, contenuto FROM bioimmagini WHERE id = ?')
-      .get(id) as { nome: string; tipo: string; contenuto: string } | undefined
-    if (!riga) throw new Error('Referto non trovato.')
-    const base64 = riga.contenuto.slice(riga.contenuto.indexOf(',') + 1)
-    const estensione = riga.tipo === 'application/pdf' ? '.pdf' : '.jpg'
+    const referto = leggiReferto(id)
+    const estensione = referto.tipo === 'application/pdf' ? '.pdf' : '.jpg'
     // Per mostrarlo a un altro programma il referto esce per un momento dal
     // database cifrato: in una cartella sua, con un nome casuale, e da
     // cancellare. Il programma che lo apre lo tiene aperto, quindi il primo
     // tentativo e' dopo un minuto e poi si riprova; quello che resta lo
     // tolgono la chiusura e il prossimo avvio.
-    const tmp = await scriviTemporaneo(estensione, Buffer.from(base64, 'base64'))
+    const tmp = await scriviTemporaneo(estensione, referto.dati)
     const errore = await shell.openPath(tmp)
     if (errore) {
       eliminaTemporaneo(tmp)
@@ -1177,9 +1158,7 @@ export function registerIpc(): void {
     eliminaTemporaneoPresto(tmp, 60_000)
   })
 
-  handle('bioimmagini:delete', (id: number) => {
-    eliminaConCestino('bioimmagini', id, 'Documento', nomeDi('bioimmagini', id))
-  })
+  handle('bioimmagini:delete', (id: number) => eliminaReferto(id))
 
   // ---- Body chart ----
   // La logica sta in body-chart.ts: qui solo i canali.

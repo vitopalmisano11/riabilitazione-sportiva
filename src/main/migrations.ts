@@ -1327,6 +1327,20 @@ export const MIGRATIONS: string[] = [
   );
 
   CREATE INDEX idx_compilazione_punteggi_punteggio ON compilazione_punteggi(punteggio_id);
+  `,
+
+  // 56 - i referti (foto e PDF) come dati binari invece che come testo.
+  //
+  //      Stavano nell'archivio come "data:...;base64,...": un terzo in piu' del
+  //      file vero, in ogni copia di sicurezza. Ora la stessa colonna tiene i
+  //      byte del file (SQLite lo permette anche a una colonna dichiarata TEXT:
+  //      un valore binario resta binario). Restano dentro all'archivio cifrato,
+  //      e quindi nelle copie. La conversione la fa la funzione da_data_url,
+  //      registrata da runMigrations; quello che non e' un data URL resta com'e'
+  //      (chi legge accetta tutte e due le forme, vedi referti.ts). Dopo questa
+  //      migrazione l'archivio si compatta (VACUUM), per ridare lo spazio.
+  `
+  UPDATE bioimmagini SET contenuto = da_data_url(contenuto) WHERE typeof(contenuto) = 'text';
   `
 ]
 
@@ -1357,10 +1371,40 @@ export function runMigrations(
 
   if (current > 0 && current < MIGRATIONS.length) primaDiMigrare?.(current)
 
+  registraFunzioniMigrazioni(db)
+
   for (let i = current; i < MIGRATIONS.length; i++) {
     db.transaction(() => {
       db.exec(MIGRATIONS[i])
       db.pragma(`user_version = ${i + 1}`)
     })()
   }
+
+  // La 56 libera un quarto dello spazio dei referti: senza VACUUM il file resta
+  // grande uguale (le pagine liberate stanno dentro, vuote) e cosi' le copie.
+  // Si fa una volta, subito dopo. Se non riesce (poco spazio sul disco) non e'
+  // un errore: l'archivio e' a posto, solo piu' grande del necessario.
+  if (current > 0 && current < 56) {
+    try {
+      db.exec('VACUUM')
+    } catch {
+      // resta piu' grande, ma corretto
+    }
+  }
+}
+
+// Le funzioni che le migrazioni possono usare oltre a quelle di SQLite. Chi
+// applica le migrazioni a mano (le prove che costruiscono archivi di versioni
+// vecchie) le registra anche lui, altrimenti la 56 non trova da_data_url.
+export function registraFunzioniMigrazioni(db: Database.Database): void {
+  db.function('da_data_url', { deterministic: true }, (valore: unknown) => daDataUrl(valore))
+}
+
+// "data:image/jpeg;base64,...." -> i byte del file. Qualunque altra cosa resta
+// com'e'.
+export function daDataUrl(valore: unknown): unknown {
+  if (typeof valore !== 'string') return valore
+  const m = /^data:[^;,]*;base64,/.exec(valore)
+  if (!m) return valore
+  return Buffer.from(valore.slice(m[0].length), 'base64')
 }

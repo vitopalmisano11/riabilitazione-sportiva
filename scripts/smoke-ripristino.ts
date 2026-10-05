@@ -28,7 +28,7 @@ import {
 } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { controllaSetup, statoAccesso } from '../src/main/accesso'
-import { MIGRATIONS } from '../src/main/migrations'
+import { MIGRATIONS, registraFunzioniMigrazioni } from '../src/main/migrations'
 import { cambiaPasswordAuth, loginAuth, recoverAuth, setupAuth } from '../src/main/auth'
 import { apriAltroDb, closeDb, getDb, impostaCopiaPrimaDelleMigrazioni, initDb } from '../src/main/db'
 import {
@@ -114,6 +114,7 @@ function archivioVecchio(percorso: string, dek: string, fino: number): void {
   conn.pragma(`cipher='sqlcipher'`)
   conn.pragma(`key='${dek}'`)
   conn.pragma('foreign_keys = ON')
+  registraFunzioniMigrazioni(conn)
   for (let i = 0; i < fino; i++) {
     conn.exec(MIGRATIONS[i])
     conn.pragma(`user_version = ${i + 1}`)
@@ -609,7 +610,14 @@ try {
   } catch {
     // gia' chiuso
   }
-  rmSync(base, { recursive: true, force: true })
+  // Se un controllo e' fallito con un file ancora aperto, la cartella non si
+  // cancella (EBUSY): non deve impedire di uscire, altrimenti la prova resta
+  // appesa invece di dire che e' fallita.
+  try {
+    rmSync(base, { recursive: true, force: true })
+  } catch (e) {
+    console.error(`Cartella della prova non cancellata: ${base}`, e)
+  }
 }
 app.exit(uscita)
 })()
