@@ -23,6 +23,7 @@
 // Liste annidate: basta un'istanza dell'hook per livello. Quando si trascina al
 // livello interno, quello esterno ha `preso` a null e ignora l'evento da solo.
 import { useRef, useState, useLayoutEffect, type DragEvent, type MouseEvent } from 'react'
+import { sposta } from './sposta'
 
 // Chiave che identifica una posizione. Per le liste annidate si usa una
 // stringa tipo "2:0" (sezione 2, riga 0), decodificata da chi la riceve.
@@ -299,11 +300,6 @@ export function useRiordinoSalvato<T extends { id: number }>(
   return { ordine, contenitore, presa }
 }
 
-// Sposta un elemento dalla posizione `da` alla posizione `a`, senza mutare l'originale.
-export function sposta<T>(lista: T[], da: number, a: number): T[] {
-  if (da === a || da < 0 || a < 0 || da >= lista.length || a >= lista.length) return lista
-  const next = [...lista]
-  const [elemento] = next.splice(da, 1)
-  next.splice(a, 0, elemento)
-  return next
-}
+// sta in sposta.ts (senza React, la usano anche le prove): qui per chi la
+// prendeva da riordino
+export { sposta }
