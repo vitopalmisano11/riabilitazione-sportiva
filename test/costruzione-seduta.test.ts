@@ -2,12 +2,13 @@
 // le sezioni con la loro storia per Ctrl+Z, cosa proporre, la bozza e quello che si salva.
 import { test } from 'vitest'
 import assert from 'node:assert/strict'
-import type { Categoria, EsercizioConCategoria, Segno, UltimaVolta } from '../src/shared/types'
+import type { Categoria, EsercizioConCategoria, Segno, StatoProgressione, UltimaVolta } from '../src/shared/types'
 import {
   bozzaVuota,
   campiDaBozza,
   daProporre,
   haQualcosa,
+  esitiDaSalvare,
   inBozza,
   inputSeduta,
   misuraNonNumerica,
@@ -183,6 +184,7 @@ const campi = (p: Partial<CampiSeduta> = {}): CampiSeduta => ({
   riferito: '',
   tecnicaIds: [],
   trattamento: '',
+  esiti: {},
   ...p
 })
 
@@ -254,4 +256,32 @@ test('Salvare: cosa c\'e\' da salvare, le misure e i numeri vuoti', () => {
       [null, 'Corsa', null, 1]
     ]
   )
+})
+
+test('Progressioni: gli esiti si scrivono solo per chi ha un esercizio in seduta e solo se la seduta e\' passata', () => {
+  const stato = (id: number, esercizioIds: number[]) =>
+    ({ id, nome: `Prog ${id}`, step: esercizioIds.map((e) => ({ esercizio_id: e })) }) as unknown as StatoProgressione
+  const stati = [stato(1, [1, 2]), stato(2, [9])]
+  const sezioni = tutte([{ tipo: 'aggiungi', sez: 0, esercizio: squat }]).sezioni // esercizio 1
+  const esiti = { 1: 'avanza', 2: 'indietro' } as const
+
+  // la progressione 2 non ha esercizi in seduta: il suo esito non si scrive
+  assert.deepEqual(esitiDaSalvare({ ...esiti }, stati, sezioni, '2026-10-05', '2026-10-06'), [
+    { progressione_id: 1, esito: 'avanza' }
+  ])
+  // una seduta di oggi vale; una programmata per il futuro no
+  assert.equal(esitiDaSalvare({ ...esiti }, stati, sezioni, '2026-10-06', '2026-10-06').length, 1)
+  assert.deepEqual(esitiDaSalvare({ ...esiti }, stati, sezioni, '2026-10-07', '2026-10-06'), [])
+  // niente esiti, niente da scrivere
+  assert.deepEqual(esitiDaSalvare({}, stati, sezioni, '2026-10-05', '2026-10-06'), [])
+
+  // gli esiti entrano nel salvataggio, e nella bozza solo se ce ne sono
+  assert.deepEqual(inputSeduta(42, campi(), sezioni, [], [{ progressione_id: 1, esito: 'avanza' }]).progressioni, [
+    { progressione_id: 1, esito: 'avanza' }
+  ])
+  assert.deepEqual(inputSeduta(42, campi(), sezioni, []).progressioni, [])
+  assert.equal('esiti' in JSON.parse(JSON.stringify(inBozza(campi(), sezioni))), false)
+  const conEsiti = JSON.parse(JSON.stringify(inBozza(campi({ esiti: { 1: 'indietro' } }), sezioni)))
+  assert.deepEqual(campiDaBozza(conEsiti).esiti, { 1: 'indietro' })
+  assert.deepEqual(campiDaBozza({ data: '2026-01-01', faseId: null, note: '', sezioni: [] }).esiti, {})
 })

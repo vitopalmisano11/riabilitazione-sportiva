@@ -53,11 +53,15 @@ const nomeValido = (nome: string): string => {
 
 const vuotoNull = (testo: string | null): string | null => testo?.trim() || null
 
+// I criteri con cui si passa allo step dopo: in una progressione nuova ci sono
+// gia', si cambiano se servono.
+export const CRITERI_PREDEFINITI = 'Competenza, nessun dolore, gonfiore lieve, nessun compenso'
+
 export function creaProgressione(nome: string, gruppoId: number | null): number {
   return Number(
     getDb()
-      .prepare('INSERT INTO progressioni (gruppo_id, nome, ordine) VALUES (?, ?, ?)')
-      .run(gruppoId, nomeValido(nome), prossimoOrdine('progressioni')).lastInsertRowid
+      .prepare('INSERT INTO progressioni (gruppo_id, nome, criteri, ordine) VALUES (?, ?, ?, ?)')
+      .run(gruppoId, nomeValido(nome), CRITERI_PREDEFINITI, prossimoOrdine('progressioni')).lastInsertRowid
   )
 }
 

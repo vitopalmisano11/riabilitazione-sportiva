@@ -8,12 +8,15 @@ import type {
   PazienteDettaglio,
   SedutaEsercizioDettaglio,
   Segno,
+  StatoProgressione,
   UltimaVolta
 } from '../../../shared/types'
 import { AlertTriangle, Dumbbell } from 'lucide-react'
 import { toastErrore } from './Toast'
 import { chiedi } from './Conferma'
 import ImmagineEsercizio from './ImmagineEsercizio'
+import Modale from './Modale'
+import SpecchiettoProgressioni from './SpecchiettoProgressioni'
 import DiarioSeduta, { UltimaVoltaSeduta } from './DiarioSeduta'
 import { errMsg, oggiIso } from '../lib'
 import { useScorciatoie } from '../scorciatoie'
@@ -21,6 +24,7 @@ import { useSalvataggio } from '../salvataggio'
 import { useRiordino } from '../riordino'
 import {
   campiDaBozza,
+  esitiDaSalvare,
   haQualcosa,
   inputSeduta,
   misuraNonNumerica,
@@ -66,7 +70,15 @@ interface Contesto {
   obiettivi: Obiettivo[]
   raggiunti: number[]
   templateCats: Record<number, number[]>
+  // Le progressioni della fase, con lo step del paziente: per i suggerimenti,
+  // l'esito e lo specchietto. Servono solo a programmare.
+  progressioni: StatoProgressione[]
 }
+
+// Lo step del paziente conta fino a oggi: le sedute programmate per i giorni a
+// venire non sono ancora andate in nessun modo. E fino al giorno della seduta,
+// se e' un giorno passato che si sta correggendo.
+const finoAl = (data: string): string => (data < oggiIso() ? data : oggiIso())
 
 const CONTESTO_VUOTO: Contesto = {
   libreria: [],
@@ -77,7 +89,8 @@ const CONTESTO_VUOTO: Contesto = {
   segni: [],
   obiettivi: [],
   raggiunti: [],
-  templateCats: {}
+  templateCats: {},
+  progressioni: []
 }
 
 export default function SedutaBuilder({
@@ -102,7 +115,8 @@ export default function SedutaBuilder({
     riferitoAndamento: null,
     riferito: '',
     tecnicaIds: [],
-    trattamento: ''
+    trattamento: '',
+    esiti: {}
   })
   const cambia = useCallback((p: Partial<CampiSeduta>) => setCampi((c) => ({ ...c, ...p })), [])
   const { sezioni, invia } = useSezioni()
@@ -119,6 +133,7 @@ export default function SedutaBuilder({
   const [sezioneAperta, setSezioneAperta] = useState<number | null>(null)
   const [nuovaSezione, setNuovaSezione] = useState('')
   const [immagineAperta, setImmagineAperta] = useState<{ id: number; nome: string } | null>(null)
+  const [specchietto, setSpecchietto] = useState(false)
 
   // Contatore per le chiavi locali delle righe "al volo" (sempre negative,
   // cosi' non si confondono mai con un esercizio_id vero).
@@ -177,7 +192,8 @@ export default function SedutaBuilder({
             riferitoAndamento: s.riferito_andamento ?? null,
             riferito: s.riferito ?? '',
             tecnicaIds: s.tecnica_ids ?? [],
-            trattamento: s.trattamento ?? ''
+            trattamento: s.trattamento ?? '',
+            esiti: Object.fromEntries((s.progressioni ?? []).map((p) => [p.progressione_id, p.esito]))
           })
           void window.api.sedute
             .precedente(paziente.id, sedutaId, s.data)
@@ -224,8 +240,13 @@ export default function SedutaBuilder({
         }
 
         if (fase != null) {
-          const [obs, template] = await Promise.all([window.api.obiettivi.list(fase), window.api.sezioni.list(fase)])
+          const [obs, template, progr] = await Promise.all([
+            window.api.obiettivi.list(fase),
+            window.api.sezioni.list(fase),
+            window.api.progressioni.stato(paziente.id, fase, finoAl(letti.data ?? dataIniziale ?? oggiIso()), sedutaId)
+          ])
           ctx.obiettivi = obs
+          ctx.progressioni = progr
           ctx.templateCats = Object.fromEntries(template.map((t) => [t.id, t.categoria_ids]))
           // nuova seduta: struttura di default dal template della fase
           if (iniziali == null) iniziali = template.map((t) => ({ sezione_id: t.id, nome: t.nome, righe: [] }))
@@ -262,17 +283,24 @@ export default function SedutaBuilder({
       return
     }
     cambia({ faseId: nuova, faseNome: nuova == null ? null : (fasi.find((f) => f.id === nuova)?.nome ?? null) })
+    // gli esiti erano delle progressioni della fase di prima
+    cambia({ esiti: {} })
     if (nuova == null) {
       invia({ tipo: 'imposta', sezioni: [] })
-      setContesto((c) => ({ ...c, obiettivi: [], templateCats: {} }))
+      setContesto((c) => ({ ...c, obiettivi: [], templateCats: {}, progressioni: [] }))
       return
     }
     try {
-      const [obs, template] = await Promise.all([window.api.obiettivi.list(nuova), window.api.sezioni.list(nuova)])
+      const [obs, template, progr] = await Promise.all([
+        window.api.obiettivi.list(nuova),
+        window.api.sezioni.list(nuova),
+        window.api.progressioni.stato(paziente.id, nuova, finoAl(campi.data), sedutaId)
+      ])
       setContesto((c) => ({
         ...c,
         obiettivi: obs,
-        templateCats: Object.fromEntries(template.map((t) => [t.id, t.categoria_ids]))
+        templateCats: Object.fromEntries(template.map((t) => [t.id, t.categoria_ids])),
+        progressioni: progr
       }))
       invia({ tipo: 'imposta', sezioni: template.map((t) => ({ sezione_id: t.id, nome: t.nome, righe: [] })) })
     } catch (e) {
@@ -281,6 +309,21 @@ export default function SedutaBuilder({
   }
 
   const totaleEsercizi = useMemo(() => contaEsercizi(sezioni), [sezioni])
+
+  // Gli esercizi gia' in seduta, per non riproporli, e le progressioni che ne
+  // hanno almeno uno: per quelle si chiede com'e' andata (ma solo se la seduta
+  // e' di oggi o passata).
+  const inSeduta = useMemo(
+    () => new Set(sezioni.flatMap((s) => s.righe.map((r) => r.esercizio_id).filter((x): x is number => x != null))),
+    [sezioni]
+  )
+  const progressioniInSeduta = useMemo(
+    () =>
+      campi.data > oggiIso()
+        ? []
+        : contesto.progressioni.filter((p) => p.step.some((s) => inSeduta.has(s.esercizio_id))),
+    [contesto.progressioni, inSeduta, campi.data]
+  )
 
   // Trascinando, le sezioni e le righe si spostano passo passo: nella storia di
   // Ctrl+Z finisce solo il primo passo (vedi riduciSezioni). Le righe si
@@ -401,7 +444,13 @@ export default function SedutaBuilder({
       )
       return false
     }
-    const input = inputSeduta(paziente.id, campi, sezioni, contesto.segni)
+    const input = inputSeduta(
+      paziente.id,
+      campi,
+      sezioni,
+      contesto.segni,
+      esitiDaSalvare(campi.esiti, contesto.progressioni, sezioni, campi.data, oggiIso())
+    )
     bozza.chiudi()
     try {
       if (sedutaId == null) await window.api.sedute.create(input)
@@ -519,6 +568,9 @@ export default function SedutaBuilder({
           libreria={contesto.libreria}
           ultime={contesto.ultime}
           ricopiate={ricopiate}
+          progressioni={contesto.progressioni}
+          inSeduta={inSeduta}
+          onSpecchietto={() => setSpecchietto(true)}
           aperta={sezioneAperta === idxSez}
           onApri={setSezioneAperta}
           riordinoSezioni={riordinoSezioni}
@@ -548,11 +600,24 @@ export default function SedutaBuilder({
         campi={campi}
         onCambia={cambia}
         segni={contesto.segni}
+        progressioni={progressioniInSeduta}
         totaleEsercizi={totaleEsercizi}
         salvataggio={salvataggio}
         onAnnulla={() => void annulla()}
         onSalva={() => void salva()}
       />
+
+      {specchietto && (
+        <Modale onConferma={() => setSpecchietto(false)} className="modal-specchietto">
+          <h3>Dove siamo nelle progressioni</h3>
+          <SpecchiettoProgressioni stati={contesto.progressioni} />
+          <div className="modal-actions">
+            <button className="primary" onClick={() => setSpecchietto(false)}>
+              Chiudi
+            </button>
+          </div>
+        </Modale>
+      )}
 
       {immagineAperta && (
         <ImmagineEsercizio

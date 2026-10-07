@@ -1,0 +1,315 @@
+/* Le progressioni di esercizi a step: libreria, fase, seduta e specchietto. */
+
+/* ---- Lo specchietto: una scala per progressione ---- */
+
+.specchietto-prog {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.scala-prog {
+  background: var(--pannello);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px 12px;
+  margin-top: 8px;
+}
+
+.scala-testata {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.scala-testata h4 {
+  margin: 0;
+}
+
+.scala-criteri {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+.scala-step {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.step-prog {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+  column-gap: 10px;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+}
+
+.step-pallino {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.step-nome {
+  min-width: 0;
+}
+
+.step-nota {
+  font-size: 14px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.step-requisito {
+  grid-column: 2 / -1;
+  font-size: 13.5px;
+  color: var(--text-dim);
+}
+
+/* fatto: pieno e colorato */
+.step-prog.fatto {
+  background: var(--accent-soft);
+}
+
+.step-prog.fatto .step-pallino {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* da lavorare adesso: evidenziato */
+.step-prog.attuale {
+  background: var(--surface);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+.step-prog.attuale .step-pallino {
+  border: 2px solid var(--accent);
+  color: var(--accent);
+}
+
+.step-prog.attuale .step-nota b {
+  color: var(--accent);
+}
+
+/* da sbloccare: trasparente */
+.step-prog.da_sbloccare {
+  opacity: 0.5;
+}
+
+.step-prog.da_sbloccare .step-pallino {
+  border: 1px dashed var(--text-dim);
+  color: var(--text-dim);
+}
+
+/* ---- Libreria: elenco a sinistra, editor a destra ---- */
+
+.prog-gruppo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--text-dim);
+}
+
+.prog-gruppo .item-nome {
+  flex: 1;
+  min-width: 0;
+}
+
+.elenco-prog {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+}
+
+.elenco-prog li {
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.elenco-prog li:hover {
+  background: var(--accent-soft);
+}
+
+.elenco-prog li.selected {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.step-editor {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.step-editor li {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+  gap: 6px 10px;
+  align-items: center;
+  padding: 6px 8px;
+  background: var(--pannello);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.step-editor li.trascinato {
+  opacity: 0.5;
+}
+
+.step-editor .step-numero {
+  color: var(--text-dim);
+  font-weight: 600;
+  text-align: center;
+}
+
+.step-editor input {
+  width: 100%;
+}
+
+/* il requisito sta su una riga sua, sotto al nome: affiancato si tagliava */
+.step-editor li > input {
+  grid-column: 2 / 3;
+  grid-row: 2;
+}
+
+.step-editor li > button {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+.cerca-step {
+  margin-top: 8px;
+}
+
+/* ---- Collegamento alle fasi ---- */
+
+.prog-fase-gruppo {
+  margin-bottom: 10px;
+}
+
+.prog-fase-gruppo .checkbox-list label.gruppo-intero {
+  font-weight: 600;
+}
+
+.prog-fase-gruppo .checkbox-list li.dentro-gruppo {
+  margin-left: 26px;
+}
+
+.prog-fase-anteprima {
+  color: var(--text-dim);
+  font-size: 14px;
+}
+
+/* ---- Seduta: suggerimenti ed esito ---- */
+
+.suggeriti-prog {
+  background: var(--accent-soft);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  margin-bottom: 8px;
+}
+
+.suggeriti-testata {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.suggeriti-testata button {
+  margin-left: auto;
+  font-size: 14px;
+  padding: 2px 10px;
+}
+
+.suggeriti-prog .esercizi-proposti li {
+  border-bottom-color: var(--surface);
+}
+
+.suggeriti-prog .esercizi-proposti li.successivo {
+  opacity: 0.55;
+}
+
+.suggeriti-prog .esercizi-proposti li.sospeso {
+  opacity: 0.8;
+  font-style: italic;
+}
+
+.esiti-prog {
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.esito-riga {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.esito-riga .esito-nome {
+  flex: 1;
+  min-width: 200px;
+}
+
+.esito-riga .esito-nome small {
+  display: block;
+  color: var(--text-dim);
+}
+
+.esito-scelte {
+  display: inline-flex;
+  border: 1px solid var(--border-forte);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.esito-scelte button {
+  border: none;
+  border-radius: 0;
+  background: var(--surface);
+  padding: 5px 14px;
+  font-size: 15px;
+}
+
+.esito-scelte button + button {
+  border-left: 1px solid var(--border-forte);
+}
+
+.esito-scelte button.attivo {
+  background: var(--accent);
+  color: #fff;
+}
+
+.esito-scelte button.attivo.indietro {
+  background: var(--attenzione);
+}
+
+.modal.modal-specchietto {
+  width: 720px;
+}

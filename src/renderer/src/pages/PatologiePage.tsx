@@ -10,6 +10,7 @@ import type {
   TestAvanzamento
 } from '../../../shared/types'
 import CrudList from '../components/CrudList'
+import ProgressioniFaseTab from '../components/ProgressioniFase'
 import Aiuto from '../components/Aiuto'
 import { useRiordinoSalvato } from '../riordino'
 import { toastErrore } from '../components/Toast'
@@ -17,11 +18,12 @@ import { chiedi } from '../components/Conferma'
 import Modale from '../components/Modale'
 import { errMsg } from '../lib'
 
-type Tab = 'struttura' | 'obiettivi' | 'test'
+type Tab = 'struttura' | 'obiettivi' | 'progressioni' | 'test'
 
 const TABS: { key: Tab; label: string }[] = [
   { key: 'struttura', label: 'Struttura della seduta' },
   { key: 'obiettivi', label: 'Obiettivi' },
+  { key: 'progressioni', label: 'Progressioni' },
   { key: 'test', label: 'Test di avanzamento' }
 ]
 
@@ -105,6 +107,7 @@ export default function PatologiePage(): React.JSX.Element {
           </div>
           {tab === 'struttura' && <StrutturaTab key={faseSel.id} faseId={faseSel.id} />}
           {tab === 'obiettivi' && <ObiettiviTab key={faseSel.id} faseId={faseSel.id} />}
+          {tab === 'progressioni' && <ProgressioniFaseTab key={faseSel.id} faseId={faseSel.id} />}
           {tab === 'test' && <TestTab key={faseSel.id} faseId={faseSel.id} />}
         </section>
       )}

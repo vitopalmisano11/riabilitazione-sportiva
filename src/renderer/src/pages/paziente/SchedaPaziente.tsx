@@ -9,6 +9,7 @@ import SceltaConRicerca from '../../components/SceltaConRicerca'
 import SegniPaziente from '../../components/SegniPaziente'
 import IndicazioniCasa from '../../components/IndicazioniCasa'
 import MassimaliPaziente from '../../components/MassimaliPaziente'
+import ProgressioniPaziente from '../../components/ProgressioniPaziente'
 import AnamnesiPaziente from '../../components/AnamnesiPaziente'
 import ValutazionePaziente from '../../components/ValutazionePaziente'
 import QuadroPaziente from '../../components/QuadroPaziente'
@@ -288,6 +289,8 @@ export function SchedaPaziente({
       </section>
 
       <ObiettiviCard paziente={paziente} />
+
+      <ProgressioniPaziente paziente={paziente} />
 
       {/* Sta nel percorso perche' e' parte del programma: cosa deve fare a
           casa, ogni quanto, e come regolarsi. Finisce sul foglio che si porta

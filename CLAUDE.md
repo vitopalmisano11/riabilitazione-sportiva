@@ -32,6 +32,14 @@ Specifica originale e feedback dell'utente sono nei file `prompt-*.md` alla radi
   React, provati in `test/costruzione-seduta.test.ts`), `useSezioni` (reducer con Ctrl+Z), `useBozza`,
   e i pezzi della schermata; `SedutaBuilder.tsx` carica, salva ed esce. È il modello per dividere gli
   altri componenti grandi.
+- Le progressioni di esercizi a step (es. Vertical braking) servono SOLO a programmare e non devono
+  mai entrare in cartella, referti, stampe o esportazioni. I dati: `main/progressioni.ts` (gruppi,
+  progressioni, step che rimandano a esercizi della libreria, collegamento alle fasi, lo step attuale),
+  il calcolo puro in `shared/progressioni.ts`, l'esito per seduta (solo avanza/indietro, mai copiato
+  programmando la settimana) in `seduta_progressioni`. Lo step del paziente NON è salvato: si ricalcola
+  dagli esiti delle sedute. L'interfaccia: `ProgressioniLibreria` (linguetta della libreria),
+  `ProgressioniFase` (tab della fase), `ProgressioniPaziente` e `SpecchiettoProgressioni` (specchietto),
+  `seduta/SuggerimentiProgressioni` e `seduta/EsitiProgressioni`.
 - Le schermate grandi sono divise così: `pages/paziente/` (scheda, diario, obiettivi, scheda illustrata),
   `pages/questionari/` (elenco, editor, una scheda per tab; costanti e id provvisori in `modello.ts`),
   `pages/impostazioni/` (una scheda per file), `components/anamnesi/` e `components/valutazione/`. Il

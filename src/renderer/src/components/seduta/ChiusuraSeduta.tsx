@@ -1,8 +1,9 @@
-import type { Segno } from '../../../../shared/types'
+import type { Segno, StatoProgressione } from '../../../../shared/types'
 import type { StatoSalvataggio } from '../../salvataggio'
 import IndicatoreSalvataggio from '../IndicatoreSalvataggio'
 import Aiuto from '../Aiuto'
 import type { CampiSeduta } from './modello'
+import EsitiProgressioni from './EsitiProgressioni'
 
 // Da 0 a 10: la scala che si usa a voce con il paziente.
 const VOTI = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
@@ -11,6 +12,9 @@ interface Props {
   campi: CampiSeduta
   onCambia: (p: Partial<CampiSeduta>) => void
   segni: Segno[]
+  // le progressioni che hanno un esercizio in questa seduta (gia' filtrate: se
+  // la seduta e' nel futuro non ce ne sono)
+  progressioni: StatoProgressione[]
   totaleEsercizi: number
   salvataggio: { stato: StatoSalvataggio; errore: string | null }
   onAnnulla: () => void
@@ -23,6 +27,7 @@ export default function ChiusuraSeduta({
   campi,
   onCambia,
   segni,
+  progressioni,
   totaleEsercizi,
   salvataggio,
   onAnnulla,
@@ -30,6 +35,11 @@ export default function ChiusuraSeduta({
 }: Props): React.JSX.Element {
   return (
     <section className="card">
+      <EsitiProgressioni
+        stati={progressioni}
+        esiti={campi.esiti}
+        onCambia={(esiti) => onCambia({ esiti })}
+      />
       {/* Come e' andata, prima delle note: due numeri da 0 a 10 che si possono
           confrontare seduta dopo seduta. Restano vuoti se non li si chiede:
           non tutte le sedute vanno misurate. */}

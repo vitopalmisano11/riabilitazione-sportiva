@@ -8,9 +8,12 @@ import type {
   AndamentoRiferito,
   Categoria,
   EsercizioConCategoria,
+  EsitoProgressione,
+  EsitoSeduta,
   SedutaEsercizioDettaglio,
   SedutaInput,
   Segno,
+  StatoProgressione,
   UltimaVolta
 } from '../../../../shared/types'
 import { caricoTesto, recuperoTesto, rirTesto, volumeTesto } from '../../../../shared/dosaggio'
@@ -49,6 +52,9 @@ export interface CampiSeduta {
   riferito: string
   tecnicaIds: number[]
   trattamento: string
+  // Come sono andati gli esercizi delle progressioni, per progressione. Non
+  // segnare niente vuol dire "continua": non c'e' un terzo valore.
+  esiti: Record<number, EsitoProgressione>
 }
 
 // Quello che si sta componendo, messo da parte cosi' com'e'. La forma e'
@@ -63,6 +69,8 @@ export interface BozzaSeduta {
   riferito?: string
   tecnicaIds?: number[]
   trattamento?: string
+  // Solo se ce ne sono: una bozza senza esiti ha la stessa forma di sempre.
+  esiti?: Record<number, EsitoProgressione>
   note: string
   sezioni: SezioneBuilder[]
 }
@@ -372,6 +380,7 @@ export function inBozza(c: CampiSeduta, sezioni: SezioneBuilder[]): BozzaSeduta 
     riferito: c.riferito,
     tecnicaIds: c.tecnicaIds,
     trattamento: c.trattamento,
+    esiti: Object.keys(c.esiti).length > 0 ? c.esiti : undefined,
     note: c.note,
     sezioni
   }
@@ -387,8 +396,27 @@ export function campiDaBozza(b: BozzaSeduta): Partial<CampiSeduta> {
     riferitoAndamento: b.riferitoAndamento ?? null,
     riferito: b.riferito ?? '',
     tecnicaIds: b.tecnicaIds ?? [],
-    trattamento: b.trattamento ?? ''
+    trattamento: b.trattamento ?? '',
+    esiti: b.esiti ?? {}
   }
+}
+
+// Gli esiti da scrivere con la seduta: solo di una progressione che ha ancora
+// un esercizio in seduta (se l'esercizio e' stato tolto, l'esito non ha piu'
+// senso) e solo se la seduta e' di oggi o di un giorno passato: una seduta
+// programmata per il futuro non e' ancora andata in nessun modo.
+export function esitiDaSalvare(
+  esiti: Record<number, EsitoProgressione>,
+  stati: StatoProgressione[],
+  sezioni: SezioneBuilder[],
+  data: string,
+  oggi: string
+): EsitoSeduta[] {
+  if (data > oggi) return []
+  const inSeduta = new Set(sezioni.flatMap((s) => s.righe.map((r) => r.esercizio_id)))
+  return stati
+    .filter((p) => esiti[p.id] != null && p.step.some((s) => inSeduta.has(s.esercizio_id)))
+    .map((p) => ({ progressione_id: p.id, esito: esiti[p.id] }))
 }
 
 // Una misura scritta ma non numerica ("5-6", "circa 7") non si puo' salvare:
@@ -406,7 +434,8 @@ export function inputSeduta(
   pazienteId: number,
   c: CampiSeduta,
   sezioni: SezioneBuilder[],
-  segni: Segno[]
+  segni: Segno[],
+  progressioni: EsitoSeduta[] = []
 ): SedutaInput {
   return {
     paziente_id: pazienteId,
@@ -426,6 +455,7 @@ export function inputSeduta(
     tecnica_ids: c.tecnicaIds,
     trattamento: c.trattamento.trim() || null,
     note: c.note.trim() || null,
+    progressioni,
     sezioni: sezioni.map((s) => ({ sezione_id: s.sezione_id, nome: s.nome })),
     esercizi: sezioni.flatMap((s, i) =>
       s.righe.map((r) => ({

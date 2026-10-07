@@ -14,6 +14,7 @@ import type { Categoria, EsercizioConCategoria, EsercizioInput } from '../../../
 import { toastErrore } from '../components/Toast'
 import { chiedi } from '../components/Conferma'
 import CategorieEsercizi from '../components/CategorieEsercizi'
+import ProgressioniLibreria from '../components/ProgressioniLibreria'
 import SceltaConRicerca from '../components/SceltaConRicerca'
 import ImmagineEsercizio from '../components/ImmagineEsercizio'
 import RitaglioImmagine from '../components/RitaglioImmagine'
@@ -81,7 +82,7 @@ export default function EserciziPage(): React.JSX.Element {
   const [ordine, setOrdine] = useState<'alfabetico' | 'usati'>('alfabetico')
   const [ricerca, setRicerca] = useState('')
   // Le due linguette della libreria: gli esercizi e le loro categorie.
-  const [vista, setVista] = useState<'esercizi' | 'categorie'>('esercizi')
+  const [vista, setVista] = useState<'esercizi' | 'categorie' | 'progressioni'>('esercizi')
   // Nelle caselle in cui si sceglie l'elenco e' a due livelli: prima le
   // categorie, e premendone una i suoi distretti, scritti col loro nome e basta.
   const vociCategorie = categorie
@@ -324,9 +325,17 @@ export default function EserciziPage(): React.JSX.Element {
         >
           Categorie ({categorie.length})
         </button>
+        <button
+          className={vista === 'progressioni' ? 'active' : ''}
+          onClick={() => setVista('progressioni')}
+        >
+          Progressioni
+        </button>
       </div>
 
-      {vista === 'categorie' ? (
+      {vista === 'progressioni' ? (
+        <ProgressioniLibreria />
+      ) : vista === 'categorie' ? (
         <CategorieEsercizi
           tornaAllInizio={0}
           onCambiato={async () => {

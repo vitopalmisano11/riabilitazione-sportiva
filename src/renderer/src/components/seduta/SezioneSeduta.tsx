@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ImageIcon, Pencil, Plus, Video, X } from 'lucide-react'
-import type { Categoria, EsercizioConCategoria, UltimaVolta } from '../../../../shared/types'
+import type { Categoria, EsercizioConCategoria, StatoProgressione, UltimaVolta } from '../../../../shared/types'
 import type { Riordino } from '../../riordino'
 import { volumeTesto } from '../../../../shared/dosaggio'
 import { errMsg } from '../../lib'
@@ -8,6 +8,7 @@ import { chiedi } from '../Conferma'
 import { toast, toastErrore } from '../Toast'
 import Aiuto from '../Aiuto'
 import RigaSeduta from './RigaSeduta'
+import SuggerimentiProgressioni from './SuggerimentiProgressioni'
 import {
   daProporre,
   mostraCluster,
@@ -25,6 +26,11 @@ interface Props {
   libreria: EsercizioConCategoria[]
   ultime: Record<number, UltimaVolta>
   ricopiate: string[]
+  // le progressioni della fase con lo step del paziente, e gli esercizi gia'
+  // messi in seduta (in qualunque sezione)
+  progressioni: StatoProgressione[]
+  inSeduta: Set<number>
+  onSpecchietto: () => void
   // la ricerca degli esercizi e' aperta in questa sezione (una per volta)
   aperta: boolean
   onApri: (indice: number | null) => void
@@ -46,6 +52,9 @@ export default function SezioneSeduta({
   libreria,
   ultime,
   ricopiate,
+  progressioni,
+  inSeduta,
+  onSpecchietto,
   aperta,
   onApri,
   riordinoSezioni,
@@ -192,6 +201,17 @@ export default function SezioneSeduta({
             >
               <Plus size={16} /> Aggiungi «{testoRicerca}» come esercizio solo per questa seduta
             </button>
+          )}
+          {/* Cercando per nome i suggerimenti si tolgono di mezzo: chi scrive
+              sa gia' cosa vuole. */}
+          {testoRicerca.length < 2 && (
+            <SuggerimentiProgressioni
+              stati={progressioni}
+              libreria={libreria}
+              inSeduta={inSeduta}
+              onAggiungi={(e) => invia({ tipo: 'aggiungi', sez: idxSez, esercizio: e })}
+              onSpecchietto={onSpecchietto}
+            />
           )}
           <ElencoProposte
             esercizi={daProporre(s, ricerca, templateCats, categorie, libreria)}
