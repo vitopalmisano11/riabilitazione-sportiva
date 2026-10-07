@@ -276,6 +276,8 @@ export interface SedutaInput {
   note: string | null
   sezioni: SedutaSezioneInput[]
   esercizi: SedutaEsercizioInput[]
+  // Come sono andati gli esercizi delle progressioni (solo avanza / indietro).
+  progressioni?: EsitoSeduta[]
 }
 
 // Come riferisce di stare, tornando: rispetto alla volta prima.
@@ -446,6 +448,7 @@ export interface SedutaDettaglio {
   tecnica_ids: number[]
   note: string | null
   sezioni: SedutaSezioneDettaglio[]
+  progressioni: EsitoSeduta[]
 }
 
 // ---- Questionari (PROM) ----
@@ -1265,3 +1268,73 @@ type Unisci<A, B> = {
 }
 
 export type Api = Unisci<ApiDaCanali, ApiExtra>
+
+// ---- Progressioni di esercizi a step ----
+// Servono solo a programmare le sedute: non compaiono mai in cartella,
+// referti o stampe. Vedi src/shared/progressioni.ts per come si ricava lo step.
+
+// Come e' andato l'esercizio della progressione in una seduta. Non segnare
+// niente vuol dire "continua": per questo non c'e' un terzo valore.
+export type EsitoProgressione = 'avanza' | 'indietro'
+
+export interface EsitoSeduta {
+  progressione_id: number
+  esito: EsitoProgressione
+}
+
+export interface ProgressioneGruppo {
+  id: number
+  nome: string
+  ordine: number
+}
+
+export interface StepProgressione {
+  id: number
+  esercizio_id: number
+  esercizio_nome: string
+  archiviato: 0 | 1
+  // Cosa deve saper fare per passare a questo step (es. "front squat di qualita'").
+  requisito: string | null
+}
+
+export interface Progressione {
+  id: number
+  gruppo_id: number | null
+  nome: string
+  criteri: string | null
+  step: StepProgressione[]
+}
+
+export interface ProgressioneInput {
+  nome: string
+  gruppo_id: number | null
+  criteri: string | null
+}
+
+// Cosa e' collegato a una fase: gruppi interi e progressioni singole.
+export interface ProgressioniFase {
+  gruppo_ids: number[]
+  progressione_ids: number[]
+}
+
+export type StatoStep = 'fatto' | 'attuale' | 'da_sbloccare'
+
+export interface StepConStato extends StepProgressione {
+  stato: StatoStep
+  superato_il: string | null
+  // Il giorno in cui ci si e' tornati con "indietro", se e' ancora cosi'.
+  rivisto_il: string | null
+}
+
+// A che punto e' un paziente in una progressione.
+export interface StatoProgressione {
+  id: number
+  nome: string
+  criteri: string | null
+  gruppo_nome: string | null
+  step: StepConStato[]
+  // Indice (da 0) dello step da lavorare; uguale al numero di step se finita.
+  posizione: number
+  completata: boolean
+  attuale_dal: string | null
+}

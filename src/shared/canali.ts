@@ -12,6 +12,11 @@
 // Per una funzione nuova: la firma qui in Canali, il metodo in MAPPA_API, il
 // gestore in ipc.ts. Il typecheck dice se manca qualcosa.
 import type {
+  Progressione,
+  ProgressioneGruppo,
+  ProgressioneInput,
+  ProgressioniFase,
+  StatoProgressione,
   Promemoria,
   PromemoriaInput,
   AnamnesiProssima,
@@ -419,6 +424,32 @@ export interface Canali {
   // Apre (o riporta in primo piano) la finestra con la scheda della seduta.
   'scheda:apri': (sedutaId: number) => void
   'scheda:dati': (sedutaId: number) => SchedaPaziente
+  // Le progressioni di esercizi a step: gruppi, progressioni e step, il
+  // collegamento alle fasi e a che punto e' un paziente.
+  'progressioni:gruppi': () => ProgressioneGruppo[]
+  'progressioni:creaGruppo': (nome: string) => number
+  'progressioni:rinominaGruppo': (id: number, nome: string) => void
+  'progressioni:eliminaGruppo': (id: number) => void
+  'progressioni:riordinaGruppi': (ids: number[]) => void
+  'progressioni:list': () => Progressione[]
+  'progressioni:create': (nome: string, gruppoId: number | null) => number
+  'progressioni:update': (id: number, dati: ProgressioneInput) => void
+  'progressioni:remove': (id: number) => void
+  'progressioni:reorder': (ids: number[]) => void
+  'progressioni:aggiungiStep': (progressioneId: number, esercizioId: number, requisito: string | null) => number
+  'progressioni:aggiornaStep': (id: number, requisito: string | null) => void
+  'progressioni:togliStep': (id: number) => void
+  'progressioni:riordinaStep': (ids: number[]) => void
+  'progressioni:fase': (faseId: number) => ProgressioniFase
+  'progressioni:impostaFase': (faseId: number, dati: ProgressioniFase) => void
+  // Lo step del paziente in ogni progressione della fase, contando le sedute
+  // fino a `finoAl` tranne `escludiSedutaId` (quella che si sta scrivendo).
+  'progressioni:stato': (
+    pazienteId: number,
+    faseId: number | null,
+    finoAl: string,
+    escludiSedutaId: number | null
+  ) => StatoProgressione[]
   'obiettiviTerapeutici:list': (pazienteId: number) => ObiettivoTerapeutico[]
   // Quello che il paziente si aspetta, con parole sue: una casella sola.
   'obiettiviTerapeutici:aspettative': (pazienteId: number) => string | null
@@ -784,6 +815,25 @@ export const MAPPA_API = {
   scheda: {
     apri: 'scheda:apri',
     dati: 'scheda:dati'
+  },
+  progressioni: {
+    gruppi: 'progressioni:gruppi',
+    creaGruppo: 'progressioni:creaGruppo',
+    rinominaGruppo: 'progressioni:rinominaGruppo',
+    eliminaGruppo: 'progressioni:eliminaGruppo',
+    riordinaGruppi: 'progressioni:riordinaGruppi',
+    list: 'progressioni:list',
+    create: 'progressioni:create',
+    update: 'progressioni:update',
+    remove: 'progressioni:remove',
+    reorder: 'progressioni:reorder',
+    aggiungiStep: 'progressioni:aggiungiStep',
+    aggiornaStep: 'progressioni:aggiornaStep',
+    togliStep: 'progressioni:togliStep',
+    riordinaStep: 'progressioni:riordinaStep',
+    fase: 'progressioni:fase',
+    impostaFase: 'progressioni:impostaFase',
+    stato: 'progressioni:stato'
   },
   obiettiviTerapeutici: {
     list: 'obiettiviTerapeutici:list',

@@ -36,6 +36,12 @@ function scriviFigli(sedutaId: number | bigint, input: SedutaInput): void {
                                   ordine, seduta_sezione_id)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   )
+  // Come sono andati gli esercizi delle progressioni: solo avanza e indietro,
+  // "continua" e' non scrivere niente.
+  const insEsito = db.prepare(
+    'INSERT OR REPLACE INTO seduta_progressioni (seduta_id, progressione_id, esito) VALUES (?, ?, ?)'
+  )
+  for (const p of input.progressioni ?? []) insEsito.run(sedutaId, p.progressione_id, p.esito)
   input.esercizi.forEach((e, i) =>
     insEs.run(
       sedutaId,
@@ -65,6 +71,11 @@ export function validaSeduta(input: SedutaInput): void {
   for (const e of input.esercizi) {
     if ((e.esercizio_id == null) === (e.nome_libero == null)) {
       throw new Error("Un esercizio della seduta non ha ne' un esercizio di libreria ne' un nome: riprova.")
+    }
+  }
+  for (const p of input.progressioni ?? []) {
+    if (p.esito !== 'avanza' && p.esito !== 'indietro') {
+      throw new Error("L'esito di una progressione non è valido: riprova.")
     }
   }
 }
@@ -148,7 +159,10 @@ export function leggiSeduta(id: number): SedutaDettaglio {
       tecnica_id: number
     }[]
   ).map((t) => t.tecnica_id)
-  return { ...seduta, tecnica_ids, sezioni } as unknown as SedutaDettaglio
+  const progressioni = db
+    .prepare('SELECT progressione_id, esito FROM seduta_progressioni WHERE seduta_id = ? ORDER BY progressione_id')
+    .all(id)
+  return { ...seduta, tecnica_ids, sezioni, progressioni } as unknown as SedutaDettaglio
 }
 
 export function creaSeduta(input: SedutaInput): number {
@@ -209,6 +223,7 @@ export function aggiornaSeduta(id: number, input: SedutaInput): void {
     db.prepare('DELETE FROM seduta_tecniche WHERE seduta_id = ?').run(id)
     db.prepare('DELETE FROM seduta_esercizi WHERE seduta_id = ?').run(id)
     db.prepare('DELETE FROM seduta_sezioni WHERE seduta_id = ?').run(id)
+    db.prepare('DELETE FROM seduta_progressioni WHERE seduta_id = ?').run(id)
     scriviFigli(id, input)
   })()
 }
@@ -266,6 +281,9 @@ export function programmaSeduta(origineId: number, date: string[], ora: string |
         dolore: null,
         sforzo: null,
         segni: [],
+        // Nemmeno gli esiti delle progressioni: un "avanza" copiato su tre
+        // sedute farebbe avanzare tre volte.
+        progressioni: [],
         // Nemmeno cosa riferisce e il trattamento: si scrivono il giorno stesso.
         riferito_andamento: null,
         riferito: null,

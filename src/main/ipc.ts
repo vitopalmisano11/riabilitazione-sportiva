@@ -230,6 +230,21 @@ import {
   elencoPromemoria,
   segnaFatto
 } from './promemoria'
+import {
+  aggiornaProgressione,
+  aggiornaStep,
+  aggiungiStep,
+  creaProgressione,
+  elencoProgressioni,
+  eliminaProgressione,
+  gruppiProgressioni,
+  impostaProgressioniFase,
+  progressioniDellaFase,
+  riordinaProgressioni,
+  riordinaStep,
+  statoProgressioni,
+  togliStep
+} from './progressioni'
 import { leggiTest, salvaTest } from './test-valutazione'
 import {
   duplicaValutazione,
@@ -267,6 +282,9 @@ import type {
   SezioneCartella,
   TipoRelazione,
   StatoPaziente,
+  ProgressioneGruppo,
+  ProgressioneInput,
+  ProgressioniFase,
   TermineObiettivo,
   TestValutazioneCompleto,
   ValutazioneCompleta
@@ -1112,6 +1130,31 @@ export function registerIpc(): void {
 
   // ---- Obiettivi terapeutici ----
   // La logica sta in obiettivi-terapeutici.ts: qui solo i canali.
+  handle('progressioni:gruppi', () => gruppiProgressioni.elenco() as ProgressioneGruppo[])
+  handle('progressioni:creaGruppo', (nome: string) => gruppiProgressioni.crea(nome))
+  handle('progressioni:rinominaGruppo', (id: number, nome: string) => gruppiProgressioni.rinomina(id, nome))
+  handle('progressioni:eliminaGruppo', (id: number) => gruppiProgressioni.elimina(id))
+  handle('progressioni:riordinaGruppi', (ids: number[]) => gruppiProgressioni.riordina(ids))
+  handle('progressioni:list', () => elencoProgressioni())
+  handle('progressioni:create', (nome: string, gruppoId: number | null) => creaProgressione(nome, gruppoId))
+  handle('progressioni:update', (id: number, dati: ProgressioneInput) => aggiornaProgressione(id, dati))
+  handle('progressioni:remove', (id: number) => eliminaProgressione(id))
+  handle('progressioni:reorder', (ids: number[]) => riordinaProgressioni(ids))
+  handle('progressioni:aggiungiStep', (progressioneId: number, esercizioId: number, requisito: string | null) =>
+    aggiungiStep(progressioneId, esercizioId, requisito)
+  )
+  handle('progressioni:aggiornaStep', (id: number, requisito: string | null) => aggiornaStep(id, requisito))
+  handle('progressioni:togliStep', (id: number) => togliStep(id))
+  handle('progressioni:riordinaStep', (ids: number[]) => riordinaStep(ids))
+  handle('progressioni:fase', (faseId: number) => progressioniDellaFase(faseId))
+  handle('progressioni:impostaFase', (faseId: number, dati: ProgressioniFase) =>
+    impostaProgressioniFase(faseId, dati)
+  )
+  handle(
+    'progressioni:stato',
+    (pazienteId: number, faseId: number | null, finoAl: string, escludiSedutaId: number | null) =>
+      statoProgressioni(pazienteId, faseId, finoAl, escludiSedutaId)
+  )
   handle('obiettiviTerapeutici:aspettative', (pazienteId: number) => leggiAspettative(pazienteId))
   handle('obiettiviTerapeutici:salvaAspettative', (pazienteId: number, testo: string | null) =>
     salvaAspettative(pazienteId, testo)

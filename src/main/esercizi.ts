@@ -5,6 +5,7 @@
 import { getDb } from './db'
 import { eliminaConCestino, nomeDi } from './cestino'
 import { validaImmagine, validaLink } from './validazione'
+import { progressioniConEsercizio } from './progressioni'
 import type { EsercizioInput } from '../shared/types'
 
 // Sta nel database (quindi cifrata e inclusa nel backup della cartella) come
@@ -140,6 +141,14 @@ export function eliminaEsercizio(id: number): void {
   if (usi.n > 0) {
     throw new Error(
       `Questo esercizio è usato in ${usi.n === 1 ? 'una seduta' : `${usi.n} sedute`} già registrate e non si può eliminare: usa "Archivia" per toglierlo dall'elenco senza perdere quelle sedute.`
+    )
+  }
+  // Lo stesso per le progressioni: l'esercizio e' uno step, e senza di lui la
+  // scala avrebbe un buco. Si toglie prima dalla progressione.
+  const progressioni = progressioniConEsercizio(id)
+  if (progressioni.length > 0) {
+    throw new Error(
+      `Questo esercizio è uno step di ${progressioni.length === 1 ? 'una progressione' : 'più progressioni'} (${progressioni.join(', ')}): toglilo prima da lì, in Libreria → Progressioni.`
     )
   }
   eliminaConCestino('esercizi', id, 'Esercizio', nomeDi('esercizi', id))

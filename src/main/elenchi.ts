@@ -30,6 +30,9 @@ export type TabellaOrdinabile =
   | 'indicazioni'
   | 'segni'
   | 'bioimmagini'
+  | 'progressione_gruppi'
+  | 'progressioni'
+  | 'progressione_step'
 
 // L'ordine e' quello in cui arrivano gli id: il primo va in cima.
 export function riordina(tabella: TabellaOrdinabile, ids: number[]): void {

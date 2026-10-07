@@ -1408,6 +1408,65 @@ export const MIGRATIONS: string[] = [
   );
   CREATE INDEX idx_promemoria_paziente ON promemoria(paziente_id);
   CREATE INDEX idx_promemoria_aperti ON promemoria(scadenza) WHERE fatto_il IS NULL;
+  `,
+
+  // 61 - le progressioni di esercizi a step (es. "Vertical braking": wall sit,
+  //      front squat, drop catch...). Servono solo a programmare: non finiscono
+  //      mai in cartella, referti o stampe.
+  //
+  //      Uno step RIMANDA a un esercizio della libreria (senza cascata: un
+  //      esercizio che e' step di una progressione non si elimina), cosi' lo
+  //      stesso esercizio puo' stare in piu' progressioni. Si collegano alle
+  //      FASI di una patologia, un gruppo intero o una progressione sola.
+  //
+  //      Lo step a cui e' il paziente NON e' salvato: si ricalcola rileggendo,
+  //      in ordine, l'esito delle sue sedute (seduta_progressioni). Si salva
+  //      solo "avanza" o "indietro"; niente vuol dire "continua".
+  `
+  CREATE TABLE progressione_gruppi (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome TEXT NOT NULL UNIQUE,
+    ordine INTEGER NOT NULL DEFAULT 0
+  );
+
+  CREATE TABLE progressioni (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    gruppo_id INTEGER REFERENCES progressione_gruppi(id) ON DELETE SET NULL,
+    nome TEXT NOT NULL,
+    criteri TEXT,
+    ordine INTEGER NOT NULL DEFAULT 0
+  );
+  CREATE INDEX idx_progressioni_gruppo ON progressioni(gruppo_id);
+
+  CREATE TABLE progressione_step (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    progressione_id INTEGER NOT NULL REFERENCES progressioni(id) ON DELETE CASCADE,
+    esercizio_id INTEGER NOT NULL REFERENCES esercizi(id),
+    requisito TEXT,
+    ordine INTEGER NOT NULL DEFAULT 0,
+    UNIQUE (progressione_id, esercizio_id)
+  );
+  CREATE INDEX idx_progressione_step_esercizio ON progressione_step(esercizio_id);
+
+  CREATE TABLE fase_progressione_gruppi (
+    fase_id INTEGER NOT NULL REFERENCES fasi(id) ON DELETE CASCADE,
+    gruppo_id INTEGER NOT NULL REFERENCES progressione_gruppi(id) ON DELETE CASCADE,
+    PRIMARY KEY (fase_id, gruppo_id)
+  );
+
+  CREATE TABLE fase_progressioni (
+    fase_id INTEGER NOT NULL REFERENCES fasi(id) ON DELETE CASCADE,
+    progressione_id INTEGER NOT NULL REFERENCES progressioni(id) ON DELETE CASCADE,
+    PRIMARY KEY (fase_id, progressione_id)
+  );
+
+  CREATE TABLE seduta_progressioni (
+    seduta_id INTEGER NOT NULL REFERENCES sedute(id) ON DELETE CASCADE,
+    progressione_id INTEGER NOT NULL REFERENCES progressioni(id) ON DELETE CASCADE,
+    esito TEXT NOT NULL CHECK (esito IN ('avanza', 'indietro')),
+    PRIMARY KEY (seduta_id, progressione_id)
+  );
+  CREATE INDEX idx_seduta_progressioni_progressione ON seduta_progressioni(progressione_id);
   `
 ]
 
