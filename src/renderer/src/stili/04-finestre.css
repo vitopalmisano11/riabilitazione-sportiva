@@ -137,6 +137,38 @@ details[open] > :not(summary) {
   width: 470px;
 }
 
+/* La finestra del paziente: due colonne affiancate (dati anagrafici e quadro
+   clinico) e una fascia larga sotto. Sotto i 900px torna in verticale. */
+.modal.modal-paziente {
+  width: 1020px;
+}
+
+.colonne-paziente {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 28px;
+  align-items: start;
+}
+
+.colonna-paziente {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fascia-percorso {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+@media (max-width: 900px) {
+  .colonne-paziente,
+  .fascia-percorso {
+    grid-template-columns: 1fr;
+  }
+}
+
 .modal label {
   display: flex;
   flex-direction: column;

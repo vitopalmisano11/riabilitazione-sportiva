@@ -8,7 +8,7 @@ import AnagraficaPaziente from '../../components/AnagraficaPaziente'
 import SceltaConRicerca from '../../components/SceltaConRicerca'
 import SegniPaziente from '../../components/SegniPaziente'
 import IndicazioniCasa from '../../components/IndicazioniCasa'
-import MisurePaziente from '../../components/MisurePaziente'
+import MassimaliPaziente from '../../components/MassimaliPaziente'
 import AnamnesiPaziente from '../../components/AnamnesiPaziente'
 import ValutazionePaziente from '../../components/ValutazionePaziente'
 import QuadroPaziente from '../../components/QuadroPaziente'
@@ -18,7 +18,7 @@ import { errMsg, oggiIso } from '../../lib'
 import { ObiettiviCard } from './ObiettiviCard'
 import { DiarioCard } from './DiarioCard'
 
-export type SchedaAperta = 'quadro' | 'diario' | 'clinica' | 'percorso' | 'misure'
+export type SchedaAperta = 'quadro' | 'diario' | 'clinica' | 'percorso'
 
 const SCHEDE_PAZIENTE: { key: SchedaAperta; label: string }[] = [
   // Prima voce e prima cosa che si vede aprendo un paziente: e' la domanda
@@ -27,11 +27,7 @@ const SCHEDE_PAZIENTE: { key: SchedaAperta; label: string }[] = [
   { key: 'quadro', label: 'Quadro' },
   { key: 'diario', label: 'Diario sedute' },
   { key: 'clinica', label: 'Clinica' },
-  { key: 'percorso', label: 'Percorso' },
-  // I numeri dell'atleta: peso, altezza e i massimali con cui si prescrive il
-  // carico. Stanno in una linguetta loro perche' si aprono di rado, e nel
-  // percorso avrebbero allungato la pagina che si guarda tutti i giorni.
-  { key: 'misure', label: 'Misure' }
+  { key: 'percorso', label: 'Percorso' }
 ]
 
 export function SchedaPaziente({
@@ -225,6 +221,11 @@ export function SchedaPaziente({
           <QuestionariPaziente paziente={paziente} />
 
           <PromemoriaPaziente paziente={paziente} />
+
+          {/* I segni stanno in fondo, chiusi: chi non li usa non li vede, e
+              tante cose (il gonfiore, per dirne una) si scrivono meglio nelle
+              note della seduta. */}
+          <SegniPaziente paziente={paziente} />
         </>
       )}
 
@@ -292,16 +293,9 @@ export function SchedaPaziente({
           casa, ogni quanto, e come regolarsi. Finisce sul foglio che si porta
           via. */}
       <IndicazioniCasa paziente={paziente} onChanged={onChanged} />
-        </>
-      )}
 
-      {scheda === 'misure' && (
-        <>
-          <MisurePaziente paziente={paziente} onChanged={onChanged} />
-          {/* I segni stanno in fondo, chiusi: chi non li usa non li vede, e
-              tante cose (il gonfiore, per dirne una) si scrivono meglio nelle
-              note della seduta. */}
-          <SegniPaziente paziente={paziente} />
+      {/* I massimali con cui si prescrive il carico della fase di forza. */}
+      <MassimaliPaziente paziente={paziente} />
         </>
       )}
     </div>

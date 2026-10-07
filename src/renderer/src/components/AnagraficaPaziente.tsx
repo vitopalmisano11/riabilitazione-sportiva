@@ -82,6 +82,8 @@ export default function AnagraficaPaziente({
     { etichetta: 'E-mail', valore: paziente.email },
     { etichetta: 'Lavoro / Hobby', valore: paziente.lavoro },
     { etichetta: 'Sport', valore: paziente.sport },
+    { etichetta: 'Peso', valore: paziente.peso == null ? null : `${paziente.peso} kg` },
+    { etichetta: 'Altezza', valore: paziente.altezza == null ? null : `${paziente.altezza} cm` },
     { etichetta: 'Diagnosi', valore: paziente.diagnosi },
     { etichetta: 'Inviato da', valore: paziente.inviato_da },
     { etichetta: 'Tipo di intervento', valore: paziente.tipo_intervento },
@@ -175,6 +177,14 @@ export default function AnagraficaPaziente({
   )
 }
 
+// Vuoto = nessun valore (null); non numerico = undefined, per dare errore.
+const numeroOVuoto = (v: string): number | null | undefined => {
+  const t = v.trim().replace(',', '.')
+  if (t === '') return null
+  const n = Number(t)
+  return Number.isFinite(n) ? n : undefined
+}
+
 const VUOTO = {
   nome: '',
   cognome: '',
@@ -225,6 +235,10 @@ export function ModaleDatiPaziente({
         }
       : { ...VUOTO }
   )
+  // Peso e altezza non stanno in PazienteInput: hanno il loro canale (erano
+  // nella linguetta Misure) e si salvano subito dopo i dati.
+  const [peso, setPeso] = useState(paziente?.peso == null ? '' : String(paziente.peso))
+  const [altezza, setAltezza] = useState(paziente?.altezza == null ? '' : String(paziente.altezza))
   const [patologiaId, setPatologiaId] = useState<number | ''>('')
   const [faseId, setFaseId] = useState<number | ''>('')
   const [fasi, setFasi] = useState<Fase[]>([])
@@ -274,6 +288,12 @@ export function ModaleDatiPaziente({
       arto_operato: form.arto_operato === '' ? null : (form.arto_operato as 'dx' | 'sx'),
       gruppo_id: gruppoId === '' ? null : gruppoId
     }
+    const pesoNum = numeroOVuoto(peso)
+    const altezzaNum = numeroOVuoto(altezza)
+    if (pesoNum === undefined || altezzaNum === undefined) {
+      toastErrore('Peso e altezza devono essere numeri.')
+      return
+    }
     try {
       if (nuovo) {
         const id = await window.api.pazienti.create({
@@ -281,9 +301,15 @@ export function ModaleDatiPaziente({
           patologia_id: patologiaId === '' ? null : patologiaId,
           fase_corrente_id: faseId === '' ? null : faseId
         })
+        if (pesoNum != null || altezzaNum != null) {
+          await window.api.massimali.setMisure(id, pesoNum, altezzaNum)
+        }
         onChiudi(true, id)
       } else {
         await window.api.pazienti.update(paziente.id, dati)
+        if (pesoNum !== paziente.peso || altezzaNum !== paziente.altezza) {
+          await window.api.massimali.setMisure(paziente.id, pesoNum, altezzaNum)
+        }
         toast('Dati aggiornati.')
         onChiudi(true)
       }
@@ -308,66 +334,166 @@ export function ModaleDatiPaziente({
   }
 
   return (
-    <Modale onConferma={chiudiCliccandoFuori}>
+    <Modale onConferma={chiudiCliccandoFuori} className="modal-paziente">
         <h3>{nuovo ? 'Nuovo paziente' : 'Dati del paziente'}</h3>
 
-        <div className="form-row-2">
-          <label>
-            Nome *
-            <input autoFocus value={form.nome} onChange={campo('nome')} />
-          </label>
-          <label>
-            Cognome *
-            <input value={form.cognome} onChange={campo('cognome')} />
-          </label>
+        {/* Due colonne: a sinistra chi e', a destra il quadro clinico. In
+            verticale la finestra obbligava a scorrere per arrivare a
+            patologia e fase. */}
+        <div className="colonne-paziente">
+          <div className="colonna-paziente">
+            <div className="sotto-titolo">Dati anagrafici</div>
+
+            <div className="form-row-2">
+              <label>
+                Nome *
+                <input autoFocus value={form.nome} onChange={campo('nome')} />
+              </label>
+              <label>
+                Cognome *
+                <input value={form.cognome} onChange={campo('cognome')} />
+              </label>
+            </div>
+
+            <div className="form-row-2">
+              <label>
+                Data di nascita{anni != null ? ` — ${anni} anni` : ''}
+                <input type="date" value={form.data_nascita} onChange={campo('data_nascita')} />
+              </label>
+              <label>
+                Codice fiscale
+                <input
+                  placeholder="es. RSSMRA80A01A662X"
+                  value={form.codice_fiscale}
+                  onChange={campo('codice_fiscale')}
+                />
+              </label>
+            </div>
+
+            <div className="form-row-2">
+              <label>
+                Telefono
+                <input value={form.telefono} onChange={campo('telefono')} />
+              </label>
+              <label>
+                E-mail
+                <input value={form.email} onChange={campo('email')} />
+              </label>
+            </div>
+
+            <div className="form-row-2">
+              <label>
+                Lavoro / Hobby
+                <input
+                  placeholder="es. impiegato, calcio a 5 due volte a settimana"
+                  value={form.lavoro}
+                  onChange={campo('lavoro')}
+                />
+              </label>
+              <label>
+                Sport
+                <input
+                  placeholder="es. Calcio (portiere)"
+                  value={form.sport}
+                  onChange={campo('sport')}
+                />
+              </label>
+            </div>
+
+            <div className="form-row-2">
+              <label>
+                Peso (kg)
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={peso}
+                  onChange={(e) => setPeso(e.target.value)}
+                />
+              </label>
+              <label>
+                Altezza (cm)
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={altezza}
+                  onChange={(e) => setAltezza(e.target.value)}
+                />
+              </label>
+            </div>
+          </div>
+
+          <div className="colonna-paziente">
+            <div className="sotto-titolo">Quadro clinico</div>
+
+            <label>
+              Diagnosi
+              <textarea
+                rows={1}
+                placeholder="Quella del medico o la tua ipotesi"
+                value={form.diagnosi}
+                onChange={campo('diagnosi')}
+              />
+            </label>
+
+            {/* Le precauzioni non stanno fra le note: quello che si scrive qui
+                compare in cima alla scheda e mentre si compone la seduta, dove non
+                si puo' non vederlo. */}
+            <label>
+              Precauzioni e limiti
+              <textarea
+                rows={1}
+                placeholder="es. non oltre 90° di flessione fino a 6 settimane, carico parziale"
+                value={form.precauzioni}
+                onChange={campo('precauzioni')}
+              />
+            </label>
+
+            <div className="form-row-2">
+              <label>
+                Inviato da
+                <input
+                  placeholder="es. Dott. Bianchi"
+                  value={form.inviato_da}
+                  onChange={campo('inviato_da')}
+                />
+              </label>
+              <label>
+                Tipo di intervento
+                <input
+                  placeholder="es. Ricostruzione LCA dx"
+                  value={form.tipo_intervento}
+                  onChange={campo('tipo_intervento')}
+                />
+              </label>
+            </div>
+
+            <div className="form-row-2">
+              <label>
+                Data intervento
+                <input type="date" value={form.data_intervento} onChange={campo('data_intervento')} />
+                {daQuando(form.data_intervento) && (
+                  <span className="hint-campo">{daQuando(form.data_intervento)} fa</span>
+                )}
+              </label>
+              {/* Serve agli screening: sapendo qual e' il lato interessato il
+                  confronto fra i due diventa interessato ÷ sano, cioè l'LSI. */}
+              <label>
+                Lato operato/infortunato
+                <select value={form.arto_operato} onChange={campo('arto_operato')}>
+                  <option value="">— nessuno —</option>
+                  <option value="dx">Destro</option>
+                  <option value="sx">Sinistro</option>
+                </select>
+              </label>
+            </div>
+          </div>
         </div>
 
-        <div className="form-row-2">
-          <label>
-            Data di nascita{anni != null ? ` — ${anni} anni` : ''}
-            <input type="date" value={form.data_nascita} onChange={campo('data_nascita')} />
-          </label>
-          <label>
-            Codice fiscale
-            <input
-              placeholder="es. RSSMRA80A01A662X"
-              value={form.codice_fiscale}
-              onChange={campo('codice_fiscale')}
-            />
-          </label>
-        </div>
-
-        <div className="form-row-2">
-          <label>
-            Telefono
-            <input value={form.telefono} onChange={campo('telefono')} />
-          </label>
-          <label>
-            E-mail
-            <input value={form.email} onChange={campo('email')} />
-          </label>
-        </div>
-
-        <div className="form-row-2">
-          <label>
-            Lavoro / Hobby
-            <input
-              placeholder="es. impiegato, calcio a 5 due volte a settimana"
-              value={form.lavoro}
-              onChange={campo('lavoro')}
-            />
-          </label>
-          <label>
-            Sport
-            <input
-              placeholder="es. Calcio (portiere)"
-              value={form.sport}
-              onChange={campo('sport')}
-            />
-          </label>
-        </div>
-
-        <div className="form-row-2">
+        {/* La fascia larga in fondo: dove sta il paziente e, se e' nuovo, da
+            dove parte il percorso. Il gruppo c'e' sempre; patologia e fase
+            solo in creazione, in modifica vivono nella scheda Percorso. */}
+        <div className="sotto-titolo">{nuovo ? 'Gruppo e percorso riabilitativo' : 'Gruppo'}</div>
+        <div className={nuovo ? 'fascia-percorso' : 'form-row-2'}>
           <label>
             Gruppo
             <SceltaConRicerca
@@ -378,76 +504,8 @@ export function ModaleDatiPaziente({
               onCambia={setGruppoId}
             />
           </label>
-        </div>
-
-        <div className="sotto-titolo">Quadro clinico</div>
-
-        <label>
-          Diagnosi
-          <textarea
-            rows={1}
-            placeholder="Quella del medico o la tua ipotesi"
-            value={form.diagnosi}
-            onChange={campo('diagnosi')}
-          />
-        </label>
-
-        {/* Le precauzioni non stanno fra le note: quello che si scrive qui
-            compare in cima alla scheda e mentre si compone la seduta, dove non
-            si puo' non vederlo. */}
-        <label>
-          Precauzioni e limiti
-          <textarea
-            rows={1}
-            placeholder="es. non oltre 90° di flessione fino a 6 settimane, carico parziale"
-            value={form.precauzioni}
-            onChange={campo('precauzioni')}
-          />
-        </label>
-
-        <div className="form-row-2">
-          <label>
-            Inviato da
-            <input
-              placeholder="es. Dott. Bianchi"
-              value={form.inviato_da}
-              onChange={campo('inviato_da')}
-            />
-          </label>
-          <label>
-            Tipo di intervento
-            <input
-              placeholder="es. Ricostruzione LCA dx"
-              value={form.tipo_intervento}
-              onChange={campo('tipo_intervento')}
-            />
-          </label>
-        </div>
-
-        <div className="form-row-2">
-          <label>
-            Data intervento
-            <input type="date" value={form.data_intervento} onChange={campo('data_intervento')} />
-            {daQuando(form.data_intervento) && (
-              <span className="hint-campo">{daQuando(form.data_intervento)} fa</span>
-            )}
-          </label>
-          {/* Serve agli screening: sapendo qual e' il lato interessato il
-              confronto fra i due diventa interessato ÷ sano, cioè l'LSI. */}
-          <label>
-            Lato operato/infortunato
-            <select value={form.arto_operato} onChange={campo('arto_operato')}>
-              <option value="">— nessuno —</option>
-              <option value="dx">Destro</option>
-              <option value="sx">Sinistro</option>
-            </select>
-          </label>
-        </div>
-
-        {nuovo && (
-          <>
-            <div className="sotto-titolo">Percorso riabilitativo</div>
-            <div className="form-row-2">
+          {nuovo && (
+            <>
               <label>
                 Patologia
                 <SceltaConRicerca
@@ -478,9 +536,9 @@ export function ModaleDatiPaziente({
                     ))}
                 </select>
               </label>
-            </div>
-          </>
-        )}
+            </>
+          )}
+        </div>
 
         <div className="modal-actions">
           <button onClick={() => onChiudi(false)}>Annulla</button>

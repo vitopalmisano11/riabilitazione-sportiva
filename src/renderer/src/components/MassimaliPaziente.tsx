@@ -5,10 +5,8 @@ import Aiuto from './Aiuto'
 import { toast, toastErrore } from './Toast'
 import { chiedi } from './Conferma'
 import { errMsg, formatData, oggiIso } from '../lib'
-import { useSalvataggio } from '../salvataggio'
-import IndicatoreSalvataggio from './IndicatoreSalvataggio'
 
-// I numeri dell'atleta: peso, altezza e i massimali.
+// I massimali dell'atleta. Peso e altezza stanno nei dati del paziente.
 //
 // Servono a prescrivere: con il massimale scritto, "80%" diventa un numero
 // invece di un ricordo. Le cose che cambiano seduta dopo seduta non stanno qui
@@ -36,18 +34,11 @@ const num = (v: string): number | null => {
 
 const arrotonda = (n: number): string => (Math.round(n * 10) / 10).toString().replace('.', ',')
 
-export default function MisurePaziente({
-  paziente,
-  onChanged
+export default function MassimaliPaziente({
+  paziente
 }: {
   paziente: PazienteDettaglio
-  onChanged: () => void
 }): React.JSX.Element {
-  const [peso, setPeso] = useState(paziente.peso == null ? '' : String(paziente.peso))
-  const [altezza, setAltezza] = useState(paziente.altezza == null ? '' : String(paziente.altezza))
-  const [misureSalvate, setMisureSalvate] = useState(true)
-  // uscendo dalla scheda, o chiudendo il programma, si salvano da sole
-  const salvataggio = useSalvataggio(!misureSalvate)
   const [massimali, setMassimali] = useState<Massimale[]>([])
   const [aperto, setAperto] = useState<number | null>(null)
   const [nuovo, setNuovo] = useState(false)
@@ -66,25 +57,6 @@ export default function MisurePaziente({
   }, [paziente.id])
 
   useEffect(carica, [carica])
-  useEffect(() => {
-    setPeso(paziente.peso == null ? '' : String(paziente.peso))
-    setAltezza(paziente.altezza == null ? '' : String(paziente.altezza))
-    setMisureSalvate(true)
-  }, [paziente.id, paziente.peso, paziente.altezza])
-
-  const salvaMisure = async (): Promise<boolean> => {
-    try {
-      await window.api.massimali.setMisure(paziente.id, num(peso), num(altezza))
-      setMisureSalvate(true)
-      onChanged()
-      toast('Misure salvate.')
-      return true
-    } catch (e) {
-      toastErrore(errMsg(e))
-      return false
-    }
-  }
-  salvataggio.funzione.current = salvaMisure
 
   // Se il massimale vero non l'hai misurato: quanto ha sollevato, per quante
   // ripetizioni e quante gliene restavano, e il numero esce da solo.
@@ -129,47 +101,6 @@ export default function MisurePaziente({
 
   return (
     <>
-      <section className="card">
-        <h3>
-          Peso e altezza
-          <Aiuto testo="Servono a leggere i carichi in rapporto al paziente. Sono numeri che cambiano di rado: quello che ricontrolli tutte le volte va nei segni di riferimento, qui sotto, oppure nelle note della seduta." />
-        </h3>
-        <div className="riga-misure">
-          <label className="field campo-misura">
-            Peso (kg)
-            <input
-              type="text"
-              inputMode="decimal"
-              value={peso}
-              onChange={(e) => {
-                setPeso(e.target.value)
-                setMisureSalvate(false)
-              }}
-            />
-          </label>
-          <label className="field campo-misura">
-            Altezza (cm)
-            <input
-              type="text"
-              inputMode="decimal"
-              value={altezza}
-              onChange={(e) => {
-                setAltezza(e.target.value)
-                setMisureSalvate(false)
-              }}
-            />
-          </label>
-          <button
-            className="primary"
-            disabled={misureSalvate || salvataggio.stato === 'salvo'}
-            onClick={() => void salvataggio.salva()}
-          >
-            Salva
-          </button>
-        </div>
-        <IndicatoreSalvataggio stato={salvataggio.stato} errore={salvataggio.errore} />
-      </section>
-
       <section className="card">
         <div className="card-header-row">
           <h3>
