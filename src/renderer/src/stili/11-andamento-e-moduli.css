@@ -983,3 +983,49 @@
   padding: 0 var(--spazio-interno) var(--spazio-interno);
   margin-top: var(--spazio);
 }
+
+/* I promemoria (questionari e screening da rifare): una riga per promemoria,
+   con la spunta a sinistra e la data a destra; la data passata si vede in rosso. */
+.elenco-promemoria li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.promemoria-cosa {
+  flex: 1;
+  min-width: 0;
+}
+
+.promemoria-data {
+  white-space: nowrap;
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+.promemoria-data.data-scaduta {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.promemoria-fatti {
+  opacity: 0.7;
+}
+
+.promemoria-nuovo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.scadenze-rapide {
+  display: flex;
+  gap: 6px;
+}
+
+.scadenze-rapide button {
+  padding: 5px 10px;
+  font-size: 13px;
+}

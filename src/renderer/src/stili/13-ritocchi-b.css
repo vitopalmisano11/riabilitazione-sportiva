@@ -730,9 +730,14 @@ textarea.cresce {
   gap: 6px;
 }
 
+/* Il nome sta in uno spazio di larghezza ragionevole e, se e' lungo, va a capo
+   li' dentro: con la larghezza del testo intero (flex: auto) un nome lungo
+   prendeva tutta la riga e spingeva i numeri e il pulsante per togliere sulla
+   riga sotto. */
 .righe-seduta .riga-testata {
-  flex: 1 1 auto;
+  flex: 1 1 150px;
   min-width: 130px;
+  overflow-wrap: anywhere;
   display: flex;
   align-items: center;
   gap: 6px;

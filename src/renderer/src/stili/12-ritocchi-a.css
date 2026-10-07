@@ -593,6 +593,62 @@
   font-size: 13px;
 }
 
+/* L'esame neurologico: la stessa tabella dei test, ma senza la colonna della
+   nota (la nota e' una sola, in fondo alla sezione). */
+.griglia-test.due-lati.griglia-neuro {
+  grid-template-columns: minmax(150px, 1fr) repeat(2, 214px);
+}
+
+.neuro-testata {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  margin: 6px 0 0;
+  padding: 4px 0;
+  background: none;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.neuro-testata .sotto-titolo {
+  margin: 0;
+}
+
+.neuro-badge {
+  font-size: 12px;
+  color: var(--accent);
+}
+
+.neuro-parte {
+  margin-bottom: 12px;
+}
+
+.neuro-toglie {
+  margin-left: 6px;
+  padding: 2px;
+  background: none;
+  border: 0;
+  color: inherit;
+  opacity: 0.55;
+  cursor: pointer;
+}
+
+.neuro-toglie:hover {
+  opacity: 1;
+}
+
+.neuro-aggiungi {
+  margin-top: 8px;
+}
+
+.neuro-standard {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
 @media (max-width: 760px) {
   .griglia-movimenti,
   .griglia-movimenti.due-lati {
@@ -790,4 +846,12 @@
 
 .campo-frequenza {
   max-width: 260px;
+}
+
+/* L'esame neurologico di un distretto: un blocco a parte, con una riga sopra e
+   spazio prima, cosi' non si confonde con i test che lo precedono. */
+.blocco-neuro {
+  margin-top: 28px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
 }

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { CheckCircle2, RotateCcw } from 'lucide-react'
-import type { PazienteDettaglio } from '../../../shared/types'
+import type { PazienteDettaglio, Promemoria } from '../../../shared/types'
 import { toastErrore } from '../components/Toast'
 import { chiedi } from '../components/Conferma'
 import { errMsg, formatData, oggiIso } from '../lib'
@@ -39,12 +39,14 @@ export default function FollowUpPage({
 }): React.JSX.Element {
   const [trattamento, setTrattamento] = useState<PazienteDettaglio[]>([])
   const [concluso, setConcluso] = useState<PazienteDettaglio[]>([])
+  const [promemoria, setPromemoria] = useState<Promemoria[]>([])
 
   const carica = useCallback(async (): Promise<void> => {
     try {
       const { trattamento: t, concluso: c } = await window.api.followUp.list()
       setTrattamento(t)
       setConcluso(c)
+      setPromemoria(await window.api.promemoria.list(null))
       onCambiato?.()
     } catch (e) {
       toastErrore(errMsg(e))
@@ -101,6 +103,47 @@ export default function FollowUpPage({
       </header>
 
       <div className="scheda">
+        {/* I questionari e gli screening da rifare, di tutti i pazienti: in
+            cima, perche' hanno una data e sono i primi da guardare. */}
+        {promemoria.length > 0 && (
+          <section className="card">
+            <div className="card-header-row">
+              <h3>Da rifare</h3>
+              <span className="hint">
+                {promemoria.filter((m) => m.scadenza <= oggi).length > 0
+                  ? `${promemoria.filter((m) => m.scadenza <= oggi).length} in scadenza`
+                  : 'nessuno in scadenza'}
+              </span>
+            </div>
+            <ul className="sedute-list elenco-promemoria">
+              {promemoria.map((m) => (
+                <li key={m.id}>
+                  <input
+                    type="checkbox"
+                    title="Fatto"
+                    checked={false}
+                    onChange={() => void esegui(() => window.api.promemoria.setFatto(m.id, true))}
+                  />
+                  <button
+                    className="nome-cliccabile"
+                    title="Apri la scheda del paziente"
+                    onClick={() => onApriPaziente(m.paziente_id)}
+                  >
+                    {m.paziente_cognome} {m.paziente_nome}
+                  </button>
+                  <span className="promemoria-cosa">
+                    {m.tipo === 'questionario' ? 'Questionario' : 'Screening'}: {m.riferimento_nome}
+                    {m.nota && <span className="sotto-riga">{m.nota}</span>}
+                  </span>
+                  <span className={m.scadenza <= oggi ? 'data-scaduta promemoria-data' : 'promemoria-data'}>
+                    entro il {formatData(m.scadenza)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         <section className="card">
           <div className="card-header-row">
             <h3>In trattamento</h3>

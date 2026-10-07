@@ -3,6 +3,7 @@ import { AlertTriangle, CalendarPlus, Copy, Plus } from 'lucide-react'
 import type { Fase, Patologia, PazienteDettaglio, SedutaRiepilogo } from '../../../../shared/types'
 import ProgrammaSettimana from '../../components/ProgrammaSettimana'
 import QuestionariPaziente from '../../components/QuestionariPaziente'
+import PromemoriaPaziente from '../../components/PromemoriaPaziente'
 import AnagraficaPaziente from '../../components/AnagraficaPaziente'
 import SceltaConRicerca from '../../components/SceltaConRicerca'
 import SegniPaziente from '../../components/SegniPaziente'
@@ -222,6 +223,8 @@ export function SchedaPaziente({
           <ValutazionePaziente paziente={paziente} />
 
           <QuestionariPaziente paziente={paziente} />
+
+          <PromemoriaPaziente paziente={paziente} />
         </>
       )}
 

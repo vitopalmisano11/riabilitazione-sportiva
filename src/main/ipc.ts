@@ -222,6 +222,14 @@ import {
   leggiScreening,
   salvaValori
 } from './screening-sessioni'
+import { creaDaModello } from './questionari-pronti'
+import {
+  contaInScadenza,
+  creaPromemoria,
+  eliminaPromemoria,
+  elencoPromemoria,
+  segnaFatto
+} from './promemoria'
 import { leggiTest, salvaTest } from './test-valutazione'
 import {
   duplicaValutazione,
@@ -239,6 +247,7 @@ import { installaAdesso, statoAggiornamento } from './aggiornamenti'
 import { leggiProfilo, salvaProfilo } from './profilo'
 import { controllaArgomenti, erroreSenzaDatiNelRegistro, validaData } from './validazione'
 import type {
+  PromemoriaInput,
   CertificatoInput,
   TipoChart,
   AnamnesiProssima,
@@ -914,6 +923,12 @@ export function registerIpc(): void {
   handle('followUp:segnaContattato', (id: number, contattato: boolean) => segnaContattato(id, contattato))
   handle('followUp:setRecensione', (id: number, recensione: boolean) => impostaRecensione(id, recensione))
 
+  handle('promemoria:list', (pazienteId: number | null) => elencoPromemoria(pazienteId))
+  handle('promemoria:create', (dati: PromemoriaInput) => creaPromemoria(dati))
+  handle('promemoria:setFatto', (id: number, fatto: boolean) => segnaFatto(id, fatto))
+  handle('promemoria:delete', (id: number) => eliminaPromemoria(id))
+  handle('promemoria:conta', () => contaInScadenza())
+
   handle('pazienti:obiettiviRaggiunti', (pazienteId: number) => obiettiviRaggiunti(pazienteId))
   handle('pazienti:setObiettivoRaggiunto', (pazienteId: number, obiettivoId: number, raggiunto: boolean) =>
     impostaObiettivoRaggiunto(pazienteId, obiettivoId, raggiunto)
@@ -979,6 +994,7 @@ export function registerIpc(): void {
         .run(nome.trim(), categoriaId, next).lastInsertRowid
     )
   })
+  handle('questionari:daModello', (chiave: string, categoriaId: number) => creaDaModello(chiave, categoriaId))
   handle('questionari:salva', (dati: QuestionarioCompleto) => salvaQuestionario(dati))
   handle('questionari:daRicalcolare', (id: number) => contaDaRicalcolare(id))
   handle('questionari:ricalcolaCompilazioni', (id: number) => ricalcolaQuestionario(id))

@@ -147,6 +147,63 @@
   line-height: 1.4;
 }
 
+/* La domanda a tabella (come la 9 dell'IKDC): le attivita' in riga, le risposte
+   in colonna, una casella per riga. Se le colonne non ci stanno scorre di lato. */
+.griglia-questionario-scorre {
+  overflow-x: auto;
+}
+
+.griglia-questionario {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.griglia-questionario thead th {
+  padding: 6px 8px;
+  text-align: center;
+  font-weight: 500;
+  line-height: 1.25;
+  color: var(--text-dim);
+  border-bottom: 1.5px solid var(--border-forte);
+}
+
+.griglia-questionario tbody th {
+  padding: 8px 10px;
+  text-align: left;
+  font-weight: 400;
+  min-width: 150px;
+}
+
+.griglia-questionario td {
+  padding: 4px 8px;
+  text-align: center;
+}
+
+.griglia-questionario tbody tr:nth-child(odd) {
+  background: var(--accent-soft);
+}
+
+/* una casella tonda grande abbastanza da centrarla al volo con il mouse */
+.cella-griglia {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid var(--border-forte);
+  background: var(--surface);
+}
+
+.cella-griglia.scelta {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 4px var(--surface);
+}
+
+.cella-griglia:disabled {
+  cursor: default;
+}
+
 /* La scala numerica come quella di carta: i pallini in fila su una riga, il
    numero dentro. La riga e' disegnata dietro ai pallini, che la coprono. */
 .scala-pallini {
@@ -273,4 +330,72 @@ button.scelta-attiva:hover:not(:disabled) {
   color: var(--accent);
   font-size: 14px;
   font-weight: 600;
+}
+
+/* Le colonne di una domanda a tabella, affiancate come sulla carta: il testo
+   della risposta sopra e i punti sotto. */
+.colonne-griglia {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 8px;
+  padding-left: 34px;
+}
+
+.colonna-griglia {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 150px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+}
+
+.colonna-punti {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.colonna-punti input {
+  width: 64px;
+}
+
+.colonna-griglia > button {
+  align-self: flex-end;
+}
+
+/* Le risposte scritte una per riga, a tutta larghezza: la frase si legge per
+   intero e non ce ne sono due sulla stessa riga. */
+.compila-risposte.in-colonna {
+  flex-direction: column;
+  align-items: stretch;
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+
+.compila-risposte.in-colonna button {
+  width: 100%;
+  text-align: left;
+  justify-content: flex-start;
+  white-space: normal;
+  line-height: 1.35;
+}
+
+/* La finestra di compilazione e' quasi a tutto schermo: le domande e le
+   risposte lunghe non si tagliano, e le tabelle ci stanno per intero. */
+.modal.modal-compila {
+  width: calc(100vw - 48px);
+  max-width: 1280px;
+  height: calc(100vh - 48px - var(--alto-barra));
+}
+
+.modal-compila .compila-corpo {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
 }

@@ -494,6 +494,10 @@ export interface DomandaQuestionario {
   // peggiore possibile". Senza, 0 e 10 da soli non si sa da che parte stanno.
   etichetta_min: string | null
   etichetta_max: string | null
+  // Il testo comune di una griglia: le righe consecutive con la stessa
+  // intestazione si compilano insieme (vedi shared/griglie-questionario.ts).
+  // Vuoto o assente = domanda singola.
+  intestazione?: string | null
   opzioni: OpzioneDomanda[]
 }
 
@@ -1007,6 +1011,9 @@ export interface Distretto {
   ordine: number
   // 1 = ha un lato (ginocchio, spalla...): si valuta a destra e a sinistra
   bilaterale: 0 | 1
+  // 1 = nella valutazione compare la sezione dell'esame neurologico
+  // (cervicale, lombare...), con le voci scritte in DistrettoCompleto.neuro
+  esame_neuro: 0 | 1
 }
 
 // Il lato di un rilievo: '' per i distretti senza lato, e per tutto quello
@@ -1027,10 +1034,21 @@ export interface TestDistretto {
   risposta: RispostaTest
 }
 
+// Le tre cose che l'esame neurologico guarda: la sensibilita' per radice, la
+// forza per muscolo, i riflessi osteotendinei.
+export type TipoVoceNeuro = 'radice' | 'muscolo' | 'riflesso'
+
+export interface VoceNeuro {
+  id: number | null
+  tipo: TipoVoceNeuro
+  nome: string
+}
+
 export interface DistrettoCompleto {
   distretto: Distretto
   movimenti: MovimentoDistretto[]
   test: TestDistretto[]
+  neuro: VoceNeuro[]
 }
 
 export interface RilievoMovimento {
@@ -1054,6 +1072,17 @@ export interface RilievoTest {
   lato: LatoRilievo
   valore: string | null
   nota: string | null
+}
+
+// Un rilievo neurologico: di una voce e di un lato ('sx' o 'dx'; l'esame si fa
+// sempre da tutte e due le parti, anche nei distretti senza lato).
+//   radice:  'ridotta' | 'aumentata'  (si segnano solo le radici alterate)
+//   muscolo: '0'..'5'
+//   riflesso: 'ipo' | 'normale' | 'iper'
+export interface RilievoNeuro {
+  voce_id: number
+  lato: 'sx' | 'dx'
+  valore: string
 }
 
 export interface Valutazione {
@@ -1080,6 +1109,8 @@ export interface NoteMovimenti {
   distretto_id: number
   attivo: string | null
   passivo: string | null
+  // la nota dell'esame neurologico del distretto
+  neuro: string | null
 }
 
 export interface ValutazioneCompleta {
@@ -1088,6 +1119,33 @@ export interface ValutazioneCompleta {
   movimenti: RilievoMovimento[]
   note_movimenti: NoteMovimenti[]
   test: RilievoTest[]
+  neuro: RilievoNeuro[]
+}
+
+// Un promemoria per un paziente: rifare un questionario o uno screening.
+export interface Promemoria {
+  id: number
+  paziente_id: number
+  paziente_nome: string
+  paziente_cognome: string
+  tipo: 'questionario' | 'screening'
+  questionario_id: number | null
+  protocollo_id: number | null
+  // il nome del questionario o del protocollo da ripetere
+  riferimento_nome: string
+  scadenza: string
+  nota: string | null
+  // vuoto = ancora da fare
+  fatto_il: string | null
+}
+
+export interface PromemoriaInput {
+  paziente_id: number
+  tipo: 'questionario' | 'screening'
+  // l'id del questionario o del protocollo di screening
+  riferimento_id: number
+  scadenza: string
+  nota: string | null
 }
 
 // Una cosa eliminata che sta nel cestino: quante righe si porta dietro dice

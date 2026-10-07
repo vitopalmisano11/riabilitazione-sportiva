@@ -102,8 +102,12 @@ export function EditorQuestionario({
 
       <label>
         Istruzioni per il paziente (facoltative)
+        {/* Le istruzioni dei questionari sono spesso lunghe (periodo di
+            riferimento, come rispondere): la casella parte da cinque righe e
+            si allunga a mano se serve. */}
         <textarea
-          rows={1}
+          rows={5}
+          style={{ resize: 'vertical' }}
           placeholder="es. Pensando alle ultime due settimane, indichi la risposta…"
           value={dati.questionario.istruzioni ?? ''}
           onChange={(e) =>

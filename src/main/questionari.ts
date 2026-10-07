@@ -5,6 +5,7 @@ import { getDb } from './db'
 import { estremiDomanda, tipoPunteggioValido, valorePunteggio } from '../shared/punteggi-questionario'
 import { eliminaMancanti } from './figli'
 import { validaData } from './validazione'
+import { chiudiFatti } from './promemoria'
 import type {
   CompilazioneInput,
   CompilazioneRiepilogo,
@@ -78,12 +79,12 @@ export function salvaQuestionario(dati: QuestionarioCompleto): void {
 
     const insDom = db.prepare(
       `INSERT INTO questionario_domande (questionario_id, testo, tipo, scala_min, scala_max,
-                                         etichetta_min, etichetta_max, ordine)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+                                         etichetta_min, etichetta_max, intestazione, ordine)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     const updDom = db.prepare(
       `UPDATE questionario_domande SET testo = ?, tipo = ?, scala_min = ?, scala_max = ?,
-         etichetta_min = ?, etichetta_max = ?, ordine = ?
+         etichetta_min = ?, etichetta_max = ?, intestazione = ?, ordine = ?
        WHERE id = ?`
     )
     // Una domanda non ancora salvata arriva con un id negativo, assegnato
@@ -99,14 +100,18 @@ export function salvaQuestionario(dati: QuestionarioCompleto): void {
       // domanda non restano appesi.
       const etMin = d.tipo === 'scala' ? d.etichetta_min?.trim() || null : null
       const etMax = d.tipo === 'scala' ? d.etichetta_max?.trim() || null : null
+      // l'intestazione vale solo per le domande a risposte scritte (le righe di
+      // una griglia): in una scala o in un si/no non avrebbe cosa raggruppare
+      const intestazione = d.tipo === 'scelta' ? d.intestazione?.trim() || null : null
       if (d.id == null || d.id < 0) {
         const nuovo = Number(
-          insDom.run(qid, d.testo.trim(), d.tipo, min, max, etMin, etMax, i).lastInsertRowid
+          insDom.run(qid, d.testo.trim(), d.tipo, min, max, etMin, etMax, intestazione, i)
+            .lastInsertRowid
         )
         if (d.id != null) idDomanda.set(d.id, nuovo)
         idDefinitivo[i] = nuovo
       } else {
-        updDom.run(d.testo.trim(), d.tipo, min, max, etMin, etMax, i, d.id)
+        updDom.run(d.testo.trim(), d.tipo, min, max, etMin, etMax, intestazione, i, d.id)
         idDefinitivo[i] = d.id
       }
       // Le opzioni si riscrivono sempre: non sono citate da nessun'altra tabella.
@@ -531,6 +536,8 @@ export function salvaCompilazione(dati: CompilazioneInput): number {
     )
     scriviRisposte(id, dati.risposte)
     scriviRisultato(id, risultato)
+    // fatto quello che un promemoria chiedeva: si chiude da solo
+    chiudiFatti(db, dati.paziente_id, { questionarioId: dati.questionario_id })
     return id
   })()
 }

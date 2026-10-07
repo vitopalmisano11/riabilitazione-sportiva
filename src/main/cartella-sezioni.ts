@@ -3,6 +3,7 @@
 // compare in una sezione si lavora qui; l'ordine e la resa in HTML stanno in
 // export-cartella.ts.
 import { getDb } from './db'
+import { neuroTestuale } from './neuro-testo'
 import { COLORI_SINTOMI } from '../shared/sintomi'
 import {
   TIPI_NEURO,
@@ -386,7 +387,9 @@ export function sezValutazioni(pazienteId: number): Blocco[] {
            WHERE t.distretto_id = ? ORDER BY t.ordine, t.id, vt.lato`
         )
         .all(v.id, d.id) as Record<string, unknown>[]
-      if (compilati.length === 0 && test.length === 0) return []
+      const neuro = neuroTestuale(Number(v.id), d.id)
+      if (compilati.length === 0 && test.length === 0 && neuro.alterati.length === 0 && !neuro.nota)
+        return []
 
       // Stesse colonne della tabella nell'app: restrizione e dolore separati,
       // altrimenti "moder. · moder." non si capisce a quale delle due si
@@ -491,7 +494,13 @@ export function sezValutazioni(pazienteId: number): Blocco[] {
         // nella schermata, una per il movimento attivo e una per il passivo.
         ...testo('Note sul movimento attivo', d.nota_attivo),
         ...testo('Note sul movimento passivo', d.nota_passivo),
-        ...elencoTest
+        ...elencoTest,
+        // L'esame neurologico: solo le voci alterate, come nella relazione
+        ...testo(
+          'Esame neurologico',
+          neuro.alterati.map((a) => a.charAt(0).toUpperCase() + a.slice(1)).join('\n')
+        ),
+        ...testo('Note sull’esame neurologico', neuro.nota)
       ]
     })
 

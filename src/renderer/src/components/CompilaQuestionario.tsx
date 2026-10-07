@@ -6,8 +6,10 @@ import type {
 } from '../../../shared/types'
 import { toast, toastErrore } from './Toast'
 import ScalaPallini from './ScalaPallini'
+import GrigliaQuestionario from './GrigliaQuestionario'
 import Modale from './Modale'
 import { errMsg, formatData, oggiIso } from '../lib'
+import { raggruppaDomande } from '../../../shared/griglie-questionario'
 
 // Lo schermo è girato verso il paziente, che legge le domande, ma a cliccare è
 // il fisioterapista: risposte come pulsanti larghi, non pallini da centrare col
@@ -96,8 +98,51 @@ export default function CompilaQuestionario({
     onChiudi(null)
   }
 
+  // Le risposte di una domanda: la fascia di pallini per le scale corte, i
+  // pulsanti per il resto, e i nomi degli estremi sotto alla scala. Le scale
+  // corte si mostrano come la scala di carta; le altre restano pulsanti, che
+  // con risposte scritte per esteso e' l'unica forma che ci sta.
+  const controlli = (d: DomandaQuestionario & { id: number }): React.JSX.Element => (
+    <>
+      {aFascia(d) ? (
+        <ScalaPallini
+          min={d.scala_min ?? 0}
+          max={d.scala_max ?? 10}
+          valore={risposte[d.id] ?? null}
+          soloLettura={soloLettura}
+          onCambia={(v) => setRisposte({ ...risposte, [d.id]: v })}
+        />
+      ) : (
+        // Le risposte scritte (scelta con punteggi) vanno una per riga: sono
+        // frasi, e due affiancate sulla stessa riga si leggono come se fossero
+        // una sola risposta. Sì/No e i numeri restano in fila.
+        <div className={d.tipo === 'scelta' ? 'compila-risposte in-colonna' : 'compila-risposte'}>
+          {opzioniDi(d).map((o, i) => (
+            <button
+              key={i}
+              className={risposte[d.id] === o.valore ? 'scelta-attiva' : ''}
+              disabled={soloLettura}
+              onClick={() => setRisposte({ ...risposte, [d.id]: o.valore })}
+            >
+              {o.etichetta}
+            </button>
+          ))}
+        </div>
+      )}
+      {/* Cosa vogliono dire i due estremi: sotto ai numeri, uno a sinistra e
+          uno a destra, come sulla scala di carta. Senza, "0" e "10" non dicono
+          da che parte sta il male. */}
+      {d.tipo === 'scala' && (d.etichetta_min || d.etichetta_max) && (
+        <div className="compila-estremi">
+          <span>{d.etichetta_min}</span>
+          <span>{d.etichetta_max}</span>
+        </div>
+      )}
+    </>
+  )
+
   return (
-    <Modale className="modal-lg" onConferma={confermaAttuale}>
+    <Modale className="modal-compila" onConferma={confermaAttuale}>
         <div className="card-header-row">
           <h3>{dati.questionario.nome}</h3>
           {soloLettura ? (
@@ -118,46 +163,27 @@ export default function CompilaQuestionario({
             dalla prima. */}
         <div className="compila-corpo">
           <ol className="compila-domande">
-            {conId.map((d) => (
-              <li key={d.id}>
-                <p className="compila-testo">{d.testo}</p>
-                {/* Le scale corte si mostrano come la scala di carta: una
-                    fascia di pallini da un estremo all'altro. Le altre restano
-                    pulsanti, che con risposte scritte per esteso e' l'unica
-                    forma che ci sta. */}
-                {aFascia(d) ? (
-                  <ScalaPallini
-                    min={d.scala_min ?? 0}
-                    max={d.scala_max ?? 10}
-                    valore={risposte[d.id] ?? null}
+            {raggruppaDomande(conId).map((g) =>
+              g.intestazione == null ? (
+                <li key={g.righe[0].domanda.id}>
+                  <p className="compila-testo">{g.righe[0].domanda.testo}</p>
+                  {controlli(g.righe[0].domanda)}
+                </li>
+              ) : (
+                // Una griglia e' una domanda sola per chi risponde: il testo
+                // comune una volta, poi una riga per attivita' con le stesse
+                // risposte.
+                <li key={g.righe[0].domanda.id}>
+                  <p className="compila-testo">{g.intestazione}</p>
+                  <GrigliaQuestionario
+                    righe={g.righe.map((r) => r.domanda)}
+                    risposte={risposte}
                     soloLettura={soloLettura}
-                    onCambia={(v) => setRisposte({ ...risposte, [d.id]: v })}
+                    onScegli={(id, valore) => setRisposte({ ...risposte, [id]: valore })}
                   />
-                ) : (
-                  <div className="compila-risposte">
-                    {opzioniDi(d).map((o, i) => (
-                      <button
-                        key={i}
-                        className={risposte[d.id] === o.valore ? 'scelta-attiva' : ''}
-                        disabled={soloLettura}
-                        onClick={() => setRisposte({ ...risposte, [d.id]: o.valore })}
-                      >
-                        {o.etichetta}
-                      </button>
-                    ))}
-                  </div>
-                )}
-                {/* Cosa vogliono dire i due estremi: sotto ai numeri, uno a
-                    sinistra e uno a destra, come sulla scala di carta. Senza,
-                    "0" e "10" non dicono da che parte sta il male. */}
-                {d.tipo === 'scala' && (d.etichetta_min || d.etichetta_max) && (
-                  <div className="compila-estremi">
-                    <span>{d.etichetta_min}</span>
-                    <span>{d.etichetta_max}</span>
-                  </div>
-                )}
-              </li>
-            ))}
+                </li>
+              )
+            )}
             {conId.length === 0 && <li className="hint">Questo questionario non ha domande.</li>}
           </ol>
 

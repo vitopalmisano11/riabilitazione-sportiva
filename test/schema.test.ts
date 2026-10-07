@@ -28,7 +28,7 @@ afterAll(() => {
 test('Le migrazioni si applicano, anche due volte, e creano gli indici', () => {
   runMigrations(db)
   runMigrations(db) // idempotente
-  assert.equal(db.pragma('user_version', { simple: true }), 57)
+  assert.equal(db.pragma('user_version', { simple: true }), 60)
   // gli indici delle ricerche frequenti ci sono
   for (const indice of ['idx_segno_valori_seduta', 'idx_compilazione_punteggi_compilazione', 'idx_sedute_data']) {
     assert.ok(

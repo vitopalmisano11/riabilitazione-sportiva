@@ -9,6 +9,7 @@
 // ripetizione, ma se il protocollo viene cambiato o cancellato uno screening
 // gia' fatto deve restare leggibile per com'era il giorno in cui e' stato fatto.
 import { getDb } from './db'
+import { chiudiFatti } from './promemoria'
 import type {
   MisuraTest,
   ScreeningCompleto,
@@ -42,7 +43,7 @@ export function creaScreening(
     .get(protocolloId) as { nome: string; sport: string } | undefined
   if (!prot) throw new Error('Protocollo non trovato.')
 
-  return Number(
+  const id = Number(
     db
       .prepare(
         `INSERT INTO screening_sessioni (paziente_id, protocollo_id, protocollo_nome, sport, data)
@@ -50,6 +51,9 @@ export function creaScreening(
       )
       .run(pazienteId, protocolloId, prot.nome, prot.sport, data).lastInsertRowid
   )
+  // fatto quello che un promemoria chiedeva: si chiude da solo
+  chiudiFatti(db, pazienteId, { protocolloId })
+  return id
 }
 
 // Tutto quello che serve a compilare uno screening: le sezioni del protocollo,

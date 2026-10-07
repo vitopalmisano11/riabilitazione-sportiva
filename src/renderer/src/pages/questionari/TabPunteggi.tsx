@@ -80,7 +80,9 @@ export function TabPunteggi({
                         })
                       }
                     />
-                    {k + 1}. {d.testo || <span className="hint">domanda senza testo</span>}
+                    {k + 1}.{' '}
+                    {d.intestazione ? <span className="hint">{d.intestazione} — </span> : null}
+                    {d.testo || <span className="hint">domanda senza testo</span>}
                   </label>
                 </li>
               )

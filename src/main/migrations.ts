@@ -1349,6 +1349,65 @@ export const MIGRATIONS: string[] = [
   //      somme: nessuna compilazione cambia.
   `
   ALTER TABLE questionario_punteggi ADD COLUMN tipo TEXT NOT NULL DEFAULT 'somma';
+  `,
+
+  // 58 - l'esame neurologico nella valutazione obiettiva.
+  //
+  //      Solo i distretti che lo chiedono (esame_neuro = 1: di solito cervicale
+  //      e lombare) mostrano la sezione. Le voci sono del distretto, come
+  //      movimenti e test: radici (sensibilita'), muscoli (forza) e riflessi.
+  //      Il rilievo e' per voce e per lato; per le radici ci sono solo quelle
+  //      alterate (ridotta o aumentata), per i muscoli 0-5, per i riflessi
+  //      ipo / normale / iper. Una nota sola per distretto, accanto a quelle
+  //      dei movimenti.
+  `
+  ALTER TABLE distretti ADD COLUMN esame_neuro INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE valutazione_distretti ADD COLUMN nota_neuro TEXT;
+
+  CREATE TABLE distretto_neuro (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    distretto_id INTEGER NOT NULL REFERENCES distretti(id) ON DELETE CASCADE,
+    tipo TEXT NOT NULL,
+    nome TEXT NOT NULL,
+    ordine INTEGER NOT NULL DEFAULT 0
+  );
+  CREATE INDEX idx_distretto_neuro ON distretto_neuro(distretto_id);
+
+  CREATE TABLE valutazione_neuro (
+    valutazione_id INTEGER NOT NULL REFERENCES valutazioni(id) ON DELETE CASCADE,
+    voce_id INTEGER NOT NULL REFERENCES distretto_neuro(id) ON DELETE CASCADE,
+    lato TEXT NOT NULL DEFAULT '',
+    valore TEXT NOT NULL,
+    PRIMARY KEY (valutazione_id, voce_id, lato)
+  );
+  `,
+
+  // 59 - domande a griglia nei questionari: una domanda comune con piu' righe
+  //      (le attivita') che hanno le stesse risposte. Ogni riga resta una
+  //      domanda vera; l'intestazione e' il testo comune, uguale per tutte le
+  //      righe consecutive della griglia. NULL = domanda singola, come prima.
+  `
+  ALTER TABLE questionario_domande ADD COLUMN intestazione TEXT;
+  `,
+
+  // 60 - promemoria per un paziente: rifare un questionario o uno screening a
+  //      una certa data. Il riferimento e' o il questionario o il protocollo
+  //      (mai tutti e due): se quello che si doveva ripetere viene eliminato, il
+  //      promemoria va con lui. fatto_il vuoto = ancora da fare.
+  `
+  CREATE TABLE promemoria (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    paziente_id INTEGER NOT NULL REFERENCES pazienti(id) ON DELETE CASCADE,
+    tipo TEXT NOT NULL,
+    questionario_id INTEGER REFERENCES questionari(id) ON DELETE CASCADE,
+    protocollo_id INTEGER REFERENCES screening_protocolli(id) ON DELETE CASCADE,
+    scadenza TEXT NOT NULL,
+    nota TEXT,
+    fatto_il TEXT,
+    CHECK ((questionario_id IS NULL) <> (protocollo_id IS NULL))
+  );
+  CREATE INDEX idx_promemoria_paziente ON promemoria(paziente_id);
+  CREATE INDEX idx_promemoria_aperti ON promemoria(scadenza) WHERE fatto_il IS NULL;
   `
 ]
 

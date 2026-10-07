@@ -9,6 +9,7 @@
 // abduzione, inclinazione): gli aggettivi si accordano cosi'.
 import { getDb } from './db'
 import { GRUPPI } from '../shared/distretti'
+import { neuroTestuale } from './neuro-testo'
 
 type Riga = Record<string, unknown>
 
@@ -208,6 +209,12 @@ export function relazioneValutazione(pazienteId: number): ParagrafoValutazione[]
           frasi.push(frase(`${titolo}: ${voci.join('; ')}`))
         }
       }
+
+      // L'esame neurologico: solo se compilato, e solo le voci alterate.
+      const neuro = neuroTestuale(Number(v.id), Number(d.id))
+      if (neuro.alterati.length > 0)
+        frasi.push(frase(`Esame neurologico: ${neuro.alterati.join('; ')}`))
+      if (neuro.nota) frasi.push(frase(`Note sull'esame neurologico: ${neuro.nota}`))
 
       // Un paragrafo per movimento/gruppo di test invece che una frase sola
       // dietro l'altra: si leggeva come un blocco unico, e il distretto fa

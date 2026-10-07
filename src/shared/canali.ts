@@ -12,6 +12,8 @@
 // Per una funzione nuova: la firma qui in Canali, il metodo in MAPPA_API, il
 // gestore in ipc.ts. Il typecheck dice se manca qualcosa.
 import type {
+  Promemoria,
+  PromemoriaInput,
   AnamnesiProssima,
   AnamnesiRemota,
   AndamentoSegno,
@@ -289,6 +291,15 @@ export interface Canali {
   // Segna il contatto fatto oggi e svuota la data del prossimo.
   'followUp:segnaContattato': (id: number, contattato: boolean) => void
   'followUp:setRecensione': (id: number, recensione: boolean) => void
+  // Promemoria "ripeti questo questionario / screening". Con un paziente
+  // torna tutto il suo, senza gli aperti di tutti gli altri; senza, gli aperti
+  // di tutti (per la pagina Follow-up).
+  'promemoria:list': (pazienteId: number | null) => Promemoria[]
+  'promemoria:create': (dati: PromemoriaInput) => number
+  'promemoria:setFatto': (id: number, fatto: boolean) => void
+  'promemoria:delete': (id: number) => void
+  // Quanti sono da fare oggi o in ritardo: il numerino del menu.
+  'promemoria:conta': () => number
   // HTML della seduta per la sola anteprima a schermo (nessun file salvato).
   // Scheda illustrata: foto, spiegazione e link al video, per il paziente che
   // si allena da solo. Torna anche l'elenco di cosa manca da riempire.
@@ -325,6 +336,8 @@ export interface Canali {
   'questionari:list': (includiArchiviati: boolean) => Questionario[]
   'questionari:get': (id: number) => QuestionarioCompleto
   'questionari:create': (nome: string, categoriaId: number) => number
+  // Crea nella categoria un questionario gia' scritto (es. 'ikdc').
+  'questionari:daModello': (chiave: string, categoriaId: number) => number
   // Salva il questionario intero in una volta: le domande conservano il
   // proprio id, quelle sparite vengono eliminate. Cosi' le compilazioni gia'
   // fatte continuano a puntare alle domande giuste.
@@ -672,6 +685,13 @@ export const MAPPA_API = {
     segnaContattato: 'followUp:segnaContattato',
     setRecensione: 'followUp:setRecensione'
   },
+  promemoria: {
+    list: 'promemoria:list',
+    create: 'promemoria:create',
+    setFatto: 'promemoria:setFatto',
+    remove: 'promemoria:delete',
+    conta: 'promemoria:conta'
+  },
   esporta: {
     schedaIllustrata: 'esporta:schedaIllustrata',
     anteprimaCartella: 'esporta:anteprimaCartella',
@@ -693,6 +713,7 @@ export const MAPPA_API = {
     list: 'questionari:list',
     get: 'questionari:get',
     create: 'questionari:create',
+    daModello: 'questionari:daModello',
     salva: 'questionari:salva',
     daRicalcolare: 'questionari:daRicalcolare',
     ricalcolaCompilazioni: 'questionari:ricalcolaCompilazioni',

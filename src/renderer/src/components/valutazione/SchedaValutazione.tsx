@@ -19,6 +19,7 @@ import IndicatoreSalvataggio from '../IndicatoreSalvataggio'
 import { GRUPPI } from '../../pages/DistrettiPage'
 import { TipoMovimento, TabellaMovimenti } from './TabellaMovimenti'
 import { TabellaTest } from './TabellaTest'
+import { SezioneNeuro } from './SezioneNeuro'
 
 const ANDAMENTI: { valore: Andamento; etichetta: string; icona: React.JSX.Element }[] = [
   // Sui pulsanti una freccia; la parola resta nel suggerimento e nei documenti.
@@ -168,7 +169,8 @@ export function SchedaValutazione({
     dati.note_movimenti.find((n) => n.distretto_id === distrettoId) ?? {
       distretto_id: distrettoId,
       attivo: null,
-      passivo: null
+      passivo: null,
+      neuro: null
     }
 
   const cambiaNote = (distrettoId: number, patch: Partial<NoteMovimenti>): void => {
@@ -179,6 +181,12 @@ export function SchedaValutazione({
         nuovo
       ]
     })
+  }
+
+  // Un rilievo neurologico e' di una voce e di un lato; valore null lo toglie.
+  const cambiaNeuro = (voceId: number, lato: 'sx' | 'dx', valore: string | null): void => {
+    const altri = dati.neuro.filter((n) => !(n.voce_id === voceId && n.lato === lato))
+    aggiorna({ neuro: valore == null ? altri : [...altri, { voce_id: voceId, lato, valore }] })
   }
 
   const rispostaTest = (testId: number, lato: LatoRilievo): RilievoTest =>
@@ -267,7 +275,7 @@ export function SchedaValutazione({
           {/* In anteprima la casella cresce fino a mostrare tutto il testo:
               da leggere non serve scorrerla dentro una finestra di due righe. */}
           <textarea
-            rows={2}
+            rows={5}
             className={soloLettura ? 'testo-adatta' : undefined}
             disabled={soloLettura}
             value={dati.valutazione.ispezione ?? ''}
@@ -319,6 +327,18 @@ export function SchedaValutazione({
                   </div>
                 )
               })}
+
+              {lib.distretto.esame_neuro === 1 && (
+                <SezioneNeuro
+                  voci={lib.neuro}
+                  rilievi={dati.neuro.filter((n) => lib.neuro.some((v) => v.id === n.voce_id))}
+                  nota={noteDi(lib.distretto.id as number).neuro ?? ''}
+                  latoInteressato={latoInteressato}
+                  soloLettura={soloLettura}
+                  onCambia={cambiaNeuro}
+                  onNota={(neuro) => cambiaNote(lib.distretto.id as number, { neuro })}
+                />
+              )}
             </div>
           )
         })}

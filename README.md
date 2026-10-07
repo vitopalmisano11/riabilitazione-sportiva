@@ -64,6 +64,31 @@ supera con *Ulteriori informazioni → Esegui comunque*.
 Le versioni vere dell'app sono quelle di `package.json` e dei tag `vX.Y.Z`: le sezioni «giro di
 feedback» qui sopra sono precedenti e usavano una numerazione propria.
 
+### v0.5.8
+
+**Prima di tutto:** al primo accesso dopo l'aggiornamento il programma applica tre modifiche al
+formato dell'archivio (migrazioni 58, 59 e 60). Non si possono annullare, quindi prima fa da solo una
+copia dell'archivio. Dai Releases di GitHub si installa da solo, come la 0.5.7.
+
+- Esame neurologico (Valutazione obiettiva): una sezione che si apre e si chiude, solo nei distretti
+  in cui la accendi da Distretti («Ha l'esame neurologico»: di solito cervicale e lombare). Sensibilità
+  (si aggiunge solo la radice alterata, ridotta o aumentata), forza di ogni muscolo da 0 a 5, riflessi
+  ipo / normale / iper, sempre a destra e a sinistra, più una nota. Radici, muscoli e riflessi si
+  scrivono per distretto, con un elenco standard cervicale e lombare da cui partire. Nella relazione
+  e nella cartella compaiono solo le voci alterate. Il vecchio gruppo di test «Esame neurologico» si
+  chiama ora «Test neurodinamici»
+- Questionari, domande a tabella: una domanda con più righe e le stesse risposte in colonna, come la
+  9 dell'IKDC. Le risposte si scrivono una volta sola; punteggi e fasce funzionano come prima
+- Questionari, risposte scritte: una per riga, a tutta larghezza; la finestra di compilazione è molto
+  più grande e le frasi lunghe non si tagliano. Le istruzioni per il paziente hanno una casella più
+  grande
+- «+ IKDC pronto» nell'elenco dei questionari: l'IKDC soggettivo del ginocchio in italiano, con
+  punteggio da 0 a 100. La traduzione non è una versione validata
+- Promemoria: dalla scheda del paziente si imposta quando fargli rifare un questionario o uno
+  screening. Compaiono in Follow-up («Da rifare») e nel numerino del menu, e si chiudono da soli
+  quando il questionario viene compilato o lo screening aperto
+- Valutazione obiettiva: la casella di ispezione, osservazione e palpazione è più grande
+
 ### v0.5.7
 
 **Prima di tutto:** al primo accesso dopo l'aggiornamento il programma applica due modifiche al

@@ -4,7 +4,13 @@ import { archivioDiProva } from './archivio-di-prova'
 import assert from 'node:assert/strict'
 import { getDb } from '../src/main/db'
 import { generaCartella, generaRelazione } from '../src/main/export-cartella'
-import { duplicaValutazione, leggiValutazione, salvaValutazione } from '../src/main/valutazione'
+import {
+  duplicaValutazione,
+  leggiDistretto,
+  leggiValutazione,
+  salvaDistretto,
+  salvaValutazione
+} from '../src/main/valutazione'
 import { relazioneValutazione } from '../src/main/relazione-valutazione'
 
 // Un archivio cifrato tutto suo, in una cartella temporanea.
@@ -126,4 +132,83 @@ test('Duplicare una valutazione: i rilievi si copiano, i racconti no', () => {
   assert.ok(testoV.includes('Carico locale diminuito, capacità di carico generale aumentata.'))
   const documentoV = generaRelazione(pzL, 'valutazione')
   assert.ok(documentoV.includes('Relazione della valutazione obiettiva · stampata il'))
+})
+
+test('Esame neurologico: voci del distretto, rilievi per lato, relazione e cartella', () => {
+  const c = getDb()
+  const ins = (sql: string, ...a: unknown[]): number =>
+    Number(c.prepare(sql).run(...a).lastInsertRowid)
+  const pz = ins("INSERT INTO pazienti (nome, cognome) VALUES ('Neuro', 'Lombare')")
+  const dist = ins("INSERT INTO distretti (nome) VALUES ('Rachide lombare')")
+
+  // Un distretto nuovo non ha l'esame neurologico; si accende e si scrivono le voci.
+  const vuoto = leggiDistretto(dist)
+  assert.equal(vuoto.distretto.esame_neuro, 0)
+  assert.deepEqual(vuoto.neuro, [])
+  salvaDistretto({
+    ...vuoto,
+    distretto: { ...vuoto.distretto, esame_neuro: 1 },
+    neuro: [
+      { id: -1, tipo: 'radice', nome: 'L5' },
+      { id: -2, tipo: 'radice', nome: 'S1' },
+      { id: -3, tipo: 'muscolo', nome: 'Tibiale anteriore (L4)' },
+      { id: -4, tipo: 'muscolo', nome: 'Peronei (S1)' },
+      { id: -5, tipo: 'riflesso', nome: 'Achilleo' },
+      { id: -6, tipo: 'riflesso', nome: 'Rotuleo' }
+    ]
+  })
+  const lib = leggiDistretto(dist)
+  assert.equal(lib.distretto.esame_neuro, 1)
+  const id = (nome: string): number => lib.neuro.find((v) => v.nome === nome)!.id as number
+  assert.deepEqual(
+    lib.neuro.map((v) => v.nome),
+    ['L5', 'S1', 'Tibiale anteriore (L4)', 'Peronei (S1)', 'Achilleo', 'Rotuleo']
+  )
+
+  const val = ins("INSERT INTO valutazioni (paziente_id, data) VALUES (?, '2026-10-05')", pz)
+  salvaValutazione({
+    ...leggiValutazione(val),
+    distretto_ids: [dist],
+    note_movimenti: [{ distretto_id: dist, attivo: null, passivo: null, neuro: 'dolore irradiato alla gamba' }],
+    neuro: [
+      { voce_id: id('L5'), lato: 'dx', valore: 'ridotta' },
+      // un valore che non e' di una radice non si salva
+      { voce_id: id('S1'), lato: 'dx', valore: '3' },
+      { voce_id: id('Tibiale anteriore (L4)'), lato: 'dx', valore: '4' },
+      { voce_id: id('Tibiale anteriore (L4)'), lato: 'sx', valore: '5' },
+      { voce_id: id('Peronei (S1)'), lato: 'dx', valore: '5' },
+      { voce_id: id('Achilleo'), lato: 'dx', valore: 'ipo' },
+      { voce_id: id('Achilleo'), lato: 'sx', valore: 'normale' },
+      { voce_id: id('Rotuleo'), lato: 'sx', valore: 'normale' },
+      // una voce che non esiste (piu') non fa fallire il salvataggio
+      { voce_id: 99999, lato: 'sx', valore: '3' }
+    ]
+  })
+  const letta = leggiValutazione(val)
+  assert.equal(letta.neuro.length, 7)
+  assert.equal(letta.note_movimenti[0].neuro, 'dolore irradiato alla gamba')
+
+  // Duplicata, l'esame si ricopia insieme al resto.
+  const copia = leggiValutazione(duplicaValutazione(val, '2026-10-20'))
+  assert.equal(copia.neuro.length, 7)
+
+  // La relazione scrive solo quello che e' alterato: 5/5 e riflessi normali no.
+  const testo = relazioneValutazione(pz)[1].paragrafi.join(' ')
+  assert.ok(
+    testo.includes(
+      'Esame neurologico: sensibilità ridotta in L5 a destra; forza ridotta: tibiale anteriore (l4) 4/5 a destra; riflessi alterati: achilleo ipo a destra.'
+    ),
+    testo
+  )
+  assert.ok(!testo.includes('peronei'))
+  assert.ok(!testo.includes('rotuleo'))
+  assert.ok(testo.includes("Note sull'esame neurologico: dolore irradiato alla gamba."))
+  const cartella = generaCartella(pz, ['valutazioni'])
+  assert.ok(cartella.includes('Sensibilità ridotta in L5 a destra'))
+
+  // Spento l'esame, le voci restano scritte; senza rilievi non compare niente.
+  salvaValutazione({ ...leggiValutazione(val), neuro: [], note_movimenti: [] })
+  assert.ok(!relazioneValutazione(pz)[1].paragrafi.join(' ').includes('Esame neurologico'))
+  salvaDistretto({ ...leggiDistretto(dist), distretto: { ...leggiDistretto(dist).distretto, esame_neuro: 0 } })
+  assert.equal(leggiDistretto(dist).neuro.length, 6)
 })

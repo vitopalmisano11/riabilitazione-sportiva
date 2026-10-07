@@ -11,7 +11,9 @@ import type {
   DistrettoCompleto,
   MovimentoDistretto,
   TestDistretto,
+  TipoVoceNeuro,
   Valutazione,
+  VoceNeuro,
   ValutazioneCompleta
 } from '../shared/types'
 
@@ -33,7 +35,24 @@ export function leggiDistretto(id: number): DistrettoCompleto {
       'SELECT id, nome, gruppo, risposta FROM distretto_test WHERE distretto_id = ? ORDER BY ordine, id'
     )
     .all(id) as TestDistretto[]
-  return { distretto, movimenti, test }
+  const neuro = db
+    .prepare(
+      'SELECT id, tipo, nome FROM distretto_neuro WHERE distretto_id = ? ORDER BY ordine, id'
+    )
+    .all(id) as VoceNeuro[]
+  return { distretto, movimenti, test, neuro }
+}
+
+const TIPI_NEURO: TipoVoceNeuro[] = ['radice', 'muscolo', 'riflesso']
+
+// Un valore e' valido solo per il tipo di voce a cui appartiene: la forza e'
+// una cifra da 0 a 5, la sensibilita' ridotta o aumentata (la radice normale
+// non si scrive), il riflesso ipo / normale / iper.
+function valoreNeuroValido(tipo: string, valore: string): boolean {
+  if (tipo === 'radice') return valore === 'ridotta' || valore === 'aumentata'
+  if (tipo === 'muscolo') return /^[0-5]$/.test(valore)
+  if (tipo === 'riflesso') return valore === 'ipo' || valore === 'normale' || valore === 'iper'
+  return false
 }
 
 export function salvaDistretto(dati: DistrettoCompleto): void {
@@ -41,9 +60,10 @@ export function salvaDistretto(dati: DistrettoCompleto): void {
   const id = dati.distretto.id
 
   db.transaction(() => {
-    db.prepare('UPDATE distretti SET nome = ?, bilaterale = ? WHERE id = ?').run(
+    db.prepare('UPDATE distretti SET nome = ?, bilaterale = ?, esame_neuro = ? WHERE id = ?').run(
       dati.distretto.nome.trim(),
       dati.distretto.bilaterale === 1 ? 1 : 0,
+      dati.distretto.esame_neuro === 1 ? 1 : 0,
       id
     )
 
@@ -82,6 +102,25 @@ export function salvaDistretto(dati: DistrettoCompleto): void {
       if (t.id == null || t.id < 0) insT.run(id, t.nome.trim(), t.gruppo, t.risposta, i)
       else updT.run(t.nome.trim(), t.gruppo, t.risposta, i, t.id)
     })
+
+    // Le voci dell'esame neurologico restano scritte anche se l'esame e'
+    // spento: riaccenderlo non fa perdere gli elenchi.
+    const voci = (dati.neuro ?? []).filter((v) => TIPI_NEURO.includes(v.tipo))
+    eliminaMancanti(
+      db,
+      'distretto_neuro',
+      'distretto_id',
+      id,
+      voci.map((v) => v.id).filter((x): x is number => x != null && x > 0)
+    )
+    const insN = db.prepare(
+      'INSERT INTO distretto_neuro (distretto_id, tipo, nome, ordine) VALUES (?, ?, ?, ?)'
+    )
+    const updN = db.prepare('UPDATE distretto_neuro SET nome = ?, ordine = ? WHERE id = ?')
+    voci.forEach((v, i) => {
+      if (v.id == null || v.id < 0) insN.run(id, v.tipo, v.nome.trim(), i)
+      else updN.run(v.nome.trim(), i, v.id)
+    })
   })()
 }
 
@@ -93,14 +132,21 @@ export function leggiValutazione(id: number): ValutazioneCompleta {
   if (!valutazione) throw new Error('Valutazione non trovata.')
   const distretti = db
     .prepare(
-      'SELECT distretto_id, nota_attivo, nota_passivo FROM valutazione_distretti WHERE valutazione_id = ?'
+      `SELECT distretto_id, nota_attivo, nota_passivo, nota_neuro
+       FROM valutazione_distretti WHERE valutazione_id = ?`
     )
-    .all(id) as { distretto_id: number; nota_attivo: string | null; nota_passivo: string | null }[]
+    .all(id) as {
+    distretto_id: number
+    nota_attivo: string | null
+    nota_passivo: string | null
+    nota_neuro: string | null
+  }[]
   const distretto_ids = distretti.map((r) => r.distretto_id)
   const note_movimenti = distretti.map((r) => ({
     distretto_id: r.distretto_id,
     attivo: r.nota_attivo,
-    passivo: r.nota_passivo
+    passivo: r.nota_passivo,
+    neuro: r.nota_neuro
   }))
   const movimenti = db
     .prepare(
@@ -112,7 +158,10 @@ export function leggiValutazione(id: number): ValutazioneCompleta {
   const test = db
     .prepare('SELECT test_id, lato, valore, nota FROM valutazione_test WHERE valutazione_id = ?')
     .all(id) as ValutazioneCompleta['test']
-  return { valutazione, distretto_ids, movimenti, note_movimenti, test }
+  const neuro = db
+    .prepare('SELECT voce_id, lato, valore FROM valutazione_neuro WHERE valutazione_id = ?')
+    .all(id) as ValutazioneCompleta['neuro']
+  return { valutazione, distretto_ids, movimenti, note_movimenti, test, neuro }
 }
 
 // Nuova valutazione che riparte da una precedente.
@@ -166,12 +215,13 @@ export function salvaValutazione(dati: ValutazioneCompleta): void {
     // I rilievi si riscrivono per intero: nessun'altra tabella li cita.
     db.prepare('DELETE FROM valutazione_distretti WHERE valutazione_id = ?').run(id)
     const insD = db.prepare(
-      `INSERT INTO valutazione_distretti (valutazione_id, distretto_id, nota_attivo, nota_passivo)
-       VALUES (?, ?, ?, ?)`
+      `INSERT INTO valutazione_distretti
+         (valutazione_id, distretto_id, nota_attivo, nota_passivo, nota_neuro)
+       VALUES (?, ?, ?, ?, ?)`
     )
     for (const d of dati.distretto_ids) {
       const n = dati.note_movimenti.find((x) => x.distretto_id === d)
-      insD.run(id, d, n?.attivo || null, n?.passivo || null)
+      insD.run(id, d, n?.attivo || null, n?.passivo || null, n?.neuro || null)
     }
 
     db.prepare('DELETE FROM valutazione_movimenti WHERE valutazione_id = ?').run(id)
@@ -212,6 +262,23 @@ export function salvaValutazione(dati: ValutazioneCompleta): void {
     )
     for (const t of dati.test) {
       if (t.valore || t.nota) insT.run(id, t.test_id, t.lato ?? '', t.valore, t.nota)
+    }
+
+    // L'esame neurologico: solo le voci che esistono ancora, con un valore
+    // adatto al loro tipo. Un doppione (stessa voce e lato) vale l'ultimo.
+    db.prepare('DELETE FROM valutazione_neuro WHERE valutazione_id = ?').run(id)
+    const tipoDi = new Map(
+      (db.prepare('SELECT id, tipo FROM distretto_neuro').all() as { id: number; tipo: string }[]).map(
+        (v) => [v.id, v.tipo]
+      )
+    )
+    const insN = db.prepare(
+      'INSERT OR REPLACE INTO valutazione_neuro (valutazione_id, voce_id, lato, valore) VALUES (?, ?, ?, ?)'
+    )
+    for (const n of dati.neuro ?? []) {
+      const tipo = tipoDi.get(n.voce_id)
+      if (!tipo || (n.lato !== 'sx' && n.lato !== 'dx')) continue
+      if (valoreNeuroValido(tipo, String(n.valore))) insN.run(id, n.voce_id, n.lato, String(n.valore))
     }
   })()
 }

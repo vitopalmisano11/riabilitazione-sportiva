@@ -94,9 +94,12 @@ test('Migrazione 56: i data URL diventano byte, il resto non si tocca, e l\'arch
   assert.equal(righe.find((r) => r.id === idStrano)!.contenuto, 'non e un data url', 'quello che non e\' un data URL resta')
   assert.equal(dopo.pragma('integrity_check', { simple: true }), 'ok')
   dopo.close()
-  // un quarto in meno di spazio per i referti: il file e' davvero piu' piccolo
+  // un quarto in meno di spazio per i referti (venti foto da 40 kB: circa 200 kB
+  // risparmiati): il file e' davvero piu' piccolo. Si misura lo spazio guadagnato
+  // e non una percentuale, perche' ogni migrazione nuova aggiunge le sue tabelle
+  // e un po' di pagine al file di arrivo.
   const ora = statSync(file).size
-  assert.ok(ora < prima * 0.85, `il file doveva rimpicciolire: ${prima} -> ${ora}`)
+  assert.ok(prima - ora > 100_000, `il file doveva rimpicciolire: ${prima} -> ${ora}`)
 })
 
 test('Cestino: un referto torna con i suoi byte, da solo o con il paziente', () => {

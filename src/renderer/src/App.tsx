@@ -191,11 +191,14 @@ export default function App(): React.JSX.Element {
   // cambia il giorno).
   const [daSentire, setDaSentire] = useState(0)
   const contaDaSentire = (): void => {
-    window.api.followUp
-      .list()
-      .then(({ concluso }) => {
+    // Chi ha la data per essere risentito, piu' i promemoria (un questionario o
+    // uno screening da rifare) arrivati a scadenza.
+    Promise.all([window.api.followUp.list(), window.api.promemoria.conta()])
+      .then(([{ concluso }, promemoria]) => {
         const oggi = oggiIso()
-        setDaSentire(concluso.filter((p) => p.follow_up_il != null && p.follow_up_il <= oggi).length)
+        setDaSentire(
+          concluso.filter((p) => p.follow_up_il != null && p.follow_up_il <= oggi).length + promemoria
+        )
       })
       .catch(() => {})
   }
@@ -361,7 +364,7 @@ export default function App(): React.JSX.Element {
             {daSentire > 0 && (
               <span
                 className="conta-menu"
-                title={daSentire === 1 ? '1 paziente da sentire' : `${daSentire} pazienti da sentire`}
+                title={daSentire === 1 ? '1 cosa da fare' : `${daSentire} cose da fare (pazienti da sentire e promemoria)`}
               >
                 {daSentire}
               </span>

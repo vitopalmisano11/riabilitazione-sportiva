@@ -15,6 +15,7 @@ import {
   salvaCompilazione,
   salvaQuestionario
 } from '../src/main/questionari'
+import { creaDaModello } from '../src/main/questionari-pronti'
 
 // Un archivio cifrato tutto suo, in una cartella temporanea.
 archivioDiProva()
@@ -395,4 +396,109 @@ test('Questionari: punteggi e fasce sul caso a due punteggi', () => {
     assert.equal(contaDaRicalcolare(qId), 0)
     assert.throws(() => ricalcolaCompilazione(999999), /non trovata/)
   }
+})
+
+// Una griglia: una domanda comune con piu' righe (le attivita') che hanno le
+// stesse risposte. Ogni riga e' una domanda vera: il punteggio la somma.
+test('Questionari: domanda a griglia, righe con le stesse risposte e punteggio', () => {
+  const db = getDb()
+  const qId = Number(
+    db.prepare("INSERT INTO questionari (nome, ordine) VALUES ('Griglia', 0)").run().lastInsertRowid
+  )
+  const risposte = [
+    { id: null, etichetta: 'Nessuna difficoltà', punteggio: 4 },
+    { id: null, etichetta: 'Un po’ di difficoltà', punteggio: 3 },
+    { id: null, etichetta: 'Non possibile', punteggio: 0 }
+  ]
+  const riga = (id: number, testo: string, intestazione: string | null) => ({
+    id,
+    testo,
+    tipo: 'scelta' as const,
+    scala_min: null,
+    scala_max: null,
+    etichetta_min: null,
+    etichetta_max: null,
+    intestazione,
+    opzioni: risposte
+  })
+  const dati = {
+    questionario: {
+      id: qId,
+      categoria_id: null,
+      nome: 'Griglia',
+      istruzioni: null,
+      ordine: 0,
+      archiviato: 0 as const,
+      mcid_punteggio_id: null,
+      mcid_punti: null,
+      mcid_percentuale: null,
+      mcid_migliora_calando: 0 as const,
+      mcid_nota: null
+    },
+    domande: [
+      riga(-1, 'Camminare', 'In che modo il dolore influenza queste attività?'),
+      riga(-2, 'Salire le scale', 'In che modo il dolore influenza queste attività?'),
+      // una riga con l'intestazione vuota non fa parte di nessuna griglia
+      riga(-3, 'Domanda singola', '  ')
+    ],
+    punteggi: [{ id: -10, nome: 'Totale', tipo: 'somma' as const, domanda_ids: [-1, -2, -3] }],
+    fasce: []
+  }
+  salvaQuestionario(dati)
+
+  const letto = leggiQuestionario(qId)
+  assert.deepEqual(
+    letto.domande.map((d) => [d.testo, d.intestazione ?? null]),
+    [
+      ['Camminare', 'In che modo il dolore influenza queste attività?'],
+      ['Salire le scale', 'In che modo il dolore influenza queste attività?'],
+      ['Domanda singola', null]
+    ]
+  )
+  // le risposte ci sono su tutte le righe, con i loro punti
+  assert.deepEqual(
+    letto.domande[1].opzioni.map((o) => o.punteggio),
+    [4, 3, 0]
+  )
+
+  // si somma riga per riga, come per qualunque altra domanda
+  const [camminare, scale, singola] = letto.domande.map((d) => d.id as number)
+  const { punteggi } = calcola(qId, [
+    { domanda_id: camminare, valore: 4 },
+    { domanda_id: scale, valore: 3 },
+    { domanda_id: singola, valore: 0 }
+  ])
+  assert.equal(punteggi.find((p) => p.nome === 'Totale')?.valore, 7)
+
+  // risalvando con gli id veri la griglia resta com'era
+  salvaQuestionario({ ...dati, domande: letto.domande, punteggi: leggiQuestionario(qId).punteggi })
+  assert.equal(leggiQuestionario(qId).domande[0].intestazione, 'In che modo il dolore influenza queste attività?')
+})
+
+// L'IKDC gia' pronto: la tabella della 9, il Si/No rovesciato, e il punteggio
+// da 0 a 100 che non conta la funzione di prima dell'infortunio.
+test('Questionari: IKDC pronto, punteggio da 0 a 100', () => {
+  const db = getDb()
+  const cat = Number(
+    db.prepare("INSERT INTO questionario_categorie (nome, ordine) VALUES ('Ginocchio', 9)").run().lastInsertRowid
+  )
+  const id = creaDaModello('ikdc', cat)
+  const q = leggiQuestionario(id)
+  assert.equal(q.domande.length, 19)
+  // la 9 e' una griglia di nove righe con le stesse cinque colonne
+  const griglia = q.domande.filter((d) => d.intestazione)
+  assert.equal(griglia.length, 9)
+  assert.ok(griglia.every((d) => d.opzioni.length === 5))
+  assert.equal(q.questionario.mcid_punteggio_id, q.punteggi[0].id)
+  assert.equal(q.punteggi[0].domanda_ids.length, 18)
+
+  const rispondi = (alto: boolean): { domanda_id: number; valore: number }[] =>
+    q.domande.map((d) => {
+      const punti = d.tipo === 'scala' ? [d.scala_min ?? 0, d.scala_max ?? 10] : d.opzioni.map((o) => o.punteggio)
+      return { domanda_id: d.id as number, valore: alto ? Math.max(...punti) : Math.min(...punti) }
+    })
+  const totale = (alto: boolean): number | undefined =>
+    calcola(id, rispondi(alto)).punteggi.find((p) => p.nome === 'Punteggio IKDC')?.valore
+  assert.equal(totale(true), 100)
+  assert.equal(totale(false), 0)
 })

@@ -6,7 +6,9 @@ import type {
   GruppoTest,
   MovimentoDistretto,
   RispostaTest,
-  TestDistretto
+  TestDistretto,
+  TipoVoceNeuro,
+  VoceNeuro
 } from '../../../shared/types'
 import { toast, toastErrore } from '../components/Toast'
 import Aiuto from '../components/Aiuto'
@@ -17,7 +19,7 @@ import { useRileggiDopoSalvataggio } from '../salvaUscendo'
 import { useSalvataggio } from '../salvataggio'
 import IndicatoreSalvataggio from '../components/IndicatoreSalvataggio'
 import { sposta, useRiordino, useRiordinoSalvato } from '../riordino'
-import { GRUPPI } from '../../../shared/distretti'
+import { GRUPPI, NEURO_STANDARD, PARTI_NEURO } from '../../../shared/distretti'
 
 // I movimenti e i test appartengono al distretto, non alla patologia: il rachide
 // cervicale ruota comunque, qualunque sia la diagnosi. Cosi' si scrivono una
@@ -306,6 +308,27 @@ function EditorDistretto({
       <Movimenti movimenti={dati.movimenti} onChange={(movimenti) => aggiorna({ movimenti })} />
       <TestDistrettuali test={dati.test} onChange={(test) => aggiorna({ test })} />
 
+      {/* L'esame neurologico non serve in tutti i distretti: si accende dove
+          c'e' (di solito cervicale e lombare). Spento, le voci scritte restano.
+          Sta in un blocco suo, staccato dai test qui sopra. */}
+      <div className="blocco-neuro">
+        <label className="checkbox-inline">
+          <input
+            type="checkbox"
+            className="interruttore"
+            checked={dati.distretto.esame_neuro === 1}
+            onChange={(e) =>
+              aggiorna({ distretto: { ...dati.distretto, esame_neuro: e.target.checked ? 1 : 0 } })
+            }
+          />
+          Ha l’esame neurologico
+          <Aiuto testo="Da accendere per il rachide cervicale e lombare. Nella valutazione compare una sezione che si apre e si chiude, da compilare solo quando serve: sensibilità (si segna solo la radice alterata), forza di ogni muscolo e riflessi. Qui sotto scrivi le radici, i muscoli e i riflessi del distretto. L’esame si fa sempre a destra e a sinistra." />
+        </label>
+        {dati.distretto.esame_neuro === 1 && (
+          <EsameNeurologico voci={dati.neuro} onChange={(neuro) => aggiorna({ neuro })} />
+        )}
+      </div>
+
       <div className="modal-actions">
         <IndicatoreSalvataggio stato={salvataggio.stato} errore={salvataggio.errore} />
         <button
@@ -445,6 +468,101 @@ function TestDistrettuali({
         }
       >
         <Plus size={16} /> Aggiungi test
+      </button>
+    </div>
+  )
+}
+
+// Radici, muscoli e riflessi dell'esame neurologico di un distretto.
+function EsameNeurologico({
+  voci,
+  onChange
+}: {
+  voci: VoceNeuro[]
+  onChange: (v: VoceNeuro[]) => void
+}): React.JSX.Element {
+  // Una lista sola nel salvataggio, tre sullo schermo: cambiando una parte le
+  // altre restano come sono.
+  const cambiaParte = (tipo: TipoVoceNeuro, nuove: VoceNeuro[]): void =>
+    onChange([
+      ...PARTI_NEURO.flatMap((p) => (p.tipo === tipo ? nuove : voci.filter((v) => v.tipo === p.tipo)))
+    ])
+
+  const proponi = (chiave: keyof typeof NEURO_STANDARD): void =>
+    onChange([
+      ...voci,
+      ...NEURO_STANDARD[chiave].voci.map((v) => ({ id: nuovaChiave(), tipo: v.tipo, nome: v.nome }))
+    ])
+
+  return (
+    <div className="lista-domande">
+      {voci.length === 0 && (
+        <p className="hint">
+          Nessuna voce. Parti da un elenco già pronto, che poi puoi cambiare, oppure aggiungi le voci
+          una a una.
+          <span className="neuro-standard">
+            {(Object.keys(NEURO_STANDARD) as (keyof typeof NEURO_STANDARD)[]).map((k) => (
+              <button key={k} onClick={() => proponi(k)}>
+                {NEURO_STANDARD[k].etichetta}
+              </button>
+            ))}
+          </span>
+        </p>
+      )}
+      {PARTI_NEURO.map((p) => (
+        <VociNeuro
+          key={p.tipo}
+          tipo={p.tipo}
+          titolo={p.titolo}
+          voci={voci.filter((v) => v.tipo === p.tipo)}
+          onChange={(nuove) => cambiaParte(p.tipo, nuove)}
+        />
+      ))}
+    </div>
+  )
+}
+
+function VociNeuro({
+  tipo,
+  titolo,
+  voci,
+  onChange
+}: {
+  tipo: TipoVoceNeuro
+  titolo: string
+  voci: VoceNeuro[]
+  onChange: (v: VoceNeuro[]) => void
+}): React.JSX.Element {
+  const { contenitore, presa } = useRiordino<number>((da, a) => onChange(sposta(voci, da, a)))
+  const esempio =
+    tipo === 'radice' ? 'es. L5' : tipo === 'muscolo' ? 'es. Tibiale anteriore (L4)' : 'es. Rotuleo'
+
+  return (
+    <div>
+      <div className="sotto-titolo">{titolo}</div>
+      {voci.map((v, i) => {
+        const dnd = contenitore(i)
+        return (
+          <div key={v.id} {...dnd} {...presa(i)} className={['riga-parametro', dnd.className].filter(Boolean).join(' ')}>
+            <input
+              placeholder={esempio}
+              value={v.nome}
+              onChange={(e) => onChange(voci.map((x, j) => (i === j ? { ...x, nome: e.target.value } : x)))}
+            />
+            <span className="item-actions-static">
+              <button
+                className="danger"
+                title="Elimina"
+                onClick={() => onChange(voci.filter((_, j) => j !== i))}
+              >
+                <X size={16} />
+              </button>
+            </span>
+          </div>
+        )
+      })}
+      <button onClick={() => onChange([...voci, { id: nuovaChiave(), tipo, nome: '' }])}>
+        <Plus size={16} /> Aggiungi {PARTI_NEURO.find((p) => p.tipo === tipo)?.singolare}
       </button>
     </div>
   )
