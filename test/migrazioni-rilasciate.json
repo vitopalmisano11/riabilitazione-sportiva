@@ -38,5 +38,10 @@
     "versione": "0.5.8",
     "migrazioni": 60,
     "sha256": "58095adeb36a0968940bd66d8fd6fed69efe89bf7111f0c4536260f47f78c53e"
+  },
+  {
+    "versione": "0.5.9",
+    "migrazioni": 62,
+    "sha256": "1078fe6953d913ef70a1335f26b6c099cddb7a63c85f728f62a9b1366066e2bb"
   }
 ]

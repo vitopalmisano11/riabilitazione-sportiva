@@ -5,8 +5,10 @@
 .modal-overlay {
   position: fixed;
   inset: var(--alto-barra) 0 0 0;
-  background: rgba(15, 23, 42, 0.45);
-  backdrop-filter: blur(2px);
+  /* niente sfocatura dietro la finestra: costringeva il computer a ridisegnare
+     sfocata tutta la pagina sotto a ogni cambiamento, e con una scheda grafica
+     modesta si sentiva a scatti. Un velo un po' piu' scuro basta a staccarla. */
+  background: rgba(15, 23, 42, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -154,6 +156,21 @@ details[open] > :not(summary) {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+/* Tutte le caselle della finestra alte uguale (date, scelte e testi a una
+   riga prima avevano misure diverse). Le caselle di testo non crescono mai:
+   se il testo e' lungo scorre dentro, cosi' non spostano quello che hanno sotto. */
+.modal-paziente label input,
+.modal-paziente label textarea {
+  box-sizing: border-box;
+  height: 46px;
+  line-height: 1.4;
+}
+
+.modal-paziente label textarea {
+  overflow-y: auto;
+  field-sizing: fixed;
 }
 
 .fascia-percorso {

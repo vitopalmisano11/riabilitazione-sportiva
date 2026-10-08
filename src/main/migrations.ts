@@ -1467,6 +1467,35 @@ export const MIGRATIONS: string[] = [
     PRIMARY KEY (seduta_id, progressione_id)
   );
   CREATE INDEX idx_seduta_progressioni_progressione ON seduta_progressioni(progressione_id);
+  `,
+
+  // 62 - indici che mancavano, e che con gli anni rallentavano il programma.
+  //      Il peggiore: l'elenco degli esercizi conta in quante sedute e' usato
+  //      ognuno, e senza un indice su seduta_esercizi(esercizio_id) rileggeva
+  //      tutte le righe di tutte le sedute per ogni esercizio. Con 400 esercizi
+  //      e 6000 sedute ci metteva 2 secondi (con l'indice 7 millesimi), e in
+  //      quei 2 secondi il programma restava fermo: si apre a ogni seduta.
+  //      Gli altri servono ai controlli delle chiavi esterne: salvando una
+  //      seduta si cancellano le sue sezioni, e per ognuna SQLite cercava fra
+  //      tutti gli esercizi di tutte le sedute chi la usava ancora.
+  //      Solo indici: nessun dato cambia.
+  `
+  CREATE INDEX IF NOT EXISTS idx_seduta_esercizi_esercizio ON seduta_esercizi(esercizio_id);
+  CREATE INDEX IF NOT EXISTS idx_seduta_esercizi_sezione ON seduta_esercizi(seduta_sezione_id);
+  CREATE INDEX IF NOT EXISTS idx_sedute_fase ON sedute(fase_id);
+  CREATE INDEX IF NOT EXISTS idx_seduta_tecniche_tecnica ON seduta_tecniche(tecnica_id);
+  CREATE INDEX IF NOT EXISTS idx_seduta_sezioni_sezione ON seduta_sezioni(sezione_id);
+  CREATE INDEX IF NOT EXISTS idx_questionario_risposte_domanda ON questionario_risposte(domanda_id);
+  CREATE INDEX IF NOT EXISTS idx_paziente_questionari_questionario ON paziente_questionari(questionario_id);
+  CREATE INDEX IF NOT EXISTS idx_screening_valori_misura ON screening_valori(misura_id);
+  CREATE INDEX IF NOT EXISTS idx_screening_sessioni_protocollo ON screening_sessioni(protocollo_id);
+  CREATE INDEX IF NOT EXISTS idx_valutazione_movimenti_movimento ON valutazione_movimenti(movimento_id);
+  CREATE INDEX IF NOT EXISTS idx_valutazione_test_test ON valutazione_test(test_id);
+  CREATE INDEX IF NOT EXISTS idx_segni_paziente ON segni(paziente_id);
+  CREATE INDEX IF NOT EXISTS idx_massimali_paziente ON massimali(paziente_id);
+  CREATE INDEX IF NOT EXISTS idx_bozze_seduta_paziente ON bozze_seduta(paziente_id);
+  CREATE INDEX IF NOT EXISTS idx_pazienti_gruppo ON pazienti(gruppo_id);
+  CREATE INDEX IF NOT EXISTS idx_pazienti_patologia ON pazienti(patologia_id);
   `
 ]
 

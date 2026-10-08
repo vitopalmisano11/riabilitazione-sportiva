@@ -64,6 +64,31 @@ supera con *Ulteriori informazioni → Esegui comunque*.
 Le versioni vere dell'app sono quelle di `package.json` e dei tag `vX.Y.Z`: le sezioni «giro di
 feedback» qui sopra sono precedenti e usavano una numerazione propria.
 
+### v0.5.9
+
+**Prima di tutto:** al primo accesso dopo l'aggiornamento il programma applica due modifiche al
+formato dell'archivio (migrazioni 61 e 62). Non si possono annullare, quindi prima fa da solo una
+copia dell'archivio. Dai Releases di GitHub si installa da solo, come la 0.5.8.
+
+- Più veloce: l'elenco degli esercizi, che si carica a ogni seduta aperta, rileggeva tutte le sedute
+  per ogni esercizio. Con qualche anno di lavoro ci metteva secondi e il programma restava fermo; ora
+  è istantaneo (migrazione 62, solo indici). Anche salvare una seduta è più rapido. Tolta la
+  sfocatura dietro le finestre, che con una scheda grafica modesta faceva andare a scatti
+- Progressioni di esercizi a step (es. Vertical braking: wall sit → front squat → drop catch), in
+  Libreria → Progressioni, raccolte in gruppi e collegate alle fasi (migrazione 61). In «+ Esercizio»
+  si propongono lo step a cui è il paziente e il successivo (col lucchetto), sotto il nome della
+  progressione: lo stesso esercizio in due progressioni si distingue. A fine seduta, per ogni
+  progressione usata: avanza, continua o torna indietro. Lo specchietto «Vedi dove siamo» è nella
+  scheda Percorso. Non compaiono mai in cartella, referti o stampe
+- Tutti i menu a tendina sono del programma, non più quelli di Windows; se in basso non c'è spazio
+  si aprono verso l'alto
+- Nuovo paziente: caselle tutte alte uguali; lato operato e fase iniziale con le scelte del programma
+- Le sezioni che si aprono hanno la freccia ">" che ruota aperta; «Aggiungi segno» sta sulla riga di
+  «Segni di riferimento»
+- Le spiegazioni dei «?» sono scure e ben leggibili, e non escono più dalla finestra
+- Libreria: la linguetta «Categorie» senza il numero; nella progressione aperta spazi più ordinati e,
+  creandone una, il gruppo a sinistra e il nome a destra
+
 ### v0.5.8
 
 **Prima di tutto:** al primo accesso dopo l'aggiornamento il programma applica tre modifiche al

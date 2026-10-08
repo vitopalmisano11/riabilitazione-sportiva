@@ -28,14 +28,35 @@ afterAll(() => {
 test('Le migrazioni si applicano, anche due volte, e creano gli indici', () => {
   runMigrations(db)
   runMigrations(db) // idempotente
-  assert.equal(db.pragma('user_version', { simple: true }), 61)
+  assert.equal(db.pragma('user_version', { simple: true }), 62)
   // gli indici delle ricerche frequenti ci sono
-  for (const indice of ['idx_segno_valori_seduta', 'idx_compilazione_punteggi_compilazione', 'idx_sedute_data']) {
+  for (const indice of [
+    'idx_segno_valori_seduta',
+    'idx_compilazione_punteggi_compilazione',
+    'idx_sedute_data',
+    'idx_seduta_esercizi_esercizio',
+    'idx_seduta_esercizi_sezione'
+  ]) {
     assert.ok(
       db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = ?").get(indice),
       indice
     )
   }
+})
+
+test("L'elenco degli esercizi conta gli usi con l'indice, senza rileggere tutte le sedute", () => {
+  // Senza l'indice, con qualche anno di sedute, l'elenco ci metteva secondi e
+  // il programma restava fermo a ogni seduta aperta (migrazione 62).
+  const piano = (
+    db
+      .prepare(
+        'EXPLAIN QUERY PLAN SELECT e.id, (SELECT COUNT(*) FROM seduta_esercizi se WHERE se.esercizio_id = e.id) FROM esercizi e'
+      )
+      .all() as { detail: string }[]
+  )
+    .map((r) => r.detail)
+    .join(' | ')
+  assert.match(piano, /SEARCH se USING (COVERING )?INDEX idx_seduta_esercizi_esercizio/)
 })
 
 test('Vincoli e cascate: cosa si puo\' eliminare e cosa no', () => {
