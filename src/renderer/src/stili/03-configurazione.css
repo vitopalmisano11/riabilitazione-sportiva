@@ -359,6 +359,35 @@
   min-width: 0;
 }
 
+/* Nuova progressione: il gruppo da scegliere a sinistra, il nome a destra. */
+.add-row .add-row-gruppo {
+  flex: 0 1 42%;
+  min-width: 0;
+}
+
+/* La progressione aperta: i blocchi (nome e gruppo, criteri, step) una
+   spaziatura sola fra l'uno e l'altro, invece dei margini di ciascuno. */
+.editor-progressione {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.editor-progressione > h3,
+.editor-progressione > .sotto-titolo,
+.editor-progressione > ul,
+.editor-progressione > p {
+  margin-bottom: 0;
+}
+
+.editor-progressione > .sotto-titolo {
+  margin-top: 4px;
+}
+
+.editor-progressione > p {
+  margin-top: 0;
+}
+
 .checkbox-list {
   list-style: none;
   margin: 0;
@@ -564,15 +593,21 @@
   font-weight: 400;
   text-align: left;
   transform: translateX(-100%);
+  /* larga quanto il testo (fino al massimo): senza, vicino al bordo della
+     finestra si stringeva allo spazio che restava e diventava una colonna. */
+  width: max-content;
   max-width: 340px;
-  padding: 9px 11px;
-  background: var(--pannello);
-  border: 1px solid var(--border);
+  padding: 10px 13px;
+  /* Scuro come i messaggi in basso, con un filo di luce sul bordo: il fondo
+     chiaro di prima (quasi uguale a quello delle schede) si confondeva con la
+     pagina, e con il bordo sottile la bolla non si distingueva. */
+  background: #1c2634;
+  border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: var(--radius-sm);
-  box-shadow: var(--shadow-md);
-  color: var(--text);
-  font-size: 14px;
-  line-height: 1.35;
+  box-shadow: var(--shadow-lg);
+  color: #f1f5f9;
+  font-size: 14.5px;
+  line-height: 1.4;
   white-space: pre-wrap;
   pointer-events: none;
 }
@@ -582,7 +617,8 @@
 }
 
 /* La spiegazione di una schermata si apre verso destra, perche' il punto
-   interrogativo sta accanto a un titolo, a sinistra. */
+   interrogativo sta accanto a un titolo, a sinistra (se non c'e' posto,
+   Aiuto.tsx la sposta dentro la finestra). */
 .bolla-aiuto {
   transform: none;
   /* Piu' stretta: una riga lunga trecento pixel si rilegge male, e la bolla

@@ -1,3 +1,4 @@
+import Tendina from './Tendina'
 import { useCallback, useEffect, useState } from 'react'
 import { Plus, X } from 'lucide-react'
 import type {
@@ -113,7 +114,7 @@ export default function PromemoriaPaziente({
               </button>
             ))}
           </span>
-          <select
+          <Tendina
             value={riferimento}
             onChange={(e) => setRiferimento(e.target.value === '' ? '' : Number(e.target.value))}
           >
@@ -123,7 +124,7 @@ export default function PromemoriaPaziente({
                 {s.nome}
               </option>
             ))}
-          </select>
+          </Tendina>
           <label className="compila-data">
             Entro il
             <input type="date" value={scadenza} onChange={(e) => setScadenza(e.target.value)} />

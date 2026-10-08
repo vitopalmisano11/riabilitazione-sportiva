@@ -6,6 +6,7 @@ import { useRiordinoSalvato } from '../riordino'
 import { toastErrore } from './Toast'
 import { chiedi } from './Conferma'
 import Aiuto from './Aiuto'
+import SceltaConRicerca from './SceltaConRicerca'
 
 // La linguetta "Progressioni" della libreria: le scale di esercizi a step
 // (es. Vertical braking: wall sit → front squat → drop catch...). Uno step
@@ -113,6 +114,17 @@ export default function ProgressioniLibreria(): React.JSX.Element {
 
         {aggiungi && (
           <div className="add-row">
+            {aggiungi === 'progressione' && (
+              <div className="add-row-gruppo">
+                <SceltaConRicerca
+                  voci={gruppi}
+                  valore={gruppoNuova}
+                  segnaposto="— senza gruppo —"
+                  vuoto="— senza gruppo —"
+                  onCambia={setGruppoNuova}
+                />
+              </div>
+            )}
             <input
               autoFocus
               placeholder={aggiungi === 'gruppo' ? 'es. Braking strategies' : 'es. Vertical braking'}
@@ -126,19 +138,6 @@ export default function ProgressioniLibreria(): React.JSX.Element {
                 }
               }}
             />
-            {aggiungi === 'progressione' && (
-              <select
-                value={gruppoNuova}
-                onChange={(e) => setGruppoNuova(e.target.value === '' ? '' : Number(e.target.value))}
-              >
-                <option value="">— senza gruppo —</option>
-                {gruppi.map((g) => (
-                  <option key={g.id} value={g.id}>
-                    {g.nome}
-                  </option>
-                ))}
-              </select>
-            )}
             <button onClick={() => void conferma()}>OK</button>
             <button
               title="Chiudi"
@@ -283,7 +282,7 @@ function EditorProgressione({
     .slice(0, 10)
 
   return (
-    <>
+    <div className="editor-progressione">
       <h3>
         {p.nome}
         <button className="btn-aggiungi-lista danger" title="Elimina la progressione" onClick={() => void elimina()}>
@@ -302,17 +301,13 @@ function EditorProgressione({
         </label>
         <label>
           Gruppo
-          <select
-            value={p.gruppo_id ?? ''}
-            onChange={(e) => void salvaCampi({ gruppo_id: e.target.value === '' ? null : Number(e.target.value) })}
-          >
-            <option value="">— senza gruppo —</option>
-            {gruppi.map((g) => (
-              <option key={g.id} value={g.id}>
-                {g.nome}
-              </option>
-            ))}
-          </select>
+          <SceltaConRicerca
+            voci={gruppi}
+            valore={p.gruppo_id ?? ''}
+            segnaposto="— senza gruppo —"
+            vuoto="— senza gruppo —"
+            onCambia={(id) => void salvaCampi({ gruppo_id: id === '' ? null : id })}
+          />
         </label>
       </div>
 
@@ -400,7 +395,7 @@ function EditorProgressione({
           <Plus size={15} /> Step
         </button>
       )}
-    </>
+    </div>
   )
 }
 

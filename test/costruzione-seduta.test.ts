@@ -14,6 +14,7 @@ import {
   misuraNonNumerica,
   mostraCluster,
   riduciSezioni,
+  suggerimentiProgressioni,
   type AzioneSezioni,
   type CampiSeduta,
   type StatoSezioni
@@ -284,4 +285,52 @@ test('Progressioni: gli esiti si scrivono solo per chi ha un esercizio in seduta
   const conEsiti = JSON.parse(JSON.stringify(inBozza(campi({ esiti: { 1: 'indietro' } }), sezioni)))
   assert.deepEqual(campiDaBozza(conEsiti).esiti, { 1: 'indietro' })
   assert.deepEqual(campiDaBozza({ data: '2026-01-01', faseId: null, note: '', sezioni: [] }).esiti, {})
+})
+
+test('Progressioni: si suggerisce lo step attuale e il successivo, e lo squat in due scale resta distinto', () => {
+  const scala = (id: number, nome: string, posizione: number, esercizi: [number, string][]) =>
+    ({
+      id,
+      nome,
+      posizione,
+      completata: false,
+      step: esercizi.map(([esercizio_id, esercizio_nome], k) => ({ id: id * 100 + k, esercizio_id, esercizio_nome }))
+    }) as unknown as StatoProgressione
+  // wall sit (10) -> squat (11) -> drop catch (12) -> salto (13); l'altra scala usa lo squat al secondo posto
+  const verticale = scala(1, 'Vertical braking', 0, [
+    [10, 'Wall sit'],
+    [11, 'Squat'],
+    [12, 'Drop catch'],
+    [13, 'Salto']
+  ])
+  const orizzontale = scala(2, 'Horizontal braking', 0, [
+    [20, 'Affondo'],
+    [11, 'Squat']
+  ])
+  const stati = [verticale, orizzontale]
+  const nomi = (g: ReturnType<typeof suggerimentiProgressioni>): string[][] =>
+    g.map((x) => x.righe.map((r) => r.step.esercizio_nome))
+
+  // dall'inizio: lo step attuale e solo il successivo
+  assert.deepEqual(nomi(suggerimentiProgressioni(stati, new Set(), '')), [
+    ['Wall sit', 'Squat'],
+    ['Affondo', 'Squat']
+  ])
+
+  // con lo squat gia' in seduta si parte da li' in ogni scala: niente wall sit e niente affondo
+  assert.deepEqual(nomi(suggerimentiProgressioni(stati, new Set([11]), '')), [['Squat', 'Drop catch'], ['Squat']])
+
+  // scrivendo restano solo gli step che corrispondono, ognuno sotto la sua scala
+  const squat = suggerimentiProgressioni(stati, new Set(), 'sq')
+  assert.deepEqual(
+    squat.map((g) => [g.progressione.nome, g.righe.map((r) => r.step.esercizio_nome)]),
+    [
+      ['Vertical braking', ['Squat']],
+      ['Horizontal braking', ['Squat']]
+    ]
+  )
+  assert.deepEqual(suggerimentiProgressioni(stati, new Set(), 'zzz'), [])
+
+  // una scala completata non suggerisce niente
+  assert.deepEqual(suggerimentiProgressioni([{ ...verticale, completata: true }], new Set(), ''), [])
 })

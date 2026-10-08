@@ -1,3 +1,4 @@
+import Tendina from '../../components/Tendina'
 import { Plus, X } from 'lucide-react'
 import type {
   DomandaQuestionario,
@@ -50,7 +51,7 @@ export function TabPunteggi({
           </div>
           <label className="field">
             Come si calcola
-            <select
+            <Tendina
               value={p.tipo}
               onChange={(e) => modifica(i, { tipo: e.target.value as TipoPunteggio })}
             >
@@ -59,7 +60,7 @@ export function TabPunteggi({
                   {t.etichetta}
                 </option>
               ))}
-            </select>
+            </Tendina>
             <span className="hint">{TIPI_PUNTEGGIO.find((t) => t.valore === p.tipo)?.spiegazione}</span>
           </label>
           <ul className="checkbox-list">

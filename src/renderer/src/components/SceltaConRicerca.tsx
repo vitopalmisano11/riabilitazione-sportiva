@@ -55,9 +55,12 @@ export default function SceltaConRicerca({
   // La voce di sopra di cui si stanno guardando le voci dentro; null = il
   // primo livello.
   const [dentro, setDentro] = useState<number | null>(null)
-  const [posizione, setPosizione] = useState<{ top: number; left: number; width: number } | null>(
-    null
-  )
+  const [posizione, setPosizione] = useState<{
+    top?: number
+    bottom?: number
+    left: number
+    width: number
+  } | null>(null)
   const contenitore = useRef<HTMLDivElement>(null)
   const popupRif = useRef<HTMLUListElement>(null)
 
@@ -67,7 +70,14 @@ export default function SceltaConRicerca({
 
   const posiziona = (): void => {
     const r = contenitore.current?.getBoundingClientRect()
-    if (r) setPosizione({ top: r.bottom + 4, left: r.left, width: r.width })
+    if (!r) return
+    // Sotto alla casella se c'e' posto; se no sopra, invece di uscire dalla finestra.
+    const sotto = window.innerHeight - r.bottom
+    if (sotto < 264 && r.top > sotto) {
+      setPosizione({ bottom: window.innerHeight - r.top + 4, left: r.left, width: r.width })
+    } else {
+      setPosizione({ top: r.bottom + 4, left: r.left, width: r.width })
+    }
   }
 
   useLayoutEffect(() => {
@@ -205,7 +215,12 @@ export default function SceltaConRicerca({
           <ul
             ref={popupRif}
             className="elenco-scelta"
-            style={{ top: posizione.top, left: posizione.left, width: posizione.width }}
+            style={{
+              top: posizione.top,
+              bottom: posizione.bottom,
+              left: posizione.left,
+              width: posizione.width
+            }}
           >
             {/* Dentro a una categoria, la prima riga riporta indietro. */}
             {!cercando && padreAperto && (

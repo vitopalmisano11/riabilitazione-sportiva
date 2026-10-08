@@ -1,3 +1,4 @@
+import Tendina from '../Tendina'
 import type { Fase, PazienteDettaglio } from '../../../../shared/types'
 import type { StatoSalvataggio } from '../../salvataggio'
 import IndicatoreSalvataggio from '../IndicatoreSalvataggio'
@@ -74,7 +75,7 @@ export default function TestataSeduta({
               Al campo
             </button>
             {alCampo && fasiCampo.length > 1 && (
-              <select
+              <Tendina
                 value={campi.faseId ?? 0}
                 title="Quale programma da campo"
                 onChange={(e) => onCambiaFase(Number(e.target.value))}
@@ -84,7 +85,7 @@ export default function TestataSeduta({
                     {f.nome}
                   </option>
                 ))}
-              </select>
+              </Tendina>
             )}
           </div>
         )}

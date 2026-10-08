@@ -245,6 +245,19 @@
   padding: 2px 10px;
 }
 
+/* Il nome della scala, una volta sola sopra ai suoi esercizi. */
+.suggeriti-scala-nome {
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.suggeriti-scala-nome span {
+  font-weight: 400;
+  color: var(--text-dim);
+}
+
 .suggeriti-prog .esercizi-proposti li {
   border-bottom-color: var(--surface);
 }

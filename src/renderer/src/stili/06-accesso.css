@@ -136,6 +136,29 @@
   color: var(--text-dim);
 }
 
+/* <Tendina> sostituisce il <select>: in una riga di parole e caselle sta
+   largo quanto serve (ma non meno di una misura leggibile, perche' l'elenco
+   che si apre ha la sua stessa larghezza); sotto a un'etichetta riempie la
+   colonna come faceva la casella. */
+.tendina {
+  display: inline-block;
+  min-width: 150px;
+  max-width: 100%;
+  vertical-align: middle;
+}
+
+label > .tendina,
+.field > .tendina,
+.form-row > .tendina {
+  display: block;
+  min-width: 0;
+}
+
+.campo-percepito .tendina {
+  width: 90px;
+  min-width: 0;
+}
+
 /* position: fixed e non absolute: cosi' il menu si disegna sopra a tutto,
    anche dentro a una finestra modale che altrimenti taglierebbe quello che
    sfora dai suoi bordi. La posizione esatta (sotto al bottone) la calcola

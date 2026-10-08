@@ -1,3 +1,4 @@
+import Tendina from '../../components/Tendina'
 import { Copy, Plus, X } from 'lucide-react'
 import type { DomandaQuestionario, OpzioneDomanda, TipoDomanda } from '../../../../shared/types'
 import { sposta, useRiordino, type PropsContenitore, type PropsPresa } from '../../riordino'
@@ -72,7 +73,7 @@ export function TabDomande({
                 value={d.testo}
                 onChange={(e) => modifica(i, { testo: e.target.value })}
               />
-              <select
+              <Tendina
                 value={d.tipo}
                 onChange={(e) => {
                   const tipo = e.target.value as TipoDomanda
@@ -89,7 +90,7 @@ export function TabDomande({
                     {t.etichetta}
                   </option>
                 ))}
-              </select>
+              </Tendina>
               <span className="item-actions-static">
                 <button title="Copia domanda" onClick={() => duplica(i)}>
                   <Copy size={16} />

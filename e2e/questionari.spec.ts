@@ -36,9 +36,10 @@ test('questionari: il punteggio in percentuale si sceglie e resta', async () => 
     await pagina.getByText('Mini ODI', { exact: true }).first().click()
     await pagina.getByRole('button', { name: 'Punteggi', exact: true }).click()
 
-    const calcolo = pagina.getByLabel('Come si calcola')
-    await expect(calcolo).toHaveValue('somma')
-    await calcolo.selectOption('percentuale')
+    const calcolo = pagina.locator('label', { hasText: 'Come si calcola' }).locator('.menu-scelta-bottone')
+    await expect(calcolo).toContainText('Somma delle risposte')
+    await calcolo.click()
+    await pagina.locator('.menu-scelta-popup').getByRole('button', { name: 'Percentuale del massimo (0–100)' }).click()
     await expect(pagina.getByText('Come l’ODI o l’IKDC soggettivo', { exact: false })).toBeVisible()
     await pagina.screenshot({ path: join(FOTO, '12-punteggi-questionario.png'), fullPage: true })
     await pagina.getByRole('button', { name: 'Salva questionario' }).click()

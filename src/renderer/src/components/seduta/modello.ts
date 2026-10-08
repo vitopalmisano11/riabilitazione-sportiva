@@ -328,6 +328,45 @@ export function daProporre(
   return proposte(s, templateCats, categorie, libreria).filter((e) => !presenti.has(e.id))
 }
 
+// ---- suggerimenti dalle progressioni ----
+
+export type StepSuggerito = StatoProgressione['step'][number]
+
+export interface GruppoSuggerito {
+  progressione: StatoProgressione
+  // l'indice (da 0) dello step da cui si parte
+  base: number
+  // lo step di partenza e, subito dopo, quello successivo (il primo ha
+  // indice 0): ognuno con la sua posizione nella scala
+  righe: { step: StepSuggerito; indice: number }[]
+}
+
+// Per ogni progressione ancora aperta, lo step a cui e' il paziente e solo
+// quello dopo. Se in seduta c'e' gia' un esercizio della scala piu' avanti
+// dello step salvato, si parte da quello: non si ripropone il wall sit quando
+// in seduta c'e' gia' lo squat. Scrivendo, restano solo gli step il cui
+// esercizio ha quel testo nel nome; le progressioni senza nessuno step che
+// corrisponde spariscono.
+export function suggerimentiProgressioni(
+  stati: StatoProgressione[],
+  inSeduta: Set<number>,
+  testoRicerca: string
+): GruppoSuggerito[] {
+  const q = testoRicerca.trim().toLowerCase()
+  const gruppi: GruppoSuggerito[] = []
+  for (const p of stati) {
+    if (p.completata) continue
+    const piuAvanti = p.step.reduce((max, s, k) => (inSeduta.has(s.esercizio_id) ? k : max), -1)
+    const base = Math.max(p.posizione, piuAvanti)
+    const righe = p.step
+      .slice(base, base + 2)
+      .map((step, i) => ({ step, indice: i }))
+      .filter((r) => q === '' || r.step.esercizio_nome.toLowerCase().includes(q))
+    if (righe.length > 0) gruppi.push({ progressione: p, base, righe })
+  }
+  return gruppi
+}
+
 // I campi del cluster si vedono solo dove servono: nelle categorie che lo
 // prevedono (la pliometria estensiva), oppure su una riga che un dosaggio a
 // cluster ce l'ha gia' — cosi' una seduta vecchia resta modificabile anche se

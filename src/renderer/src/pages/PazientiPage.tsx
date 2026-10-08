@@ -1,3 +1,4 @@
+import Tendina from '../components/Tendina'
 import { useEffect, useRef, useState } from 'react'
 import { ChevronRight, Filter, Plus } from 'lucide-react'
 import type { Gruppo, Patologia, PazienteDettaglio } from '../../../shared/types'
@@ -336,7 +337,7 @@ export default function PazientiPage({
               </label>
               <label className="compila-data">
                 Stato
-                <select
+                <Tendina
                   value={filtroStato}
                   onChange={(e) =>
                     setFiltroStato(e.target.value as '' | 'trattamento' | 'concluso')
@@ -345,7 +346,7 @@ export default function PazientiPage({
                   <option value="">tutti</option>
                   <option value="trattamento">in trattamento</option>
                   <option value="concluso">concluso</option>
-                </select>
+                </Tendina>
               </label>
               {filtriAttivi && (
                 <button

@@ -1,3 +1,4 @@
+import Tendina from './Tendina'
 import { useEffect, useState } from 'react'
 import { CircleAlert, Plus, X } from 'lucide-react'
 import type {
@@ -149,7 +150,7 @@ export default function PunteggioCluster({
                 <div key={i} className="domanda-card regola-punteggio">
                   <div className="domanda-testata">
                     <span className="domanda-numero">{i + 1}</span>
-                    <select
+                    <Tendina
                       className="domanda-testo"
                       value={chiaveDi(r)}
                       onChange={(e) => {
@@ -170,7 +171,7 @@ export default function PunteggioCluster({
                           {f.nome}
                         </option>
                       ))}
-                    </select>
+                    </Tendina>
                     <span className="item-actions-static">
                       <button
                         className="danger"
@@ -187,7 +188,7 @@ export default function PunteggioCluster({
                   {fonte?.perLato && (
                     <div className="regola-fascia">
                       <span className="regola-parola">si guarda</span>
-                      <select
+                      <Tendina
                         value={r.lato ?? 'interessato'}
                         onChange={(e) =>
                           cambiaRegola(i, { lato: e.target.value as 'interessato' | 'lsi' })
@@ -195,7 +196,7 @@ export default function PunteggioCluster({
                       >
                         <option value="interessato">il lato interessato</option>
                         <option value="lsi">la simmetria fra i lati (LSI %)</option>
-                      </select>
+                      </Tendina>
                     </div>
                   )}
 

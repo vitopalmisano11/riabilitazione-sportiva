@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Check, Plus, Trash2, X } from 'lucide-react'
 import type { AndamentoSegno, PazienteDettaglio } from '../../../shared/types'
 import Aiuto from './Aiuto'
@@ -23,6 +23,7 @@ export default function SegniPaziente({
   const [nuovo, setNuovo] = useState(false)
   const [nome, setNome] = useState('')
   const [unita, setUnita] = useState('')
+  const dettagli = useRef<HTMLDetailsElement>(null)
 
   const carica = useCallback((): void => {
     window.api.segni
@@ -67,19 +68,28 @@ export default function SegniPaziente({
   // numero nel tempo, non un passaggio della giornata. Chi non la usa non la
   // vede nemmeno.
   return (
-    <details className="blocco-apribile blocco-segni">
+    <details className="blocco-apribile blocco-segni" ref={dettagli}>
       <summary>
         Segni di riferimento{segni.length > 0 ? ` (${segni.length})` : ''}
         <Aiuto testo="Serve solo se vuoi seguire un numero nel tempo: il dolore in un movimento, un grado di mobilità, un test veloce. Lo scegli qui e lo ritrovi in fondo a ogni seduta, accanto a dolore e sforzo, e qui vedi da dove sei partito e dove sei arrivato. Per tutto il resto vanno benissimo le note della seduta." />
-      </summary>
-      <div className="contenuto-apribile contenuto-segni">
-      <div className="card-header-row riga-titolo-segni">
+        {/* Sulla riga del titolo, cosi' c'e' anche a blocco chiuso: premuto,
+            apre il blocco (senza che il clic lo richiuda) e la riga per scrivere. */}
         {!nuovo && (
-          <button className="btn-aggiungi-lista" title="Aggiungi un segno" onClick={() => setNuovo(true)}>
+          <button
+            className="btn-aggiungi-lista"
+            title="Aggiungi un segno"
+            onClick={(e) => {
+              e.preventDefault()
+              if (dettagli.current) dettagli.current.open = true
+              setNuovo(true)
+            }}
+          >
             <Plus size={16} /> Aggiungi segno
           </button>
         )}
-      </div>
+      </summary>
+      <div className="contenuto-apribile contenuto-segni">
+      {segni.length === 0 && <p className="hint">Nessun segno scelto.</p>}
 
       {nuovo && (
         <div className="riga-nuovo-segno">
@@ -112,9 +122,7 @@ export default function SegniPaziente({
         </div>
       )}
 
-      {segni.length === 0 ? (
-        <p className="hint">Nessun segno scelto.</p>
-      ) : (
+      {segni.length === 0 ? null : (
         <ul className="lista-segni">
           {segni.map((s) => (
             <li key={s.id}>

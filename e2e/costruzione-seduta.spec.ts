@@ -108,7 +108,8 @@ test('costruzione: esercizi, dosaggi, al volo, Ctrl+Z, sezioni, salvataggio e ul
     await nuovaSezione.press('Enter')
     await expect(pagina.getByRole('heading', { name: 'Defaticamento', exact: true })).toBeVisible()
 
-    await pagina.locator('.campo-percepito', { hasText: 'Dolore' }).locator('select').selectOption('3')
+    await pagina.locator('.campo-percepito', { hasText: 'Dolore' }).locator('.menu-scelta-bottone').click()
+    await pagina.locator('.menu-scelta-popup').getByRole('button', { name: '3', exact: true }).click()
     await pagina.getByPlaceholder('Osservazioni generali, cose da riprendere la prossima volta…').fill('Bene')
     await pagina.screenshot({ path: join(FOTO, '11-costruzione.png'), fullPage: true })
     await pagina.getByRole('button', { name: /Salva seduta \(3 esercizi\)/ }).click()
@@ -123,7 +124,7 @@ test('costruzione: esercizi, dosaggi, al volo, Ctrl+Z, sezioni, salvataggio e ul
     await expect(riga(pagina, 'Squat bulgaro').getByPlaceholder('carico')).toHaveValue('25')
     await expect(riga(pagina, 'Ponte glutei').getByPlaceholder('nota…')).toHaveValue('lento in discesa')
     await expect(riga(pagina, 'Affondo laterale')).toBeVisible()
-    await expect(pagina.locator('.campo-percepito', { hasText: 'Dolore' }).locator('select')).toHaveValue('3')
+    await expect(pagina.locator('.campo-percepito', { hasText: 'Dolore' }).locator('.menu-scelta-bottone')).toHaveText('3')
     // uscire senza cambiare niente non chiede e non salva una seconda volta
     await pagina.getByRole('button', { name: 'Annulla' }).first().click()
 

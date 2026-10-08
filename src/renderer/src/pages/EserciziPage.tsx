@@ -323,7 +323,7 @@ export default function EserciziPage(): React.JSX.Element {
           className={vista === 'categorie' ? 'active' : ''}
           onClick={() => setVista('categorie')}
         >
-          Categorie ({categorie.length})
+          Categorie
         </button>
         <button
           className={vista === 'progressioni' ? 'active' : ''}

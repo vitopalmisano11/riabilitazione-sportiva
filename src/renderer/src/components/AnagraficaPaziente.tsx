@@ -202,6 +202,13 @@ const VUOTO = {
   arto_operato: ''
 }
 
+// Le due voci del lato, nella casella di scelta del programma (gli id sono solo
+// d'appoggio: nel paziente si salva 'dx' o 'sx').
+const LATI = [
+  { id: 1, nome: 'Destro' },
+  { id: 2, nome: 'Sinistro' }
+]
+
 // Stessa finestra per creare un paziente e per modificarlo, cosi' i campi non
 // possono divergere fra i due momenti. In creazione compaiono anche patologia e
 // fase iniziale; in modifica quelle vivono nella scheda "Percorso riabilitativo".
@@ -442,7 +449,7 @@ export function ModaleDatiPaziente({
               Precauzioni e limiti
               <textarea
                 rows={1}
-                placeholder="es. non oltre 90° di flessione fino a 6 settimane, carico parziale"
+                placeholder="non oltre i 90° di flessione fino a 6 settimane"
                 value={form.precauzioni}
                 onChange={campo('precauzioni')}
               />
@@ -479,11 +486,15 @@ export function ModaleDatiPaziente({
                   confronto fra i due diventa interessato ÷ sano, cioè l'LSI. */}
               <label>
                 Lato operato/infortunato
-                <select value={form.arto_operato} onChange={campo('arto_operato')}>
-                  <option value="">— nessuno —</option>
-                  <option value="dx">Destro</option>
-                  <option value="sx">Sinistro</option>
-                </select>
+                <SceltaConRicerca
+                  voci={LATI}
+                  valore={form.arto_operato === 'dx' ? 1 : form.arto_operato === 'sx' ? 2 : ''}
+                  segnaposto="— nessuno —"
+                  vuoto="— nessuno —"
+                  onCambia={(id) =>
+                    setForm({ ...form, arto_operato: id === 1 ? 'dx' : id === 2 ? 'sx' : '' })
+                  }
+                />
               </label>
             </div>
           </div>
@@ -521,20 +532,14 @@ export function ModaleDatiPaziente({
               </label>
               <label>
                 Fase iniziale
-                <select
-                  value={faseId}
+                <SceltaConRicerca
+                  voci={fasi.filter((f) => f.campo !== 1)}
+                  valore={faseId}
                   disabled={patologiaId === ''}
-                  onChange={(e) => setFaseId(e.target.value === '' ? '' : Number(e.target.value))}
-                >
-                  <option value="">— non impostata —</option>
-                  {fasi
-                    .filter((f) => f.campo !== 1)
-                    .map((f) => (
-                      <option key={f.id} value={f.id}>
-                        {f.nome}
-                      </option>
-                    ))}
-                </select>
+                  segnaposto="— non impostata —"
+                  vuoto="— non impostata —"
+                  onCambia={setFaseId}
+                />
               </label>
             </>
           )}

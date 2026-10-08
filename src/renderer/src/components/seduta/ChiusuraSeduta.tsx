@@ -1,3 +1,4 @@
+import Tendina from '../Tendina'
 import type { Segno, StatoProgressione } from '../../../../shared/types'
 import type { StatoSalvataggio } from '../../salvataggio'
 import IndicatoreSalvataggio from '../IndicatoreSalvataggio'
@@ -49,28 +50,28 @@ export default function ChiusuraSeduta({
             Dolore
             <Aiuto testo="Quanto ha fatto male oggi, da 0 (niente) a 10 (il massimo). È quello che dice il paziente, non quello che vedi tu: serve a confrontare le sedute fra loro." />
           </span>
-          <select value={campi.dolore} onChange={(e) => onCambia({ dolore: e.target.value })}>
+          <Tendina value={campi.dolore} onChange={(e) => onCambia({ dolore: e.target.value })}>
             <option value="">—</option>
             {VOTI.map((n) => (
               <option key={n} value={n}>
                 {n}
               </option>
             ))}
-          </select>
+          </Tendina>
         </label>
         <label className="field campo-percepito">
           <span className="nome-percepito">
             Sforzo
             <Aiuto testo="Quanto è stata dura la seduta per lui, da 0 (niente) a 10 (massimo sforzo). Due sedute con gli stessi carichi possono costare molto diverso, e questo numero te lo dice." />
           </span>
-          <select value={campi.sforzo} onChange={(e) => onCambia({ sforzo: e.target.value })}>
+          <Tendina value={campi.sforzo} onChange={(e) => onCambia({ sforzo: e.target.value })}>
             <option value="">—</option>
             {VOTI.map((n) => (
               <option key={n} value={n}>
                 {n}
               </option>
             ))}
-          </select>
+          </Tendina>
         </label>
         {/* I segni di riferimento di questo paziente, nella stessa riga: si
             ricontrollano qui, seduta dopo seduta, ed e' da questi numeri che si

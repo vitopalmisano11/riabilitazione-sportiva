@@ -78,7 +78,8 @@ test('progressioni: dalla libreria alla seduta e allo specchietto', async () => 
 
     await pagina.getByRole('button', { name: 'Progressione', exact: true }).click()
     await pagina.getByPlaceholder('es. Vertical braking').fill('Vertical braking')
-    await pagina.locator('.add-row select').selectOption({ label: 'Braking strategies' })
+    await pagina.locator('.add-row-gruppo .apri-scelta').click()
+    await pagina.locator('.elenco-scelta').getByRole('button', { name: 'Braking strategies' }).click()
     await pagina.getByRole('button', { name: 'OK', exact: true }).click()
     // creata e subito aperta, con i criteri generali gia' scritti
     await expect(pagina.getByLabel('Criteri per passare allo step dopo')).toHaveValue(/Competenza, nessun dolore/)

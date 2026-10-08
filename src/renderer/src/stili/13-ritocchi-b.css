@@ -586,11 +586,6 @@ textarea.cresce {
   box-shadow: var(--shadow-sm);
 }
 
-.riga-titolo-segni {
-  justify-content: flex-end;
-  margin-bottom: 4px;
-}
-
 /* I segni di riferimento: una riga per segno, il nome a sinistra e i due
    numeri (da dove e' partito, dov'e' adesso) al centro. Niente grafici: sono
    due numeri, e due numeri si leggono. */

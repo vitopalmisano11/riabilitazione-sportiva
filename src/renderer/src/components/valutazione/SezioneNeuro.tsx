@@ -1,3 +1,4 @@
+import Tendina from '../Tendina'
 import { useState } from 'react'
 import { ChevronDown, ChevronRight, X } from 'lucide-react'
 import type { RilievoNeuro, VoceNeuro } from '../../../../shared/types'
@@ -161,7 +162,7 @@ export function SezioneNeuro({
                 </div>
               )}
               {!soloLettura && radiciDaAggiungere.length > 0 && (
-                <select
+                <Tendina
                   className="neuro-aggiungi"
                   value=""
                   onChange={(e) => {
@@ -175,7 +176,7 @@ export function SezioneNeuro({
                       {v.nome}
                     </option>
                   ))}
-                </select>
+                </Tendina>
               )}
             </div>
           )}

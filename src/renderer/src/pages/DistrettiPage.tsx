@@ -1,3 +1,4 @@
+import Tendina from '../components/Tendina'
 import { useCallback, useEffect, useState } from 'react'
 import { ChevronRight, Pencil, Plus, X } from 'lucide-react'
 import type {
@@ -426,7 +427,7 @@ function TestDistrettuali({
               value={t.nome}
               onChange={(e) => modifica(i, { nome: e.target.value })}
             />
-            <select
+            <Tendina
               value={t.gruppo}
               onChange={(e) => modifica(i, { gruppo: e.target.value as GruppoTest })}
             >
@@ -435,8 +436,8 @@ function TestDistrettuali({
                   {g.etichetta}
                 </option>
               ))}
-            </select>
-            <select
+            </Tendina>
+            <Tendina
               value={t.risposta}
               onChange={(e) => modifica(i, { risposta: e.target.value as RispostaTest })}
             >
@@ -445,7 +446,7 @@ function TestDistrettuali({
                   {r.etichetta}
                 </option>
               ))}
-            </select>
+            </Tendina>
             <span className="item-actions-static">
               <button
                 className="danger"

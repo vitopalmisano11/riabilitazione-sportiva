@@ -1,3 +1,4 @@
+import Tendina from '../../components/Tendina'
 import { Plus, X } from 'lucide-react'
 import type { FasciaQuestionario, PunteggioQuestionario } from '../../../../shared/types'
 import { sposta, useRiordino } from '../../riordino'
@@ -59,7 +60,7 @@ export function TabFasce({
 
             <div className="regola-fascia">
               <span className="regola-parola">se</span>
-              <select
+              <Tendina
                 value={f.punteggio_id ?? ''}
                 onChange={(e) => modifica(i, { punteggio_id: numero(e.target.value) })}
               >
@@ -69,7 +70,7 @@ export function TabFasce({
                     {o.nome}
                   </option>
                 ))}
-              </select>
+              </Tendina>
               <span className="regola-parola">da</span>
               <input
                 type="number"
@@ -86,7 +87,7 @@ export function TabFasce({
 
             <div className="regola-fascia">
               <span className="regola-parola">e</span>
-              <select
+              <Tendina
                 value={f.punteggio2_id ?? ''}
                 onChange={(e) => modifica(i, { punteggio2_id: numero(e.target.value) })}
               >
@@ -96,7 +97,7 @@ export function TabFasce({
                     {o.nome}
                   </option>
                 ))}
-              </select>
+              </Tendina>
               <span className="regola-parola">da</span>
               <input
                 type="number"

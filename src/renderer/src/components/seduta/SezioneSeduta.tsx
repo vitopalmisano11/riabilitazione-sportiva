@@ -13,6 +13,7 @@ import {
   daProporre,
   mostraCluster,
   mostraRir,
+  suggerimentiProgressioni,
   testoUltima,
   type AzioneSezioni,
   type SezioneBuilder
@@ -85,6 +86,9 @@ export default function SezioneSeduta({
   }
 
   const testoRicerca = ricerca.trim()
+  // Solo per la sezione aperta, come le proposte.
+  const suggeriti = aperta ? suggerimentiProgressioni(progressioni, inSeduta, testoRicerca) : []
+  const giaSuggeriti = new Set(suggeriti.flatMap((g) => g.righe.map((r) => r.step.esercizio_id)))
   const nomeCategoria = (cid: number): string => categorie.find((c) => c.id === cid)?.nome ?? '?'
   const dndSez = riordinoSezioni.contenitore(idxSez)
 
@@ -202,19 +206,18 @@ export default function SezioneSeduta({
               <Plus size={16} /> Aggiungi «{testoRicerca}» come esercizio solo per questa seduta
             </button>
           )}
-          {/* Cercando per nome i suggerimenti si tolgono di mezzo: chi scrive
-              sa gia' cosa vuole. */}
-          {testoRicerca.length < 2 && (
-            <SuggerimentiProgressioni
-              stati={progressioni}
-              libreria={libreria}
-              inSeduta={inSeduta}
-              onAggiungi={(e) => invia({ tipo: 'aggiungi', sez: idxSez, esercizio: e })}
-              onSpecchietto={onSpecchietto}
-            />
-          )}
+          {/* Scrivendo, i suggerimenti restano ma si restringono a quelli che
+              corrispondono. Un esercizio gia' suggerito non si ripete anche
+              nell'elenco sotto: la scala a cui appartiene si legge sopra. */}
+          <SuggerimentiProgressioni
+            gruppi={suggeriti}
+            libreria={libreria}
+            inSeduta={inSeduta}
+            onAggiungi={(e) => invia({ tipo: 'aggiungi', sez: idxSez, esercizio: e })}
+            onSpecchietto={onSpecchietto}
+          />
           <ElencoProposte
-            esercizi={daProporre(s, ricerca, templateCats, categorie, libreria)}
+            esercizi={daProporre(s, ricerca, templateCats, categorie, libreria).filter((e) => !giaSuggeriti.has(e.id))}
             nomeCategoria={nomeCategoria}
             onAggiungi={(e) => invia({ tipo: 'aggiungi', sez: idxSez, esercizio: e })}
             onImmagine={onImmagine}

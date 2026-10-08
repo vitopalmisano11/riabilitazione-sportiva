@@ -14,6 +14,10 @@ import { ChevronDown } from 'lucide-react'
 // dentro <body>, in posizione "fixed"): dentro a una finestra modale, che si
 // taglia da sola quello che sfora, l'elenco restava schiacciato dentro ai
 // bordi della finestra invece di aprirsi per intero sopra a tutto.
+// Quanto spazio serve all'elenco aperto (sette righe e la ricerca): sotto a
+// questo, si apre verso l'alto.
+const ALTEZZA_ELENCO = 260
+
 export interface OpzioneMenu<T extends string | number> {
   valore: T
   etichetta: string
@@ -27,7 +31,9 @@ export default function MenuScelta<T extends string | number>({
   id,
   cercabile,
   segnaposto,
-  placeholderSceglibile = true
+  placeholderSceglibile = true,
+  disabled,
+  title
 }: {
   valore: T | ''
   // Testo del bottone quando non e' ancora scelto niente, es. "— scegli —"
@@ -46,19 +52,31 @@ export default function MenuScelta<T extends string | number>({
   // scelta ci deve sempre essere, e "scegli" non è un valore vero, si toglie
   // dall'elenco: resta solo come testo del bottone finche' non si sceglie.
   placeholderSceglibile?: boolean
+  disabled?: boolean
+  title?: string
 }): React.JSX.Element {
   const [aperto, setAperto] = useState(false)
   const [ricerca, setRicerca] = useState('')
-  const [posizione, setPosizione] = useState<{ top: number; left: number; width: number } | null>(
-    null
-  )
+  const [posizione, setPosizione] = useState<{
+    top?: number
+    bottom?: number
+    left: number
+    width: number
+  } | null>(null)
   const bottoneRif = useRef<HTMLButtonElement>(null)
   const popupRif = useRef<HTMLDivElement>(null)
   const ricercaRif = useRef<HTMLInputElement>(null)
 
   const posiziona = (): void => {
     const r = bottoneRif.current?.getBoundingClientRect()
-    if (r) setPosizione({ top: r.bottom + 4, left: r.left, width: r.width })
+    if (!r) return
+    // Sotto al bottone se c'e' posto; se no sopra, invece di uscire dalla finestra.
+    const sotto = window.innerHeight - r.bottom
+    if (sotto < ALTEZZA_ELENCO && r.top > sotto) {
+      setPosizione({ bottom: window.innerHeight - r.top + 4, left: r.left, width: r.width })
+    } else {
+      setPosizione({ top: r.bottom + 4, left: r.left, width: r.width })
+    }
   }
 
   useLayoutEffect(() => {
@@ -118,6 +136,8 @@ export default function MenuScelta<T extends string | number>({
         id={id}
         ref={bottoneRif}
         className="menu-scelta-bottone"
+        disabled={disabled}
+        title={title}
         onClick={() => setAperto((a) => !a)}
       >
         <span className={scelta ? '' : 'menu-scelta-placeholder'}>
@@ -131,7 +151,12 @@ export default function MenuScelta<T extends string | number>({
           <div
             ref={popupRif}
             className="menu-scelta-popup"
-            style={{ top: posizione.top, left: posizione.left, width: posizione.width }}
+            style={{
+              top: posizione.top,
+              bottom: posizione.bottom,
+              left: posizione.left,
+              width: posizione.width
+            }}
           >
             {cercabile && (
               <input

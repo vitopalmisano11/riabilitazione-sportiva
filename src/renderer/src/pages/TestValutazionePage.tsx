@@ -1,3 +1,4 @@
+import Tendina from '../components/Tendina'
 import { useCallback, useEffect, useState } from 'react'
 import { ChevronRight, Pencil, Plus, X } from 'lucide-react'
 import type {
@@ -583,17 +584,17 @@ function Misure({
 
             <div className="regola-fascia">
               <span className="regola-parola">si registra</span>
-              <select
+              <Tendina
                 value={m.per_prova}
                 onChange={(e) => modifica(i, { per_prova: Number(e.target.value) as 0 | 1 })}
               >
                 <option value={1}>a ogni prova</option>
                 <option value={0}>una volta sola</option>
-              </select>
+              </Tendina>
               {m.per_prova === 1 && prove > 1 && (
                 <>
                   <span className="regola-parola">e vale</span>
-                  <select
+                  <Tendina
                     value={m.riassunto}
                     onChange={(e) =>
                       modifica(i, { riassunto: e.target.value as RiassuntoMisura })
@@ -604,7 +605,7 @@ function Misure({
                         {r.etichetta}
                       </option>
                     ))}
-                  </select>
+                  </Tendina>
                 </>
               )}
             </div>
@@ -615,7 +616,7 @@ function Misure({
                 basso, e senza dirlo veniva preso il tempo piu' lento. */}
             <div className="regola-fascia">
               <span className="regola-parola">è meglio se è più</span>
-              <select
+              <Tendina
                 value={m.cutoff_direzione ?? 'min'}
                 onChange={(e) =>
                   modifica(i, { cutoff_direzione: e.target.value as DirezioneCutoff })
@@ -623,7 +624,7 @@ function Misure({
               >
                 <option value="min">alto (altezze, distanze, forza)</option>
                 <option value="max">basso (tempi)</option>
-              </select>
+              </Tendina>
               {unitaDiTempo(m.unita) && m.cutoff_direzione !== 'max' && (
                 <span className="hint esito-attenzione">
                   È un tempo: di solito è meglio più basso. Con «alto» la prova migliore sarebbe
@@ -676,7 +677,7 @@ function Misure({
                 una misura appena aggiunta non ha ancora un id da citare. */}
             <div className="regola-fascia">
               <span className="regola-parola">si ottiene</span>
-              <select
+              <Tendina
                 value={m.calcolo ?? ''}
                 onChange={(e) =>
                   modifica(i, {
@@ -689,7 +690,7 @@ function Misure({
                 <option value="">misurandola</option>
                 <option value="rapporto">dividendo</option>
                 <option value="differenza">sottraendo</option>
-              </select>
+              </Tendina>
               {m.calcolo != null && (
                 <>
                   <FonteMisura
@@ -760,7 +761,7 @@ function FonteMisura({
     return <span className="hint">salva prima le misure da usare nel calcolo</span>
   }
   return (
-    <select
+    <Tendina
       value={valore ?? ''}
       onChange={(e) => onScegli(e.target.value === '' ? null : Number(e.target.value))}
     >
@@ -770,6 +771,6 @@ function FonteMisura({
           {m.nome || 'senza nome'}
         </option>
       ))}
-    </select>
+    </Tendina>
   )
 }

@@ -1,3 +1,4 @@
+import Tendina from '../../components/Tendina'
 import type { PunteggioQuestionario, Questionario } from '../../../../shared/types'
 import Aiuto from '../../components/Aiuto'
 
@@ -34,7 +35,7 @@ export function TabCambiamento({
       <div className="form-row-2">
         <label>
           Su quale punteggio
-          <select
+          <Tendina
             value={questionario.mcid_punteggio_id ?? ''}
             onChange={(e) =>
               onChange({
@@ -51,11 +52,11 @@ export function TabCambiamento({
                   {p.nome || 'senza nome'}
                 </option>
               ))}
-          </select>
+          </Tendina>
         </label>
         <label>
           Il paziente migliora quando il punteggio
-          <select
+          <Tendina
             value={questionario.mcid_migliora_calando ? 'scende' : 'sale'}
             onChange={(e) =>
               onChange({
@@ -66,7 +67,7 @@ export function TabCambiamento({
           >
             <option value="scende">scende (dolore, disabilità)</option>
             <option value="sale">sale (funzione, qualità della vita)</option>
-          </select>
+          </Tendina>
         </label>
       </div>
 

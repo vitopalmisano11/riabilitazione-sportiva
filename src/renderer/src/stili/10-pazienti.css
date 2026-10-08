@@ -194,6 +194,24 @@
   display: none;
 }
 
+/* Il segno ">" prima del nome dice che il blocco si apre; aperto, la punta
+   guarda in basso. */
+.blocco-apribile > summary::before {
+  content: '';
+  flex: none;
+  width: 7px;
+  height: 7px;
+  margin: 0 4px 0 2px;
+  border-right: 2px solid currentColor;
+  border-top: 2px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform 0.15s;
+}
+
+.blocco-apribile[open] > summary::before {
+  transform: rotate(135deg);
+}
+
 .blocco-apribile[open] > summary {
   border-bottom: 1px solid var(--border);
 }
