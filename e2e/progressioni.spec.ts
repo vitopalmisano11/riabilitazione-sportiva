@@ -116,11 +116,16 @@ test('progressioni: dalla libreria alla seduta e allo specchietto', async () => 
     // ---- lo specchietto nella scheda del paziente: primo step da fare
     await apriPaziente(pagina)
     await pagina.getByRole('button', { name: 'Percorso', exact: true }).click()
-    const scala = pagina.locator('.scala-prog', { hasText: 'Vertical braking' })
+    // una casella per progressione, col nome e lo step (1/3); premendola si apre la scala
+    const casella = pagina.locator('.scelta-tile', { hasText: 'Vertical braking' })
+    await expect(casella.locator('.badge')).toHaveText('1/3')
+    await casella.click()
+    const scala = pagina.locator('.modal .scala-prog', { hasText: 'Vertical braking' })
     await expect(scala.locator('.step-prog.attuale')).toContainText('Wall sit')
     await expect(scala.locator('.step-prog.da_sbloccare')).toHaveCount(2)
     await expect(scala.getByText('Requisito: solo se il front squat è di qualità')).toBeVisible()
     await scala.screenshot({ path: join(FOTO, '22-progressioni-specchietto.png') })
+    await pagina.locator('.modal').getByRole('button', { name: 'Chiudi', exact: true }).click()
 
     // ---- in seduta: suggerimenti, specchietto, esito
     await pagina.getByRole('button', { name: 'Nuova seduta', exact: true }).click()
@@ -143,9 +148,12 @@ test('progressioni: dalla libreria alla seduta e allo specchietto', async () => 
     // ---- lo specchietto si aggiorna: wall sit fatto, front squat da lavorare
     await apriPaziente(pagina)
     await pagina.getByRole('button', { name: 'Percorso', exact: true }).click()
+    await expect(pagina.locator('.scelta-tile', { hasText: 'Vertical braking' }).locator('.badge')).toHaveText('2/3')
+    await pagina.locator('.scelta-tile', { hasText: 'Vertical braking' }).click()
     await expect(scala.locator('.step-prog.fatto')).toContainText('Wall sit')
     await expect(scala.locator('.step-prog.attuale')).toContainText('Front squat')
     await scala.screenshot({ path: join(FOTO, '26-progressioni-dopo-avanza.png') })
+    await pagina.locator('.modal').getByRole('button', { name: 'Chiudi', exact: true }).click()
 
     // la seduta salvata si riapre con l'esito che aveva
     await pagina.getByRole('button', { name: 'Diario sedute' }).click()
