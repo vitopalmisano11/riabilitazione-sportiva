@@ -277,6 +277,7 @@ import type {
   DistrettoCompleto,
   QuestionarioCompleto,
   SedutaInput,
+  MassimaleExtra,
   ProtocolloScreeningCompleto,
   ValoreScreening,
   SezioneCartella,
@@ -711,8 +712,14 @@ export function registerIpc(): void {
   handle('massimali:list', (pazienteId: number) => elencoMassimali(pazienteId))
   handle(
     'massimali:create',
-    (pazienteId: number, esercizio: string, valore: number, unita: string | null, data: string) =>
-      creaMassimale(pazienteId, esercizio, valore, unita, data)
+    (
+      pazienteId: number,
+      esercizio: string,
+      valore: number,
+      unita: string | null,
+      data: string,
+      extra?: MassimaleExtra
+    ) => creaMassimale(pazienteId, esercizio, valore, unita, data, extra)
   )
   handle('massimali:delete', (id: number) => eliminaMassimale(id))
   handle('massimali:setMisure', (pazienteId: number, peso: number | null, altezza: number | null) =>

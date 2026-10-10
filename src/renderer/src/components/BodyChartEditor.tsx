@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSalvataggio } from '../salvataggio'
 import IndicatoreSalvataggio from './IndicatoreSalvataggio'
-import { Trash2 } from 'lucide-react'
+import { Trash2, Undo2 } from 'lucide-react'
+import { eTratto, stratiTratto } from '../../../shared/tratti'
 import { useClicSulFondo } from '../clicSulFondo'
 import { useZoomPizzico } from '../zoomPizzico'
 import type { BodyChartCompleta, SegnoBodyChart, TipoSegno, Vista } from '../../../shared/types'
@@ -32,7 +33,12 @@ export default function BodyChartEditor({
   const [segni, setSegni] = useState<SegnoLocale[]>([])
   const [note, setNote] = useState('')
   const [data, setData] = useState('')
-  const [strumento, setStrumento] = useState<TipoSegno>('dolore')
+  // All'apertura c'e' il pennello pieno: premere e trascinare sulla figura
+  // disegna subito, senza scegliere niente.
+  const [strumento, setStrumento] = useState<TipoSegno>('tratto')
+  // Lo spessore del pennello, rispetto a quello di partenza (1 = il piu'
+  // comodo per campire un'area senza uscire dai contorni).
+  const [spessore, setSpessore] = useState(1)
   const [selezione, setSelezione] = useState<string | null>(null)
   const [modificato, setModificato] = useState(false)
   // Chiudendo il programma, o uscendo da questa scheda, con segni non
@@ -117,9 +123,41 @@ export default function BodyChartEditor({
     const chiave = nuovaChiave()
     setSegni([
       ...segni,
-      { id: null, chiave, vista, tipo: strumento, x, y, dimensione: 1, intensita: null }
+      { id: null, chiave, vista, tipo: strumento, x, y, dimensione: 1, intensita: null, punti: null }
     ])
     setSelezione(chiave)
+    setModificato(true)
+  }
+
+  // Un tratto finito: un segno solo, con tutti i suoi punti. Non si seleziona
+  // (non ha intensita' ne' si trascina): si toglie con "Annulla" o Ctrl+Z.
+  const aggiungiTratto = (vista: SegnoLocale['vista'], punti: [number, number][]): void => {
+    if (soloLettura || !eTratto(strumento)) return
+    setSegni([
+      ...segni,
+      {
+        id: null,
+        chiave: nuovaChiave(),
+        vista,
+        tipo: strumento,
+        x: punti[0][0],
+        y: punti[0][1],
+        dimensione: spessore,
+        intensita: null,
+        punti
+      }
+    ])
+    setSelezione(null)
+    setModificato(true)
+  }
+
+  const annullaUltimo = (): void => {
+    if (segni.length === 0) {
+      toast('Niente da annullare.')
+      return
+    }
+    setSegni(segni.slice(0, -1))
+    setSelezione(null)
     setModificato(true)
   }
 
@@ -213,6 +251,34 @@ export default function BodyChartEditor({
             ))}
           </div>
         )}
+        {/* Lo spessore del pennello: sta qui, a portata di mano, perche' si
+            cambia di continuo passando da un'area grande a un punto preciso. */}
+        {!soloLettura && eTratto(strumento) && (
+          <div className="segno-strumenti">
+            <span className="regola-parola">
+              {strumento === 'sfumato' ? 'Pennello tenue' : 'Pennello'}
+            </span>
+            <label className="compila-data">
+              Spessore
+              <input
+                type="range"
+                min={0.4}
+                max={3}
+                step={0.1}
+                value={spessore}
+                onChange={(e) => setSpessore(Number(e.target.value))}
+              />
+            </label>
+            <span className="hint">
+              {strumento === 'sfumato'
+                ? 'Premi e trascina: colore tenue, per le aree con dolore minore o sensibilità ridotta.'
+                : 'Premi e trascina sulla figura per disegnare.'}
+            </span>
+            <button title="Annulla l'ultimo segno (Ctrl+Z)" onClick={annullaUltimo}>
+              <Undo2 size={16} />
+            </button>
+          </div>
+        )}
         {!soloLettura && selezionato && (
           <div className="segno-strumenti">
             <span className="regola-parola">
@@ -269,6 +335,12 @@ export default function BodyChartEditor({
               attivo={!soloLettura}
               onClicCorpo={soloLettura ? undefined : (x, y) => aggiungi(v.valore, x, y)}
               onPrendiSegno={prendi}
+              pennello={
+                !soloLettura && (strumento === 'tratto' || strumento === 'sfumato')
+                  ? { tipo: strumento, dimensione: spessore }
+                  : undefined
+              }
+              onTratto={(punti) => aggiungiTratto(v.valore, punti)}
             />
           ))}
         </div>
@@ -312,7 +384,9 @@ function RiquadroVista({
   segni,
   attivo,
   onClicCorpo,
-  onPrendiSegno
+  onPrendiSegno,
+  pennello,
+  onTratto
 }: {
   vista: Vista
   etichetta: string
@@ -320,6 +394,8 @@ function RiquadroVista({
   attivo: boolean
   onClicCorpo?: (x: number, y: number) => void
   onPrendiSegno: (chiave: string, e: React.PointerEvent<SVGGElement>) => void
+  pennello?: { tipo: 'tratto' | 'sfumato'; dimensione: number }
+  onTratto: (punti: [number, number][]) => void
 }): React.JSX.Element {
   const { ref, scala, ingrandita } = useZoomPizzico<HTMLDivElement>()
   return (
@@ -331,6 +407,8 @@ function RiquadroVista({
           attivo={attivo}
           onClicCorpo={onClicCorpo}
           onPrendiSegno={onPrendiSegno}
+          pennello={pennello}
+          onTratto={onTratto}
         />
       </div>
       <span className="corpo-etichetta">{etichetta}</span>
@@ -340,6 +418,24 @@ function RiquadroVista({
 
 // Il segno in piccolo, per la legenda.
 function AnteprimaSegno({ tipo }: { tipo: TipoSegno }): React.JSX.Element {
+  if (tipo === 'tratto') {
+    return <path className="tratto-linea" d="M-9,6 Q-3,-9 2,0 T9,-5" strokeWidth={4.5} />
+  }
+  if (tipo === 'sfumato') {
+    return (
+      <g>
+        {stratiTratto('sfumato', 11).map((p, i) => (
+          <path
+            key={i}
+            className="tratto-linea"
+            d="M-9,6 Q-3,-9 2,0 T9,-5"
+            strokeWidth={p.spessore}
+            strokeOpacity={p.opacita}
+          />
+        ))}
+      </g>
+    )
+  }
   if (tipo === 'dolore') return <circle className="segno-dolore" r="7" />
   if (tipo === 'parestesie') return <circle className="segno-parestesie" r="8" />
   if (tipo === 'rigidita') {

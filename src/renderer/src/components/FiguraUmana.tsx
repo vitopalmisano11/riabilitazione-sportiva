@@ -1,4 +1,13 @@
+import { useRef, useState } from 'react'
 import type { TipoChart, TipoSegno, Vista, VistaCorpo, VistaPiede } from '../../../shared/types'
+import {
+  PUNTI_MASSIMI,
+  eTratto,
+  percorsoTratto,
+  spessoreTratto,
+  stratiTratto,
+  type Punto
+} from '../../../shared/tratti'
 import { PIEDE_ALTEZZA, PIEDE_LARGHEZZA } from '../../../shared/figure-piede'
 import SagomaPiede, { VISTE_PIEDE } from './FiguraPiede'
 import { ALTEZZA, LARGHEZZA } from '../../../shared/figure'
@@ -41,7 +50,11 @@ function misure(vista: Vista): { larghezza: number; altezza: number } {
     : { larghezza: LARGHEZZA, altezza: ALTEZZA }
 }
 
+// I due pennelli stanno in testa: sono la funzione di base, quella che si usa
+// premendo e trascinando sulla figura.
 export const SEGNI: { valore: TipoSegno; etichetta: string }[] = [
+  { valore: 'tratto', etichetta: 'Pennello' },
+  { valore: 'sfumato', etichetta: 'Pennello tenue' },
   { valore: 'rigidita', etichetta: 'Rigidità percepita' },
   { valore: 'dolore', etichetta: 'Area dolorosa' },
   { valore: 'scossa', etichetta: 'Scossa elettrica' },
@@ -126,8 +139,40 @@ export interface SegnoDisegnato {
   y: number
   dimensione: number
   intensita: number | null
+  // solo per i tratti a mano libera
+  punti?: Punto[] | null
   selezionato?: boolean
 }
+
+// Un tratto a mano libera. Non prende il puntatore: si disegna anche sopra a un
+// tratto vecchio, e quelli gia' fatti non si trascinano. Il tenue sono piu'
+// passate sovrapposte (vedi stratiTratto), come nella cartella stampata.
+function Tratto({
+  tipo,
+  punti,
+  dimensione,
+  larghezza,
+  altezza
+}: {
+  tipo: TipoSegno
+  punti: Punto[]
+  dimensione: number
+  larghezza: number
+  altezza: number
+}): React.JSX.Element {
+  const d = percorsoTratto(punti, larghezza, altezza)
+  return (
+    <g className="tratto">
+      {stratiTratto(tipo, spessoreTratto(tipo, dimensione, larghezza)).map((p, i) => (
+        <path key={i} className="tratto-linea" d={d} strokeWidth={p.spessore} strokeOpacity={p.opacita} />
+      ))}
+    </g>
+  )
+}
+
+// Quanto deve spostarsi il puntatore, in unita' della figura, perche' si
+// aggiunga un punto al tratto: piu' fitto non si vede e riempie l'archivio.
+const DISTANZA_PUNTI = 1.5
 
 // La figura su cui si segna: corpo intero o piede, secondo la vista chiesta.
 export default function FiguraChart({
@@ -135,20 +180,41 @@ export default function FiguraChart({
   segni,
   attivo,
   onClicCorpo,
-  onPrendiSegno
+  onPrendiSegno,
+  pennello,
+  onTratto
 }: {
   vista: Vista
   segni: SegnoDisegnato[]
   attivo?: boolean
   onClicCorpo?: (x: number, y: number) => void
   onPrendiSegno?: (chiave: string, e: React.PointerEvent<SVGGElement>) => void
+  // se c'e', premere e trascinare sulla figura disegna a mano libera invece di
+  // mettere un simbolo
+  pennello?: { tipo: 'tratto' | 'sfumato'; dimensione: number }
+  onTratto?: (punti: Punto[]) => void
 }): React.JSX.Element {
   const riquadro = misure(vista)
+  // Il tratto che si sta tracciando: i punti stanno anche in un riferimento,
+  // cosi' il rilascio vede sempre quelli piu' recenti.
+  const [inCorso, setInCorso] = useState<Punto[] | null>(null)
+  const punti = useRef<Punto[] | null>(null)
+  const disegna = pennello != null && onTratto != null
 
   // Dal punto cliccato alle frazioni 0..1 con cui il segno viene memorizzato.
   const posizione = (e: React.PointerEvent<SVGSVGElement>): { x: number; y: number } => {
     const r = e.currentTarget.getBoundingClientRect()
     return { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height }
+  }
+  const dentro = (n: number): number => Math.min(1, Math.max(0, n))
+
+  const finisci = (e: React.PointerEvent<SVGSVGElement>): void => {
+    const p = punti.current
+    if (!p) return
+    punti.current = null
+    setInCorso(null)
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId)
+    if (e.type !== 'pointercancel') onTratto?.(p)
   }
 
   return (
@@ -156,22 +222,71 @@ export default function FiguraChart({
       className={['figura-umana', attivo ? 'attiva' : ''].filter(Boolean).join(' ')}
       viewBox={`0 0 ${riquadro.larghezza} ${riquadro.altezza}`}
       onPointerDown={
-        onClicCorpo
+        disegna || onClicCorpo
           ? (e) => {
               // il clic su un segno lo prende: qui arriva solo quello sul corpo
               if ((e.target as Element).closest('.segno')) return
               const p = posizione(e)
-              onClicCorpo(p.x, p.y)
+              if (disegna) {
+                // solo il tasto principale: il destro non deve lasciare tratti
+                if (e.button !== 0) return
+                e.currentTarget.setPointerCapture(e.pointerId)
+                punti.current = [[dentro(p.x), dentro(p.y)]]
+                setInCorso(punti.current)
+                return
+              }
+              onClicCorpo?.(p.x, p.y)
             }
           : undefined
       }
+      onPointerMove={
+        disegna
+          ? (e) => {
+              const corrente = punti.current
+              if (!corrente) return
+              const p = posizione(e)
+              const x = dentro(p.x)
+              const y = dentro(p.y)
+              const ultimo = corrente[corrente.length - 1]
+              const dx = (x - ultimo[0]) * riquadro.larghezza
+              const dy = (y - ultimo[1]) * riquadro.altezza
+              if (Math.hypot(dx, dy) < DISTANZA_PUNTI || corrente.length >= PUNTI_MASSIMI) return
+              punti.current = [...corrente, [x, y]]
+              setInCorso(punti.current)
+            }
+          : undefined
+      }
+      onPointerUp={disegna ? finisci : undefined}
+      onPointerCancel={disegna ? finisci : undefined}
     >
       {VISTE_PIEDE.some((v) => v.valore === vista) ? (
         <SagomaPiede vista={vista as VistaPiede} />
       ) : (
         <Sagoma vista={vista as VistaCorpo} />
       )}
-      {segni.map((s) => (
+      {/* I tratti stanno sotto ai simboli, che restano sempre afferrabili. */}
+      {segni
+        .filter((s) => eTratto(s.tipo) && s.punti && s.punti.length > 0)
+        .map((s) => (
+          <Tratto
+            key={s.chiave}
+            tipo={s.tipo}
+            punti={s.punti!}
+            dimensione={s.dimensione}
+            larghezza={riquadro.larghezza}
+            altezza={riquadro.altezza}
+          />
+        ))}
+      {inCorso && pennello && (
+        <Tratto
+          tipo={pennello.tipo}
+          punti={inCorso}
+          dimensione={pennello.dimensione}
+          larghezza={riquadro.larghezza}
+          altezza={riquadro.altezza}
+        />
+      )}
+      {segni.filter((s) => !eTratto(s.tipo)).map((s) => (
         <g
           key={s.chiave}
           className={['segno', s.selezionato ? 'selezionato' : ''].filter(Boolean).join(' ')}

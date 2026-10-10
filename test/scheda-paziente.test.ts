@@ -68,6 +68,27 @@ test('Massimali: con i controlli, dal piu\' recente; peso e altezza', () => {
   eliminaMassimale(m1)
   assert.deepEqual((elencoMassimali(pz) as { esercizio: string }[]).map((m) => m.esercizio), ['Panca'])
 
+  // legato all'esercizio della libreria, con il lato e come e' stato ottenuto
+  const cat = Number(getDb().prepare("INSERT INTO categorie (nome) VALUES ('Forza')").run().lastInsertRowid)
+  const es = Number(
+    getDb().prepare("INSERT INTO esercizi (nome, categoria_id) VALUES ('Leg extension', ?)").run(cat).lastInsertRowid
+  )
+  creaMassimale(pz, 'Leg extension', 60, 'kg', '2026-04-01', { esercizio_id: es, lato: 'dx', metodo: 'velocita' })
+  creaMassimale(pz, 'Leg extension', 70, 'kg', '2026-04-01', { esercizio_id: es, lato: 'sx', metodo: 'misurato' })
+  const legati = (elencoMassimali(pz) as { esercizio_id: number | null; lato: string | null; metodo: string | null }[])
+    .filter((m) => m.esercizio_id === es)
+    .map((m) => [m.lato, m.metodo])
+    .sort()
+  assert.deepEqual(legati, [['dx', 'velocita'], ['sx', 'misurato']])
+  // quelli senza dati in piu' restano senza
+  const panca = (elencoMassimali(pz) as { esercizio: string; esercizio_id: number | null; lato: string | null }[]).find(
+    (m) => m.esercizio === 'Panca'
+  )
+  assert.deepEqual([panca?.esercizio_id, panca?.lato], [null, null])
+  assert.throws(() => creaMassimale(pz, 'X', 10, null, '2026-04-01', { lato: 'su' as 'dx' }), /lato/i)
+  assert.throws(() => creaMassimale(pz, 'X', 10, null, '2026-04-01', { metodo: 'boh' as 'serie' }), /modo/i)
+  assert.throws(() => creaMassimale(pz, 'X', 10, null, '2026-04-01', { esercizio_id: 99999 }), /libreria/i)
+
   impostaMisure(pz, 72.5, 178)
   const dati = (): { peso: number | null; altezza: number | null } =>
     getDb().prepare('SELECT peso, altezza FROM pazienti WHERE id = ?').get(pz) as { peso: number | null; altezza: number | null }

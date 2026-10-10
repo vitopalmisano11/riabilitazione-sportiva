@@ -29,6 +29,29 @@
   width: 80px;
 }
 
+/* Il calcolo del massimale, aperto solo quando serve: righe strette e gli avvisi
+   sotto senza elenco puntato. */
+.stima-massimale .riga-stima {
+  margin-top: 6px;
+}
+
+/* La casella dei suggerimenti (CampoSuggerimenti): l'elenco e' quello delle
+   scelte con ricerca, disegnato fuori dalla pagina. */
+.suggerimenti-wrap {
+  display: block;
+}
+
+.suggerimenti-wrap input {
+  width: 100%;
+}
+
+.avvisi-stima {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  color: var(--danger);
+}
+
 .nuovo-massimale {
   padding: 12px;
   margin-bottom: 10px;

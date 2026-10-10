@@ -1,4 +1,5 @@
 import Tendina from '../components/Tendina'
+import CampoSuggerimenti from '../components/CampoSuggerimenti'
 import { useCallback, useEffect, useState } from 'react'
 import { ChevronRight, Pencil, Plus, X } from 'lucide-react'
 import type {
@@ -375,17 +376,12 @@ function EditorTest({
             Cosa valuta
             <Aiuto testo="La qualità che misura il test: forza, reattività, potenza, equilibrio. Nel report dello screening i risultati si riassumono per qualità, per esempio deficit di forza sul lato operato. Scrivi sempre la stessa parola per i test che valutano la stessa cosa." />
           </span>
-          <input
-            list="qualita-test"
+          <CampoSuggerimenti
             placeholder="es. forza"
             value={dati.test.qualita ?? ''}
-            onChange={(e) => aggiornaTest({ qualita: e.target.value || null })}
+            onChange={(v) => aggiornaTest({ qualita: v || null })}
+            suggerimenti={QUALITA}
           />
-          <datalist id="qualita-test">
-            {QUALITA.map((q) => (
-              <option key={q} value={q} />
-            ))}
-          </datalist>
         </label>
         <label>
           Link all&apos;esecuzione (facoltativo)

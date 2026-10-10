@@ -200,9 +200,24 @@ export interface Massimale {
   id: number
   paziente_id: number
   esercizio: string
+  // l'esercizio della libreria, se e' stato scelto da li'
+  esercizio_id: number | null
+  // dx/sx per gli esercizi a una gamba; vuoto = entrambi i lati
+  lato: 'dx' | 'sx' | null
+  // misurato, oppure stimato da una serie o dalla velocita' del bilanciere
+  metodo: MetodoMassimale | null
   valore: number
   unita: string | null
   data: string
+}
+
+export type MetodoMassimale = 'misurato' | 'serie' | 'velocita'
+
+// I dati in piu' di un massimale nuovo: tutti facoltativi.
+export interface MassimaleExtra {
+  esercizio_id?: number | null
+  lato?: 'dx' | 'sx' | null
+  metodo?: MetodoMassimale | null
 }
 
 // Un segno di riferimento: la cosa che di questo paziente si ricontrolla a
@@ -816,18 +831,22 @@ export type VistaPiede = 'dorso' | 'pianta' | 'esterno' | 'interno'
 
 export type Vista = VistaCorpo | VistaPiede
 
-// I quattro segni della legenda: rigidita' percepita, area dolorosa, scossa
-// elettrica, parestesie.
-export type TipoSegno = 'rigidita' | 'dolore' | 'scossa' | 'parestesie'
+// I segni della legenda: rigidita' percepita, area dolorosa, scossa elettrica,
+// parestesie; e i due tratti a mano libera: il pennello pieno e quello tenue
+// (aree di dolore minore o sensibilita' ridotta).
+export type TipoSegno = 'rigidita' | 'dolore' | 'scossa' | 'parestesie' | 'tratto' | 'sfumato'
 
 export interface SegnoBodyChart {
   id: number | null
   vista: Vista
   tipo: TipoSegno
-  // frazioni 0..1 del riquadro della figura
+  // frazioni 0..1 del riquadro della figura (per un tratto, il primo punto)
   x: number
   y: number
+  // per un tratto e' lo spessore del pennello rispetto a quello di partenza
   dimensione: number
+  // solo per i tratti: tutti i punti della linea, sempre come frazioni 0..1
+  punti: [number, number][] | null
   // 0..10, facoltativa: si vede passando il cursore sul segno
   intensita: number | null
 }

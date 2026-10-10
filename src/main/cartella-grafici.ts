@@ -20,6 +20,13 @@ import {
   type Ellisse
 } from '../shared/figure-piede'
 import { ALTEZZA, LARGHEZZA } from '../shared/figure'
+import {
+  eTratto,
+  percorsoTratto,
+  spessoreTratto,
+  stratiTratto,
+  type Punto
+} from '../shared/tratti'
 import { data, pieno, testo } from './cartella-comune'
 
 // ---- andamento dei sintomi ----
@@ -102,7 +109,9 @@ export const NOME_SEGNO: Record<string, string> = {
   rigidita: 'Rigidità percepita',
   dolore: 'Area dolorosa',
   scossa: 'Scossa elettrica',
-  parestesie: 'Parestesie'
+  parestesie: 'Parestesie',
+  tratto: 'Disegno a mano libera',
+  sfumato: 'Area tenue (dolore minore o sensibilità ridotta)'
 }
 
 export const NOME_VISTA: Record<string, string> = {
@@ -158,6 +167,50 @@ export interface SegnoRiga {
   y: number
   dimensione: number
   intensita: number | null
+  // solo per i tratti a mano libera
+  punti?: Punto[] | null
+}
+
+// Un tratto a mano libera: il pieno e' una passata sola, il tenue ne sovrappone
+// quattro (vedi stratiTratto). Le coordinate sono gia' quelle della figura.
+function tratto(s: SegnoRiga, larghezza: number, altezza: number): string {
+  if (!s.punti || s.punti.length === 0) return ''
+  const d = percorsoTratto(s.punti, larghezza, altezza)
+  return stratiTratto(s.tipo, spessoreTratto(s.tipo, s.dimensione, larghezza))
+    .map(
+      (p) =>
+        `<path class="s-tratto" d="${d}" stroke-width="${Math.round(p.spessore * 10) / 10}"${
+          p.opacita < 1 ? ` stroke-opacity="${p.opacita}"` : ''
+        }/>`
+    )
+    .join('')
+}
+
+// I segni di una vista, sulla figura. I tratti vanno sotto: i simboli e i numeri
+// restano leggibili anche dove si e' campito.
+function marchiSulla(
+  segni: SegnoRiga[],
+  vista: string,
+  larghezza: number,
+  altezza: number,
+  raggio: number
+): string {
+  const suVista = segni.filter((s) => s.vista === vista)
+  const tratti = suVista
+    .filter((s) => eTratto(s.tipo))
+    .map((s) => tratto(s, larghezza, altezza))
+    .join('')
+  const simboli = suVista
+    .filter((s) => !eTratto(s.tipo))
+    .map(
+      (s) =>
+        `<g transform="translate(${s.x * larghezza} ${s.y * altezza})">${simbolo(
+          s.tipo,
+          raggio * s.dimensione
+        )}${intensita(s.intensita, raggio * s.dimensione)}</g>`
+    )
+    .join('')
+  return `${tratti}${simboli}`
 }
 
 // Lo stile sta dentro l'SVG e non nel foglio di stile del documento: cosi' la
@@ -170,6 +223,7 @@ const STILE_FIGURA = `
   .s-rigidita line { stroke: #d64545; stroke-width: 3.4; stroke-linecap: round; }
   .s-scossa { fill: #d64545; }
   .s-parestesie { fill: #d64545; opacity: 0.28; }
+  .s-tratto { fill: none; stroke: #d64545; stroke-linecap: round; stroke-linejoin: round; }
   /* Il numero si legge anche sopra alle linee della sagoma: gli si disegna
      intorno un contorno bianco, che sta sotto al numero e copre quello che
      c'e' dietro. */
@@ -224,16 +278,7 @@ export function figuraPiedeSvg(vista: string, segni: SegnoRiga[]): string {
   const primo = dorso || !dallAlto ? (interno ? specchiato : piede) : specchiato
   const secondo = dorso || !dallAlto ? (interno ? piede : specchiato) : piede
 
-  const marchi = segni
-    .filter((s) => s.vista === vista)
-    .map(
-      (s) =>
-        `<g transform="translate(${s.x * PIEDE_LARGHEZZA} ${s.y * PIEDE_ALTEZZA})">${simbolo(
-          s.tipo,
-          12 * s.dimensione
-        )}${intensita(s.intensita, 12 * s.dimensione)}</g>`
-    )
-    .join('')
+  const marchi = marchiSulla(segni, vista, PIEDE_LARGHEZZA, PIEDE_ALTEZZA, 12)
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${PIEDE_LARGHEZZA} ${PIEDE_ALTEZZA}">
     <style>${STILE_FIGURA}</style>
@@ -257,16 +302,7 @@ const IMMAGINE_CORPO_BASE64: Record<string, string> = {
 }
 
 export function figuraSvg(vista: string, segni: SegnoRiga[]): string {
-  const marchi = segni
-    .filter((s) => s.vista === vista)
-    .map(
-      (s) =>
-        `<g transform="translate(${s.x * LARGHEZZA} ${s.y * ALTEZZA})">${simbolo(
-          s.tipo,
-          14 * s.dimensione
-        )}${intensita(s.intensita, 14 * s.dimensione)}</g>`
-    )
-    .join('')
+  const marchi = marchiSulla(segni, vista, LARGHEZZA, ALTEZZA, 14)
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${LARGHEZZA} ${ALTEZZA}">
     <style>${STILE_FIGURA}</style>

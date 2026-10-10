@@ -5,6 +5,7 @@
 import { getDb } from './db'
 import { neuroTestuale } from './neuro-testo'
 import { COLORI_SINTOMI } from '../shared/sintomi'
+import { leggiPunti } from '../shared/tratti'
 import {
   TIPI_NEURO,
   durataTesto,
@@ -288,11 +289,13 @@ export function sezBodyChart(pazienteId: number): Blocco[] {
   if (charts.length === 0) return []
 
   const segniStmt = db.prepare(
-    'SELECT vista, tipo, x, y, dimensione, intensita FROM body_chart_segni WHERE chart_id = ?'
+    'SELECT vista, tipo, x, y, dimensione, intensita, punti FROM body_chart_segni WHERE chart_id = ?'
   )
 
   return charts.flatMap((c): Blocco[] => {
-    const segni = segniStmt.all(c.id) as SegnoRiga[]
+    const segni = (segniStmt.all(c.id) as (Omit<SegnoRiga, 'punti'> & { punti: string | null })[]).map(
+      (s): SegnoRiga => ({ ...s, punti: leggiPunti(s.punti) })
+    )
     const legenda = segni
       .map(
         (s) =>

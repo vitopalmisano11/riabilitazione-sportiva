@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { ChevronDown } from 'lucide-react'
+import { maiuscola } from '../lib'
 
 // Un menu a tendina disegnato dal programma, non quello del sistema.
 //
@@ -141,7 +142,7 @@ export default function MenuScelta<T extends string | number>({
         onClick={() => setAperto((a) => !a)}
       >
         <span className={scelta ? '' : 'menu-scelta-placeholder'}>
-          {scelta ? scelta.etichetta : (placeholder ?? '')}
+          {scelta ? maiuscola(scelta.etichetta) : maiuscola(placeholder ?? '')}
         </span>
         <ChevronDown size={16} />
       </button>
@@ -179,7 +180,7 @@ export default function MenuScelta<T extends string | number>({
                     className={valore === '' ? 'scelta-attiva' : ''}
                     onClick={() => scegli('')}
                   >
-                    {placeholder}
+                    {maiuscola(placeholder)}
                   </button>
                 </li>
               )}
@@ -190,7 +191,7 @@ export default function MenuScelta<T extends string | number>({
                     className={o.valore === valore ? 'scelta-attiva' : ''}
                     onClick={() => scegli(o.valore)}
                   >
-                    {o.etichetta}
+                    {maiuscola(o.etichetta)}
                   </button>
                 </li>
               ))}

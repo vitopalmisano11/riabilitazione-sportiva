@@ -74,3 +74,9 @@ export function daQuando(data: string | null, riferimento?: Date): string | null
 export function eta(dataNascita: string | null): number | null {
   return etaInAnni(dataNascita)
 }
+
+// La prima lettera in maiuscolo, il resto com'e': per le voci delle caselle a
+// scelta ("destro" -> "Destro"). Le voci che cominciano con un segno ("— scegli —")
+// restano come sono.
+export const maiuscola = (testo: string): string =>
+  testo === '' ? testo : testo.charAt(0).toLocaleUpperCase('it-IT') + testo.slice(1)

@@ -64,6 +64,27 @@ supera con *Ulteriori informazioni → Esegui comunque*.
 Le versioni vere dell'app sono quelle di `package.json` e dei tag `vX.Y.Z`: le sezioni «giro di
 feedback» qui sopra sono precedenti e usavano una numerazione propria.
 
+### v0.5.10
+
+**Prima di tutto:** al primo accesso dopo l'aggiornamento il programma applica due modifiche al
+formato dell'archivio (migrazioni 63 e 64). Non si possono annullare, quindi prima fa da solo una
+copia dell'archivio. Dai Releases di GitHub si installa da solo, come la 0.5.9.
+
+- Body chart: disegno a mano libera. Premendo e trascinando sulla figura si disegna col pennello rosso
+  (già attivo all'apertura); il pennello tenue, sfumato, serve per le aree di dolore minore o
+  sensibilità ridotta. Spessore regolabile, Ctrl+Z toglie l'ultimo tratto, e i disegni compaiono
+  anche nella cartella PDF (migrazione 63)
+- Massimali: si scrive il lato (destro o sinistro) per gli esercizi a una gamba, e se il nome è quello
+  di un esercizio della libreria il massimale gli si lega (migrazione 64). Se non l'hai misurato lo
+  calcoli da una serie o dalla velocità del bilanciere (VBT). Corretto il calcolo con una sola
+  ripetizione: 100 kg × 1 ora dà 100 kg, non 103,3
+- La settimana: nelle righe delle sedute c'è «Scarica» (PDF o Word), tra Copia ed Elimina
+- Percorso → Progressioni: una casella per progressione, col nome e lo step (es. 2/5); premendola si
+  aprono tutti gli step
+- Al posto dei menu di Windows ci sono quelli del programma anche nelle caselle di testo con
+  suggerimenti (focus, sport, esercizio del massimale), e le voci delle caselle a scelta cominciano
+  con la maiuscola
+
 ### v0.5.9
 
 **Prima di tutto:** al primo accesso dopo l'aggiornamento il programma applica due modifiche al

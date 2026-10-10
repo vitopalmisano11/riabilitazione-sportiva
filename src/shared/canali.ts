@@ -45,6 +45,7 @@ import type {
   InfoAccesso,
   InfoBackup,
   Massimale,
+  MassimaleExtra,
   Obiettivo,
   ObiettivoTerapeutico,
   Patologia,
@@ -150,6 +151,7 @@ export interface Canali {
     valore: number,
     unita: string | null,
     data: string,
+    extra?: MassimaleExtra,
   ) => number
   'massimali:delete': (id: number) => void
   // Peso e altezza stanno sul paziente: sono una cosa sola, non una storia.

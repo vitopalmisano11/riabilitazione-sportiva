@@ -436,6 +436,19 @@
   opacity: 0.28;
 }
 
+/* I tratti a mano libera: rossi come il resto, con le estremita' tonde. Non
+   prendono il puntatore, cosi' si puo' ridisegnarci sopra. */
+.tratto {
+  pointer-events: none;
+}
+
+.tratto-linea {
+  fill: none;
+  stroke: var(--danger);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .segno-strumenti {
   display: flex;
   align-items: center;

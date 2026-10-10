@@ -4,6 +4,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Copy,
+  Download,
+  FileText,
   Pencil,
   UserRound,
   Plus,
@@ -12,7 +14,7 @@ import {
 } from 'lucide-react'
 import AggiungiAlGiorno from '../components/AggiungiAlGiorno'
 import type { PazienteDettaglio, SedutaSettimana } from '../../../shared/types'
-import { toastErrore } from '../components/Toast'
+import { toast, toastErrore } from '../components/Toast'
 import { chiedi } from '../components/Conferma'
 import Modale from '../components/Modale'
 import { errMsg, formatData, oggiIso } from '../lib'
@@ -92,6 +94,8 @@ export default function SettimanaPage({
   const [giornoAperto, setGiornoAperto] = useState<string | null>(null)
   // La seduta che si sta copiando, mentre si sceglie il giorno.
   const [daCopiare, setDaCopiare] = useState<SedutaSettimana | null>(null)
+  // La seduta di cui e' aperto il menu "Scarica".
+  const [menuScarica, setMenuScarica] = useState<number | null>(null)
   const [altraData, setAltraData] = useState('')
   // La ricerca del paziente in cima: si apre la sua scheda o gli si aggiunge
   // una seduta scegliendo il giorno.
@@ -147,6 +151,16 @@ Finisce nel cestino: puoi rimetterla a posto da Impostazioni entro un mese.`
     try {
       await window.api.sedute.remove(s.id)
       carica()
+    } catch (e) {
+      toastErrore(errMsg(e))
+    }
+  }
+
+  // Scaricare la seduta in PDF o Word, come dal diario del paziente.
+  const scarica = async (id: number, formato: 'pdf' | 'docx'): Promise<void> => {
+    try {
+      const path = await window.api.esporta.seduta(id, formato, false)
+      if (path) toast(`Seduta esportata${formato === 'pdf' ? ' in PDF' : ' in Word'}.`)
     } catch (e) {
       toastErrore(errMsg(e))
     }
@@ -353,6 +367,37 @@ Finisce nel cestino: puoi rimetterla a posto da Impostazioni entro un mese.`
                       >
                         <Copy size={16} />
                       </button>
+                      <span className="menu-wrapper">
+                        <button
+                          title="Scarica la seduta"
+                          onClick={() => setMenuScarica(menuScarica === s.id ? null : s.id)}
+                        >
+                          <Download size={16} />
+                        </button>
+                        {menuScarica === s.id && (
+                          <>
+                            <div className="menu-chiudi" onClick={() => setMenuScarica(null)} />
+                            <div className="menu-tendina">
+                              <button
+                                onClick={() => {
+                                  setMenuScarica(null)
+                                  void scarica(s.id, 'pdf')
+                                }}
+                              >
+                                <FileText size={18} /> Scarica PDF
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setMenuScarica(null)
+                                  void scarica(s.id, 'docx')
+                                }}
+                              >
+                                <FileText size={18} /> Scarica Word
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </span>
                       <button
                         className="danger"
                         title="Elimina la seduta"

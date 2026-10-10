@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { ChevronDown, ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { maiuscola } from '../lib'
 
 // Una casella in cui si sceglie scrivendo, al posto del menu a tendina.
 //
@@ -162,10 +163,10 @@ export default function SceltaConRicerca({
           autoFocus={autoFocus}
           disabled={disabled}
           // Aperta si scrive per cercare; chiusa mostra la voce scelta.
-          value={aperto ? testo : (scelta?.nome ?? '')}
+          value={aperto ? testo : maiuscola(scelta?.nome ?? '')}
           // Aperta e vuota si legge comunque cosa c'e' scelto adesso, cosi' non
           // sembra di aver perso la scelta mentre si cerca.
-          placeholder={scelta ? scelta.nome : (segnaposto ?? '— seleziona —')}
+          placeholder={maiuscola(scelta ? scelta.nome : (segnaposto ?? '— seleziona —'))}
           onFocus={apri}
           onChange={(e) => {
             setTesto(e.target.value)
@@ -232,7 +233,7 @@ export default function SceltaConRicerca({
                   onClick={() => setDentro(null)}
                 >
                   <ChevronLeft size={16} />
-                  {padreAperto.nome}
+                  {maiuscola(padreAperto.nome)}
                 </button>
               </li>
             )}
@@ -258,7 +259,7 @@ export default function SceltaConRicerca({
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => scegli('')}
                 >
-                  {vuoto}
+                  {maiuscola(vuoto)}
                 </button>
               </li>
             )}
@@ -278,7 +279,7 @@ export default function SceltaConRicerca({
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => premi(v)}
                   >
-                    <span>{v.nome}</span>
+                    <span>{maiuscola(v.nome)}</span>
                     {/* Cercando, un distretto porta accanto la sua categoria:
                         "Spalla" puo' stare sia nel rinforzo sia nella mobilita'. */}
                     {cercando && v.gruppo && <span className="voce-gruppo">{v.gruppo}</span>}

@@ -3,6 +3,7 @@
 import { getDb } from './db'
 import { dataIt, eliminaConCestino } from './cestino'
 import { validaData } from './validazione'
+import { eTratto, leggiPunti, serializzaPunti } from '../shared/tratti'
 import type { BodyChartCompleta, TipoChart } from '../shared/types'
 
 export function elencoBodyChart(pazienteId: number): unknown[] {
@@ -21,12 +22,13 @@ export function leggiBodyChart(id: number): BodyChartCompleta {
   const db = getDb()
   const chart = db.prepare('SELECT * FROM body_chart WHERE id = ?').get(id)
   if (!chart) throw new Error('Body chart non trovata.')
-  const segni = db
+  const righe = db
     .prepare(
-      `SELECT id, vista, tipo, x, y, dimensione, intensita
+      `SELECT id, vista, tipo, x, y, dimensione, intensita, punti
        FROM body_chart_segni WHERE chart_id = ? ORDER BY ordine, id`
     )
-    .all(id)
+    .all(id) as (Record<string, unknown> & { punti: string | null })[]
+  const segni = righe.map((s) => ({ ...s, punti: leggiPunti(s.punti) }))
   return { chart, segni } as unknown as BodyChartCompleta
 }
 
@@ -51,11 +53,22 @@ export function salvaBodyChart(dati: BodyChartCompleta): void {
     )
     db.prepare('DELETE FROM body_chart_segni WHERE chart_id = ?').run(dati.chart.id)
     const ins = db.prepare(
-      `INSERT INTO body_chart_segni (chart_id, vista, tipo, x, y, dimensione, intensita, ordine)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO body_chart_segni (chart_id, vista, tipo, x, y, dimensione, intensita, punti, ordine)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     dati.segni.forEach((s, i) =>
-      ins.run(dati.chart.id, s.vista, s.tipo, s.x, s.y, s.dimensione, s.intensita, i)
+      ins.run(
+        dati.chart.id,
+        s.vista,
+        s.tipo,
+        s.x,
+        s.y,
+        s.dimensione,
+        s.intensita,
+        // i punti hanno senso solo per un tratto
+        eTratto(s.tipo) ? serializzaPunti(s.punti) : null,
+        i
+      )
     )
   })()
 }

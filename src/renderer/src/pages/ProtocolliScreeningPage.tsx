@@ -11,6 +11,7 @@ import type {
   VoceScreening
 } from '../../../shared/types'
 import { toast, toastErrore } from '../components/Toast'
+import CampoSuggerimenti from '../components/CampoSuggerimenti'
 import { chiedi } from '../components/Conferma'
 import { errMsg } from '../lib'
 import { useRileggiDopoSalvataggio } from '../salvaUscendo'
@@ -237,17 +238,12 @@ export default function ProtocolliScreeningPage({
             <div className="form-row-2">
               <label>
                 Sport
-                <input
-                  list="sport-noti"
+                <CampoSuggerimenti
                   placeholder="es. Calcio"
                   value={nuovo.sport}
-                  onChange={(e) => setNuovo({ ...nuovo, sport: e.target.value })}
+                  onChange={(v) => setNuovo({ ...nuovo, sport: v })}
+                  suggerimenti={sportNoti}
                 />
-                <datalist id="sport-noti">
-                  {sportNoti.map((s) => (
-                    <option key={s} value={s} />
-                  ))}
-                </datalist>
               </label>
               <label>
                 Nome del protocollo

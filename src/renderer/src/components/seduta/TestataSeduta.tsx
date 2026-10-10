@@ -1,4 +1,5 @@
 import Tendina from '../Tendina'
+import CampoSuggerimenti from '../CampoSuggerimenti'
 import type { Fase, PazienteDettaglio } from '../../../../shared/types'
 import type { StatoSalvataggio } from '../../salvataggio'
 import IndicatoreSalvataggio from '../IndicatoreSalvataggio'
@@ -106,18 +107,12 @@ export default function TestataSeduta({
             mano, ma quelli gia' usati si ripropongono. */}
         <label className="field focus-field">
           Focus
-          <input
-            type="text"
-            list="focus-usati"
+          <CampoSuggerimenti
             placeholder="es. preparazione corsa"
             value={campi.focus}
-            onChange={(e) => onCambia({ focus: e.target.value })}
+            onChange={(v) => onCambia({ focus: v })}
+            suggerimenti={focusUsati}
           />
-          <datalist id="focus-usati">
-            {focusUsati.map((f) => (
-              <option key={f} value={f} />
-            ))}
-          </datalist>
         </label>
         <IndicatoreSalvataggio stato={salvataggio.stato} errore={salvataggio.errore} />
         <button onClick={onAnnulla}>Annulla</button>

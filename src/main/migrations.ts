@@ -1496,6 +1496,31 @@ export const MIGRATIONS: string[] = [
   CREATE INDEX IF NOT EXISTS idx_bozze_seduta_paziente ON bozze_seduta(paziente_id);
   CREATE INDEX IF NOT EXISTS idx_pazienti_gruppo ON pazienti(gruppo_id);
   CREATE INDEX IF NOT EXISTS idx_pazienti_patologia ON pazienti(patologia_id);
+  `,
+
+  // 63 - i tratti a mano libera nella body chart. Un tratto e' un segno come
+  //      gli altri (tipo 'tratto' o 'sfumato', dimensione = spessore del
+  //      pennello) ma invece di un punto solo ha una linea: i suoi punti, come
+  //      frazioni 0..1 della figura, stanno qui in un testo JSON. x e y restano
+  //      il primo punto. I segni di prima hanno NULL e non cambiano.
+  `
+  ALTER TABLE body_chart_segni ADD COLUMN punti TEXT;
+  `,
+
+  // 64 - i massimali legati all'esercizio della libreria, con il lato e il
+  //      modo in cui sono stati ottenuti. Il nome resta scritto sul massimale
+  //      (come una fotografia, e per quelli di prima che non hanno un esercizio),
+  //      ma ora puo' rimandare all'esercizio vero: serve a ritrovarlo dalla
+  //      seduta. Il lato (dx/sx, vuoto = entrambi) e' per gli esercizi a una
+  //      gamba, dove conta il confronto fra i due arti. Il metodo dice se il
+  //      numero e' stato misurato o stimato (da una serie o dalla velocita'),
+  //      perche' una stima non vale quanto una misura. Quelli di prima restano
+  //      senza esercizio, lato e metodo.
+  `
+  ALTER TABLE massimali ADD COLUMN esercizio_id INTEGER REFERENCES esercizi(id) ON DELETE SET NULL;
+  ALTER TABLE massimali ADD COLUMN lato TEXT CHECK (lato IN ('dx', 'sx'));
+  ALTER TABLE massimali ADD COLUMN metodo TEXT CHECK (metodo IN ('misurato', 'serie', 'velocita'));
+  CREATE INDEX IF NOT EXISTS idx_massimali_esercizio ON massimali(esercizio_id);
   `
 ]
 
