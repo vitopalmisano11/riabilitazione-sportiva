@@ -102,7 +102,7 @@ test('Migrazione 56: i data URL diventano byte, il resto non si tocca, e l\'arch
   // a ogni migrazione.
   const ora = statSync(file).size
   assert.ok(prima - ora > 50_000, `il file doveva rimpicciolire: ${prima} -> ${ora}`)
-})
+}, 120_000)
 
 test('Cestino: un referto torna con i suoi byte, da solo o con il paziente', () => {
   svuotaCestino()

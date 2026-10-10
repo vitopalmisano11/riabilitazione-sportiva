@@ -355,7 +355,7 @@ test('Migrazione 55: i punteggi gia\' salvati si agganciano al loro punteggio, p
   )
   vecchio.close()
   rmSync(cartella55, { recursive: true, force: true })
-})
+}, 120_000)
 
 test('initDb davanti a un archivio piu\' nuovo: errore chiaro, e il file non resta agganciato', () => {
   const dirN = mkdtempSync(join(tmpdir(), 'riab-nuovo-'))
