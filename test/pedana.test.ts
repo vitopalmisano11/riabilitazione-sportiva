@@ -800,10 +800,19 @@ test('le curve: forza, salto con i momenti, carico sui lati, oscillazione', () =
   const di = (prefisso: string) => archivio.test.filter((t) => t.test_codice.startsWith(prefisso))
 
   const forzaCurve = curvePedana(di('forza'))
-  assert.equal(forzaCurve.length, 1, 'tutte le ripetizioni nello stesso disegno')
+  // un disegno per lato, con tutte le ripetizioni di quel lato
+  const lati = new Set(forzaCurve.map((c) => c.chiave))
+  assert.equal(lati.size, forzaCurve.length, 'un disegno per lato')
+  assert.ok(forzaCurve.length >= 1 && forzaCurve.length <= 2)
   assert.equal(forzaCurve[0].unitaX, 's', 'i millisecondi diventano secondi')
-  assert.ok(forzaCurve[0].linee.length >= 2)
-  assert.ok(forzaCurve[0].linee.some((l) => l.spessore > 2), 'la ripetizione migliore è in evidenza')
+  for (const c of forzaCurve) {
+    assert.ok(c.linee.length >= 2)
+    assert.ok(c.linee.some((l) => l.spessore > 2), 'la ripetizione migliore è in evidenza')
+    assert.ok(c.linee.every((l) => l.colore === c.linee[0].colore), 'un solo colore per disegno')
+  }
+  if (forzaCurve.length === 2) {
+    assert.deepEqual(forzaCurve[0].intervalloY, forzaCurve[1].intervalloY, 'stessa scala fra i due lati')
+  }
 
   const salto = curvePedana(di('salto'))
   assert.deepEqual(

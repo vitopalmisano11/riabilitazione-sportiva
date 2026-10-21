@@ -163,7 +163,7 @@ export function stileReport(accento: string, accentoScuro: string, intestazione:
   .coppia-pedana.tracciati > *, .coppia-pedana.note > * { width: 100%; max-width: 76mm; justify-self: center; }
   .coppia-pedana.due-grafici > .g-piccolo { flex: 0 0 56mm; }
   .coppia-pedana.due-grafici > .g-largo { flex: 1 1 0; max-width: 98mm; }
-  .sezione-pedana .coppia-pedana + .titolo-nota { margin-top: 8px; }
+  .sezione-pedana .coppia-pedana + .titolo-nota { margin-top: 20px; }
   .titolo-nota { margin: 0; font-size: 10px; font-weight: 700; color: #555b66; }
   .fascia { margin-left: 6px; padding: 1px 7px; border-radius: 999px; background: ${intestazione}; color: ${accentoScuro}; }
   .vuoto-test { color: #8b93a0; margin: 2px 0; }

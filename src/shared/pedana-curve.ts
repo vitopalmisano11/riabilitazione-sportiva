@@ -111,9 +111,11 @@ function canali(serie: SeriePedana, ...nomi: string[]): number[][] | null {
 export function curvePedana(test: TestPedanaSalvato[]): Curva[] {
   const curve: Curva[] = []
 
-  // ---- forza isometrica: tutte le ripetizioni, la migliore in evidenza
+  // ---- forza isometrica: tutte le ripetizioni, la migliore in evidenza. Un disegno
+  // per lato, uno di fianco all'altro e con la stessa scala: con i due lati nello
+  // stesso disegno le sei linee si sovrapponevano e non si leggeva piu' niente.
   const forza = test.filter((t) => famigliaDi(t.test_codice) === 'forza')
-  const lineeForza: LineaCurva[] = []
+  const lineePerLato = new Map<LatoPedana | null, LineaCurva[]>()
   let unitaTempo = 's'
   let unitaForza = ''
   for (const t of forza) {
@@ -125,12 +127,13 @@ export function curvePedana(test: TestPedanaSalvato[]): Curva[] {
     }
     for (const [lato, ripetizioni] of perLato) {
       const migliore = ripetizioni.reduce((a, b) => (picco(b.canali.y) > picco(a.canali.y) ? b : a))
+      const linee = lineePerLato.get(lato) ?? []
       for (const s of ripetizioni) {
         const tempo = inSecondi(s.canali.x, s.asse_x?.unita)
         unitaTempo = tempo.unita
         unitaForza = s.asse_y?.unita ?? unitaForza
         const buona = s === migliore
-        lineeForza.push({
+        linee.push({
           etichetta: buona ? nomeLato(lato) : '',
           colore: colorePerLato(lato),
           x: tempo.x,
@@ -139,17 +142,27 @@ export function curvePedana(test: TestPedanaSalvato[]): Curva[] {
           opacita: buona ? 1 : 0.45
         })
       }
+      lineePerLato.set(lato, linee)
     }
   }
-  if (lineeForza.length > 0) {
+  // il destro prima del sinistro, come nella stabilometria
+  const latiForza = [...lineePerLato.keys()].sort((a, b) => (a === 'dx' ? 0 : 1) - (b === 'dx' ? 0 : 1))
+  const primaForza = curve.length
+  for (const lato of latiForza) {
     curve.push({
-      chiave: 'forza',
-      titolo: 'Forza nel tempo (tutte le ripetizioni, la migliore in evidenza)',
+      chiave: `forza-${lato ?? 'unico'}`,
+      titolo: `Forza nel tempo${lato ? ` — ${nomeLato(lato).toLowerCase()}` : ''} (migliore ripetizione in evidenza)`,
       unitaX: unitaTempo,
       unitaY: unitaForza,
-      linee: lineeForza.sort((a, b) => a.spessore - b.spessore),
+      linee: lineePerLato.get(lato)!.sort((a, b) => a.spessore - b.spessore),
       eventi: []
     })
+  }
+  const curveForza = curve.slice(primaForza)
+  if (curveForza.length > 1) {
+    const tutti = curveForza.flatMap((c) => c.linee.flatMap((l) => l.y))
+    const intervallo: [number, number] = [Math.min(...tutti), Math.max(...tutti)]
+    for (const c of curveForza) c.intervalloY = intervallo
   }
 
   // ---- salti: forza e carico sui due lati, con i momenti del salto
@@ -206,7 +219,9 @@ export function curvePedana(test: TestPedanaSalvato[]): Curva[] {
               colore: COLORE_DX,
               x: tempo.x,
               y: c[2],
-              spessore: 2.4,
+              // piu' spessa e disegnata prima: quando i due lati coincidono, il blu
+              // resta visibile ai lati della linea rossa
+              spessore: 4.6,
               opacita: 1
             },
             {
@@ -214,7 +229,7 @@ export function curvePedana(test: TestPedanaSalvato[]): Curva[] {
               colore: COLORE_SX,
               x: tempo.x,
               y: c[1],
-              spessore: 2.4,
+              spessore: 2,
               opacita: 1
             }
           ],
