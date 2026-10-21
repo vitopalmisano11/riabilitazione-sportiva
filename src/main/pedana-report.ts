@@ -460,7 +460,7 @@ function noteHtml(g: GruppoPedana, r: GiornoPedana): string {
     comuni.length > 0
       ? `<p class="titolo-nota">${g.famiglia === 'stabilometria' ? 'Entrambi i piedi' : 'Entrambi i lati'}</p>${elenco(comuni)}`
       : ''
-  return `<div class="sezione-pedana">${colonne ? `<div class="coppia-pedana">${colonne}</div>` : ''}${comune}</div>`
+  return `<div class="sezione-pedana">${colonne ? `<div class="coppia-pedana note">${colonne}</div>` : ''}${comune}</div>`
 }
 
 // Ogni test ha lo stesso ordine, dall'alto in basso: una riga per data (la data,

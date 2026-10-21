@@ -154,7 +154,13 @@ export function stileReport(accento: string, accentoScuro: string, intestazione:
   .coppia-pedana.tracciati > * { flex-basis: 54mm; }
   .coppia-pedana figcaption { font-size: 10px; font-weight: 600; margin-bottom: 6px; }
   .coppia-pedana.due-grafici { gap: 34px; }
-  .coppia-pedana.confronto, .coppia-pedana.tracciati { gap: 34px; }
+  .coppia-pedana.confronto { gap: 34px; }
+  /* due colonne uguali a tutta larghezza, come i due grafici del salto: i tracciati,
+     le oscillazioni e le note di ogni piede stanno una sopra l'altra */
+  .coppia-pedana.tracciati, .coppia-pedana.note, .coppia-pedana.curve:has(> :nth-child(2)) {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 34px;
+  }
+  .coppia-pedana.tracciati > *, .coppia-pedana.note > * { width: 100%; max-width: 76mm; justify-self: center; }
   .coppia-pedana.due-grafici > .g-piccolo { flex: 0 0 56mm; }
   .coppia-pedana.due-grafici > .g-largo { flex: 1 1 0; max-width: 98mm; }
   .sezione-pedana .coppia-pedana + .titolo-nota { margin-top: 8px; }
