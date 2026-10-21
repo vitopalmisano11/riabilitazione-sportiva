@@ -193,9 +193,11 @@
   grid-row: 2;
 }
 
-.step-editor li > button {
+.step-editor li > .step-azioni {
   grid-column: 3;
   grid-row: 1;
+  display: flex;
+  gap: 4px;
 }
 
 .cerca-step {

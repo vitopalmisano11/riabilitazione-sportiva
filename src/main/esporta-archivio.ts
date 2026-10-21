@@ -54,6 +54,7 @@ Questi file sono tabelle in formato CSV: si aprono con un doppio clic in Excel
   valutazioni.csv    una riga per movimento di ogni valutazione obiettiva
   questionari.csv    i questionari compilati, con punteggi ed esito
   screening.csv      i valori misurati negli screening
+  pedana.csv         i valori dei test con la pedana (forza, salto, stabilometria)
 
 Se un testo comincia con = + - o @ trovi un apostrofo davanti: serve a far
 restare testo quello che Excel altrimenti eseguirebbe come formula.
@@ -315,6 +316,38 @@ export function esportaArchivio(cartella: string): string {
       'prova',
       'valore',
       'note'
+    ]
+  )
+
+  // Le curve e i tracciati (pedana_serie) servono solo a disegnare i grafici e
+  // restano nell'archivio: qui ci sono i valori misurati.
+  scriviCsv(
+    join(dest, 'pedana.csv'),
+    q(`SELECT p.cognome, p.nome, t.data, t.ora, t.test_nome AS test, t.categoria,
+              t.lato AS lato_test, t.peso_kg, t.dispositivo_modello AS dispositivo,
+              v.misura_nome AS misura, v.unita, v.lato, v.prova, v.valore,
+              t.condizioni, t.avvertenze
+       FROM pedana_valori v
+       JOIN pedana_test t ON t.id = v.test_id
+       JOIN pazienti p ON p.id = t.paziente_id
+       ORDER BY p.cognome, p.nome, t.data, t.ora, t.id, v.ordine, v.id`),
+    [
+      'cognome',
+      'nome',
+      'data',
+      'ora',
+      'test',
+      'categoria',
+      'lato_test',
+      'peso_kg',
+      'dispositivo',
+      'misura',
+      'unita',
+      'lato',
+      'prova',
+      'valore',
+      'condizioni',
+      'avvertenze'
     ]
   )
 

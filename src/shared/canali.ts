@@ -466,6 +466,7 @@ export interface Canali {
   'progressioni:reorder': (ids: number[]) => void
   'progressioni:aggiungiStep': (progressioneId: number, esercizioId: number, requisito: string | null) => number
   'progressioni:aggiornaStep': (id: number, requisito: string | null) => void
+  'progressioni:sostituisciStep': (id: number, esercizioId: number) => void
   'progressioni:togliStep': (id: number) => void
   'progressioni:riordinaStep': (ids: number[]) => void
   'progressioni:fase': (faseId: number) => ProgressioniFase
@@ -870,6 +871,7 @@ export const MAPPA_API = {
     reorder: 'progressioni:reorder',
     aggiungiStep: 'progressioni:aggiungiStep',
     aggiornaStep: 'progressioni:aggiornaStep',
+    sostituisciStep: 'progressioni:sostituisciStep',
     togliStep: 'progressioni:togliStep',
     riordinaStep: 'progressioni:riordinaStep',
     fase: 'progressioni:fase',

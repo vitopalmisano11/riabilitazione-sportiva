@@ -14,6 +14,7 @@ import {
   gruppiProgressioni,
   impostaProgressioniFase,
   progressioniDellaFase,
+  sostituisciStep,
   statoProgressioni,
   togliStep
 } from '../src/main/progressioni'
@@ -252,6 +253,24 @@ test('Un esercizio che e\' uno step non si elimina, ne\' due volte nella stessa 
   const step = elencoProgressioni()
   for (const p of step) for (const s of p.step) if (s.esercizio_id === esercizi[0]) togliStep(s.id)
   eliminaEsercizio(esercizi[0])
+})
+
+test("Si cambia l'esercizio di uno step: stesso posto e stesso requisito, mai un doppione", () => {
+  const { prog, esercizi } = scenario()
+  const prima = elencoProgressioni().find((p) => p.id === prog)!.step
+  const terzo = prima[2]
+  const nuovo = esercizio(creaCategoria(`Sost ${Math.random()}`), `Sostituto ${Math.random()}`)
+  sostituisciStep(terzo.id, nuovo)
+  const dopo = elencoProgressioni().find((p) => p.id === prog)!.step
+  assert.deepEqual(
+    dopo.map((s) => s.id),
+    prima.map((s) => s.id)
+  )
+  assert.equal(dopo[2].esercizio_id, nuovo)
+  assert.equal(dopo[2].requisito, terzo.requisito)
+  // un esercizio gia' presente nella scala non si ripete
+  assert.throws(() => sostituisciStep(terzo.id, esercizi[0]), /già uno step/)
+  assert.throws(() => sostituisciStep(999999, nuovo), /non trovato/)
 })
 
 test('Gruppi e progressioni nel cestino: si rimettono com\'erano', () => {

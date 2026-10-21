@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Pencil, Plus, Trash2, X } from 'lucide-react'
+import { Pencil, Plus, Replace, Trash2, X } from 'lucide-react'
 import type { EsercizioConCategoria, Progressione, ProgressioneGruppo } from '../../../shared/types'
 import { errMsg } from '../lib'
 import { useRiordinoSalvato } from '../riordino'
@@ -87,15 +87,26 @@ export default function ProgressioniLibreria(): React.JSX.Element {
   const selezionata = progressioni.find((p) => p.id === selId) ?? null
   const senzaGruppo = progressioni.filter((p) => p.gruppo_id == null)
 
+  const salvaRiordino = async (fn: () => Promise<unknown>): Promise<void> => {
+    try {
+      await fn()
+      await carica()
+    } catch (e) {
+      toastErrore(errMsg(e))
+    }
+  }
+
+  const riordinoGruppi = useRiordinoSalvato(gruppi, (ids) =>
+    salvaRiordino(() => window.api.progressioni.riordinaGruppi(ids))
+  )
+
   const elenco = (lista: Progressione[]): React.JSX.Element => (
-    <ul className="elenco-prog">
-      {lista.map((p) => (
-        <li key={p.id} className={p.id === selId ? 'selected' : ''} onClick={() => setSelId(p.id)}>
-          {p.nome}
-          <span className="hint"> · {p.step.length === 1 ? '1 step' : `${p.step.length} step`}</span>
-        </li>
-      ))}
-    </ul>
+    <ElencoProgressioni
+      lista={lista}
+      selId={selId}
+      onSeleziona={setSelId}
+      onRiordina={(ids) => salvaRiordino(() => window.api.progressioni.reorder(ids))}
+    />
   )
 
   return (
@@ -155,9 +166,11 @@ export default function ProgressioniLibreria(): React.JSX.Element {
           <p className="hint">Es. il gruppo «Braking strategies», con dentro «Vertical braking» e «Horizontal braking».</p>
         )}
 
-        {gruppi.map((g) => (
-          <div key={g.id}>
-            <div className="prog-gruppo">
+        {riordinoGruppi.ordine.map((g, idx) => {
+          const dnd = riordinoGruppi.contenitore(idx)
+          return (
+          <div key={g.id} {...dnd}>
+            <div className="prog-gruppo" {...riordinoGruppi.presa(idx)}>
               {gruppoInModifica?.id === g.id ? (
                 <span className="edit-row">
                   <input
@@ -187,7 +200,8 @@ export default function ProgressioniLibreria(): React.JSX.Element {
             </div>
             {elenco(progressioni.filter((p) => p.gruppo_id === g.id))}
           </div>
-        ))}
+          )
+        })}
 
         {senzaGruppo.length > 0 && (
           <div>
@@ -222,6 +236,40 @@ export default function ProgressioniLibreria(): React.JSX.Element {
   )
 }
 
+// Le progressioni di un gruppo, da trascinare per cambiarne l'ordine.
+function ElencoProgressioni({
+  lista,
+  selId,
+  onSeleziona,
+  onRiordina
+}: {
+  lista: Progressione[]
+  selId: number | null
+  onSeleziona: (id: number) => void
+  onRiordina: (ids: number[]) => Promise<void>
+}): React.JSX.Element {
+  const { ordine, contenitore, presa } = useRiordinoSalvato(lista, onRiordina)
+  return (
+    <ul className="elenco-prog">
+      {ordine.map((p, idx) => {
+        const dnd = contenitore(idx)
+        return (
+          <li
+            key={p.id}
+            {...dnd}
+            {...presa(idx)}
+            className={[p.id === selId ? 'selected' : '', dnd.className].filter(Boolean).join(' ')}
+            onClick={() => onSeleziona(p.id)}
+          >
+            {p.nome}
+            <span className="hint"> · {p.step.length === 1 ? '1 step' : `${p.step.length} step`}</span>
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
 function EditorProgressione({
   progressione: p,
   gruppi,
@@ -239,6 +287,8 @@ function EditorProgressione({
   const [criteri, setCriteri] = useState(p.criteri ?? '')
   const [ricerca, setRicerca] = useState('')
   const [aggiungendo, setAggiungendo] = useState(false)
+  // Lo step di cui si sta cambiando l'esercizio (di solito perche' e' archiviato).
+  const [sostituendo, setSostituendo] = useState<number | null>(null)
 
   const run = async (fn: () => Promise<unknown>): Promise<void> => {
     try {
@@ -341,13 +391,24 @@ function EditorProgressione({
                 valore={s.requisito}
                 onSalva={(v) => run(() => window.api.progressioni.aggiornaStep(s.id, v))}
               />
-              <button
-                className="danger"
-                title="Togli dalla progressione"
-                onClick={() => void run(() => window.api.progressioni.togliStep(s.id))}
-              >
-                <X size={16} />
-              </button>
+              <span className="step-azioni">
+                <button
+                  title={`Cambia l'esercizio di questo step${s.archiviato === 1 ? ' (è archiviato)' : ''}`}
+                  onClick={() => {
+                    setAggiungendo(true)
+                    setSostituendo(s.id)
+                  }}
+                >
+                  <Replace size={16} />
+                </button>
+                <button
+                  className="danger"
+                  title="Togli dalla progressione"
+                  onClick={() => void run(() => window.api.progressioni.togliStep(s.id))}
+                >
+                  <X size={16} />
+                </button>
+              </span>
             </li>
           )
         })}
@@ -355,6 +416,12 @@ function EditorProgressione({
 
       {aggiungendo ? (
         <div className="cerca-step">
+          {sostituendo != null && (
+            <p className="hint">
+              Scegli il nuovo esercizio per lo step {p.step.findIndex((x) => x.id === sostituendo) + 1}: le sedute
+              già fatte non cambiano.
+            </p>
+          )}
           <input
             autoFocus
             type="search"
@@ -364,6 +431,7 @@ function EditorProgressione({
             onKeyDown={(e) => {
               if (e.key === 'Escape') {
                 setRicerca('')
+                setSostituendo(null)
                 setAggiungendo(false)
               }
             }}
@@ -379,7 +447,14 @@ function EditorProgressione({
                   title={`Aggiungi ${e.nome}`}
                   onClick={() => {
                     setRicerca('')
-                    void run(() => window.api.progressioni.aggiungiStep(p.id, e.id, null))
+                    if (sostituendo != null) {
+                      const stepId = sostituendo
+                      setSostituendo(null)
+                      setAggiungendo(false)
+                      void run(() => window.api.progressioni.sostituisciStep(stepId, e.id))
+                    } else {
+                      void run(() => window.api.progressioni.aggiungiStep(p.id, e.id, null))
+                    }
                   }}
                 >
                   <Plus size={16} />

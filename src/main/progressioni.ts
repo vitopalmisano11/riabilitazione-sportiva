@@ -99,6 +99,22 @@ export function aggiornaStep(id: number, requisito: string | null): void {
   getDb().prepare('UPDATE progressione_step SET requisito = ? WHERE id = ?').run(vuotoNull(requisito), id)
 }
 
+// Cambia l'esercizio di uno step lasciandolo al suo posto (con il suo requisito):
+// serve soprattutto quando l'esercizio e' stato archiviato. Gli esiti sono della
+// progressione, non dello step, quindi lo step dei pazienti non si sposta.
+export function sostituisciStep(id: number, esercizioId: number): void {
+  const db = getDb()
+  const step = db.prepare('SELECT progressione_id FROM progressione_step WHERE id = ?').get(id) as
+    | { progressione_id: number }
+    | undefined
+  if (!step) throw new Error('Step non trovato.')
+  const gia = db
+    .prepare('SELECT 1 FROM progressione_step WHERE progressione_id = ? AND esercizio_id = ? AND id <> ?')
+    .get(step.progressione_id, esercizioId, id)
+  if (gia) throw new Error('Questo esercizio è già uno step di questa progressione.')
+  db.prepare('UPDATE progressione_step SET esercizio_id = ? WHERE id = ?').run(esercizioId, id)
+}
+
 // Togliere uno step non tocca le sedute: cambia solo la scala, e lo step di chi
 // la sta percorrendo si ricalcola.
 export function togliStep(id: number): void {

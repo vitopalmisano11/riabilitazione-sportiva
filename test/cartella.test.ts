@@ -303,6 +303,14 @@ test('Cartella completa del paziente: ogni tabella arriva nel documento', () => 
   // L'archivio si esporta anche in tabelle leggibili senza l'app: le query
   // toccano quasi tutte le tabelle, quindi qui si controlla che girino e che il
   // paziente seminato compaia.
+  const testPedana = ins(
+    `INSERT INTO pedana_test (paziente_id, id_esterno, data, test_codice, test_nome, lato)
+     VALUES (${Number(pzVuoto)}, 'csv-1', '2026-10-01', 'squat', 'Squat isometrico', 'sx')`
+  )
+  ins(
+    `INSERT INTO pedana_valori (test_id, misura_codice, misura_nome, unita, lato, valore)
+     VALUES (${Number(testPedana)}, 'forza_max', 'Forza massima', 'N', 'sx', 812.5)`
+  )
   const dirCsv = mkdtempSync(join(tmpdir(), 'riab-csv-'))
   const cartellaCsv = esportaArchivio(dirCsv)
   for (const nome of [
@@ -314,10 +322,14 @@ test('Cartella completa del paziente: ogni tabella arriva nel documento', () => 
     'valutazioni.csv',
     'questionari.csv',
     'screening.csv',
+    'pedana.csv',
     'leggimi.txt'
   ]) {
     assert.ok(existsSync(join(cartellaCsv, nome)), `manca ${nome}`)
   }
+  const csvPedana = readFileSync(join(cartellaCsv, 'pedana.csv'), 'utf-8')
+  assert.ok(csvPedana.includes('Test;Vuoto;2026-10-01;;Squat isometrico'))
+  assert.ok(csvPedana.includes('Forza massima;N;sx;;812.5'))
   const csvPazienti = readFileSync(join(cartellaCsv, 'pazienti.csv'), 'utf-8')
   assert.ok(csvPazienti.startsWith('﻿'), 'senza BOM Excel sbaglia le accentate')
   assert.ok(csvPazienti.includes('Verdi;Giulia'))

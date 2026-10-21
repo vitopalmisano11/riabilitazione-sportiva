@@ -251,6 +251,7 @@ import {
   gruppiProgressioni,
   impostaProgressioniFase,
   progressioniDellaFase,
+  sostituisciStep,
   riordinaProgressioni,
   riordinaStep,
   statoProgressioni,
@@ -1207,6 +1208,7 @@ export function registerIpc(): void {
     aggiungiStep(progressioneId, esercizioId, requisito)
   )
   handle('progressioni:aggiornaStep', (id: number, requisito: string | null) => aggiornaStep(id, requisito))
+  handle('progressioni:sostituisciStep', (id: number, esercizioId: number) => sostituisciStep(id, esercizioId))
   handle('progressioni:togliStep', (id: number) => togliStep(id))
   handle('progressioni:riordinaStep', (ids: number[]) => riordinaStep(ids))
   handle('progressioni:fase', (faseId: number) => progressioniDellaFase(faseId))

@@ -11,7 +11,7 @@ async function prepara(pagina: Page): Promise<void> {
   await pagina.evaluate(async () => {
     const api = window.api
     const cat = await api.categorie.create('Pliometria')
-    for (const nome of ['Wall sit', 'Front squat', 'Drop catch 2 leg']) {
+    for (const nome of ['Wall sit', 'Front squat', 'Drop catch 2 leg', 'Altro salto']) {
       await api.esercizi.create({
         nome,
         categoria_id: cat,
@@ -97,6 +97,18 @@ test('progressioni: dalla libreria alla seduta e allo specchietto', async () => 
       .fill('solo se il front squat è di qualità')
     await pagina.getByLabel('Criteri per passare allo step dopo').click() // esce dalla casella: salva
     await pagina.locator('.step-editor').screenshot({ path: join(FOTO, '20-progressioni-libreria.png') })
+
+    // si cambia l'esercizio di uno step: resta al suo posto, col suo requisito; poi si rimette
+    const terzo = pagina.locator('.step-editor li').nth(2)
+    await terzo.getByTitle(/Cambia l'esercizio di questo step/).click()
+    await pagina.getByPlaceholder("Cerca l'esercizio nella libreria…").fill('Altro salto')
+    await pagina.getByTitle('Aggiungi Altro salto').click()
+    await expect(terzo).toContainText('Altro salto')
+    await expect(terzo.getByPlaceholder('requisito per arrivarci…')).toHaveValue('solo se il front squat è di qualità')
+    await terzo.getByTitle(/Cambia l'esercizio di questo step/).click()
+    await pagina.getByPlaceholder("Cerca l'esercizio nella libreria…").fill('Drop catch 2 leg')
+    await pagina.getByTitle('Aggiungi Drop catch 2 leg').click()
+    await expect(terzo).toContainText('Drop catch 2 leg')
 
     // un esercizio che e' uno step non si elimina dalla libreria
     await pagina.getByRole('button', { name: 'Esercizi', exact: true }).click()
