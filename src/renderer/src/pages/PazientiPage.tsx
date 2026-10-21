@@ -1,11 +1,14 @@
 import Tendina from '../components/Tendina'
 import { useEffect, useRef, useState } from 'react'
-import { ChevronRight, Filter, Plus } from 'lucide-react'
+import { ChevronRight, Filter, Plus, Upload } from 'lucide-react'
 import type { Gruppo, Patologia, PazienteDettaglio } from '../../../shared/types'
 import SedutaBuilder from '../components/SedutaBuilder'
 import { ModaleDatiPaziente } from '../components/AnagraficaPaziente'
 import SceltaConRicerca from '../components/SceltaConRicerca'
-import { formatData } from '../lib'
+import { errMsg, formatData, maiuscola } from '../lib'
+import { toastErrore } from '../components/Toast'
+import ImportaPedana from '../components/pedana/ImportaPedana'
+import type { AnteprimaPedana } from '../../../shared/pedana'
 import { useScorciatoie } from '../scorciatoie'
 import { SchedaAperta, SchedaPaziente } from './paziente/SchedaPaziente'
 
@@ -62,6 +65,8 @@ export default function PazientiPage({
   const [patologie, setPatologie] = useState<Patologia[]>([])
   const [gruppi, setGruppi] = useState<Gruppo[]>([])
   const [nuovo, setNuovo] = useState(false)
+  // Il file della pedana scelto da qui: il paziente non e' ancora noto, lo si sceglie nella finestra.
+  const [importPedana, setImportPedana] = useState<AnteprimaPedana | null>(null)
   // Quale linguetta e' aperta nella scheda del paziente: vive qui e non dentro
   // SchedaPaziente perche' aprire una seduta smonta quel componente (la pagina
   // passa a mostrare SedutaBuilder al suo posto). Se stesse li' dentro, tornando
@@ -77,6 +82,15 @@ export default function PazientiPage({
   } | null>(null)
 
   const load = async (): Promise<void> => setPazienti(await window.api.pazienti.list())
+
+  const scegliFilePedana = async (): Promise<void> => {
+    try {
+      const a = await window.api.pedana.scegliFile(null)
+      if (a) setImportPedana(a)
+    } catch (e) {
+      toastErrore(errMsg(e))
+    }
+  }
 
   useEffect(() => {
     void load()
@@ -146,6 +160,16 @@ export default function PazientiPage({
           { nome: 'Senza gruppo', pazienti: trovati.filter((p) => p.gruppo_id == null) }
         ].filter((s) => s.pazienti.length > 0)
 
+  const intestazioneColonne = (
+    <div className="riga-paziente intestazione-pazienti">
+      <span>Paziente</span>
+      <span>Patologia e fase</span>
+      <span>Ultima seduta</span>
+      <span>Stato</span>
+      <span />
+    </div>
+  )
+
   // La riga di un paziente nell'elenco: la stessa sia con i gruppi sia senza.
   const rigaPaziente = (p: PazienteDettaglio): React.JSX.Element => (
     <div
@@ -166,7 +190,7 @@ export default function PazientiPage({
         className="dettaglio-riga"
         title={p.ultima_seduta ? formatData(p.ultima_seduta) : undefined}
       >
-        {quantoFa(p.ultima_seduta)}
+        {maiuscola(quantoFa(p.ultima_seduta))}
       </span>
       <span>
         <span className={p.stato === 'concluso' ? 'badge-stato follow' : 'badge-stato'}>
@@ -299,6 +323,7 @@ export default function PazientiPage({
           }}
         />
       ) : (
+        <div className="scheda">
         <section className="card step-card elenco-pazienti">
           <div className="ricerca-sopra">
             <input
@@ -314,6 +339,14 @@ export default function PazientiPage({
               onClick={() => setFiltriAperti(!filtriAperti)}
             >
               <Filter size={18} />
+            </button>
+            <button
+              className="btn-icona"
+              title="Importa i test dal file della pedana"
+              aria-label="Importa dalla pedana"
+              onClick={() => void scegliFilePedana()}
+            >
+              <Upload size={18} />
             </button>
             {/* Con la scritta, e non solo il segno +: nelle righe qui sotto ogni
                 paziente ha il suo + per la seduta, e due segni uguali uno sotto
@@ -343,9 +376,9 @@ export default function PazientiPage({
                     setFiltroStato(e.target.value as '' | 'trattamento' | 'concluso')
                   }
                 >
-                  <option value="">tutti</option>
-                  <option value="trattamento">in trattamento</option>
-                  <option value="concluso">concluso</option>
+                  <option value="">Tutti</option>
+                  <option value="trattamento">In trattamento</option>
+                  <option value="concluso">Concluso</option>
                 </Tendina>
               </label>
               {filtriAttivi && (
@@ -365,39 +398,18 @@ export default function PazientiPage({
             </div>
           )}
 
-          {/* Un riquadro solo che scorre, come nel follow-up: prima erano dieci
-              pazienti e il resto chiuso in un blocco a parte, che con
-              l'archivio grande voleva dire due posti in cui cercare. */}
-          {/* Una riga per paziente, a colonne: il nome, a che punto e' del
+          {/* Senza gruppi: un riquadro solo che scorre, come nel follow-up.
+              Una riga per paziente, a colonne: il nome, a che punto e' del
               percorso, da quanto non viene e se e' in trattamento o in
               follow-up. Si legge tutto senza aprire la scheda. */}
-          <div className="riquadro-scorrevole">
-            {/* l'intestazione sta dentro al riquadro che scorre, ferma in
-                cima: cosi' le colonne sono larghe uguali a quelle delle righe */}
-            {trovati.length > 0 && (
-              <div className="riga-paziente intestazione-pazienti">
-                <span>Paziente</span>
-                <span>Patologia e fase</span>
-                <span>Ultima seduta</span>
-                <span>Stato</span>
-                <span />
-              </div>
-            )}
-            {sezioniGruppo.length === 0 ? (
+          {sezioniGruppo.length === 0 && (
+            <div className="riquadro-scorrevole">
+              {/* l'intestazione sta dentro al riquadro che scorre, ferma in
+                  cima: cosi' le colonne sono larghe uguali a quelle delle righe */}
+              {trovati.length > 0 && intestazioneColonne}
               <div className="righe-pazienti">{trovati.map(rigaPaziente)}</div>
-            ) : (
-              // I gruppi ci sono: l'elenco si spezza in una sezione per gruppo,
-              // con nome e conteggio, invece dell'unica lista di sempre.
-              sezioniGruppo.map((s) => (
-                <div key={s.nome} className="blocco-gruppo-pazienti">
-                  <div className="sotto-titolo">
-                    {s.nome} ({s.pazienti.length})
-                  </div>
-                  <div className="righe-pazienti">{s.pazienti.map(rigaPaziente)}</div>
-                </div>
-              ))
-            )}
-          </div>
+            </div>
+          )}
 
           {trovati.length === 0 && (
             <p className="hint">
@@ -407,6 +419,40 @@ export default function PazientiPage({
             </p>
           )}
         </section>
+
+        {/* Con i gruppi (Centro, Studio, Domicilio...) ogni gruppo e' un
+            riquadro suo sotto alla ricerca, con nome e conteggio, come le
+            sezioni del follow-up. */}
+        {sezioniGruppo.map((s) => (
+          <section key={s.nome} className="card card-gruppo">
+            <div className="card-header-row">
+              <h3>{s.nome}</h3>
+              <span className="hint">
+                {s.pazienti.length === 1 ? '1 paziente' : `${s.pazienti.length} pazienti`}
+              </span>
+            </div>
+            {intestazioneColonne}
+            <div className="righe-pazienti">{s.pazienti.map(rigaPaziente)}</div>
+          </section>
+        ))}
+        </div>
+      )}
+
+      {importPedana && (
+        <ImportaPedana
+          anteprima={importPedana}
+          pazienteCorrente={null}
+          onFinito={(importatoIn) => {
+            setImportPedana(null)
+            if (importatoIn !== null) {
+              // si apre il paziente, sulla pagina della pedana
+              void load().then(() => {
+                setScheda('pedana')
+                setSelId(importatoIn)
+              })
+            }
+          }}
+        />
       )}
 
       {nuovo && (

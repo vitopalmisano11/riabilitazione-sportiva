@@ -158,23 +158,35 @@ export function impostaProgressioniFase(faseId: number, dati: ProgressioniFase):
 // Contano le sedute fino a `finoAl` (di solito oggi: quelle programmate per i
 // giorni a venire non sono ancora andate in nessun modo) tranne `escludi`,
 // cioe' quella che si sta scrivendo.
+//
+// Con `tutte` si hanno tutte le progressioni, collegate alla fase o no: serve a
+// chiedere com'e' andata anche quando in seduta c'e' un esercizio di una
+// progressione che quella fase non ha (o la seduta non ha una fase).
 export function statoProgressioni(
   pazienteId: number,
   faseId: number | null,
   finoAl: string,
-  escludi: number | null
+  escludi: number | null,
+  tutte = false
 ): StatoProgressione[] {
-  if (faseId == null) return []
+  if (faseId == null && !tutte) return []
   const db = getDb()
+  const ordine = 'ORDER BY COALESCE(g.ordine, 1000000), p.ordine, p.id'
   const ids = (
-    db
-      .prepare(
-        `SELECT p.id FROM progressioni p LEFT JOIN progressione_gruppi g ON g.id = p.gruppo_id
-         WHERE p.id IN (SELECT progressione_id FROM fase_progressioni WHERE fase_id = ?)
-            OR p.gruppo_id IN (SELECT gruppo_id FROM fase_progressione_gruppi WHERE fase_id = ?)
-         ORDER BY COALESCE(g.ordine, 1000000), p.ordine, p.id`
-      )
-      .all(faseId, faseId) as { id: number }[]
+    tutte
+      ? (db
+          .prepare(
+            `SELECT p.id FROM progressioni p LEFT JOIN progressione_gruppi g ON g.id = p.gruppo_id ${ordine}`
+          )
+          .all() as { id: number }[])
+      : (db
+          .prepare(
+            `SELECT p.id FROM progressioni p LEFT JOIN progressione_gruppi g ON g.id = p.gruppo_id
+             WHERE p.id IN (SELECT progressione_id FROM fase_progressioni WHERE fase_id = ?)
+                OR p.gruppo_id IN (SELECT gruppo_id FROM fase_progressione_gruppi WHERE fase_id = ?)
+             ${ordine}`
+          )
+          .all(faseId, faseId) as { id: number }[])
   ).map((r) => r.id)
   if (ids.length === 0) return []
 

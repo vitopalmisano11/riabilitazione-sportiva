@@ -16,6 +16,8 @@ interface Props {
   // le progressioni che hanno un esercizio in questa seduta (gia' filtrate: se
   // la seduta e' nel futuro non ce ne sono)
   progressioni: StatoProgressione[]
+  // la seduta e' nel futuro e ha esercizi di progressione: l'esito si segna dopo
+  esitoRimandato: boolean
   totaleEsercizi: number
   salvataggio: { stato: StatoSalvataggio; errore: string | null }
   onAnnulla: () => void
@@ -29,6 +31,7 @@ export default function ChiusuraSeduta({
   onCambia,
   segni,
   progressioni,
+  esitoRimandato,
   totaleEsercizi,
   salvataggio,
   onAnnulla,
@@ -38,6 +41,7 @@ export default function ChiusuraSeduta({
     <section className="card">
       <EsitiProgressioni
         stati={progressioni}
+        rimandato={esitoRimandato}
         esiti={campi.esiti}
         onCambia={(esiti) => onCambia({ esiti })}
       />

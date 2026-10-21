@@ -3,6 +3,7 @@ import { AlertTriangle, CalendarPlus, Copy, Plus } from 'lucide-react'
 import type { Fase, Patologia, PazienteDettaglio, SedutaRiepilogo } from '../../../../shared/types'
 import ProgrammaSettimana from '../../components/ProgrammaSettimana'
 import QuestionariPaziente from '../../components/QuestionariPaziente'
+import PedanaPaziente from '../../components/pedana/PedanaPaziente'
 import PromemoriaPaziente from '../../components/PromemoriaPaziente'
 import AnagraficaPaziente from '../../components/AnagraficaPaziente'
 import SceltaConRicerca from '../../components/SceltaConRicerca'
@@ -19,7 +20,7 @@ import { errMsg, oggiIso } from '../../lib'
 import { ObiettiviCard } from './ObiettiviCard'
 import { DiarioCard } from './DiarioCard'
 
-export type SchedaAperta = 'quadro' | 'diario' | 'clinica' | 'percorso'
+export type SchedaAperta = 'quadro' | 'diario' | 'clinica' | 'pedana' | 'percorso'
 
 const SCHEDE_PAZIENTE: { key: SchedaAperta; label: string }[] = [
   // Prima voce e prima cosa che si vede aprendo un paziente: e' la domanda
@@ -28,6 +29,7 @@ const SCHEDE_PAZIENTE: { key: SchedaAperta; label: string }[] = [
   { key: 'quadro', label: 'Quadro' },
   { key: 'diario', label: 'Diario sedute' },
   { key: 'clinica', label: 'Clinica' },
+  { key: 'pedana', label: 'Pedana' },
   { key: 'percorso', label: 'Percorso' }
 ]
 
@@ -171,17 +173,19 @@ export function SchedaPaziente({
         <span className="row-actions">
           <button
             disabled={ultimaSeduta == null}
-            title="Nuova seduta copiando l'ultima"
+            title="Riprendi l'ultima: nuova seduta copiando l'ultima"
+            aria-label="Riprendi l'ultima seduta"
             onClick={() => ultimaSeduta != null && onDuplicaSeduta(ultimaSeduta)}
           >
-            <Copy size={17} /> Riprendi l&apos;ultima
+            <Copy size={17} />
           </button>
           <button
             disabled={sedutePaziente.length === 0}
-            title="Copia un programma su piu' giorni"
+            title="Programma: copia un programma su piu' giorni"
+            aria-label="Programma su più giorni"
             onClick={() => setProgramma(true)}
           >
-            <CalendarPlus size={17} /> Programma…
+            <CalendarPlus size={17} />
           </button>
           <button className="primary" onClick={onNuovaSeduta}>
             <Plus size={17} /> Nuova seduta
@@ -229,6 +233,8 @@ export function SchedaPaziente({
           <SegniPaziente paziente={paziente} />
         </>
       )}
+
+      {scheda === 'pedana' && <PedanaPaziente paziente={paziente} />}
 
       {scheda === 'percorso' && (
         <>

@@ -28,11 +28,181 @@ import { calcolaPunteggio } from './screening-punteggio'
 import { data, distanza, numero, variazione } from './report-screening-comune'
 import { CAMBIAMENTO_DA_DIRE, Riassunto, cambioPercentuale, punteggioHtml } from './report-screening-riassunto'
 import { type PuntoStorico, andamento, ciambella } from './report-screening-disegni'
+import { frasiRiepilogoPedana, pedanaHtmlScreening } from './pedana-report'
 
 // ---- lettura dei dati ----
 
 // Il valore riassunto di una misura (valoreDi) sta in shared/misure.ts: lo
 // usa anche il punteggio del cluster, che deve leggere lo stesso numero.
+
+// Gli stili del foglio del report (a schermo come foglio su una scrivania, in
+// stampa A4): li usano il report di screening e quello dei soli test con la pedana.
+export function stileReport(accento: string, accentoScuro: string, intestazione: string): string {
+  return `  @page { size: A4; margin: 12mm; }
+  /* I margini interni stanno dentro la larghezza dichiarata: senza, il foglio
+     e' piu' largo di 210mm e la barra dei comandi qui sopra non gli si allinea. */
+  * { box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; color: #1f2733; font-size: 11px; margin: 0; }
+
+  /* Solo a schermo: il foglio sta dentro la finestra come un foglio su una
+     scrivania, staccato dai bordi. In stampa non vale niente di tutto questo,
+     i margini li da' @page. */
+  @media screen {
+    body { background: #eef1f5; padding: 28px 0; }
+    .foglio {
+      max-width: 210mm;
+      margin: 0 auto;
+      background: #fff;
+      padding: 26px 30px;
+      border-radius: 6px;
+      box-shadow: 0 6px 26px rgba(15, 23, 42, 0.16);
+    }
+  }
+  h1 { font-size: 20px; margin: 0; }
+  .sotto { color: #555b66; font-size: 11px; margin: 2px 0 10px; }
+  dl.info { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px 18px; margin: 0 0 14px; }
+  dl.info div { display: flex; gap: 6px; }
+  dl.info dt { color: #6b7280; margin: 0; }
+  dl.info dt::after { content: ':'; }
+  dl.info dd { margin: 0; font-weight: 600; }
+  h3 { font-size: 13px; margin: 16px 0 6px; padding: 5px 8px; background: ${accento}; color: #fff;
+       border-radius: 3px; }
+  /* Il titolo del test non e' una casella colorata: e' una riga bianca con una
+     sottolineatura. Dentro al report resta tutto bianco tranne le intestazioni
+     delle colonne. */
+  h4 { font-size: 12px; margin: 10px 0 6px; padding: 0 0 4px; color: ${accentoScuro};
+       border-bottom: 1px solid #e0d7c6; }
+  /* Ogni test dentro il suo riquadro: con quattro o cinque test di fila,
+     tabelle e grafici si confonderebbero fra loro. */
+  /* Lo spazio sopra al titolo e' lo stesso che c'e' sotto al riquadro: senza,
+     il titolo era appiccicato al bordo di sopra e staccato da quello di sotto. */
+  .test { page-break-inside: avoid; margin: 0 0 12px; border: 1px solid #e4e9f0;
+          border-radius: 5px; padding: 9px 10px 10px; }
+  .test h4 { margin: 0 0 8px; }
+  .misura + .misura { border-top: 1px dashed #e4e9f0; padding-top: 8px; }
+  .misura { display: block; margin: 6px 0 10px; }
+  .misura-testa { display: flex; align-items: baseline; gap: 6px; margin-bottom: 3px; }
+  .misura-nome { font-weight: 600; }
+  .unita { color: #777e88; }
+  .misura-corpo { display: flex; gap: 14px; align-items: flex-start; page-break-inside: avoid; }
+  .colonna-numeri { flex: 1 1 46%; min-width: 0; }
+  .colonna-grafico { flex: 1 1 54%; min-width: 0; }
+  /* Senza la ciambella la colonna dei numeri e' solo una tabellina: lasciarle
+     meta' foglio vorrebbe dire mezza pagina vuota. */
+  .misura-corpo.bilaterale .colonna-numeri { flex: 0 1 auto; }
+  .misura-corpo.bilaterale .colonna-grafico { flex: 1 1 auto; }
+  table.prove { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
+  table.prove th, table.prove td { border: 1px solid #ccd2da; padding: 3px 6px;
+                                   text-align: center; white-space: nowrap; }
+  table.prove thead th { background: ${intestazione}; font-size: 10px; }
+  table.prove tbody th { text-align: left; font-weight: 400; color: #555b66; white-space: nowrap; }
+  /* La variazione sta di fianco al numero, tra parentesi: "5,0 (+67%)". */
+  td.sintesi .variazione { margin-left: 4px; }
+  table.prove td.sintesi { font-weight: 700; }
+  /* Solo un'annotazione su quale dei due lati e' quello interessato: il rosso
+     lo faceva sembrare un allarme. */
+  .interessato { color: inherit; }
+  .grafico-lati { display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .ciambella { width: 96px; height: 96px; }
+  .ciambella .vuoto { font-size: 11px; fill: #8b93a0; text-anchor: middle; }
+  .lato { text-align: center; min-width: 62px; white-space: nowrap; }
+  .lato .etichetta { display: block; font-size: 10px; color: #6b7280; }
+  .lato .numero { font-size: 15px; font-weight: 700; }
+  .lato.sinistra .numero { color: #d64545; }
+  .lato.destra .numero { color: #2563eb; }
+  .asimmetria { text-align: center; margin: 4px 0 0; font-size: 11px; color: #555b66; }
+  .asimmetria .ok { color: #1f9d61; font-weight: 700; }
+  .asimmetria .ko { color: #d64545; font-weight: 700; }
+  .andamento { width: 100%; height: auto; }
+  .andamento .etichetta-x { font-size: 9px; fill: #8b93a0; text-anchor: middle; }
+  .andamento .etichetta-y { font-size: 9px; fill: #8b93a0; text-anchor: end; }
+  .andamento .etichetta-unita { font-size: 9px; fill: #8b93a0; text-anchor: end; }
+  .andamento .etichetta-soglia { font-size: 8px; fill: #d64545; text-anchor: end; }
+  .legenda { margin: 0; font-size: 9px; color: #6b7280; text-align: center; }
+  .pallino { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin: 0 3px 0 8px; }
+  .pallino.blu { background: #2563eb; }
+  .pallino.rosso { background: #d64545; }
+  .tratteggio { display: inline-block; width: 12px; border-top: 1.4px dashed #d64545; margin: 0 3px 0 8px;
+                vertical-align: middle; }
+  .riga-questionario { margin: 2px 0 0; }
+  .tracciati-pedana { display: flex; gap: 10px; }
+  .tracciati-pedana figure { flex: 1 1 0; min-width: 0; max-width: 62mm; }
+  .didascalia-tracciato { font-size: 10px; font-weight: 600; margin-bottom: 2px; }
+  .curve-pedana { display: flex; flex-wrap: wrap; gap: 10px; margin: 8px 0 0; page-break-inside: avoid; }
+  .curve-pedana figure { margin: 0; flex: 1 1 45%; min-width: 0; }
+  .curve-pedana figcaption { font-size: 11px; font-weight: 600; margin-bottom: 2px; }
+  .riassunto-pedana { margin: 8px 0 0; padding-left: 16px; }
+  .riassunto-pedana li { margin: 2px 0; line-height: 1.4; }
+  /* Stabilometria: valori, tracciati, oscillazioni e note una sotto l'altra, i due
+     piedi affiancati e non piu' larghi di cosi' (i grafici non devono riempire il
+     foglio). Le note hanno la larghezza dei grafici che hanno sopra. */
+  .valori-pedana { margin: 2px 0 0; }
+  .valori-riga { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 22px; padding: 2px 0; }
+  .valori-riga .data { color: #6b7280; min-width: 76px; }
+  .valori-riga b { font-size: 13px; }
+  .valori-riga .dx b { color: #2563eb; }
+  .valori-riga .sx b { color: #d64545; }
+  .sezione-pedana { margin: 18px 0 0; }
+  .nota-pedana { margin: 4px 0 0; color: #8b93a0; font-size: 10px; }
+  .coppia-pedana > .confronto-lati { flex: 0 1 62mm; }
+  .coppia-pedana.confronto > .andamento-pedana { flex: 0 1 80mm; max-width: none; }
+  .coppia-pedana.curve { margin-top: 22px; }
+  .sezione-pedana .riassunto-pedana { margin: 2px 0 0; }
+  .andamento-pedana { max-width: 85mm; }
+  .coppia-pedana { display: flex; gap: 18px; align-items: flex-start; }
+  .coppia-pedana > * { flex: 0 1 74mm; min-width: 0; margin: 0; }
+  .coppia-pedana.tracciati > * { flex-basis: 54mm; }
+  .coppia-pedana figcaption { font-size: 10px; font-weight: 600; margin-bottom: 6px; }
+  .coppia-pedana.due-grafici > .g-piccolo { flex: 0 0 56mm; }
+  .coppia-pedana.due-grafici > .g-largo { flex: 1 1 0; max-width: 98mm; }
+  .sezione-pedana .coppia-pedana + .titolo-nota { margin-top: 8px; }
+  .titolo-nota { margin: 0; font-size: 10px; font-weight: 700; color: #555b66; }
+  .fascia { margin-left: 6px; padding: 1px 7px; border-radius: 999px; background: ${intestazione}; color: ${accentoScuro}; }
+  .vuoto-test { color: #8b93a0; margin: 2px 0; }
+  .punteggio { border: 1px solid #dfe4ea; border-radius: 4px; padding: 8px 10px; margin: 14px 0 0;
+               page-break-inside: avoid; }
+  .punteggio h2 { font-size: 13px; margin: 0 0 6px; color: ${accentoScuro}; }
+  .tabella-punteggio td.voce, .tabella-punteggio th:first-child { text-align: left; }
+  .storico-punteggio { margin: 6px 0 0; color: #555b66; }
+  .riassunto { border: 1px solid #dfe4ea; background: #f7f9fb; border-radius: 4px;
+               padding: 8px 10px; margin: 14px 0 12px; page-break-inside: avoid; }
+  .riassunto h2 { font-size: 12px; margin: 0 0 4px; color: ${accentoScuro}; }
+  .riassunto ul { margin: 0; padding-left: 16px; }
+  .riassunto li { margin: 2px 0; line-height: 1.4; }
+  .riassunto .ok { color: #1f9d61; font-weight: 700; }
+  .riassunto .ko { color: #d64545; font-weight: 700; }
+  .note { margin-top: 14px; }
+  .pie { margin-top: 14px; color: #8b93a0; font-size: 9px; }
+  .variazione { display: inline-block; margin-left: 6px; font-size: 10px; font-weight: 700; }
+  td.sintesi { line-height: 1.25; }
+  .variazione.su { color: #1f9d61; }
+  .variazione.giu { color: #d64545; }
+  .variazione.pari { color: #8b93a0; }
+  .lato .variazione { margin-left: 3px; }
+
+  /* La barra dei comandi vive solo a schermo: in stampa non deve esserci. */
+  .comandi { display: none; }
+  @media screen {
+    .comandi {
+      display: flex;
+      justify-content: flex-end;
+      max-width: 210mm;
+      margin: 0 auto 10px;
+    }
+    .comandi button {
+      font: inherit;
+      font-size: 13px;
+      padding: 9px 16px;
+      border: 1px solid ${accento};
+      border-radius: 8px;
+      background: ${accento};
+      color: #fff;
+      cursor: pointer;
+    }
+    .comandi button:hover { background: ${accentoScuro}; }
+  }
+`
+}
 
 export interface DatiReport {
   html: string
@@ -45,7 +215,9 @@ export interface DatiReport {
 // legge nelle tabelle, gli altri diventano i punti dell'andamento. Sceglierli
 // invece di prenderli tutti serve a fare un T0/T1 pulito senza le sedute in
 // mezzo.
-export function generaReportScreening(sessioneIds: number[]): DatiReport {
+// `pedanaIds` sono le registrazioni della pedana da richiamare nel report (un test
+// con pedana non appartiene a uno screening: si sceglie quali mettere a confronto).
+export function generaReportScreening(sessioneIds: number[], pedanaIds: number[] = []): DatiReport {
   if (sessioneIds.length === 0) throw new Error('Nessuno screening da stampare.')
   const db = getDb()
   const segnaposto = sessioneIds.map(() => '?').join(', ')
@@ -334,6 +506,11 @@ export function generaReportScreening(sessioneIds: number[]): DatiReport {
     .filter(Boolean)
     .join('')
 
+  // I test con pedana scelti entrano nel riassunto con una frase ciascuno.
+  for (const f of frasiRiepilogoPedana(Number(s.paziente_id), pedanaIds)) {
+    riassunto.gruppo(f.titolo).esiti.push(f.frase)
+  }
+
   const dalTrauma = distanza(s.data_intervento as string | null, s.data as string)
   const info: [string, unknown][] = [
     ['Sport', s.sport],
@@ -353,137 +530,7 @@ export function generaReportScreening(sessioneIds: number[]): DatiReport {
 <head>
 <meta charset="utf-8">
 <style>
-  @page { size: A4; margin: 12mm; }
-  /* I margini interni stanno dentro la larghezza dichiarata: senza, il foglio
-     e' piu' largo di 210mm e la barra dei comandi qui sopra non gli si allinea. */
-  * { box-sizing: border-box; }
-  body { font-family: 'Segoe UI', system-ui, sans-serif; color: #1f2733; font-size: 11px; margin: 0; }
-
-  /* Solo a schermo: il foglio sta dentro la finestra come un foglio su una
-     scrivania, staccato dai bordi. In stampa non vale niente di tutto questo,
-     i margini li da' @page. */
-  @media screen {
-    body { background: #eef1f5; padding: 28px 0; }
-    .foglio {
-      max-width: 210mm;
-      margin: 0 auto;
-      background: #fff;
-      padding: 26px 30px;
-      border-radius: 6px;
-      box-shadow: 0 6px 26px rgba(15, 23, 42, 0.16);
-    }
-  }
-  h1 { font-size: 20px; margin: 0; }
-  .sotto { color: #555b66; font-size: 11px; margin: 2px 0 10px; }
-  dl.info { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px 18px; margin: 0 0 14px; }
-  dl.info div { display: flex; gap: 6px; }
-  dl.info dt { color: #6b7280; margin: 0; }
-  dl.info dt::after { content: ':'; }
-  dl.info dd { margin: 0; font-weight: 600; }
-  h3 { font-size: 13px; margin: 16px 0 6px; padding: 5px 8px; background: ${accento}; color: #fff;
-       border-radius: 3px; }
-  /* Il titolo del test non e' una casella colorata: e' una riga bianca con una
-     sottolineatura. Dentro al report resta tutto bianco tranne le intestazioni
-     delle colonne. */
-  h4 { font-size: 12px; margin: 10px 0 6px; padding: 0 0 4px; color: ${accentoScuro};
-       border-bottom: 1px solid #e0d7c6; }
-  /* Ogni test dentro il suo riquadro: con quattro o cinque test di fila,
-     tabelle e grafici si confonderebbero fra loro. */
-  /* Lo spazio sopra al titolo e' lo stesso che c'e' sotto al riquadro: senza,
-     il titolo era appiccicato al bordo di sopra e staccato da quello di sotto. */
-  .test { page-break-inside: avoid; margin: 0 0 12px; border: 1px solid #e4e9f0;
-          border-radius: 5px; padding: 9px 10px 10px; }
-  .test h4 { margin: 0 0 8px; }
-  .misura + .misura { border-top: 1px dashed #e4e9f0; padding-top: 8px; }
-  .misura { display: block; margin: 6px 0 10px; }
-  .misura-testa { display: flex; align-items: baseline; gap: 6px; margin-bottom: 3px; }
-  .misura-nome { font-weight: 600; }
-  .unita { color: #777e88; }
-  .misura-corpo { display: flex; gap: 14px; align-items: flex-start; page-break-inside: avoid; }
-  .colonna-numeri { flex: 1 1 46%; min-width: 0; }
-  .colonna-grafico { flex: 1 1 54%; min-width: 0; }
-  /* Senza la ciambella la colonna dei numeri e' solo una tabellina: lasciarle
-     meta' foglio vorrebbe dire mezza pagina vuota. */
-  .misura-corpo.bilaterale .colonna-numeri { flex: 0 1 auto; }
-  .misura-corpo.bilaterale .colonna-grafico { flex: 1 1 auto; }
-  table.prove { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
-  table.prove th, table.prove td { border: 1px solid #ccd2da; padding: 3px 6px;
-                                   text-align: center; white-space: nowrap; }
-  table.prove thead th { background: ${intestazione}; font-size: 10px; }
-  table.prove tbody th { text-align: left; font-weight: 400; color: #555b66; white-space: nowrap; }
-  /* La variazione sta di fianco al numero, tra parentesi: "5,0 (+67%)". */
-  td.sintesi .variazione { margin-left: 4px; }
-  table.prove td.sintesi { font-weight: 700; }
-  /* Solo un'annotazione su quale dei due lati e' quello interessato: il rosso
-     lo faceva sembrare un allarme. */
-  .interessato { color: inherit; }
-  .grafico-lati { display: flex; align-items: center; justify-content: center; gap: 8px; }
-  .ciambella { width: 96px; height: 96px; }
-  .ciambella .vuoto { font-size: 11px; fill: #8b93a0; text-anchor: middle; }
-  .lato { text-align: center; min-width: 62px; white-space: nowrap; }
-  .lato .etichetta { display: block; font-size: 10px; color: #6b7280; }
-  .lato .numero { font-size: 15px; font-weight: 700; }
-  .lato.sinistra .numero { color: #d64545; }
-  .lato.destra .numero { color: #2563eb; }
-  .asimmetria { text-align: center; margin: 4px 0 0; font-size: 11px; color: #555b66; }
-  .asimmetria .ok { color: #1f9d61; font-weight: 700; }
-  .asimmetria .ko { color: #d64545; font-weight: 700; }
-  .andamento { width: 100%; height: auto; }
-  .andamento .etichetta-x { font-size: 9px; fill: #8b93a0; text-anchor: middle; }
-  .andamento .etichetta-y { font-size: 9px; fill: #8b93a0; text-anchor: end; }
-  .andamento .etichetta-unita { font-size: 9px; fill: #8b93a0; text-anchor: end; }
-  .andamento .etichetta-soglia { font-size: 8px; fill: #d64545; text-anchor: end; }
-  .legenda { margin: 0; font-size: 9px; color: #6b7280; text-align: center; }
-  .pallino { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin: 0 3px 0 8px; }
-  .pallino.blu { background: #2563eb; }
-  .pallino.rosso { background: #d64545; }
-  .tratteggio { display: inline-block; width: 12px; border-top: 1.4px dashed #d64545; margin: 0 3px 0 8px;
-                vertical-align: middle; }
-  .riga-questionario { margin: 2px 0 0; }
-  .fascia { margin-left: 6px; padding: 1px 7px; border-radius: 999px; background: ${intestazione}; color: ${accentoScuro}; }
-  .vuoto-test { color: #8b93a0; margin: 2px 0; }
-  .punteggio { border: 1px solid #dfe4ea; border-radius: 4px; padding: 8px 10px; margin: 14px 0 0;
-               page-break-inside: avoid; }
-  .punteggio h2 { font-size: 13px; margin: 0 0 6px; color: ${accentoScuro}; }
-  .tabella-punteggio td.voce, .tabella-punteggio th:first-child { text-align: left; }
-  .storico-punteggio { margin: 6px 0 0; color: #555b66; }
-  .riassunto { border: 1px solid #dfe4ea; background: #f7f9fb; border-radius: 4px;
-               padding: 8px 10px; margin: 14px 0 12px; page-break-inside: avoid; }
-  .riassunto h2 { font-size: 12px; margin: 0 0 4px; color: ${accentoScuro}; }
-  .riassunto ul { margin: 0; padding-left: 16px; }
-  .riassunto li { margin: 2px 0; line-height: 1.4; }
-  .riassunto .ok { color: #1f9d61; font-weight: 700; }
-  .riassunto .ko { color: #d64545; font-weight: 700; }
-  .note { margin-top: 14px; }
-  .pie { margin-top: 14px; color: #8b93a0; font-size: 9px; }
-  .variazione { display: inline-block; margin-left: 6px; font-size: 10px; font-weight: 700; }
-  td.sintesi { line-height: 1.25; }
-  .variazione.su { color: #1f9d61; }
-  .variazione.giu { color: #d64545; }
-  .variazione.pari { color: #8b93a0; }
-  .lato .variazione { margin-left: 3px; }
-
-  /* La barra dei comandi vive solo a schermo: in stampa non deve esserci. */
-  .comandi { display: none; }
-  @media screen {
-    .comandi {
-      display: flex;
-      justify-content: flex-end;
-      max-width: 210mm;
-      margin: 0 auto 10px;
-    }
-    .comandi button {
-      font: inherit;
-      font-size: 13px;
-      padding: 9px 16px;
-      border: 1px solid ${accento};
-      border-radius: 8px;
-      background: ${accento};
-      color: #fff;
-      cursor: pointer;
-    }
-    .comandi button:hover { background: ${accentoScuro}; }
-  }
+${stileReport(accento, accentoScuro, intestazione)}
 </style>
 </head>
 <body>
@@ -503,7 +550,9 @@ export function generaReportScreening(sessioneIds: number[]): DatiReport {
     .map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`)
     .join('')}</dl>
 
-  ${blocchi || '<p class="vuoto-test">Nessun valore registrato in questo screening.</p>'}
+  ${blocchi || (pedanaIds.length > 0 ? '' : '<p class="vuoto-test">Nessun valore registrato in questo screening.</p>')}
+
+  ${pedanaHtmlScreening(Number(s.paziente_id), pedanaIds)}
 
   ${punteggioHtml(
     calcolaPunteggio(sessioneId),

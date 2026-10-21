@@ -97,7 +97,7 @@ export function DiarioCard({
               {/* Fase e focus sulla stessa riga: il focus in evidenza, perche'
                   e' quello che distingue due sedute della stessa fase. */}
               <span className="seduta-meta">
-                {s.fase_nome ?? 'senza fase'}
+                {s.fase_nome ?? 'Senza fase'}
                 {s.focus && <span className="seduta-focus">{s.focus}</span>}
                 {s.dolore != null && ` · dolore ${s.dolore}/10`}
               </span>

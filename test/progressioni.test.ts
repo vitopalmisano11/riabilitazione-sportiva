@@ -230,6 +230,12 @@ test('Un gruppo collegato alla fase vale anche per le progressioni aggiunte dopo
   assert.deepEqual(statoProgressioni(paz, null, '2099-12-31', null), [])
   impostaProgressioniFase(fase2, { gruppo_ids: [], progressione_ids: [] })
   assert.deepEqual(stato(paz, fase2), [])
+
+  // con `tutte` ci sono anche quelle non collegate alla fase (e anche senza fase):
+  // serve a chiedere com'e' andata per qualunque esercizio di progressione in seduta
+  const tutte = statoProgressioni(paz, fase2, '2099-12-31', null, true).map((p) => p.nome)
+  assert.ok(tutte.includes('Landing') && tutte.includes('Vertical braking'))
+  assert.equal(statoProgressioni(paz, null, '2099-12-31', null, true).length, tutte.length)
 })
 
 test('Un esercizio che e\' uno step non si elimina, ne\' due volte nella stessa scala', () => {

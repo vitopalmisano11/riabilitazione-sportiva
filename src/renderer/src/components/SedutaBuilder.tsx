@@ -73,6 +73,9 @@ interface Contesto {
   // Le progressioni della fase, con lo step del paziente: per i suggerimenti,
   // l'esito e lo specchietto. Servono solo a programmare.
   progressioni: StatoProgressione[]
+  // Tutte le progressioni, della fase o no: servono a chiedere com'e' andata per
+  // qualunque esercizio di progressione messo in seduta.
+  progressioniTutte: StatoProgressione[]
 }
 
 // Lo step del paziente conta fino a oggi: le sedute programmate per i giorni a
@@ -90,7 +93,8 @@ const CONTESTO_VUOTO: Contesto = {
   obiettivi: [],
   raggiunti: [],
   templateCats: {},
-  progressioni: []
+  progressioni: [],
+  progressioniTutte: []
 }
 
 export default function SedutaBuilder({
@@ -239,6 +243,14 @@ export default function SedutaBuilder({
             .catch(() => undefined)
         }
 
+        ctx.progressioniTutte = await window.api.progressioni.stato(
+          paziente.id,
+          fase,
+          finoAl(letti.data ?? dataIniziale ?? oggiIso()),
+          sedutaId,
+          true
+        )
+
         if (fase != null) {
           const [obs, template, progr] = await Promise.all([
             window.api.obiettivi.list(fase),
@@ -285,6 +297,7 @@ export default function SedutaBuilder({
     cambia({ faseId: nuova, faseNome: nuova == null ? null : (fasi.find((f) => f.id === nuova)?.nome ?? null) })
     // gli esiti erano delle progressioni della fase di prima
     cambia({ esiti: {} })
+    // le progressioni di tutte le fasi restano: l'esito si chiede per qualunque esercizio di progressione
     if (nuova == null) {
       invia({ tipo: 'imposta', sezioni: [] })
       setContesto((c) => ({ ...c, obiettivi: [], templateCats: {}, progressioni: [] }))
@@ -318,12 +331,12 @@ export default function SedutaBuilder({
     [sezioni]
   )
   const progressioniInSeduta = useMemo(
-    () =>
-      campi.data > oggiIso()
-        ? []
-        : contesto.progressioni.filter((p) => p.step.some((s) => inSeduta.has(s.esercizio_id))),
-    [contesto.progressioni, inSeduta, campi.data]
+    () => contesto.progressioniTutte.filter((p) => p.step.some((s) => inSeduta.has(s.esercizio_id))),
+    [contesto.progressioniTutte, inSeduta]
   )
+  // una seduta programmata per i giorni a venire non e' ancora andata in nessun
+  // modo: l'esito si segna quando si svolge (e la pagina lo dice)
+  const esitoRimandato = campi.data > oggiIso() && progressioniInSeduta.length > 0
 
   // Trascinando, le sezioni e le righe si spostano passo passo: nella storia di
   // Ctrl+Z finisce solo il primo passo (vedi riduciSezioni). Le righe si
@@ -449,7 +462,7 @@ export default function SedutaBuilder({
       campi,
       sezioni,
       contesto.segni,
-      esitiDaSalvare(campi.esiti, contesto.progressioni, sezioni, campi.data, oggiIso())
+      esitiDaSalvare(campi.esiti, contesto.progressioniTutte, sezioni, campi.data, oggiIso())
     )
     bozza.chiudi()
     try {
@@ -601,6 +614,7 @@ export default function SedutaBuilder({
         onCambia={cambia}
         segni={contesto.segni}
         progressioni={progressioniInSeduta}
+        esitoRimandato={esitoRimandato}
         totaleEsercizi={totaleEsercizi}
         salvataggio={salvataggio}
         onAnnulla={() => void annulla()}

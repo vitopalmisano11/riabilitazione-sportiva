@@ -277,50 +277,132 @@
   border-bottom: 1px solid var(--border);
 }
 
-.esito-riga {
+.esito-card {
   display: flex;
   align-items: center;
-  gap: 12px;
   flex-wrap: wrap;
-  margin-top: 8px;
-}
-
-.esito-riga .esito-nome {
-  flex: 1;
-  min-width: 200px;
-}
-
-.esito-riga .esito-nome small {
-  display: block;
-  color: var(--text-dim);
-}
-
-.esito-scelte {
-  display: inline-flex;
-  border: 1px solid var(--border-forte);
+  gap: 6px 14px;
+  margin-top: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  overflow: hidden;
+}
+
+.esito-testata {
+  display: flex;
+  align-items: center;
+  flex: 1 1 260px;
+  min-width: 0;
+  gap: 10px;
+}
+
+.esito-nome {
+  font-weight: 600;
+}
+
+.esito-posizione {
+  color: var(--text-dim);
+  font-size: 14px;
+}
+
+/* La scala in piccolo: un tondino per step, i fatti pieni, l'attuale col bordo. */
+.esito-scala {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.esito-scala i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-forte);
+}
+
+.esito-scala i.fatto {
+  background: var(--success);
+  border-color: var(--success);
+}
+
+.esito-scala i.attuale {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+.esito-criteri {
+  display: inline-flex;
+  color: var(--text-dim);
+  cursor: help;
+}
+
+/* Tre scelte piccole in fila, ognuna col suo colore quando e' attiva. */
+.esito-scelte {
+  display: flex;
+  gap: 6px;
 }
 
 .esito-scelte button {
-  border: none;
-  border-radius: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border: 1px solid var(--border-forte);
+  border-radius: 999px;
   background: var(--surface);
-  padding: 5px 14px;
-  font-size: 15px;
+  color: var(--text);
+  font-size: 13.5px;
+  font-weight: 500;
 }
 
-.esito-scelte button + button {
-  border-left: 1px solid var(--border-forte);
+.esito-scelte button.esito-avanza.attivo {
+  background: color-mix(in srgb, var(--success) 14%, var(--surface));
+  border-color: var(--success);
+  color: var(--success);
+  font-weight: 600;
 }
 
-.esito-scelte button.attivo {
-  background: var(--accent);
-  color: #fff;
+.esito-scelte button.esito-rimani.attivo {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
 }
 
-.esito-scelte button.attivo.indietro {
-  background: var(--attenzione);
+.esito-scelte button.esito-indietro.attivo {
+  background: color-mix(in srgb, var(--attenzione) 14%, var(--surface));
+  border-color: var(--attenzione);
+  color: var(--attenzione);
+  font-weight: 600;
+}
+
+/* Cosa succede con la scelta fatta, in una riga. */
+.esito-effetto {
+  flex: 0 1 230px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.esito-effetto-avanza {
+  color: var(--success);
+}
+
+.esito-effetto-indietro {
+  color: var(--attenzione);
+}
+
+.esito-rimandato {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+.esito-rimandato svg {
+  flex-shrink: 0;
+  margin-top: 3px;
 }
 
 .modal.modal-specchietto {

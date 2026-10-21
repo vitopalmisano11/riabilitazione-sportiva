@@ -26,8 +26,14 @@ import CompilaQuestionario from '../components/CompilaQuestionario'
 import { RisultatoCluster } from '../components/PunteggioCluster'
 import MenuScelta from '../components/MenuScelta'
 import { useSalvataggio } from '../salvataggio'
+import { useScorciatoie } from '../scorciatoie'
 import IndicatoreSalvataggio from '../components/IndicatoreSalvataggio'
 import { errMsg, formatData, oggiIso } from '../lib'
+import {
+  riepilogoPedana,
+  type GiornoPedana,
+  type GruppoPedana
+} from '../../../shared/pedana'
 import {
   arrotonda,
   DECIMALI_MISURA,
@@ -85,7 +91,11 @@ export default function ScreeningRtpPage({
       <Esecuzione
         key={apertoId}
         id={apertoId}
-        onIndietro={() => setApertoId(null)}
+        // si torna agli screening di quel paziente, anche se si era partiti da "nuovo screening"
+        onIndietro={(paziente) => {
+          setPazienteId(paziente)
+          setApertoId(null)
+        }}
         onSalvato={carica}
       />
     )
@@ -189,6 +199,8 @@ function ScreeningDelPaziente({
 }): React.JSX.Element {
   const [scelta, setScelta] = useState(false)
   const p = screening[0]
+  // Esc torna all'elenco dei pazienti (con la finestra del report aperta chiude quella)
+  useScorciatoie([{ tasto: 'Escape', azione: onIndietro, attiva: !scelta }])
 
   const elimina = async (s: ScreeningRiepilogo): Promise<void> => {
     if (
@@ -265,10 +277,75 @@ function ScreeningDelPaziente({
         </section>
       </div>
 
-      {scelta && (
-        <SceltaConfronto screening={screening} onChiudi={() => setScelta(false)} />
-      )}
+      {scelta && <SceltaConfronto screening={screening} onChiudi={() => setScelta(false)} />}
     </div>
+  )
+}
+
+// I test con la pedana del paziente, da richiamare in un report di screening: non
+// appartengono a uno screening, quindi si scelgono a parte (nessuno di default).
+// Ogni riga e' un test, o la coppia destro/sinistro dello stesso. Non compare se
+// il paziente non ne ha. `onCambia` riceve gli id delle registrazioni spuntate.
+function SceltaPedana({
+  pazienteId,
+  onCambia
+}: {
+  pazienteId: number | undefined
+  onCambia: (ids: number[]) => void
+}): React.JSX.Element | null {
+  const [gruppi, setGruppi] = useState<GruppoPedana[]>([])
+  const [righe, setRighe] = useState<Set<string>>(new Set())
+  useEffect(() => {
+    if (pazienteId == null) return
+    window.api.pedana
+      .archivio(pazienteId)
+      .then((a) => setGruppi(riepilogoPedana(a)))
+      .catch(() => setGruppi([]))
+  }, [pazienteId])
+
+  const chiaveRiga = (g: GruppoPedana, r: GiornoPedana): string =>
+    `${g.chiave}|${r.test.map((t) => t.id).join(',')}`
+  const cambia = (chiave: string, dentro: boolean): void => {
+    const nuovo = new Set(righe)
+    if (dentro) nuovo.add(chiave)
+    else nuovo.delete(chiave)
+    setRighe(nuovo)
+    onCambia(
+      gruppi.flatMap((g) =>
+        g.giorni.filter((r) => nuovo.has(chiaveRiga(g, r))).flatMap((r) => r.test.map((t) => t.id))
+      )
+    )
+  }
+  const descrizione = (g: GruppoPedana, r: GiornoPedana): string => {
+    const date = r.dataFine
+      ? `${formatData(r.data)} – ${formatData(r.dataFine)}`
+      : formatData(r.data)
+    return `${date} · ${g.nome}`
+  }
+
+  if (gruppi.length === 0) return null
+  return (
+    <>
+      <div className="sotto-titolo">Test con pedana (facoltativo)</div>
+      <p className="modal-testo">
+        Spunta i test della pedana da portare nel report: compaiono in una sezione a parte, a
+        confronto fra loro.
+      </p>
+      <div className="checkbox-list">
+        {gruppi.flatMap((g) =>
+          g.giorni.map((r) => (
+            <label key={chiaveRiga(g, r)} className="checkbox-inline">
+              <input
+                type="checkbox"
+                checked={righe.has(chiaveRiga(g, r))}
+                onChange={(e) => cambia(chiaveRiga(g, r), e.target.checked)}
+              />
+              {descrizione(g, r)}
+            </label>
+          ))
+        )}
+      </div>
+    </>
   )
 }
 
@@ -285,10 +362,14 @@ function SceltaConfronto({
   // L'elenco arriva dal più recente: i due in cima sono il confronto naturale.
   const [scelti, setScelti] = useState<number[]>(screening.slice(0, 2).map((s) => s.id))
 
+  // i test con la pedana spuntati (si scelgono a parte, nessuno di default)
+  const pazienteId = screening[0]?.paziente_id
+  const [pedanaIds, setPedanaIds] = useState<number[]>([])
+  // Esc chiude la finestra, ovunque sia il cursore
+  useScorciatoie([{ tasto: 'Escape', azione: onChiudi, inCasella: true }])
+
   const cambia = (id: number, dentro: boolean): void =>
-    setScelti((prec) =>
-      dentro ? [...prec, id] : prec.filter((x) => x !== id)
-    )
+    setScelti((prec) => (dentro ? [...prec, id] : prec.filter((x) => x !== id)))
 
   const apri = async (): Promise<void> => {
     // dal più vecchio al più recente: l'ultimo è quello che si legge nelle
@@ -299,7 +380,7 @@ function SceltaConfronto({
       .reverse()
       .map((s) => s.id)
     try {
-      await window.api.screeningSvolti.anteprimaReport(ordinati)
+      await window.api.screeningSvolti.anteprimaReport(ordinati, pedanaIds)
       onChiudi()
     } catch (e) {
       toastErrore(errMsg(e))
@@ -313,36 +394,37 @@ function SceltaConfronto({
 
   return (
     <Modale onConferma={confermaAttuale}>
-        <h3>Quali screening mettere a confronto?</h3>
-        <p className="modal-testo">
-          Il più recente fra quelli spuntati è quello che si legge nelle tabelle; gli altri
-          diventano i punti dei grafici dell&apos;andamento.
-        </p>
-        <div className="checkbox-list">
-          {screening.map((s) => (
-            <label key={s.id} className="checkbox-inline">
-              <input
-                type="checkbox"
-                checked={scelti.includes(s.id)}
-                onChange={(e) => cambia(s.id, e.target.checked)}
-              />
-              {formatData(s.data)} · {s.protocollo_nome}
-              {s.num_valori === 0 && ' · vuoto'}
-            </label>
-          ))}
-        </div>
-        <div className="modal-actions">
-          {scelti.length > 2 && (
-            <span className="hint">
-              Con più di due i grafici si affollano: due si leggono meglio.
-            </span>
-          )}
-          <span className="spacer" />
-          <button onClick={onChiudi}>Annulla</button>
-          <button className="primary" disabled={scelti.length === 0} onClick={() => void apri()}>
-            <FileText size={16} /> Apri il report
-          </button>
-        </div>
+      <h3>Quali screening mettere a confronto?</h3>
+      <p className="modal-testo">
+        Il più recente fra quelli spuntati è quello che si legge nelle tabelle; gli altri diventano
+        i punti dei grafici dell&apos;andamento.
+      </p>
+      <div className="checkbox-list">
+        {screening.map((s) => (
+          <label key={s.id} className="checkbox-inline">
+            <input
+              type="checkbox"
+              checked={scelti.includes(s.id)}
+              onChange={(e) => cambia(s.id, e.target.checked)}
+            />
+            {formatData(s.data)} · {s.protocollo_nome}
+            {s.num_valori === 0 && ' · vuoto'}
+          </label>
+        ))}
+      </div>
+      <SceltaPedana pazienteId={pazienteId} onCambia={setPedanaIds} />
+      <div className="modal-actions">
+        {scelti.length > 2 && (
+          <span className="hint">
+            Con più di due i grafici si affollano: due si leggono meglio.
+          </span>
+        )}
+        <span className="spacer" />
+        <button onClick={onChiudi}>Annulla</button>
+        <button className="primary" disabled={scelti.length === 0} onClick={() => void apri()}>
+          <FileText size={16} /> Apri il report
+        </button>
+      </div>
     </Modale>
   )
 }
@@ -376,6 +458,9 @@ function NuovoScreening({
     }
   }
 
+  // Esc chiude senza creare niente, ovunque sia il cursore
+  useScorciatoie([{ tasto: 'Escape', azione: onAnnulla, inCasella: true }])
+
   // Invio e clic fuori valgono come "Comincia", ma solo quando paziente e
   // protocollo sono scelti (come il suo "disabled"); altrimenti chiudono e
   // basta, senza creare uno screening vuoto.
@@ -388,52 +473,52 @@ function NuovoScreening({
       className="modal-nuovo-screening"
       onConferma={confermaAttuale}
     >
-        <h3>Nuovo screening</h3>
-        {protocolli.length === 0 && (
-          <p className="hint">
-            Non hai ancora protocolli: creane uno in Configurazione, scheda &ldquo;Screening&rdquo;.
-          </p>
-        )}
-        <div className="riga-campi">
-          <label>
-            Paziente
-            <MenuScelta
-              placeholder="— scegli —"
-              valore={pazienteId}
-              opzioni={pazienti.map((p) => ({ valore: p.id, etichetta: `${p.cognome} ${p.nome}` }))}
-              onScegli={setPazienteId}
-              cercabile
-              segnaposto="Cerca per nome…"
-              placeholderSceglibile={false}
-            />
-          </label>
-          <label>
-            Protocollo
-            <MenuScelta
-              placeholder="— scegli —"
-              valore={protocolloId}
-              opzioni={protocolli.map((p) => ({ valore: p.id, etichetta: `${p.sport} · ${p.nome}` }))}
-              onScegli={setProtocolloId}
-              cercabile
-              segnaposto="Cerca per sport o nome…"
-              placeholderSceglibile={false}
-            />
-          </label>
-          <label className="data-field">
-            Data
-            <input type="date" value={data} onChange={(e) => setData(e.target.value)} />
-          </label>
-        </div>
-        <div className="modal-actions">
-          <button onClick={onAnnulla}>Annulla</button>
-          <button
-            className="primary"
-            disabled={pazienteId === '' || protocolloId === ''}
-            onClick={() => void crea()}
-          >
-            Comincia
-          </button>
-        </div>
+      <h3>Nuovo screening</h3>
+      {protocolli.length === 0 && (
+        <p className="hint">
+          Non hai ancora protocolli: creane uno in Configurazione, scheda &ldquo;Screening&rdquo;.
+        </p>
+      )}
+      <div className="riga-campi">
+        <label>
+          Paziente
+          <MenuScelta
+            placeholder="— scegli —"
+            valore={pazienteId}
+            opzioni={pazienti.map((p) => ({ valore: p.id, etichetta: `${p.cognome} ${p.nome}` }))}
+            onScegli={setPazienteId}
+            cercabile
+            segnaposto="Cerca per nome…"
+            placeholderSceglibile={false}
+          />
+        </label>
+        <label>
+          Protocollo
+          <MenuScelta
+            placeholder="— scegli —"
+            valore={protocolloId}
+            opzioni={protocolli.map((p) => ({ valore: p.id, etichetta: `${p.sport} · ${p.nome}` }))}
+            onScegli={setProtocolloId}
+            cercabile
+            segnaposto="Cerca per sport o nome…"
+            placeholderSceglibile={false}
+          />
+        </label>
+        <label className="data-field">
+          Data
+          <input type="date" value={data} onChange={(e) => setData(e.target.value)} />
+        </label>
+      </div>
+      <div className="modal-actions">
+        <button onClick={onAnnulla}>Annulla</button>
+        <button
+          className="primary"
+          disabled={pazienteId === '' || protocolloId === ''}
+          onClick={() => void crea()}
+        >
+          Comincia
+        </button>
+      </div>
     </Modale>
   )
 }
@@ -444,7 +529,7 @@ function Esecuzione({
   onSalvato
 }: {
   id: number
-  onIndietro: () => void
+  onIndietro: (pazienteId: number) => void
   onSalvato: () => Promise<void>
 }): React.JSX.Element {
   const [dati, setDati] = useState<ScreeningCompleto | null>(null)
@@ -456,6 +541,8 @@ function Esecuzione({
   const [modificato, setModificato] = useState(false)
   // Questionario da compilare adesso, se ce n'e' uno aperto.
   const [compila, setCompila] = useState<number | null>(null)
+  // La finestra che chiede quali test della pedana mettere nel report.
+  const [sceltaReport, setSceltaReport] = useState(false)
   // Il punteggio del cluster sui valori salvati; null se il protocollo non ne ha.
   const [risultato, setRisultato] = useState<RisultatoPunteggio | null>(null)
   // Chiudendo il programma, o uscendo da questa scheda, con valori non
@@ -517,19 +604,42 @@ function Esecuzione({
   // I valori non salvati si salvano da soli uscendo (vedi useSalvaUscendo
   // sopra): qui si torna indietro e basta.
   const indietro = (): void => {
-    onIndietro()
+    if (dati) onIndietro(dati.sessione.paziente_id)
+  }
+  // Esc torna agli screening del paziente (i valori non salvati si salvano da soli
+  // uscendo), ovunque sia il cursore; non se c'e' una finestra aperta sopra.
+  useScorciatoie([
+    {
+      tasto: 'Escape',
+      azione: indietro,
+      attiva: compila == null && !sceltaReport,
+      inCasella: true
+    }
+  ])
+
+  // Salva e torna alla schermata del paziente con tutti i suoi screening.
+  const salvaEChiudi = async (): Promise<void> => {
+    if ((await salvataggio.salva()) && dati) onIndietro(dati.sessione.paziente_id)
   }
 
   // Il report legge dall'archivio, non dalle caselle: senza salvare mostrerebbe
   // i valori di prima.
   const apriReport = async (): Promise<void> => {
     if (modificato) {
-      if (!(await chiedi('Ci sono valori non salvati: il report non li conterrebbe.\n\nSalvo prima?'))) {
+      if (
+        !(await chiedi('Ci sono valori non salvati: il report non li conterrebbe.\n\nSalvo prima?'))
+      ) {
         return
       }
       if (!(await salvataggio.salva())) return
     }
+    // se il paziente ha test con la pedana si chiede se metterne nel report
     try {
+      const pedana = riepilogoPedana(await window.api.pedana.archivio(dati!.sessione.paziente_id))
+      if (pedana.length > 0) {
+        setSceltaReport(true)
+        return
+      }
       await window.api.screeningSvolti.anteprimaReport([id])
     } catch (e) {
       toastErrore(errMsg(e))
@@ -557,10 +667,7 @@ function Esecuzione({
           <button onClick={() => void indietro()}>
             <ChevronLeft size={18} /> Tutti gli screening
           </button>
-          <button
-            title="Guarda il report, poi lo scarichi da lì"
-            onClick={() => void apriReport()}
-          >
+          <button title="Guarda il report, poi lo scarichi da lì" onClick={() => void apriReport()}>
             <FileText size={16} /> Report
           </button>
         </span>
@@ -636,11 +743,19 @@ function Esecuzione({
         <button
           className="primary"
           disabled={!modificato || salvataggio.stato === 'salvo'}
-          onClick={() => void salvataggio.salva()}
+          onClick={() => void salvaEChiudi()}
         >
           <Save size={18} /> Salva
         </button>
       </div>
+
+      {sceltaReport && (
+        <ReportConPedana
+          sessioneId={id}
+          pazienteId={dati.sessione.paziente_id}
+          onChiudi={() => setSceltaReport(false)}
+        />
+      )}
 
       {/* Il questionario si compila da qui e si salva nella scheda del paziente
           come tutti gli altri, con la sua data: allo screening resta collegato,
@@ -667,6 +782,42 @@ function Esecuzione({
         />
       )}
     </div>
+  )
+}
+
+// Il report di un solo screening: prima di aprirlo si sceglie se aggiungere dei test
+// con la pedana (i test della pedana non appartengono a uno screening).
+function ReportConPedana({
+  sessioneId,
+  pazienteId,
+  onChiudi
+}: {
+  sessioneId: number
+  pazienteId: number
+  onChiudi: () => void
+}): React.JSX.Element {
+  const [pedanaIds, setPedanaIds] = useState<number[]>([])
+  useScorciatoie([{ tasto: 'Escape', azione: onChiudi, inCasella: true }])
+  const apri = async (): Promise<void> => {
+    try {
+      await window.api.screeningSvolti.anteprimaReport([sessioneId], pedanaIds)
+      onChiudi()
+    } catch (e) {
+      toastErrore(errMsg(e))
+    }
+  }
+  return (
+    <Modale onConferma={apri}>
+      <h3>Report dello screening</h3>
+      <SceltaPedana pazienteId={pazienteId} onCambia={setPedanaIds} />
+      <div className="modal-actions">
+        <span className="spacer" />
+        <button onClick={onChiudi}>Annulla</button>
+        <button className="primary" onClick={() => void apri()}>
+          <FileText size={16} /> Apri il report
+        </button>
+      </div>
+    </Modale>
   )
 }
 
@@ -874,7 +1025,9 @@ function Misura({
           {artoOperato != null ? 'LSI' : 'Simmetria'}{' '}
           {arrotonda(lsi, DECIMALI_PERCENTUALE).toFixed(DECIMALI_PERCENTUALE)}%
           {lsiCutoff != null &&
-            (superato ? ` — superato (soglia ${lsiCutoff}%)` : ` — sotto la soglia di ${lsiCutoff}%`)}
+            (superato
+              ? ` — superato (soglia ${lsiCutoff}%)`
+              : ` — sotto la soglia di ${lsiCutoff}%`)}
         </p>
       )}
     </div>

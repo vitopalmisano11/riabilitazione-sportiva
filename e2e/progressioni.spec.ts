@@ -141,7 +141,7 @@ test('progressioni: dalla libreria alla seduta e allo specchietto', async () => 
     await expect(pagina.locator('.esiti-prog')).toHaveCount(0)
     await suggeriti.getByTitle('Aggiungi Wall sit').click()
     await expect(pagina.locator('.esiti-prog')).toContainText('Vertical braking')
-    await pagina.getByRole('button', { name: '↑ Avanza' }).click()
+    await pagina.getByRole('button', { name: 'Avanza', exact: true }).click()
     await pagina.locator('.esiti-prog').screenshot({ path: join(FOTO, '24-progressioni-esito.png') })
     await pagina.getByRole('button', { name: /Salva seduta \(1 esercizi\)/ }).click()
 
@@ -158,7 +158,7 @@ test('progressioni: dalla libreria alla seduta e allo specchietto', async () => 
     // la seduta salvata si riapre con l'esito che aveva
     await pagina.getByRole('button', { name: 'Diario sedute' }).click()
     await pagina.getByTitle('Modifica la seduta').first().click()
-    await expect(pagina.getByRole('button', { name: '↑ Avanza' })).toHaveClass(/attivo/)
+    await expect(pagina.getByRole('button', { name: 'Avanza', exact: true })).toHaveClass(/attivo/)
     await pagina.getByRole('button', { name: 'Annulla' }).first().click()
 
     expect(prova.errori, 'errori nella console').toEqual([])

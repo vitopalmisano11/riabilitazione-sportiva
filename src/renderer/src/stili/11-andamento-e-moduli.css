@@ -240,9 +240,14 @@
 /* Il programma del paziente e' un foglio: staccato dai bordi della finestra,
    come il PDF della cartella quando lo si guarda. Prima era una colonna bianca
    attaccata sopra e sotto, e non si capiva dove finiva. */
-/* La finestra della scheda: il contenuto parte sotto alla barra. */
+/* La finestra della scheda: il contenuto parte sotto alla barra, e scorre in
+   un contenitore suo. Se scorresse la pagina intera, la barra di scorrimento
+   partirebbe dal bordo alto della finestra e starebbe accanto alla barra del
+   titolo invece che sotto. */
 .finestra-scheda {
-  padding-top: var(--alto-barra);
+  position: fixed;
+  inset: var(--alto-barra) 0 0 0;
+  overflow-y: auto;
 }
 
 /* Le finestre disegnano da se' la barra in cima, piu' alta di quella di
@@ -791,6 +796,11 @@
 .azioni-fine-pagina {
   display: flex;
   justify-content: flex-end;
+  /* senza spazio e senza centratura, "Modifiche non salvate" toccava il
+     pulsante Salva */
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
   margin-top: 20px;
 }
 
@@ -810,7 +820,7 @@
   display: grid;
   /* la colonna della data ha una larghezza sua: con "ultimo 16/07/2026" i 110px
      di prima non bastavano e la scritta veniva troncata */
-  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.2fr) minmax(0, 0.7fr) 150px auto auto;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.2fr) minmax(0, 0.7fr) 150px 160px auto;
   align-items: center;
   gap: 12px;
 }
@@ -891,6 +901,44 @@
 
 .riga-trattamento > button:last-child {
   justify-self: end;
+}
+
+/* Conclusi: la data per fissare un follow-up e "Riprendi" stanno insieme
+   nell'ultima colonna, cosi' la riga ha le stesse quattro colonne di quella
+   in trattamento e il pulsante non va a capo. */
+.riga-trattamento .azioni-conclusi {
+  display: flex;
+  align-items: center;
+  justify-self: end;
+  gap: 8px;
+}
+
+.azioni-conclusi input[type='date'] {
+  padding: 6px 10px;
+}
+
+/* Finestra di conclusione: le quattro scadenze in una riga sola, grandi,
+   e sotto "Annulla" / "Nessun follow-up". */
+.scelta-settimane {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin: 4px 0 14px;
+}
+
+.scelta-settimane button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 64px;
+  font-size: 13px;
+}
+
+.scelta-settimane button strong {
+  font-size: 22px;
+  line-height: 1;
 }
 
 .riga-screening .row-actions {

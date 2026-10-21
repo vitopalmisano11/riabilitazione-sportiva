@@ -318,11 +318,32 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 8px;
+  /* Niente margine attorno alla figura: tutto il riquadro e' la figura, e si
+     disegna ovunque al suo interno. */
+  padding: 0 0 6px;
   /* ingrandendo con un pizzico sul pad la figura deve poter sporgere sopra
      alle altre, non restare tagliata dentro al suo riquadro */
   position: relative;
   overflow: visible;
+}
+
+/* Il riquadro ha la stessa forma dell'immagine (larghezza = altezza massima x
+   rapporto): prima, con l'altezza limitata, la figura restava stretta in mezzo e
+   ai lati rimanevano bande vuote, scure nel tema scuro, dove il clic cadeva fuori
+   posto. */
+.corpo-riquadro {
+  justify-self: center;
+  width: min(100%, calc(46vh * var(--rapporto, 1)));
+}
+
+.corpo-riquadro .corpo-zoom {
+  width: 100%;
+}
+
+.corpo-riquadro .figura-umana {
+  display: block;
+  max-height: none;
+  border-radius: calc(var(--radius) - 1px) calc(var(--radius) - 1px) 0 0;
 }
 
 .corpo-riquadro.zoomata {
@@ -711,4 +732,10 @@
   background: var(--accent);
   border-color: var(--accent);
   color: #fff;
+}
+
+/* Un gruppo (Centro, Studio...) e' un riquadro suo: non scorre da solo, quindi
+   l'intestazione delle colonne non resta ferma in cima. */
+.card-gruppo .intestazione-pazienti {
+  position: static;
 }

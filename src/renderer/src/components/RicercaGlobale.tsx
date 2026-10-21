@@ -86,7 +86,7 @@ export default function RicercaGlobale({
 
   let progressivo = -1
   return (
-    <div className="modal-overlay ricerca-overlay" {...sulFondo}>
+    <div className="modal-overlay modal-overlay-contenuto ricerca-overlay" {...sulFondo}>
       <div className="modal ricerca-globale" onClick={(e) => e.stopPropagation()} onKeyDown={tasto}>
         <div className="ricerca-campo">
           <Search size={18} />
@@ -98,9 +98,7 @@ export default function RicercaGlobale({
           />
         </div>
         <div className="ricerca-elenco">
-          {testo.trim().length < 2 ? (
-            <p className="hint">Scrivi almeno due lettere. Maiuscole e accenti non contano.</p>
-          ) : cercato === testo.trim() && risultati.length === 0 ? (
+          {testo.trim().length < 2 ? null : cercato === testo.trim() && risultati.length === 0 ? (
             <p className="hint">Niente trovato per «{cercato}».</p>
           ) : (
             GRUPPI.map((g) => {

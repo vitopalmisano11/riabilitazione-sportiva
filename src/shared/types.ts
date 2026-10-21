@@ -1263,6 +1263,7 @@ export type SezioneCartella =
   | 'bodychart'
   | 'valutazioni'
   | 'questionari'
+  | 'pedana'
   | 'obiettivi'
   | 'sedute'
 

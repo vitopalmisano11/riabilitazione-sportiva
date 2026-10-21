@@ -3,6 +3,7 @@ import { CheckCircle2, RotateCcw } from 'lucide-react'
 import type { PazienteDettaglio, Promemoria } from '../../../shared/types'
 import { toastErrore } from '../components/Toast'
 import { chiedi } from '../components/Conferma'
+import Modale from '../components/Modale'
 import { errMsg, formatData, oggiIso } from '../lib'
 
 // Chi stai seguendo adesso e chi hai finito di seguire.
@@ -16,10 +17,10 @@ import { errMsg, formatData, oggiIso } from '../lib'
 // "Follow-up" nel menu, con quanti sono da sentire. Le date passate si vedono in
 // rosso, quindi basta scorrere l'elenco per capire chi e' in ritardo.
 
-// Fra un mese da oggi: la proposta piu' comune quando si chiude un ciclo.
-function fraUnMese(): string {
+// Fra tante settimane da oggi: le proposte quando si chiude un ciclo.
+function fraSettimane(n: number): string {
   const d = new Date()
-  d.setMonth(d.getMonth() + 1)
+  d.setDate(d.getDate() + n * 7)
   const p = (n: number): string => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
 }
@@ -66,17 +67,19 @@ export default function FollowUpPage({
     }
   }
 
-  const concludi = async (p: PazienteDettaglio): Promise<void> => {
-    if (
-      !(await chiedi(
-        `Il trattamento di ${p.nome} ${p.cognome} è finito?\n\n` +
-          'Passerà nell’elenco del follow-up, con il primo contatto proposto fra un mese. ' +
-          'Le sue sedute e la sua cartella restano dove sono.'
-      ))
-    ) {
-      return
-    }
-    void esegui(() => window.api.followUp.setStato(p.id, 'concluso', fraUnMese()))
+  // Il paziente di cui si sta chiudendo il ciclo: la finestra chiede se vuole
+  // un follow-up e fra quanto. Senza follow-up resta fra i "Conclusi".
+  const [inChiusura, setInChiusura] = useState<PazienteDettaglio | null>(null)
+
+  const concludi = (p: PazienteDettaglio, settimane: number | null): void => {
+    setInChiusura(null)
+    void esegui(() =>
+      window.api.followUp.setStato(
+        p.id,
+        'concluso',
+        settimane == null ? null : fraSettimane(settimane)
+      )
+    )
   }
 
   const riprendi = async (p: PazienteDettaglio): Promise<void> => {
@@ -95,6 +98,11 @@ export default function FollowUpPage({
   }
 
   const oggi = oggiIso()
+  // Chi ha concluso senza follow-up (nessuna data e mai contattato) sta nei
+  // conclusi, sotto; tutti gli altri restano nel follow-up come sempre, anche
+  // quando li hai già sentiti.
+  const conclusi = concluso.filter((p) => p.follow_up_il == null && p.contattato_il == null)
+  const inFollowUp = concluso.filter((p) => !conclusi.includes(p))
 
   return (
     <div className="page">
@@ -112,7 +120,7 @@ export default function FollowUpPage({
               <span className="hint">
                 {promemoria.filter((m) => m.scadenza <= oggi).length > 0
                   ? `${promemoria.filter((m) => m.scadenza <= oggi).length} in scadenza`
-                  : 'nessuno in scadenza'}
+                  : 'Nessuno in scadenza'}
               </span>
             </div>
             <ul className="sedute-list elenco-promemoria">
@@ -170,13 +178,13 @@ export default function FollowUpPage({
                   <span className="colonna-patologia">{p.patologia_nome ?? '—'}</span>
                   <span className="colonna-ultima">
                     {p.ultima_seduta
-                      ? `ultima seduta ${formatData(p.ultima_seduta)}`
-                      : 'nessuna seduta ancora'}
+                      ? `Ultima seduta ${formatData(p.ultima_seduta)}`
+                      : 'Nessuna seduta ancora'}
                   </span>
                   <button
                     className="btn-stato"
                     title="Il ciclo è finito"
-                    onClick={() => void concludi(p)}
+                    onClick={() => setInChiusura(p)}
                   >
                     <CheckCircle2 size={18} /> Concludi
                   </button>
@@ -190,16 +198,18 @@ export default function FollowUpPage({
           <div className="card-header-row">
             <h3>Follow-up</h3>
             <span className="hint">
-              {concluso.filter((p) => p.follow_up_il != null && p.follow_up_il <= oggi).length > 0
+              {inFollowUp.filter((p) => p.follow_up_il != null && p.follow_up_il <= oggi).length > 0
                 ? `${
-                    concluso.filter((p) => p.follow_up_il != null && p.follow_up_il <= oggi).length
+                    inFollowUp.filter((p) => p.follow_up_il != null && p.follow_up_il <= oggi)
+                      .length
                   } da sentire`
-                : 'nessuno in scadenza'}
+                : 'Nessuno in scadenza'}
             </span>
           </div>
-          {concluso.length === 0 ? (
+          {inFollowUp.length === 0 ? (
             <p className="hint">
-              Nessun paziente ha ancora concluso il trattamento. Quando ne concludi uno finisce qui.
+              Nessun paziente in follow-up. Quando concludi un paziente e scegli un follow-up
+              finisce qui.
             </p>
           ) : (
             <div className="tabella-scorre tabella-followup-scorre">
@@ -214,7 +224,7 @@ export default function FollowUpPage({
                   </tr>
                 </thead>
                 <tbody>
-                  {concluso.map((p) => {
+                  {inFollowUp.map((p) => {
                     const scaduto = p.follow_up_il != null && p.follow_up_il <= oggi
                     return (
                       <tr key={p.id}>
@@ -228,7 +238,7 @@ export default function FollowUpPage({
                           </button>
                           {p.contattato_il && (
                             <span className="sotto-riga">
-                              ultimo contatto {formatData(p.contattato_il)}
+                              Ultimo contatto {formatData(p.contattato_il)}
                             </span>
                           )}
                         </td>
@@ -285,7 +295,82 @@ export default function FollowUpPage({
             </div>
           )}
         </section>
+
+        <section className="card">
+          <div className="card-header-row">
+            <h3>Conclusi</h3>
+            <span className="hint">
+              {conclusi.length === 1 ? '1 paziente' : `${conclusi.length} pazienti`}
+            </span>
+          </div>
+          {conclusi.length === 0 ? (
+            <p className="hint">
+              Qui finiscono i pazienti conclusi senza follow-up, o già sentiti.
+            </p>
+          ) : (
+            <ul className="sedute-list elenco-followup">
+              {conclusi.map((p) => (
+                <li key={p.id} className="riga-trattamento">
+                  <button
+                    className="nome-cliccabile"
+                    title="Apri la scheda del paziente"
+                    onClick={() => onApriPaziente(p.id)}
+                  >
+                    {p.cognome} {p.nome}
+                  </button>
+                  <span className="colonna-patologia">{p.patologia_nome ?? '—'}</span>
+                  <span className="colonna-ultima">
+                    {p.contattato_il
+                      ? `Ultimo contatto ${formatData(p.contattato_il)}`
+                      : 'Nessun follow-up'}
+                  </span>
+                  <span className="azioni-conclusi">
+                    <input
+                      type="date"
+                      title="Fissa un follow-up: il paziente passa nell’elenco qui sopra"
+                      value=""
+                      onChange={(e) =>
+                        e.target.value &&
+                        void esegui(() => window.api.followUp.setFollowUp(p.id, e.target.value))
+                      }
+                    />
+                    <button
+                      className="btn-stato"
+                      title="Riportalo fra i pazienti in trattamento"
+                      onClick={() => void riprendi(p)}
+                    >
+                      <RotateCcw size={18} /> Riprendi
+                    </button>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       </div>
+
+      {inChiusura && (
+        <Modale className="modal-sm" onConferma={() => setInChiusura(null)}>
+          <h3>
+            Concludi {inChiusura.nome} {inChiusura.cognome}
+          </h3>
+          <p className="modal-testo">
+            Vuoi fare un follow-up? Se sì, fra quanto? Le sedute e la cartella restano dove sono.
+          </p>
+          <div className="scelta-settimane">
+            {[1, 2, 3, 4].map((n) => (
+              <button key={n} onClick={() => concludi(inChiusura, n)}>
+                <strong>{n}</strong>
+                {n === 1 ? 'settimana' : 'settimane'}
+              </button>
+            ))}
+          </div>
+          <div className="modal-actions">
+            <button onClick={() => setInChiusura(null)}>Annulla</button>
+            <button onClick={() => concludi(inChiusura, null)}>Nessun follow-up</button>
+          </div>
+        </Modale>
+      )}
     </div>
   )
 }

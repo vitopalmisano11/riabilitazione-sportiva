@@ -21,6 +21,9 @@ export interface Scorciatoia {
   azione: () => void
   // false = la scorciatoia non e' attiva ora (finestra in sola lettura, ecc.)
   attiva?: boolean
+  // vale anche con il cursore dentro una casella (per Esc, che chiude la finestra
+  // ovunque sia il cursore)
+  inCasella?: boolean
 }
 
 // Con lo schermo bloccato l'app resta montata sotto alla richiesta della
@@ -51,7 +54,10 @@ export function useScorciatoie(scorciatoie: Scorciatoia[]): void {
         if (s.tasto.toLowerCase() !== e.key.toLowerCase()) continue
         if (Boolean(s.ctrl) !== (e.ctrlKey || e.metaKey)) continue
         // senza Ctrl la scorciatoia non deve rubare le lettere a chi scrive
-        if (!s.ctrl && dentroACasella(e)) continue
+        if (!s.ctrl && !s.inCasella && dentroACasella(e)) continue
+        // un menu a tendina aperto usa Esc per chiudersi: la finestra resta
+        if (s.tasto === 'Escape' && document.querySelector('.menu-scelta-popup, .elenco-scelta'))
+          continue
         e.preventDefault()
         s.azione()
         return

@@ -12,6 +12,12 @@
 // Per una funzione nuova: la firma qui in Canali, il metodo in MAPPA_API, il
 // gestore in ipc.ts. Il typecheck dice se manca qualcosa.
 import type {
+  AnteprimaPedana,
+  ArchivioPedana,
+  EsitoImportPedana,
+  LatoPedana
+} from './pedana'
+import type {
   Progressione,
   ProgressioneGruppo,
   ProgressioneInput,
@@ -156,6 +162,25 @@ export interface Canali {
   'massimali:delete': (id: number) => void
   // Peso e altezza stanno sul paziente: sono una cosa sola, non una storia.
   'massimali:setMisure': (pazienteId: number, peso: number | null, altezza: number | null) => void
+  // I test con la pedana di forza, importati dal file dell'app della pedana.
+  // Scegliere il file apre il dialogo e ne ritorna l'anteprima (null se si
+  // annulla); importare lo conferma, con le registrazioni scelte.
+  'pedana:scegliFile': (pazienteId: number | null) => AnteprimaPedana | null
+  // Quali registrazioni del file scelto un paziente ha gia' (se si cambia paziente nella finestra).
+  'pedana:giaImportate': (token: string, pazienteId: number) => string[]
+  'pedana:importa': (pazienteId: number, token: string, idScelti: string[]) => EsitoImportPedana
+  'pedana:annulla': (token: string) => void
+  'pedana:archivio': (pazienteId: number) => ArchivioPedana
+  'pedana:delete': (id: number) => void
+  // Il lato interessato per un test del paziente; null torna all'arto operato.
+  // Il report dei test scelti (uno o piu', a confronto), in una finestra con il
+  // pulsante per scaricarlo in PDF.
+  'pedana:anteprimaReport': (pazienteId: number, pedanaIds: number[]) => void
+  'pedana:setLatoInteressato': (
+    pazienteId: number,
+    testCodice: string,
+    lato: LatoPedana | null,
+  ) => void
   'segni:list': (pazienteId: number) => Segno[]
   'segni:andamento': (pazienteId: number) => AndamentoSegno[]
   'segni:create': (pazienteId: number, nome: string, unita: string | null) => number
@@ -407,8 +432,9 @@ export interface Canali {
   'screeningSvolti:punteggio': (id: number) => RisultatoPunteggio | null
   // Il report: gli screening da confrontare, dal piu' vecchio al piu' recente.
   // L'ultimo e' quello che si legge nelle tabelle, gli altri fanno l'andamento.
-  'screeningSvolti:anteprimaReport': (ids: number[]) => void
-  'screeningSvolti:report': (ids: number[]) => string | null
+  // Il secondo elenco sono i test della pedana da richiamare nel report (facoltativo).
+  'screeningSvolti:anteprimaReport': (ids: number[], pedanaIds?: number[]) => void
+  'screeningSvolti:report': (ids: number[], pedanaIds?: number[]) => string | null
   'screeningSvolti:delete': (id: number) => void
   'bodyChart:list': (pazienteId: number) => BodyChartRiepilogo[]
   'bodyChart:get': (id: number) => BodyChartCompleta
@@ -450,7 +476,9 @@ export interface Canali {
     pazienteId: number,
     faseId: number | null,
     finoAl: string,
-    escludiSedutaId: number | null
+    escludiSedutaId: number | null,
+    // tutte le progressioni, non solo quelle della fase
+    tutte?: boolean
   ) => StatoProgressione[]
   'obiettiviTerapeutici:list': (pazienteId: number) => ObiettivoTerapeutico[]
   // Quello che il paziente si aspetta, con parole sue: una casella sola.
@@ -689,6 +717,17 @@ export const MAPPA_API = {
     create: 'massimali:create',
     remove: 'massimali:delete',
     setMisure: 'massimali:setMisure'
+  },
+  // I test con la pedana di forza.
+  pedana: {
+    scegliFile: 'pedana:scegliFile',
+    giaImportate: 'pedana:giaImportate',
+    importa: 'pedana:importa',
+    annulla: 'pedana:annulla',
+    archivio: 'pedana:archivio',
+    remove: 'pedana:delete',
+    anteprimaReport: 'pedana:anteprimaReport',
+    setLatoInteressato: 'pedana:setLatoInteressato'
   },
   // I segni di riferimento del paziente e le loro misure.
   segni: {

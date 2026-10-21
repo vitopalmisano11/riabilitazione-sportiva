@@ -17,7 +17,7 @@ import type { PazienteDettaglio, SedutaSettimana } from '../../../shared/types'
 import { toast, toastErrore } from '../components/Toast'
 import { chiedi } from '../components/Conferma'
 import Modale from '../components/Modale'
-import { errMsg, formatData, oggiIso } from '../lib'
+import { errMsg, formatData, maiuscola, oggiIso } from '../lib'
 
 // La settimana di tutti i pazienti in una schermata.
 //
@@ -65,13 +65,13 @@ function intestazioneSettimana(lunedi: Date): string {
 // Quello che si legge accanto al nome: la fase, e se la seduta e' ancora da
 // fare. Il numero degli esercizi non c'e': qui non serviva.
 const accanto = (s: SedutaSettimana, oggi: string): string =>
-  [
+  maiuscola([
     s.fase_campo === 1 ? 'al campo' : null,
     s.fase_nome,
     s.data > oggi ? 'programmata' : null
   ]
     .filter(Boolean)
-    .join(' · ')
+    .join(' · '))
 
 export default function SettimanaPage({
   onApriPaziente,

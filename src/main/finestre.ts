@@ -100,8 +100,12 @@ export function conBarra(
     cursor: default; transition: background-color 0.15s ease, color 0.15s ease; }
   .barra-finestra .comando-finestra:hover { background: rgba(128, 128, 128, 0.22); }
   .barra-finestra .comando-finestra.chiudi:hover { background: #c42b1c; color: #fff; }
-  .spazio-barra { height: ${ALTEZZA_BARRA}px; }
-  @media print { .barra-finestra, .spazio-barra { display: none; } }
+  html { overflow: hidden; }
+  body { position: fixed; top: ${ALTEZZA_BARRA}px; right: 0; bottom: 0; left: 0; margin: 0;
+    overflow: auto; }
+  .spazio-barra { display: none; }
+  @media print { .barra-finestra { display: none; }
+    html { overflow: visible; } body { position: static; overflow: visible; } }
 </style>`
   const icona = (d: string): string =>
     `<svg width="12" height="12" viewBox="0 0 12 12"><path d="${d}" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>`

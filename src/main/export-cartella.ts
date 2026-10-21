@@ -22,6 +22,7 @@ import { intestazioneHtml } from './export-doc'
 import { type SezioneCartella, type TipoRelazione } from '../shared/types'
 import { relazioneAnamnesi } from './relazione-anamnesi'
 import { relazioneValutazione } from './relazione-valutazione'
+import { sezPedana, sintesiPedana } from './pedana-report'
 import {
   type Blocco,
   type Cartella,
@@ -51,6 +52,7 @@ export const SEZIONI: { chiave: SezioneCartella; titolo: string }[] = [
   { chiave: 'remota', titolo: 'Anamnesi remota' },
   { chiave: 'valutazioni', titolo: 'Valutazione obiettiva' },
   { chiave: 'questionari', titolo: 'Questionari' },
+  { chiave: 'pedana', titolo: 'Test con pedana' },
   { chiave: 'obiettivi', titolo: 'Obiettivi terapeutici' },
   { chiave: 'sedute', titolo: 'Diario delle sedute' }
 ]
@@ -76,6 +78,7 @@ export function componiCartella(pazienteId: number, sezioni: SezioneCartella[]):
     bodychart: () => sezBodyChart(pazienteId),
     valutazioni: () => sezValutazioni(pazienteId),
     questionari: () => sezQuestionari(pazienteId),
+    pedana: () => sezPedana(pazienteId),
     obiettivi: () => sezObiettivi(pazienteId),
     sedute: () => sezSedute(pazienteId)
   }
@@ -239,6 +242,10 @@ export function componiRelazioneValutazione(pazienteId: number): Cartella {
       titolo: v.titolo,
       blocchi: [{ tipo: 'paragrafi', voci: v.paragrafi.map((testo) => ({ testo })) }]
     }))
+  // in fondo, solo la sintesi dei test con la pedana (quello che c'e' di piu'
+  // sta nella cartella)
+  const pedana = sintesiPedana(pazienteId)
+  if (pedana) sezioni.push(pedana)
   return { nome: String(p.nome), cognome: String(p.cognome), sezioni }
 }
 

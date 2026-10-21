@@ -114,7 +114,7 @@ export default function AggiungiAlGiorno({
                     {p.cognome} {p.nome}
                   </span>
                   <span className="default-hint">
-                    {[p.fase_nome, p.ultima_seduta ? `ultima ${formatData(p.ultima_seduta)}` : null]
+                    {[p.fase_nome, p.ultima_seduta ? `Ultima ${formatData(p.ultima_seduta)}` : null]
                       .filter(Boolean)
                       .join(' · ')}
                   </span>

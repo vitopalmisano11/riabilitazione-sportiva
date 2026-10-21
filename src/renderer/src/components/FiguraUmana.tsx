@@ -50,6 +50,13 @@ function misure(vista: Vista): { larghezza: number; altezza: number } {
     : { larghezza: LARGHEZZA, altezza: ALTEZZA }
 }
 
+// Larghezza diviso altezza della figura: serve a dare al riquadro la stessa
+// forma dell'immagine, cosi' non restano bande vuote ai lati.
+export function rapportoVista(vista: Vista): number {
+  const m = misure(vista)
+  return m.larghezza / m.altezza
+}
+
 // I due pennelli stanno in testa: sono la funzione di base, quella che si usa
 // premendo e trascinando sulla figura.
 export const SEGNI: { valore: TipoSegno; etichetta: string }[] = [

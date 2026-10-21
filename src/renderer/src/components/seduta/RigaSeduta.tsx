@@ -144,7 +144,7 @@ function RigaSeduta({
           numeri sono gia' li' sopra. Un esercizio "al volo" non ha uno storico. */}
       {ultima && (
         <div className="ultima-volta">
-          <span className="ultima-quando">l&apos;ultima volta, {formatData(ultima.data)}:</span>
+          <span className="ultima-quando">L&apos;ultima volta,{formatData(ultima.data)}:</span>
           <span className="ultima-dose">{testoUltima(r, ultima)}</span>
           <button
             className="btn-piccolo"

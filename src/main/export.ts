@@ -14,7 +14,8 @@ import {
   generaRelazione,
   oggiIso
 } from './export-cartella'
-import { generaReportScreening } from './report-screening'
+import { generaReportScreening, type DatiReport } from './report-screening'
+import { generaReportPedana } from './report-pedana'
 import { generaCertificatoHtml } from './certificato'
 import type { CertificatoInput, SezioneCartella } from '../shared/types'
 import {
@@ -66,10 +67,7 @@ function leggiPaziente(id: number): DatiPazienteExport {
 
 // Le foto pesano: si leggono solo per la scheda illustrata, e non finiscono
 // nemmeno in memoria quando si esporta quella normale.
-function leggiSeduta(
-  id: number,
-  illustrata = false
-): DatiSedutaExport & { paziente_id: number } {
+function leggiSeduta(id: number, illustrata = false): DatiSedutaExport & { paziente_id: number } {
   const db = getDb()
   const s = db
     .prepare(
@@ -77,8 +75,7 @@ function leggiSeduta(
        FROM sedute s LEFT JOIN fasi f ON f.id = s.fase_id WHERE s.id = ?`
     )
     .get(id) as
-    | { paziente_id: number; data: string; note: string | null; fase_nome: string | null }
-    | undefined
+    { paziente_id: number; data: string; note: string | null; fase_nome: string | null } | undefined
   if (!s) throw new Error('Seduta non trovata.')
   const sezioniRows = db
     .prepare('SELECT id, nome FROM seduta_sezioni WHERE seduta_id = ? ORDER BY ordine, id')
@@ -254,7 +251,11 @@ export async function apriAnteprimaCartella(
     autoHideMenuBar: true,
     ...barraDisegnata(),
     icon: icona,
-    webPreferences: { sandbox: true, preload: PONTE_FINESTRA, partition: sessioneSeparata(`cartella-${pazienteId}`) }
+    webPreferences: {
+      sandbox: true,
+      preload: PONTE_FINESTRA,
+      partition: sessioneSeparata(`cartella-${pazienteId}`)
+    }
   })
   win.on('page-title-updated', (e) => e.preventDefault())
   chiudiConEsc(win)
@@ -295,7 +296,9 @@ const NOME_RELAZIONE: Record<TipoRelazione, { titolo: string; file: string }> = 
 }
 
 function nomiPaziente(pazienteId: number, tipo: TipoRelazione): { cognome: string; nome: string } {
-  return tipo === 'valutazione' ? componiRelazioneValutazione(pazienteId) : componiRelazione(pazienteId)
+  return tipo === 'valutazione'
+    ? componiRelazioneValutazione(pazienteId)
+    : componiRelazione(pazienteId)
 }
 
 export async function apriAnteprimaRelazione(
@@ -324,7 +327,11 @@ export async function apriAnteprimaRelazione(
     autoHideMenuBar: true,
     ...barraDisegnata(),
     icon: icona,
-    webPreferences: { sandbox: true, preload: PONTE_FINESTRA, partition: sessioneSeparata(`relazione-${chiave}`) }
+    webPreferences: {
+      sandbox: true,
+      preload: PONTE_FINESTRA,
+      partition: sessioneSeparata(`relazione-${chiave}`)
+    }
   })
   win.on('page-title-updated', (e) => e.preventDefault())
   chiudiConEsc(win)
@@ -384,9 +391,27 @@ export async function esportaCertificato(dati: CertificatoInput): Promise<string
 // si salva in PDF, dallo stesso identico HTML.
 const reportAperti = new Map<number, BrowserWindow>()
 
-export async function apriAnteprimaReport(sessioneIds: number[]): Promise<void> {
-  const r = generaReportScreening(sessioneIds)
-  const sessioneId = sessioneIds[sessioneIds.length - 1]
+export async function apriAnteprimaReport(
+  sessioneIds: number[],
+  pedanaIds: number[] = []
+): Promise<void> {
+  await mostraReport(
+    generaReportScreening(sessioneIds, pedanaIds),
+    sessioneIds[sessioneIds.length - 1]
+  )
+}
+
+// Il report dei soli test con la pedana (dalla linguetta Pedana del paziente). La
+// chiave della finestra e' negativa: non si confonde con quella di uno screening.
+export async function apriAnteprimaReportPedana(
+  pazienteId: number,
+  pedanaIds: number[]
+): Promise<void> {
+  await mostraReport(generaReportPedana(pazienteId, pedanaIds), -pazienteId)
+}
+
+// La finestra del report: una per chiave, se e' gia' aperta si aggiorna.
+async function mostraReport(r: DatiReport, sessioneId: number): Promise<void> {
   const tmp = await scriviTemporaneo(
     '.html',
     conBarra(r.html, `Report — ${r.cognome} ${r.nome}`, coloriBarraAdesso())
@@ -406,7 +431,11 @@ export async function apriAnteprimaReport(sessioneIds: number[]): Promise<void> 
     autoHideMenuBar: true,
     ...barraDisegnata(),
     icon: icona,
-    webPreferences: { sandbox: true, preload: PONTE_FINESTRA, partition: sessioneSeparata(`report-${sessioneId}`) }
+    webPreferences: {
+      sandbox: true,
+      preload: PONTE_FINESTRA,
+      partition: sessioneSeparata(`report-${sessioneId}`)
+    }
   })
   win.on('page-title-updated', (e) => e.preventDefault())
   chiudiConEsc(win)
@@ -417,8 +446,11 @@ export async function apriAnteprimaReport(sessioneIds: number[]): Promise<void> 
   eliminaTemporaneoPresto(tmp)
 }
 
-export async function esportaReport(sessioneIds: number[]): Promise<string | null> {
-  const r = generaReportScreening(sessioneIds)
+export async function esportaReport(
+  sessioneIds: number[],
+  pedanaIds: number[] = []
+): Promise<string | null> {
+  const r = generaReportScreening(sessioneIds, pedanaIds)
   const { canceled, filePath } = await dialog.showSaveDialog({
     title: 'Esporta il report dello screening',
     defaultPath: join(

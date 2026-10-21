@@ -40,6 +40,23 @@ Specifica originale e feedback dell'utente sono nei file `prompt-*.md` alla radi
   dagli esiti delle sedute. L'interfaccia: `ProgressioniLibreria` (linguetta della libreria),
   `ProgressioniFase` (tab della fase), `ProgressioniPaziente` e `SpecchiettoProgressioni` (specchietto),
   `seduta/SuggerimentiProgressioni` e `seduta/EsitiProgressioni`.
+- I test con la pedana di forza (file `*.pedana.json` della Balance Squat App, contratto in
+  `docs/formato-pedana.md`, esempio vero in `docs/esempio.pedana.json`) hanno un archivio proprio, NON
+  righe di screening: `main/pedana.ts` (anteprima con candidati paziente, importazione senza doppioni
+  per `id_esterno`, archivio), lettura/validazione, somiglianza dei nomi, accoppiamento dei lati, LSI e
+  frasi in `shared/pedana.ts`, tabelle `pedana_*` (migrazione 65). Il paziente non si abbina mai da
+  solo (si conferma nella finestra `components/pedana/ImportaPedana.tsx`). Il lato interessato si
+  sceglie per test (`pedana_lato_interessato`, chiave = `chiaveTestPedana`), altrimenti vale l'arto
+  operato. Interfaccia: linguetta «Pedana» fra Clinica e Percorso della scheda paziente
+  (`components/pedana/PedanaPaziente.tsx`: solo un elenco data + test come il diario sedute; il
+  dettaglio sta nella finestra a sezioni `DettaglioPedana.tsx`; prova e2e in `e2e/pedana.spec.ts`) e pulsante di importazione nella lista pazienti. Nei
+  documenti: `main/pedana-report.ts` (cartella = sezione «Test con pedana» con lo storico completo;
+  relazione della valutazione = sintesi in fondo, tabella + frasi; report di screening = i test che
+  si spuntano nella finestra «Quali screening mettere a confronto?», passati come secondo argomento
+  `pedanaIds` di `screeningSvolti:anteprimaReport`/`report`), disegni in `main/pedana-disegni.ts`
+  (SVG con stili in linea). Le curve (forza nel tempo, salto, oscillazione) sono descritte da
+  `curvePedana` e disegnate da `curvaSvg` in `shared/pedana-curve.ts`: lo stesso SVG nella pagina
+  (`GraficiCurve.tsx`) e nei documenti. Prove in `test/pedana.test.ts`.
 - Le schermate grandi sono divise così: `pages/paziente/` (scheda, diario, obiettivi, scheda illustrata),
   `pages/questionari/` (elenco, editor, una scheda per tab; costanti e id provvisori in `modello.ts`),
   `pages/impostazioni/` (una scheda per file), `components/anamnesi/` e `components/valutazione/`. Il

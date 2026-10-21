@@ -9,7 +9,7 @@ import type { BodyChartCompleta, SegnoBodyChart, TipoSegno, Vista } from '../../
 import { toast, toastErrore } from './Toast'
 import { errMsg } from '../lib'
 import { scorciatoieBloccate, useScorciatoie } from '../scorciatoie'
-import FiguraChart, { SEGNI, viste, type SegnoDisegnato } from './FiguraUmana'
+import FiguraChart, { SEGNI, rapportoVista, viste, type SegnoDisegnato } from './FiguraUmana'
 
 // I segni in memoria hanno una chiave stabile: l'id del database non c'e'
 // ancora per quelli appena messi, e serve poterli selezionare e trascinare.
@@ -399,7 +399,11 @@ function RiquadroVista({
 }): React.JSX.Element {
   const { ref, scala, ingrandita } = useZoomPizzico<HTMLDivElement>()
   return (
-    <div ref={ref} className={`corpo-riquadro${ingrandita ? ' zoomata' : ''}`}>
+    <div
+      ref={ref}
+      className={`corpo-riquadro${ingrandita ? ' zoomata' : ''}`}
+      style={{ '--rapporto': rapportoVista(vista) } as React.CSSProperties}
+    >
       <div className="corpo-zoom" style={{ transform: `scale(${scala})` }}>
         <FiguraChart
           vista={vista}

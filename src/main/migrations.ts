@@ -1521,6 +1521,75 @@ export const MIGRATIONS: string[] = [
   ALTER TABLE massimali ADD COLUMN lato TEXT CHECK (lato IN ('dx', 'sx'));
   ALTER TABLE massimali ADD COLUMN metodo TEXT CHECK (metodo IN ('misurato', 'serie', 'velocita'));
   CREATE INDEX IF NOT EXISTS idx_massimali_esercizio ON massimali(esercizio_id);
+  `,
+
+  // 65 - i test fatti con la pedana di forza, importati dal file dell'app della
+  //      pedana. Un archivio proprio, legato al paziente: non sono righe di uno
+  //      screening, perche' si fanno anche fuori da una giornata di screening e
+  //      si guardano nel tempo.
+  //
+  //      id_esterno e' l'identificativo che l'app della pedana da' alla
+  //      registrazione: importando due volte lo stesso file non si duplica
+  //      niente. I valori sono righe (misura, lato, prova, valore) come negli
+  //      screening, con nome e unita' copiati dentro: il test deve restare
+  //      leggibile com'era anche se il file o l'app cambiano. Le curve e i
+  //      tracciati (serie) stanno in un testo JSON: servono solo a disegnarli.
+  //      Il lato interessato si sceglie per test: un ginocchio operato non dice
+  //      niente sul test della spalla. Se manca, vale l'arto operato del
+  //      paziente.
+  `
+  CREATE TABLE pedana_test (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    paziente_id INTEGER NOT NULL REFERENCES pazienti(id) ON DELETE CASCADE,
+    id_esterno TEXT NOT NULL,
+    data TEXT NOT NULL,
+    ora TEXT,
+    test_codice TEXT NOT NULL,
+    test_nome TEXT NOT NULL,
+    categoria TEXT,
+    lato TEXT CHECK (lato IN ('dx', 'sx')),
+    peso_kg REAL,
+    dispositivo_tipo TEXT,
+    dispositivo_modello TEXT,
+    condizioni TEXT,
+    avvertenze TEXT,
+    riassunto TEXT,
+    importato_il TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+    UNIQUE (paziente_id, id_esterno)
+  );
+
+  CREATE TABLE pedana_valori (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    test_id INTEGER NOT NULL REFERENCES pedana_test(id) ON DELETE CASCADE,
+    misura_codice TEXT NOT NULL,
+    misura_nome TEXT NOT NULL,
+    unita TEXT,
+    meglio TEXT CHECK (meglio IN ('alto', 'basso')),
+    per_prova INTEGER NOT NULL DEFAULT 0,
+    lato TEXT CHECK (lato IN ('dx', 'sx')),
+    prova INTEGER,
+    valore REAL NOT NULL,
+    ordine INTEGER NOT NULL DEFAULT 0
+  );
+
+  CREATE TABLE pedana_serie (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    test_id INTEGER NOT NULL REFERENCES pedana_test(id) ON DELETE CASCADE,
+    codice TEXT NOT NULL,
+    nome TEXT NOT NULL,
+    dati TEXT NOT NULL
+  );
+
+  CREATE TABLE pedana_lato_interessato (
+    paziente_id INTEGER NOT NULL REFERENCES pazienti(id) ON DELETE CASCADE,
+    test_codice TEXT NOT NULL,
+    lato TEXT NOT NULL CHECK (lato IN ('dx', 'sx')),
+    PRIMARY KEY (paziente_id, test_codice)
+  );
+
+  CREATE INDEX idx_pedana_test_paziente ON pedana_test(paziente_id, test_codice, data);
+  CREATE INDEX idx_pedana_valori_test ON pedana_valori(test_id);
+  CREATE INDEX idx_pedana_serie_test ON pedana_serie(test_id);
   `
 ]
 

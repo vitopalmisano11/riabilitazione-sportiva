@@ -21,6 +21,7 @@ const SEZIONI: { chiave: SezioneCartella; etichetta: string }[] = [
   { chiave: 'bodychart', etichetta: 'Body chart' },
   { chiave: 'valutazioni', etichetta: 'Valutazione obiettiva' },
   { chiave: 'questionari', etichetta: 'Questionari' },
+  { chiave: 'pedana', etichetta: 'Test con pedana' },
   { chiave: 'obiettivi', etichetta: 'Obiettivi terapeutici' },
   { chiave: 'sedute', etichetta: 'Diario delle sedute' }
 ]

@@ -85,6 +85,16 @@ import {
 } from './indicazioni'
 import { creaMassimale, elencoMassimali, eliminaMassimale, impostaMisure } from './atleta'
 import {
+  anteprimaPedana,
+  annullaImportPedana,
+  archivioPedana,
+  eliminaTestPedana,
+  giaImportatePedana,
+  importaPedana,
+  impostaLatoInteressato
+} from './pedana'
+import { PESO_MASSIMO_FILE_PEDANA } from '../shared/pedana'
+import {
   andamentoSegni,
   creaSegno,
   elencoSegni,
@@ -194,6 +204,7 @@ import {
   apriAnteprimaCartella,
   apriAnteprimaRelazione,
   apriAnteprimaReport,
+  apriAnteprimaReportPedana,
   esportaReport,
   anteprimaSchedaIllustrata,
   esportaCartella,
@@ -726,6 +737,47 @@ export function registerIpc(): void {
     impostaMisure(pazienteId, peso, altezza)
   )
 
+  // ---- Test con la pedana di forza ----
+  handle('pedana:scegliFile', async (pazienteId: number | null) => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+      title: 'Scegli il file della pedana (.pedana.json)',
+      properties: ['openFile'],
+      filters: [{ name: 'File della pedana', extensions: ['json'] }]
+    })
+    if (canceled || filePaths.length === 0) return null
+    const percorso = filePaths[0]
+    // Il nome del file di solito contiene quello del paziente: non deve finire
+    // nel registro degli errori, come per i referti.
+    let dati: Buffer
+    try {
+      dati = readFileSync(percorso)
+    } catch {
+      throw erroreSenzaDatiNelRegistro('Non riesco a leggere il file scelto.', 'File pedana non leggibile.')
+    }
+    if (dati.length > PESO_MASSIMO_FILE_PEDANA) {
+      throw erroreSenzaDatiNelRegistro('Il file è troppo pesante (oltre 60 MB).', 'File pedana troppo pesante.')
+    }
+    const contenuto = dati.toString('utf-8')
+    return anteprimaPedana(contenuto, basename(percorso), pazienteId)
+  })
+  handle('pedana:importa', (pazienteId: number, token: string, idScelti: string[]) =>
+    importaPedana(pazienteId, token, idScelti)
+  )
+  handle('pedana:giaImportate', (token: string, pazienteId: number) =>
+    giaImportatePedana(token, pazienteId)
+  )
+  handle('pedana:annulla', (token: string) => annullaImportPedana(token))
+  handle('pedana:archivio', (pazienteId: number) => archivioPedana(pazienteId))
+  handle('pedana:delete', (id: number) => eliminaTestPedana(id))
+  handle('pedana:anteprimaReport', (pazienteId: number, pedanaIds: number[]) =>
+    apriAnteprimaReportPedana(pazienteId, pedanaIds)
+  )
+  handle(
+    'pedana:setLatoInteressato',
+    (pazienteId: number, testCodice: string, lato: 'dx' | 'sx' | null) =>
+      impostaLatoInteressato(pazienteId, testCodice, lato)
+  )
+
   // ---- Segni di riferimento: le due o tre cose che si ricontrollano ----
   handle('segni:list', (pazienteId: number) => elencoSegni(pazienteId))
   handle('segni:andamento', (pazienteId: number) => andamentoSegni(pazienteId))
@@ -925,8 +977,12 @@ export function registerIpc(): void {
       collegaCompilazione(id, questionarioId, compilazioneId)
   )
   handle('screeningSvolti:punteggio', (id: number) => calcolaPunteggio(id))
-  handle('screeningSvolti:anteprimaReport', (ids: number[]) => apriAnteprimaReport(ids))
-  handle('screeningSvolti:report', (ids: number[]) => esportaReport(ids))
+  handle('screeningSvolti:anteprimaReport', (ids: number[], pedanaIds?: number[]) =>
+    apriAnteprimaReport(ids, pedanaIds ?? [])
+  )
+  handle('screeningSvolti:report', (ids: number[], pedanaIds?: number[]) =>
+    esportaReport(ids, pedanaIds ?? [])
+  )
   handle('screeningSvolti:delete', (id: number) => {
     const sc = getDb()
       .prepare('SELECT data, protocollo_nome FROM screening_sessioni WHERE id = ?')
@@ -1159,8 +1215,13 @@ export function registerIpc(): void {
   )
   handle(
     'progressioni:stato',
-    (pazienteId: number, faseId: number | null, finoAl: string, escludiSedutaId: number | null) =>
-      statoProgressioni(pazienteId, faseId, finoAl, escludiSedutaId)
+    (
+      pazienteId: number,
+      faseId: number | null,
+      finoAl: string,
+      escludiSedutaId: number | null,
+      tutte?: boolean
+    ) => statoProgressioni(pazienteId, faseId, finoAl, escludiSedutaId, tutte === true)
   )
   handle('obiettiviTerapeutici:aspettative', (pazienteId: number) => leggiAspettative(pazienteId))
   handle('obiettiviTerapeutici:salvaAspettative', (pazienteId: number, testo: string | null) =>

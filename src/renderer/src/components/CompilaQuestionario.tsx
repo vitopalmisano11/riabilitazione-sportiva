@@ -8,6 +8,7 @@ import { toast, toastErrore } from './Toast'
 import ScalaPallini from './ScalaPallini'
 import GrigliaQuestionario from './GrigliaQuestionario'
 import Modale from './Modale'
+import { useScorciatoie } from '../scorciatoie'
 import { errMsg, formatData, oggiIso } from '../lib'
 import { raggruppaDomande } from '../../../shared/griglie-questionario'
 
@@ -32,6 +33,9 @@ export default function CompilaQuestionario({
   // salvare: allo screening serve per collegarla alla sessione.
   onChiudi: (compilazioneId: number | null) => void
 }): React.JSX.Element {
+  // Esc chiude senza salvare, come "Annulla"
+  useScorciatoie([{ tasto: 'Escape', azione: () => onChiudi(null), inCasella: true }])
+
   const [dati, setDati] = useState<QuestionarioCompleto | null>(null)
   const [risposte, setRisposte] = useState<Record<number, number>>({})
   const [data, setData] = useState(compilazione?.data ?? oggiIso())
@@ -143,85 +147,85 @@ export default function CompilaQuestionario({
 
   return (
     <Modale className="modal-compila" onConferma={confermaAttuale}>
-        <div className="card-header-row">
-          <h3>{dati.questionario.nome}</h3>
-          {soloLettura ? (
-            <span className="hint">{formatData(data)}</span>
-          ) : (
-            <label className="compila-data">
-              Data
-              <input type="date" value={data} onChange={(e) => setData(e.target.value)} />
-            </label>
-          )}
-        </div>
-        {dati.questionario.istruzioni && (
-          <p className="compila-istruzioni">{dati.questionario.istruzioni}</p>
+      <div className="card-header-row">
+        <h3>{dati.questionario.nome}</h3>
+        {soloLettura ? (
+          <span className="hint">{formatData(data)}</span>
+        ) : (
+          <label className="compila-data">
+            Data
+            <input type="date" value={data} onChange={(e) => setData(e.target.value)} />
+          </label>
         )}
+      </div>
+      {dati.questionario.istruzioni && (
+        <p className="compila-istruzioni">{dati.questionario.istruzioni}</p>
+      )}
 
-        {/* Domande e note scorrono insieme: le note stanno in fondo, dopo
+      {/* Domande e note scorrono insieme: le note stanno in fondo, dopo
             l'ultima domanda, invece di restare fisse sotto e distrarre fin
             dalla prima. */}
-        <div className="compila-corpo">
-          <ol className="compila-domande">
-            {raggruppaDomande(conId).map((g) =>
-              g.intestazione == null ? (
-                <li key={g.righe[0].domanda.id}>
-                  <p className="compila-testo">{g.righe[0].domanda.testo}</p>
-                  {controlli(g.righe[0].domanda)}
-                </li>
-              ) : (
-                // Una griglia e' una domanda sola per chi risponde: il testo
-                // comune una volta, poi una riga per attivita' con le stesse
-                // risposte.
-                <li key={g.righe[0].domanda.id}>
-                  <p className="compila-testo">{g.intestazione}</p>
-                  <GrigliaQuestionario
-                    righe={g.righe.map((r) => r.domanda)}
-                    risposte={risposte}
-                    soloLettura={soloLettura}
-                    onScegli={(id, valore) => setRisposte({ ...risposte, [id]: valore })}
-                  />
-                </li>
-              )
-            )}
-            {conId.length === 0 && <li className="hint">Questo questionario non ha domande.</li>}
-          </ol>
-
-          {soloLettura ? (
-            note.trim() !== '' && (
-              <label>
-                Note
-                <p className="modal-testo">{note}</p>
-              </label>
+      <div className="compila-corpo">
+        <ol className="compila-domande">
+          {raggruppaDomande(conId).map((g) =>
+            g.intestazione == null ? (
+              <li key={g.righe[0].domanda.id}>
+                <p className="compila-testo">{g.righe[0].domanda.testo}</p>
+                {controlli(g.righe[0].domanda)}
+              </li>
+            ) : (
+              // Una griglia e' una domanda sola per chi risponde: il testo
+              // comune una volta, poi una riga per attivita' con le stesse
+              // risposte.
+              <li key={g.righe[0].domanda.id}>
+                <p className="compila-testo">{g.intestazione}</p>
+                <GrigliaQuestionario
+                  righe={g.righe.map((r) => r.domanda)}
+                  risposte={risposte}
+                  soloLettura={soloLettura}
+                  onScegli={(id, valore) => setRisposte({ ...risposte, [id]: valore })}
+                />
+              </li>
             )
-          ) : (
-            <label>
-              Note (facoltative)
-              <textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
-            </label>
           )}
-        </div>
+          {conId.length === 0 && <li className="hint">Questo questionario non ha domande.</li>}
+        </ol>
 
-        <div className="modal-actions">
-          {soloLettura && compilazione?.fascia && (
-            <span className="badge-fascia">{compilazione.fascia}</span>
-          )}
-          {!soloLettura && mancanti > 0 && (
-            <span className="hint">
-              {mancanti === 1 ? 'Manca 1 risposta.' : `Mancano ${mancanti} risposte.`}
-            </span>
-          )}
-          <button onClick={() => onChiudi(null)}>{soloLettura ? 'Chiudi' : 'Annulla'}</button>
-          {!soloLettura && (
-            <button
-              className="primary"
-              disabled={conId.length === 0 || mancanti > 0}
-              onClick={() => void salva()}
-            >
-              Salva
-            </button>
-          )}
-        </div>
+        {soloLettura ? (
+          note.trim() !== '' && (
+            <label>
+              Note
+              <p className="modal-testo">{note}</p>
+            </label>
+          )
+        ) : (
+          <label>
+            Note (facoltative)
+            <textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
+          </label>
+        )}
+      </div>
+
+      <div className="modal-actions">
+        {soloLettura && compilazione?.fascia && (
+          <span className="badge-fascia">{compilazione.fascia}</span>
+        )}
+        {!soloLettura && mancanti > 0 && (
+          <span className="hint">
+            {mancanti === 1 ? 'Manca 1 risposta.' : `Mancano ${mancanti} risposte.`}
+          </span>
+        )}
+        <button onClick={() => onChiudi(null)}>{soloLettura ? 'Chiudi' : 'Annulla'}</button>
+        {!soloLettura && (
+          <button
+            className="primary"
+            disabled={conId.length === 0 || mancanti > 0}
+            onClick={() => void salva()}
+          >
+            Salva
+          </button>
+        )}
+      </div>
     </Modale>
   )
 }

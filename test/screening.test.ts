@@ -229,7 +229,10 @@ test('Il riassunto scritto del report dello screening', () => {
   assert.ok(conTitolo.includes("window.finestra.comando('chiudi')"))
   assert.ok(conBarra(html, 'x', coloriBarra('blu', true, false)).includes('background: #18202b'))
   assert.ok(conBarra(html, 'x', coloriBarra('verde', false, false)).includes('background: #e6dcc9'))
-  assert.ok(conTitolo.includes('@media print { .barra-finestra, .spazio-barra { display: none; } }'))
+  // in stampa la barra sparisce e la pagina torna a scorrere intera (a schermo
+  // scorre un contenitore sotto la barra, cosi' la barra di scorrimento non le sta accanto)
+  assert.ok(conTitolo.includes('@media print { .barra-finestra { display: none; }'))
+  assert.ok(conTitolo.includes('body { position: static; overflow: visible; }'))
 })
 
 // Un piccolo Ankle-GO: una misura di un test a una gamba per volta, una di un

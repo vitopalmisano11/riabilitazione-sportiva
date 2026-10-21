@@ -3,7 +3,7 @@ import { Check, ChevronDown, History, Plus, X } from 'lucide-react'
 import type { AndamentoRiferito, SedutaPrecedente, Tecnica } from '../../../shared/types'
 import Aiuto from './Aiuto'
 import { toast, toastErrore } from './Toast'
-import { errMsg, formatData } from '../lib'
+import { errMsg, formatData, maiuscola } from '../lib'
 
 // Il diario della seduta, in cima alla seduta: prima come sta il paziente
 // tornando, poi cosa gli si fa. Gli esercizi vengono dopo.
@@ -61,7 +61,7 @@ export function UltimaVoltaSeduta({
       >
         <History size={16} />
         <span className="data-ultima">L&apos;ultima volta — {formatData(p.data)}</span>
-        {!aperta && <span className="in-breve">{vuota ? 'niente di scritto' : inBreve}</span>}
+        {!aperta && <span className="in-breve">{vuota ? 'Niente di scritto' : maiuscola(inBreve)}</span>}
         <ChevronDown size={16} className="freccia-ultima" />
       </button>
       {!aperta ? null : vuota ? (
@@ -92,7 +92,7 @@ export function UltimaVoltaSeduta({
           {numeri.length > 0 && (
             <div>
               <dt>Misure</dt>
-              <dd>{numeri.join(' · ')}</dd>
+              <dd>{maiuscola(numeri.join(' · '))}</dd>
             </div>
           )}
           {p.note && (

@@ -896,9 +896,10 @@ textarea.testo-adatta {
 
 /* Ricerca in tutto l'archivio (Ctrl+K): una finestra stretta in alto, come una
    palette di comandi, con i risultati divisi per gruppo. */
+/* Al centro dell'area di lavoro (la barra laterale non conta: l'overlay parte
+   dopo di lei, vedi modal-overlay-contenuto). */
 .ricerca-overlay {
-  align-items: flex-start;
-  padding-top: 12vh;
+  align-items: center;
 }
 
 .modal.ricerca-globale {
@@ -934,7 +935,7 @@ textarea.testo-adatta {
 
 .ricerca-elenco {
   overflow: auto;
-  min-height: 60px;
+  min-height: 0;
 }
 
 .ricerca-gruppo {
@@ -983,7 +984,6 @@ textarea.testo-adatta {
 
 .ricerca-suggerimenti {
   padding-top: 6px;
-  border-top: 1px solid var(--border);
   font-size: 12px;
   color: var(--text-dim);
 }

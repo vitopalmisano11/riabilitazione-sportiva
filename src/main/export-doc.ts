@@ -73,7 +73,7 @@ function formatData(iso: string): string {
 
 function infoPaziente(p: DatiPazienteExport): string[] {
   const parti: string[] = []
-  if (p.patologia_nome) parti.push(`Patologia: ${p.patologia_nome}`)
+  // La patologia non si scrive: la scheda va al paziente.
   if (p.tipo_intervento) parti.push(`Intervento: ${p.tipo_intervento}`)
   if (p.data_intervento) parti.push(`Data intervento: ${formatData(p.data_intervento)}`)
   return parti
@@ -225,10 +225,7 @@ export function generaHtml(
       numero = 0
       return `
     <section class="seduta${i > 0 ? ' nuova-pagina' : ''}">
-      <h2>Seduta del ${formatData(s.data)}${
-        // nella scheda illustrata, che va al paziente, la fase non si scrive
-        s.fase_nome && !illustrata ? ` <span class="fase">· ${esc(s.fase_nome)}</span>` : ''
-      }</h2>
+      <h2>Seduta del ${formatData(s.data)}</h2>
       ${s.sezioni
         .map(
           (sez) => `
@@ -381,7 +378,7 @@ export async function generaDocx(
   sedute.forEach((s, i) => {
     children.push(
       new Paragraph({
-        text: `Seduta del ${formatData(s.data)}${s.fase_nome ? ` — ${s.fase_nome}` : ''}`,
+        text: `Seduta del ${formatData(s.data)}`,
         heading: HeadingLevel.HEADING_1,
         pageBreakBefore: i > 0
       })

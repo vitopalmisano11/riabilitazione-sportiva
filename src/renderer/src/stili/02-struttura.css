@@ -100,6 +100,10 @@
 .content {
   flex: 1;
   overflow: auto;
+  /* Lo spazio della barra di scorrimento resta riservato anche quando non c'e':
+     passando da una linguetta corta a una lunga (il Diario sedute) la barra
+     compariva e spostava di qualche pixel tutta la pagina. */
+  scrollbar-gutter: stable;
   padding: 30px 36px;
 }
 

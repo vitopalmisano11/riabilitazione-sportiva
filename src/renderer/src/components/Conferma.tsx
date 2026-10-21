@@ -48,6 +48,24 @@ export default function ConfermaHost(): React.JSX.Element | null {
     }
   }, [])
 
+  // Esc e' "no", come Annulla. Si ascolta in cattura e si ferma l'evento: la
+  // finestra che ha fatto la domanda (che chiude con Esc) deve restare aperta.
+  const aperta = stato !== null
+  useEffect(() => {
+    if (!aperta) return
+    const gestisci = (e: KeyboardEvent): void => {
+      if (e.key !== 'Escape') return
+      e.preventDefault()
+      e.stopImmediatePropagation()
+      setStato((corrente) => {
+        corrente?.rispondi(false)
+        return null
+      })
+    }
+    window.addEventListener('keydown', gestisci, true)
+    return () => window.removeEventListener('keydown', gestisci, true)
+  }, [aperta])
+
   // Un clic sul fondo e' "no", come Annulla.
   const sulFondo = useClicSulFondo(() => {
     stato?.rispondi(false)
