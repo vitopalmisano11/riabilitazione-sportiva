@@ -64,6 +64,20 @@ supera con *Ulteriori informazioni → Esegui comunque*.
 Le versioni vere dell'app sono quelle di `package.json` e dei tag `vX.Y.Z`: le sezioni «giro di
 feedback» qui sopra sono precedenti e usavano una numerazione propria.
 
+### v0.5.11
+
+**Prima di tutto:** al primo accesso dopo l'aggiornamento il programma applica una modifica al formato
+dell'archivio (migrazione 65). Non si può annullare, quindi prima fa da solo una copia dell'archivio.
+Dai Releases di GitHub si installa da solo, come la 0.5.10.
+
+- Pedana: i file `.pedana.json` della Balance Squat App si importano dalla lista pazienti (il paziente
+  lo confermi tu, non si abbina da solo). Nella scheda del paziente c'è la linguetta «Pedana» con
+  l'elenco dei test e, aprendone uno, valori, curve di forza e salto, stabilometria e LSI. Compaiono
+  nella cartella clinica, nella relazione della valutazione (sintesi) e nei report di screening
+- Progressioni: gruppi e progressioni si riordinano trascinandoli, e di uno step si può cambiare
+  l'esercizio (utile se è stato archiviato) senza perdere posto e requisito
+- Esporta archivio: nuovo file `pedana.csv` con i valori dei test con la pedana
+
 ### v0.5.10
 
 **Prima di tutto:** al primo accesso dopo l'aggiornamento il programma applica due modifiche al
