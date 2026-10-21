@@ -464,7 +464,7 @@ function noteHtml(g: GruppoPedana, r: GiornoPedana): string {
 }
 
 // Ogni test ha lo stesso ordine, dall'alto in basso: una riga per data (la data,
-// la misura con la sua unita' e i valori, tutto sulla stessa riga, senza tabella),
+// la misura e i valori (l'unita' sta nei valori), tutto sulla stessa riga, senza tabella),
 // poi i grafici e le note. Nei test di forza, sotto la riga, la ciambella dei due
 // lati e l'andamento; nella stabilometria i due tracciati affiancati e le due
 // oscillazioni nel tempo, con le note di ogni piede sotto al suo grafico.
@@ -484,7 +484,7 @@ function testoHtml(g: GruppoPedana): string {
     const valori = g.perLato
       ? lato('dx') + lato('sx') + lsi
       : `<span class="dx"><b>${esc(fmt(r.unico, null))}</b>${unita}</span>`
-    return `<div class="valori-riga"><span class="data">${esc(dataRiga(r))}</span><span class="misura-nome">${esc(g.misura.nome)}</span>${u ? `<span class="unita">${esc(u)}</span>` : ''}${valori}</div>`
+    return `<div class="valori-riga"><span class="data">${esc(dataRiga(r))}</span><span class="misura-nome">${esc(g.misura.nome)}</span>${valori}</div>`
   }
 
   const andamento = andamentoPedanaSvg(puntiAndamento(g), u, g.perLato)

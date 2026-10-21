@@ -153,6 +153,8 @@ export function stileReport(accento: string, accentoScuro: string, intestazione:
   .coppia-pedana > * { flex: 0 1 74mm; min-width: 0; margin: 0; }
   .coppia-pedana.tracciati > * { flex-basis: 54mm; }
   .coppia-pedana figcaption { font-size: 10px; font-weight: 600; margin-bottom: 6px; }
+  .coppia-pedana.due-grafici { gap: 34px; }
+  .coppia-pedana.confronto, .coppia-pedana.tracciati { gap: 34px; }
   .coppia-pedana.due-grafici > .g-piccolo { flex: 0 0 56mm; }
   .coppia-pedana.due-grafici > .g-largo { flex: 1 1 0; max-width: 98mm; }
   .sezione-pedana .coppia-pedana + .titolo-nota { margin-top: 8px; }
