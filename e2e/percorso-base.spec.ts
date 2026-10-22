@@ -35,6 +35,12 @@ test('primo avvio, paziente, ricerca, nuovo accesso', async () => {
     await pagina.keyboard.press('Escape')
     await expect(pagina.locator('.ricerca-globale')).toHaveCount(0)
 
+    // scegliendo un'altra sezione dal menu la ricerca si chiude
+    await pagina.keyboard.press('Control+k')
+    await expect(pagina.locator('.ricerca-globale')).toBeVisible()
+    await vaiA(pagina, 'Pazienti')
+    await expect(pagina.locator('.ricerca-globale')).toHaveCount(0)
+
     // si chiude e si riapre: serve la password, e il paziente c'e' ancora
     await prova.app.close()
     const di_nuovo = await avvia(prova.cartella)

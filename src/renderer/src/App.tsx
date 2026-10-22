@@ -260,6 +260,12 @@ export default function App(): React.JSX.Element {
     return () => clearInterval(t)
   }, [sbloccata, sezione, tornaAllElenco])
 
+  // Ctrl+K apre la ricerca in tutto l'archivio, da qualunque pagina.
+  const [cercando, setCercando] = useState(false)
+  useScorciatoie([
+    { tasto: 'k', ctrl: true, azione: () => setCercando(true), attiva: sbloccata && !bloccata }
+  ])
+
   // Premere una voce del menu riporta sempre alla prima pagina di quella
   // sezione, anche arrivando da un'altra: se stavi dentro a una scheda o a una
   // seduta, esci. Prima il segnale partiva solo ripremendo la voce in cui gia'
@@ -275,6 +281,9 @@ export default function App(): React.JSX.Element {
     // finiva dentro alla scheda dell'ultimo paziente invece che nell'elenco.
     setApriPaziente(null)
     setTornaA(null)
+    // la ricerca copre solo il contenuto, non il menu: scegliendo un'altra
+    // sezione si chiude, altrimenti restava aperta sopra la pagina nuova
+    setCercando(false)
   }
   // Richiesta di aprire la scheda di un paziente da un'altra sezione. Il numero
   // progressivo serve a far scattare l'apertura anche se si richiede due volte
@@ -318,12 +327,6 @@ export default function App(): React.JSX.Element {
     setSezione('pazienti')
     setApriPaziente((p) => ({ id, duplicaDa: sedutaId, data, seq: (p?.seq ?? 0) + 1 }))
   }
-
-  // Ctrl+K apre la ricerca in tutto l'archivio, da qualunque pagina.
-  const [cercando, setCercando] = useState(false)
-  useScorciatoie([
-    { tasto: 'k', ctrl: true, azione: () => setCercando(true), attiva: sbloccata && !bloccata }
-  ])
 
   if (!sbloccata) {
     return <AuthGate onUnlocked={() => setSbloccata(true)} />
