@@ -66,8 +66,8 @@ feedback» qui sopra sono precedenti e usavano una numerazione propria.
 
 ### v0.5.11
 
-**Prima di tutto:** al primo accesso dopo l'aggiornamento il programma applica una modifica al formato
-dell'archivio (migrazione 65). Non si può annullare, quindi prima fa da solo una copia dell'archivio.
+**Prima di tutto:** al primo accesso dopo l'aggiornamento il programma applica due modifiche al formato
+dell'archivio (migrazioni 65 e 66). Non si può annullare, quindi prima fa da solo una copia dell'archivio.
 Dai Releases di GitHub si installa da solo, come la 0.5.10.
 
 - Pedana: i file `.pedana.json` della Balance Squat App si importano dalla lista pazienti (il paziente
@@ -77,6 +77,16 @@ Dai Releases di GitHub si installa da solo, come la 0.5.10.
 - Progressioni: gruppi e progressioni si riordinano trascinandoli, e di uno step si può cambiare
   l'esercizio (utile se è stato archiviato) senza perdere posto e requisito
 - Esporta archivio: nuovo file `pedana.csv` con i valori dei test con la pedana
+- Promemoria: oltre a questionari e screening si può chiedere di rifare un test con la pedana (migrazione 66);
+  si chiude da solo quando il test viene importato
+- Specchietto delle progressioni: la casella mostra da quando il paziente è a quello step e da quanto,
+  e nella scala si vede quanto c'è voluto per superare ogni step
+- Eliminare si può annullare: l'avviso dopo ogni eliminazione ha il pulsante «Annulla»
+- Pagine vuote più utili (pazienti, diario, pedana, screening, valutazione, questionari, promemoria,
+  follow-up): dicono cosa ci va e offrono il pulsante per cominciare
+- PDF: in fondo a ogni pagina il nome del paziente, la data di stampa e «Pagina X di Y»; grafici e note
+  non si spezzano più fra due pagine
+- La ricerca generale si chiude scegliendo un'altra sezione dal menu
 
 ### v0.5.10
 

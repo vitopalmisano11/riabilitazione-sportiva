@@ -255,20 +255,35 @@ export function nomeDi(tabella: string, id: number): string {
   )
 }
 
+// Chi vuole sapere di ogni eliminazione appena fatta (il programma lo usa per
+// offrire "Annulla"): una sola funzione, impostata dall'avvio. Le prove, che non
+// hanno finestre, non ne impostano nessuna.
+export interface VoceEliminata {
+  id: number
+  tipo: string
+  etichetta: string
+}
+let alleEliminazioni: ((v: VoceEliminata) => void) | null = null
+export function quandoEliminato(fn: ((v: VoceEliminata) => void) | null): void {
+  alleEliminazioni = fn
+}
+
 // Elimina mettendo prima da parte la fotografia. L'etichetta e' quello che si
 // legge nel cestino ("Rossi Marco", "Seduta del 03/09/2026").
 export function eliminaConCestino(tabella: string, id: number, tipo: string, etichetta: string): void {
   const db = getDb()
-  db.transaction(() => {
+  const voce = db.transaction((): VoceEliminata | null => {
     const foto = normalizza(db, raccogli(db, tabella, [id], figli(db)))
-    if (foto.length === 0) return
+    if (foto.length === 0) return null
     const azzerati = legamiAzzerati(db, foto)
     if (azzerati.length > 0) foto[0].azzerati = azzerati
-    db.prepare(
-      'INSERT INTO cestino (tipo, etichetta, quando, contenuto, righe) VALUES (?, ?, ?, ?, ?)'
-    ).run(tipo, etichetta, new Date().toISOString(), inTesto(foto), contaRighe(foto))
+    const inserita = db
+      .prepare('INSERT INTO cestino (tipo, etichetta, quando, contenuto, righe) VALUES (?, ?, ?, ?, ?)')
+      .run(tipo, etichetta, new Date().toISOString(), inTesto(foto), contaRighe(foto))
     db.prepare(`DELETE FROM ${tabella} WHERE id = ?`).run(id)
+    return { id: Number(inserita.lastInsertRowid), tipo, etichetta }
   })()
+  if (voce) alleEliminazioni?.(voce)
 }
 
 // Le righe di una fotografia, ognuna una volta sola.

@@ -23,7 +23,7 @@ import SettimanaPage from './pages/SettimanaPage'
 import ImpostazioniPage from './pages/ImpostazioniPage'
 import AuthGate from './components/AuthGate'
 import SchermoBloccato from './components/SchermoBloccato'
-import ToastHost, { toast, toastErrore } from './components/Toast'
+import ToastHost, { toast, toastConAzione, toastErrore } from './components/Toast'
 import { avvisoCopiaFuori } from '../../shared/copie'
 import ConfermaHost from './components/Conferma'
 import { errMsg, oggiIso } from './lib'
@@ -260,6 +260,25 @@ export default function App(): React.JSX.Element {
     return () => clearInterval(t)
   }, [sbloccata, sezione, tornaAllElenco])
 
+  // Ogni cosa eliminata finisce nel cestino: l'avviso offre "Annulla", che la
+  // rimette al suo posto. La pagina si ricarica da capo perche' mostri i dati
+  // com'erano (quello che c'era di non salvato si salva uscendo, come sempre).
+  const [versioneDati, setVersioneDati] = useState(0)
+  useEffect(() => {
+    if (!sbloccata) return
+    return window.api.cestino.quandoEliminato((v) =>
+      toastConAzione(`Eliminato: ${v.etichetta}`, 'Annulla', () => {
+        window.api.cestino
+          .ripristina(v.id)
+          .then(() => {
+            toast(`${v.etichetta} è tornato al suo posto.`)
+            setVersioneDati((n) => n + 1)
+          })
+          .catch((e) => toastErrore(errMsg(e)))
+      })
+    )
+  }, [sbloccata])
+
   // Ctrl+K apre la ricerca in tutto l'archivio, da qualunque pagina.
   const [cercando, setCercando] = useState(false)
   useScorciatoie([
@@ -417,7 +436,7 @@ export default function App(): React.JSX.Element {
       <main className="content" inert={bloccata}>
         {/* la chiave cambia con la sezione: la pagina nuova entra con la sua
             dissolvenza */}
-        <div key={sezione} className="entrata-pagina">
+        <div key={`${sezione}-${versioneDati}`} className="entrata-pagina">
         {sezione === 'settimana' && (
           <SettimanaPage
             onApriPaziente={vaiAlPaziente}

@@ -410,3 +410,10 @@
 .modal.modal-specchietto {
   width: 720px;
 }
+
+/* da quando il paziente e' a questo step, sotto allo step: la casella resta leggibile */
+.scelta-tile-data {
+  margin-top: 4px;
+  font-size: 11px;
+  text-align: center;
+}

@@ -1590,6 +1590,36 @@ export const MIGRATIONS: string[] = [
   CREATE INDEX idx_pedana_test_paziente ON pedana_test(paziente_id, test_codice, data);
   CREATE INDEX idx_pedana_valori_test ON pedana_valori(test_id);
   CREATE INDEX idx_pedana_serie_test ON pedana_serie(test_id);
+  `,
+
+  // 66 - i promemoria possono chiedere anche di rifare un test con la pedana.
+  //      Il test si riconosce dalla chiave di chiaveTestPedana (il codice, e il
+  //      nome per il test personalizzato) e non da una riga: i test si
+  //      importano e si eliminano, il promemoria resta a chiedere "rifallo".
+  //      La tabella si ricostruisce perche' il vincolo di prima voleva
+  //      esattamente un questionario o un protocollo.
+  `
+  CREATE TABLE promemoria_nuova (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    paziente_id INTEGER NOT NULL REFERENCES pazienti(id) ON DELETE CASCADE,
+    tipo TEXT NOT NULL,
+    questionario_id INTEGER REFERENCES questionari(id) ON DELETE CASCADE,
+    protocollo_id INTEGER REFERENCES screening_protocolli(id) ON DELETE CASCADE,
+    pedana_chiave TEXT,
+    pedana_nome TEXT,
+    scadenza TEXT NOT NULL,
+    nota TEXT,
+    fatto_il TEXT,
+    CHECK ((questionario_id IS NOT NULL) + (protocollo_id IS NOT NULL) + (pedana_chiave IS NOT NULL) = 1)
+  );
+  INSERT INTO promemoria_nuova
+    (id, paziente_id, tipo, questionario_id, protocollo_id, scadenza, nota, fatto_il)
+    SELECT id, paziente_id, tipo, questionario_id, protocollo_id, scadenza, nota, fatto_il
+    FROM promemoria;
+  DROP TABLE promemoria;
+  ALTER TABLE promemoria_nuova RENAME TO promemoria;
+  CREATE INDEX idx_promemoria_paziente ON promemoria(paziente_id);
+  CREATE INDEX idx_promemoria_aperti ON promemoria(scadenza) WHERE fatto_il IS NULL;
   `
 ]
 

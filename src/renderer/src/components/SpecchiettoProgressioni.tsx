@@ -1,6 +1,6 @@
 import { Check, Lock } from 'lucide-react'
 import type { StatoProgressione } from '../../../shared/types'
-import { formatData } from '../lib'
+import { durataTra, formatData } from '../lib'
 
 // Dove e' arrivato il paziente nelle progressioni: ogni progressione e' una
 // scala. Gli step fatti sono pieni, quello da lavorare adesso e' evidenziato e
@@ -50,11 +50,19 @@ export default function SpecchiettoProgressioni({
                       {s.archiviato === 1 && <em> (archiviato)</em>}
                     </span>
                     <span className="step-nota">
-                      {s.stato === 'fatto' && s.superato_il && formatData(s.superato_il)}
+                      {s.stato === 'fatto' && s.superato_il && (
+                        <>
+                          {formatData(s.superato_il)}
+                          {/* quanto c'e' voluto dal passaggio precedente */}
+                          {i > 0 && p.step[i - 1].superato_il && durataTra(p.step[i - 1].superato_il!, s.superato_il) && (
+                            <span className="hint"> · dopo {durataTra(p.step[i - 1].superato_il!, s.superato_il)}</span>
+                          )}
+                        </>
+                      )}
                       {s.stato === 'attuale' && (
                         <>
                           <b>siamo qui</b>
-                          {p.attuale_dal && ` · dal ${formatData(p.attuale_dal)}`}
+                          {p.attuale_dal && ` · dal ${formatData(p.attuale_dal)} (${durataTra(p.attuale_dal) ?? 'oggi'})`}
                           {s.rivisto_il && ` · ↓ rivisto il ${formatData(s.rivisto_il)}`}
                         </>
                       )}

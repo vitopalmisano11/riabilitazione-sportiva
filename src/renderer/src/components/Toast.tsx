@@ -7,6 +7,8 @@ interface ToastMsg {
   id: number
   tipo: Tipo
   testo: string
+  // un pulsante nell'avviso (per esempio "Annulla"): resta visibile piu' a lungo
+  azione?: { etichetta: string; fn: () => void }
 }
 
 type Listener = (t: ToastMsg) => void
@@ -15,6 +17,10 @@ let prossimoId = 1
 
 export function toast(testo: string): void {
   listener?.({ id: prossimoId++, tipo: 'ok', testo })
+}
+
+export function toastConAzione(testo: string, etichetta: string, fn: () => void): void {
+  listener?.({ id: prossimoId++, tipo: 'ok', testo, azione: { etichetta, fn } })
 }
 
 // Chi vuole sapere degli errori mentre fa qualcosa: un salvataggio in corso
@@ -42,7 +48,7 @@ export default function ToastHost(): React.JSX.Element {
       setToasts((prev) => [...prev, t])
       setTimeout(
         () => setToasts((prev) => prev.filter((x) => x.id !== t.id)),
-        t.tipo === 'errore' ? 6000 : 3500
+        t.tipo === 'errore' ? 6000 : t.azione ? 9000 : 3500
       )
     }
     return () => {
@@ -56,6 +62,17 @@ export default function ToastHost(): React.JSX.Element {
         <div key={t.id} className={`toast ${t.tipo}`}>
           {t.tipo === 'ok' ? <CheckCircle2 size={20} /> : <AlertCircle size={20} />}
           <span>{t.testo}</span>
+          {t.azione && (
+            <button
+              className="toast-azione"
+              onClick={() => {
+                t.azione?.fn()
+                setToasts((prev) => prev.filter((x) => x.id !== t.id))
+              }}
+            >
+              {t.azione.etichetta}
+            </button>
+          )}
         </div>
       ))}
     </div>

@@ -7,6 +7,7 @@ import {
   elencoCestino,
   eliminaPazientePerSempre,
   eliminaConCestino,
+  quandoEliminato,
   ripristina,
   ripuliscilCestino,
   svuotaCestino
@@ -443,4 +444,22 @@ test('Cancellazione definitiva: il paziente sparisce dall\'archivio e dal cestin
   assert.equal(conta('SELECT COUNT(*) AS n FROM sedute WHERE paziente_id = ?', resta), 2)
   // un paziente che non c'e' non da' errore
   eliminaPazientePerSempre(via)
+})
+
+test('Cestino: ogni eliminazione si comunica, con la voce da cui si annulla', () => {
+  const c = getDb()
+  const pz = Number(c.prepare("INSERT INTO pazienti (nome, cognome) VALUES ('Ann', 'Ulla')").run().lastInsertRowid)
+  const viste: { id: number; tipo: string; etichetta: string }[] = []
+  quandoEliminato((v) => viste.push(v))
+  try {
+    eliminaConCestino('pazienti', pz, 'Paziente', 'Ulla Ann')
+    // una cosa che non c'e' (gia' eliminata) non finisce nel cestino e non si comunica
+    eliminaConCestino('pazienti', pz, 'Paziente', 'Ulla Ann')
+  } finally {
+    quandoEliminato(null)
+  }
+  assert.equal(viste.length, 1)
+  assert.equal(viste[0].etichetta, 'Ulla Ann')
+  ripristina(viste[0].id)
+  assert.equal((c.prepare('SELECT COUNT(*) AS n FROM pazienti WHERE id = ?').get(pz) as { n: number }).n, 1, "con quell'id si annulla")
 })

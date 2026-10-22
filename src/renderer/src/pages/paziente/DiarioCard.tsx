@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Copy, Download, FileText, Images, Pencil, Presentation, Trash2 } from 'lucide-react'
+import { ClipboardList, Copy, Download, FileText, Images, Pencil, Plus, Presentation, Trash2 } from 'lucide-react'
 import type { Fase, PazienteDettaglio, SedutaRiepilogo } from '../../../../shared/types'
 import { toast, toastErrore } from '../../components/Toast'
 import { chiedi } from '../../components/Conferma'
 import Modale from '../../components/Modale'
 import { errMsg, formatData, oggiIso } from '../../lib'
+import StatoVuoto from '../../components/StatoVuoto'
 import { SchedaIllustrata } from './SchedaIllustrata'
 
 export function DiarioCard({
@@ -194,11 +195,16 @@ export function DiarioCard({
         </div>
       )}
       {fatte.length === 0 ? (
-        <p className="hint">
-          {programmate.length > 0
-            ? 'Nessuna seduta svolta finora: quelle qui sopra sono programmate.'
-            : 'Nessuna seduta ancora: creane una — si aprirà già sulla fase corrente del paziente.'}
-        </p>
+        programmate.length > 0 ? (
+          <p className="hint">Nessuna seduta svolta finora: quelle qui sopra sono programmate.</p>
+        ) : (
+          <StatoVuoto
+            icona={ClipboardList}
+            titolo="Nessuna seduta ancora"
+            testo="La prima si apre già sulla fase corrente del paziente."
+            azione={{ etichetta: 'Nuova seduta', icona: Plus, onClick: onNuova }}
+          />
+        )
       ) : (
         <ul className="sedute-list">{fatte.map(riga)}</ul>
       )}

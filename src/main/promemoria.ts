@@ -1,5 +1,5 @@
 // Promemoria per un paziente: "fargli rifare il KOOS fra sei settimane",
-// "ripetere lo screening a fine fase".
+// "ripetere lo screening a fine fase", "rifare il test di forza hamstring".
 //
 // Riguardano un questionario o un protocollo di screening (i test di
 // valutazione si fanno dentro uno screening). Compaiono nella pagina Follow-up
@@ -14,8 +14,8 @@ type Db = ReturnType<typeof getDb>
 
 const SELEZIONE = `
   SELECT m.id, m.paziente_id, p.nome AS paziente_nome, p.cognome AS paziente_cognome,
-         m.tipo, m.questionario_id, m.protocollo_id,
-         COALESCE(q.nome, sp.nome, 'elemento eliminato') AS riferimento_nome,
+         m.tipo, m.questionario_id, m.protocollo_id, m.pedana_chiave,
+         COALESCE(q.nome, sp.nome, m.pedana_nome, 'elemento eliminato') AS riferimento_nome,
          m.scadenza, m.nota, m.fatto_il
   FROM promemoria m
   JOIN pazienti p ON p.id = m.paziente_id
@@ -41,25 +41,34 @@ export function elencoPromemoria(pazienteId: number | null): Promemoria[] {
 
 export function creaPromemoria(dati: PromemoriaInput): number {
   validaData(dati.scadenza, 'La data del promemoria', { obbligatoria: true })
-  if (dati.tipo !== 'questionario' && dati.tipo !== 'screening') {
-    throw new Error('Il promemoria deve riguardare un questionario o uno screening.')
+  if (dati.tipo !== 'questionario' && dati.tipo !== 'screening' && dati.tipo !== 'pedana') {
+    throw new Error('Il promemoria deve riguardare un questionario, uno screening o un test con la pedana.')
   }
   const db = getDb()
-  const tabella = dati.tipo === 'questionario' ? 'questionari' : 'screening_protocolli'
-  if (!db.prepare(`SELECT 1 FROM ${tabella} WHERE id = ?`).get(dati.riferimento_id)) {
-    throw new Error(dati.tipo === 'questionario' ? 'Questionario non trovato.' : 'Protocollo non trovato.')
+  const pedanaChiave = dati.tipo === 'pedana' ? dati.pedana?.chiave.trim() : undefined
+  const pedanaNome = dati.tipo === 'pedana' ? dati.pedana?.nome.trim() : undefined
+  if (dati.tipo === 'pedana') {
+    if (!pedanaChiave || !pedanaNome) throw new Error('Scegli il test con la pedana da rifare.')
+  } else {
+    const tabella = dati.tipo === 'questionario' ? 'questionari' : 'screening_protocolli'
+    if (!db.prepare(`SELECT 1 FROM ${tabella} WHERE id = ?`).get(dati.riferimento_id)) {
+      throw new Error(dati.tipo === 'questionario' ? 'Questionario non trovato.' : 'Protocollo non trovato.')
+    }
   }
   return Number(
     db
       .prepare(
-        `INSERT INTO promemoria (paziente_id, tipo, questionario_id, protocollo_id, scadenza, nota)
-         VALUES (?, ?, ?, ?, ?, ?)`
+        `INSERT INTO promemoria
+           (paziente_id, tipo, questionario_id, protocollo_id, pedana_chiave, pedana_nome, scadenza, nota)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(
         dati.paziente_id,
         dati.tipo,
         dati.tipo === 'questionario' ? dati.riferimento_id : null,
         dati.tipo === 'screening' ? dati.riferimento_id : null,
+        pedanaChiave ?? null,
+        pedanaNome ?? null,
         dati.scadenza,
         dati.nota?.trim() || null
       ).lastInsertRowid
@@ -97,9 +106,14 @@ export function contaInScadenza(): number {
 export function chiudiFatti(
   db: Db,
   pazienteId: number,
-  cosa: { questionarioId: number } | { protocolloId: number }
+  cosa: { questionarioId: number } | { protocolloId: number } | { pedanaChiave: string }
 ): void {
-  if ('questionarioId' in cosa) {
+  if ('pedanaChiave' in cosa) {
+    db.prepare(
+      `UPDATE promemoria SET fatto_il = date('now', 'localtime')
+       WHERE paziente_id = ? AND pedana_chiave = ? AND fatto_il IS NULL`
+    ).run(pazienteId, cosa.pedanaChiave)
+  } else if ('questionarioId' in cosa) {
     db.prepare(
       `UPDATE promemoria SET fatto_il = date('now', 'localtime')
        WHERE paziente_id = ? AND questionario_id = ? AND fatto_il IS NULL`

@@ -69,6 +69,15 @@ function costruisci(mappa: Albero): Record<string, unknown> {
 }
 
 const extra: ApiExtra = {
+  cestino: {
+    quandoEliminato: (fn) => {
+      const ascolta = (_e: unknown, v: { id: number; tipo: string; etichetta: string }): void => fn(v)
+      ipcRenderer.on('cestino:eliminato', ascolta)
+      return () => {
+        ipcRenderer.removeListener('cestino:eliminato', ascolta)
+      }
+    }
+  },
   aggiornamenti: {
     quandoCambia: (fn: (s: StatoAggiornamento) => void) => {
       const ascolta = (_e: unknown, s: StatoAggiornamento): void => fn(s)

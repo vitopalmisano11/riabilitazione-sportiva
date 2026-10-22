@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   ChevronLeft,
   ChevronRight,
+  ClipboardCheck,
   ClipboardList,
   FileText,
   HelpCircle,
@@ -9,6 +10,7 @@ import {
   Save,
   Trash2
 } from 'lucide-react'
+import StatoVuoto from '../components/StatoVuoto'
 import type {
   RisultatoPunteggio,
   MisuraTest,
@@ -138,9 +140,12 @@ export default function ScreeningRtpPage({
             </span>
           </div>
           {pazienti.length === 0 ? (
-            <p className="hint">
-              Nessuno screening ancora. Premi il + qui sopra per cominciarne uno.
-            </p>
+            <StatoVuoto
+              icona={ClipboardCheck}
+              titolo="Nessuno screening ancora"
+              testo="Scegli un paziente e un protocollo: i test fatti qui si confrontano nel tempo e finiscono nel report."
+              azione={{ etichetta: 'Nuovo screening', icona: Plus, onClick: () => setNuovo(true) }}
+            />
           ) : (
             <ul className="sedute-list">
               {pazienti.map((p) => (

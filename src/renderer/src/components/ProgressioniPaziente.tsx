@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { PazienteDettaglio, StatoProgressione } from '../../../shared/types'
-import { errMsg, oggiIso } from '../lib'
+import { durataTra, errMsg, formatData, oggiIso } from '../lib'
 import { toastErrore } from './Toast'
 import Aiuto from './Aiuto'
 import Modale from './Modale'
@@ -65,6 +65,13 @@ export default function ProgressioniPaziente({ paziente }: { paziente: PazienteD
                 {stepAttuale(p)}/{p.step.length}
               </span>
             </span>
+            {/* da quanto e' a questo step: si vede a colpo d'occhio chi e' fermo */}
+            {p.attuale_dal && (
+              <span className="hint scelta-tile-data">
+                {p.completata ? 'finita il' : 'dal'} {formatData(p.attuale_dal)}
+                {!p.completata && durataTra(p.attuale_dal) && ` · ${durataTra(p.attuale_dal)}`}
+              </span>
+            )}
           </div>
         ))}
       </div>

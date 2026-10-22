@@ -57,6 +57,13 @@ Specifica originale e feedback dell'utente sono nei file `prompt-*.md` alla radi
   (SVG con stili in linea). Le curve (forza nel tempo, salto, oscillazione) sono descritte da
   `curvePedana` e disegnate da `curvaSvg` in `shared/pedana-curve.ts`: lo stesso SVG nella pagina
   (`GraficiCurve.tsx`) e nei documenti. Prove in `test/pedana.test.ts`.
+- Promemoria («rifai questo questionario / screening / test pedana», `main/promemoria.ts`, tabella
+  ricostruita dalla migrazione 66): quello della pedana si riconosce da `pedana_chiave` (`chiaveTestPedana`)
+  e si chiude da solo importando quel test (`chiudiFatti` in `importaPedana`).
+- Eliminare con cestino (`eliminaConCestino`) avvisa le finestre (`quandoEliminato` → evento
+  `cestino:eliminato` → avviso con «Annulla» in `App.tsx`, che ripristina e ricarica la pagina). I PDF
+  passano tutti da `htmlToPdf` in `main/export.ts`, che scrive nel piede nome, data e «Pagina X di Y».
+  `components/StatoVuoto.tsx` è il riquadro delle pagine senza niente dentro.
 - Le schermate grandi sono divise così: `pages/paziente/` (scheda, diario, obiettivi, scheda illustrata),
   `pages/questionari/` (elenco, editor, una scheda per tab; costanti e id provvisori in `modello.ts`),
   `pages/impostazioni/` (una scheda per file), `components/anamnesi/` e `components/valutazione/`. Il

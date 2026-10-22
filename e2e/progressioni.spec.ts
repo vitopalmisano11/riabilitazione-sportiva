@@ -185,7 +185,7 @@ test('paziente: la finestra a due colonne e peso e altezza salvati', async () =>
     const { pagina } = prova
     await creaArchivio(pagina)
     await vaiA(pagina, 'Pazienti')
-    await pagina.getByRole('button', { name: 'Nuovo paziente' }).click()
+    await pagina.getByRole('button', { name: 'Nuovo paziente' }).first().click()
     await pagina.getByLabel('Nome *', { exact: true }).fill('Anna')
     await pagina.getByLabel('Cognome *', { exact: true }).fill('Misure')
     await pagina.getByLabel('Peso (kg)').fill('62,5')

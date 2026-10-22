@@ -19,6 +19,7 @@ import { creaPaziente, eliminaPaziente } from '../src/main/pazienti'
 import { componiCartella, componiRelazioneValutazione, generaCartella } from '../src/main/export-cartella'
 import { generaReportScreening } from '../src/main/report-screening'
 import { generaReportPedana } from '../src/main/report-pedana'
+import { creaPromemoria, elencoPromemoria } from '../src/main/promemoria'
 import { elencoCestino, ripristina } from '../src/main/cestino'
 import {
   condizioniLeggibili,
@@ -920,4 +921,29 @@ test('Il report dei soli test con pedana: singolo o a confronto, e solo del suo 
   const deiAltri = archivioPedana(altro).test.map((t) => t.id)
   assert.throws(() => generaReportPedana(p, deiAltri), /Nessun test/)
   assert.throws(() => generaReportPedana(p, []), /Nessun test/)
+})
+
+test('Un promemoria "rifai il test" si chiude da solo quando il test viene importato', () => {
+  const p = paziente('Retest', 'Pedana')
+  const altro = paziente('Altro', 'Retest')
+  const dati = (id: number) => ({
+    paziente_id: id,
+    tipo: 'pedana' as const,
+    riferimento_id: 0,
+    pedana: { chiave: 'forza.shoulder.y', nome: 'Forza isometrica (Spalla Y)' },
+    scadenza: '2999-01-01',
+    nota: null
+  })
+  assert.throws(() => creaPromemoria({ ...dati(p), pedana: undefined }), /Scegli il test/)
+  creaPromemoria(dati(p))
+  creaPromemoria(dati(altro))
+  const prima = elencoPromemoria(p)
+  assert.equal(prima.length, 1)
+  assert.equal(prima[0].tipo, 'pedana')
+  assert.equal(prima[0].riferimento_nome, 'Forza isometrica (Spalla Y)')
+  assert.equal(prima[0].pedana_chiave, 'forza.shoulder.y')
+
+  importaTutto(p, ESEMPIO)
+  assert.ok(elencoPromemoria(p)[0].fatto_il, 'chiuso dall\'importazione')
+  assert.equal(elencoPromemoria(altro)[0].fatto_il, null, 'quello di un altro paziente resta')
 })

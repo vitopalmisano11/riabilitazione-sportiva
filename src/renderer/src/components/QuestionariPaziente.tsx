@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Eye, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react'
+import { Eye, ListChecks, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react'
+import StatoVuoto from './StatoVuoto'
 import type {
   CategoriaQuestionario,
   CompilazioneRiepilogo,
@@ -103,7 +104,12 @@ export default function QuestionariPaziente({
           &ldquo;Questionari&rdquo;.
         </p>
       ) : storico.length === 0 ? (
-        <p className="hint">Nessun questionario compilato per questo paziente.</p>
+        <StatoVuoto
+          icona={ListChecks}
+          titolo="Nessun questionario compilato"
+          testo="Compilane uno per misurare come sta il paziente: il punteggio si confronta nel tempo."
+          azione={{ etichetta: 'Compila un questionario', icona: Plus, onClick: () => setScelta(true) }}
+        />
       ) : (
         <ul className="sedute-list">
           {storico.map((c) => (

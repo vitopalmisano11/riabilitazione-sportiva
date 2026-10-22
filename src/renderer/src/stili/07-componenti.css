@@ -170,3 +170,54 @@
   border-radius: var(--radius-sm);
   background: #fff;
 }
+
+/* "Annulla" nell'avviso di una eliminazione */
+.toast-azione {
+  margin-left: 8px;
+  padding: 2px 10px;
+  border: 1px solid rgba(241, 245, 249, 0.5);
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.toast-azione:hover {
+  background: rgba(241, 245, 249, 0.15);
+}
+
+/* Riquadro senza niente dentro: cosa ci va e il gesto per cominciare */
+.stato-vuoto {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 26px 18px;
+  text-align: center;
+  color: var(--text-dim);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+}
+
+.stato-vuoto > svg {
+  color: var(--accent);
+  opacity: 0.8;
+}
+
+.stato-vuoto strong {
+  color: var(--text);
+  font-size: 15px;
+}
+
+.stato-vuoto p {
+  margin: 0;
+  max-width: 46ch;
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+
+.stato-vuoto button {
+  margin-top: 8px;
+}

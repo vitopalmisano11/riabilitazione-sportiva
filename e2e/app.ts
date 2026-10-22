@@ -101,7 +101,7 @@ export async function nuovoPaziente(
   dati: { nome: string; cognome: string; diagnosi?: string }
 ): Promise<void> {
   await vaiA(pagina, 'Pazienti')
-  await pagina.getByRole('button', { name: 'Nuovo paziente' }).click()
+  await pagina.getByRole('button', { name: 'Nuovo paziente' }).first().click()
   await pagina.getByLabel('Nome *', { exact: true }).fill(dati.nome)
   await pagina.getByLabel('Cognome *', { exact: true }).fill(dati.cognome)
   if (dati.diagnosi) await pagina.getByLabel('Diagnosi', { exact: true }).fill(dati.diagnosi)

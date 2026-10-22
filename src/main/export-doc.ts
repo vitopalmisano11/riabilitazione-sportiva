@@ -264,6 +264,11 @@ export function generaHtml(
                  font-size: 10.5px; font-weight: 600;
                  text-transform: uppercase; letter-spacing: 0.05em; }
   .nuova-pagina { page-break-before: always; }
+  /* In stampa un grafico, una riga di grafici o una nota non si spezzano fra due
+     pagine: passano intere alla successiva. I titoli restano con quello che segue. */
+  figure, svg, .coppia-pedana, .sezione-pedana, .confronto-lati, .valori-riga, .riassunto-pedana li,
+  .andamento-pedana { break-inside: avoid; page-break-inside: avoid; }
+  h4 { break-after: avoid; page-break-after: avoid; }
   .gruppo-esercizi { margin: 0 0 8px; page-break-inside: avoid; }
   .gruppo-esercizi .cat { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
                           color: ${accento}; margin-bottom: 2px; }

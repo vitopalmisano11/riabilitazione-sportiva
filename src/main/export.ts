@@ -4,6 +4,7 @@ import icona from '../../resources/icon.png?asset'
 import { writeFile } from 'fs/promises'
 import { dirname, join } from 'path'
 import { getDb } from './db'
+import { esc } from './html'
 import { eliminaTemporaneoPresto, scriviTemporaneo } from './temporanei'
 import { cartellaExport, impostaCartellaExport } from './impostazioni'
 import {
@@ -114,14 +115,31 @@ function slug(s: string): string {
   return s.trim().replace(/[^\p{L}\p{N}]+/gu, '_') || 'export'
 }
 
-async function htmlToPdf(html: string, destPath: string): Promise<void> {
+// In fondo a ogni pagina: di chi e' il foglio, quando e' stato stampato e a che
+// pagina siamo, cosi' un foglio staccato dal resto si riconosce e si rimette a
+// posto. Il testo sta nel margine del foglio (12-15 mm), senza toccare il
+// contenuto. Chrome vuole un modello HTML con la dimensione scritta a mano.
+function piedeDiPagina(chi: string): string {
+  const oggi = new Date().toLocaleDateString('it-IT')
+  return `<div style="width:100%;font-size:8px;color:#8b93a0;font-family:'Segoe UI',system-ui,sans-serif;padding:0 15mm;display:flex;justify-content:space-between;">
+    <span>${esc(chi)} · stampato il ${oggi}</span>
+    <span>Pagina <span class="pageNumber"></span> di <span class="totalPages"></span></span>
+  </div>`
+}
+
+// `chi`: il nome da scrivere nel piede di pagina. Senza, la pagina non ha piede
+// (il certificato e' un foglio solo, con la sua impaginazione).
+async function htmlToPdf(html: string, destPath: string, chi?: string): Promise<void> {
   const tmp = await scriviTemporaneo('.html', html)
   const win = new BrowserWindow({ show: false, webPreferences: { sandbox: true } })
   try {
     await win.loadFile(tmp)
     const buf = await win.webContents.printToPDF({
       printBackground: true,
-      preferCSSPageSize: true
+      preferCSSPageSize: true,
+      ...(chi
+        ? { displayHeaderFooter: true, headerTemplate: '<span></span>', footerTemplate: piedeDiPagina(chi) }
+        : {})
     })
     await writeFile(destPath, buf)
   } finally {
@@ -149,7 +167,7 @@ async function salvaExport(
   if (formato === 'docx') {
     await writeFile(filePath, await generaDocx(paziente, sedute))
   } else {
-    await htmlToPdf(generaHtml(paziente, sedute, illustrata), filePath)
+    await htmlToPdf(generaHtml(paziente, sedute, illustrata), filePath, `${paziente.cognome} ${paziente.nome}`)
   }
   impostaCartellaExport(dirname(filePath)) // ricorda l'ultima cartella scelta
   shell.showItemInFolder(filePath)
@@ -278,7 +296,7 @@ export async function esportaCartella(
     filters: [{ name: 'PDF', extensions: ['pdf'] }]
   })
   if (canceled || !filePath) return null
-  await htmlToPdf(generaCartella(pazienteId, sezioni), filePath)
+  await htmlToPdf(generaCartella(pazienteId, sezioni), filePath, `${cognome} ${nome}`)
   impostaCartellaExport(dirname(filePath))
   shell.showItemInFolder(filePath)
   return filePath
@@ -359,7 +377,7 @@ export async function esportaRelazione(
     filters: [{ name: 'PDF', extensions: ['pdf'] }]
   })
   if (canceled || !filePath) return null
-  await htmlToPdf(generaRelazione(pazienteId, tipo), filePath)
+  await htmlToPdf(generaRelazione(pazienteId, tipo), filePath, `${cognome} ${nome}`)
   impostaCartellaExport(dirname(filePath))
   shell.showItemInFolder(filePath)
   return filePath
@@ -460,7 +478,7 @@ export async function esportaReport(
     filters: [{ name: 'PDF', extensions: ['pdf'] }]
   })
   if (canceled || !filePath) return null
-  await htmlToPdf(r.html, filePath)
+  await htmlToPdf(r.html, filePath, `${r.cognome} ${r.nome}`)
   impostaCartellaExport(dirname(filePath))
   shell.showItemInFolder(filePath)
   return filePath

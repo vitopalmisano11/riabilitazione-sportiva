@@ -51,6 +51,7 @@ import {
   elencoCestino,
   eliminaConCestino,
   nomeDi,
+  quandoEliminato,
   ripristina,
   ripuliscilCestino,
   svuotaCestino
@@ -1342,6 +1343,12 @@ export function registerIpc(): void {
   })
 
   // ---- Cestino ----
+  // Ogni eliminazione si comunica alle finestre: la pagina offre "Annulla".
+  quandoEliminato((voce) => {
+    for (const w of BrowserWindow.getAllWindows()) {
+      if (!w.isDestroyed()) w.webContents.send('cestino:eliminato', voce)
+    }
+  })
   handle('ricerca:cerca', (testo: string) => cercaInArchivio(testo))
   handle('cestino:list', () => elencoCestino())
   handle('cestino:ripristina', (id: number) => ripristina(id))

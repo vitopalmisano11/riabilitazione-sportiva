@@ -1150,10 +1150,12 @@ export interface Promemoria {
   paziente_id: number
   paziente_nome: string
   paziente_cognome: string
-  tipo: 'questionario' | 'screening'
+  tipo: 'questionario' | 'screening' | 'pedana'
   questionario_id: number | null
   protocollo_id: number | null
-  // il nome del questionario o del protocollo da ripetere
+  // il test con la pedana da rifare (la chiave di chiaveTestPedana)
+  pedana_chiave: string | null
+  // il nome del questionario, del protocollo o del test con la pedana da ripetere
   riferimento_nome: string
   scadenza: string
   nota: string | null
@@ -1163,9 +1165,11 @@ export interface Promemoria {
 
 export interface PromemoriaInput {
   paziente_id: number
-  tipo: 'questionario' | 'screening'
-  // l'id del questionario o del protocollo di screening
+  tipo: 'questionario' | 'screening' | 'pedana'
+  // l'id del questionario o del protocollo di screening (non serve per la pedana)
   riferimento_id: number
+  // il test con la pedana da rifare: chiaveTestPedana(codice, nome) e il nome da mostrare
+  pedana?: { chiave: string; nome: string }
   scadenza: string
   nota: string | null
 }
@@ -1271,6 +1275,10 @@ export type SezioneCartella =
 // ricavano dal contratto (src/shared/canali.ts); qui sotto solo quello che non
 // e' una chiamata: ascoltare un avviso che arriva dal processo principale.
 export interface ApiExtra {
+  cestino: {
+    // Ogni volta che qualcosa finisce nel cestino: serve a offrire "Annulla".
+    quandoEliminato(fn: (voce: { id: number; tipo: string; etichetta: string }) => void): () => void
+  }
   aggiornamenti: {
     // Ogni volta che cambia; ritorna la funzione che smette di ascoltare.
     quandoCambia(fn: (s: StatoAggiornamento) => void): () => void

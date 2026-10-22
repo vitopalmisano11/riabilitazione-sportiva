@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { AlertTriangle, ChevronRight, FileText, Trash2, Upload } from 'lucide-react'
+import { Activity, AlertTriangle, ChevronRight, FileText, Trash2, Upload } from 'lucide-react'
+import StatoVuoto from '../StatoVuoto'
 import type { PazienteDettaglio } from '../../../../shared/types'
 import {
   riepilogoPedana,
@@ -124,10 +125,12 @@ export default function PedanaPaziente({
       </div>
 
       {archivio && voci.length === 0 && (
-        <p className="hint">
-          Nessun test della pedana per questo paziente. Esporta il file dall&apos;app della pedana e
-          importalo qui.
-        </p>
+        <StatoVuoto
+          icona={Activity}
+          titolo="Nessun test con la pedana"
+          testo="Esporta il file dall'app della pedana e importalo qui: compaiono i valori, le curve e il confronto fra i lati."
+          azione={{ etichetta: 'Importa un file', icona: Upload, onClick: () => void scegliFile() }}
+        />
       )}
 
       {voci.length > 0 && (

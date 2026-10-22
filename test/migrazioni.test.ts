@@ -83,3 +83,37 @@ test('Un archivio di ogni versione rilasciata si aggiorna senza perdere niente',
     db.close()
   }
 })
+
+// La 66 ricostruisce la tabella dei promemoria: quelli che c'erano restano uguali
+// e il vincolo ora ne ammette anche uno per la pedana.
+test('La migrazione 66 conserva i promemoria di prima', () => {
+  const db = new Database(':memory:')
+  db.pragma('foreign_keys = ON')
+  registraFunzioniMigrazioni(db)
+  for (let i = 0; i < 65; i++) {
+    db.exec(MIGRATIONS[i])
+    db.pragma(`user_version = ${i + 1}`)
+  }
+  const pz = Number(db.prepare("INSERT INTO pazienti (nome, cognome) VALUES ('Pro', 'Memoria')").run().lastInsertRowid)
+  const q = Number(db.prepare("INSERT INTO questionari (nome, ordine) VALUES ('KOOS', 0)").run().lastInsertRowid)
+  const p = Number(db.prepare("INSERT INTO screening_protocolli (nome, sport) VALUES ('RTP', 'Calcio')").run().lastInsertRowid)
+  db.prepare("INSERT INTO promemoria (paziente_id, tipo, questionario_id, scadenza, nota) VALUES (?, 'questionario', ?, '2026-11-01', 'nota')").run(pz, q)
+  db.prepare("INSERT INTO promemoria (paziente_id, tipo, protocollo_id, scadenza, fatto_il) VALUES (?, 'screening', ?, '2026-10-01', '2026-10-02')").run(pz, p)
+
+  runMigrations(db)
+
+  assert.deepEqual(
+    db.prepare('SELECT tipo, questionario_id, protocollo_id, pedana_chiave, scadenza, nota, fatto_il FROM promemoria ORDER BY id').all(),
+    [
+      { tipo: 'questionario', questionario_id: q, protocollo_id: null, pedana_chiave: null, scadenza: '2026-11-01', nota: 'nota', fatto_il: null },
+      { tipo: 'screening', questionario_id: null, protocollo_id: p, pedana_chiave: null, scadenza: '2026-10-01', nota: null, fatto_il: '2026-10-02' }
+    ]
+  )
+  db.prepare("INSERT INTO promemoria (paziente_id, tipo, pedana_chiave, pedana_nome, scadenza) VALUES (?, 'pedana', 'forza.hamstring', 'Forza', '2026-12-01')").run(pz)
+  // uno e uno solo fra questionario, protocollo e test della pedana
+  assert.throws(() => db.prepare("INSERT INTO promemoria (paziente_id, tipo, scadenza) VALUES (?, 'pedana', '2026-12-01')").run(pz))
+  assert.throws(() => db.prepare("INSERT INTO promemoria (paziente_id, tipo, questionario_id, pedana_chiave, scadenza) VALUES (?, 'x', ?, 'a', '2026-12-01')").run(pz, q))
+  assert.equal(db.pragma('integrity_check', { simple: true }), 'ok')
+  assert.deepEqual(db.pragma('foreign_key_check'), [])
+  db.close()
+})

@@ -8,8 +8,10 @@
 // ritorno, e un file mai confermato sparisce da solo.
 import { randomUUID } from 'node:crypto'
 import { getDb } from './db'
+import { chiudiFatti } from './promemoria'
 import {
   leggiFilePedana,
+  chiaveTestPedana,
   nomeTestPulito,
   type ArchivioPedana,
   somiglianzaNomi,
@@ -210,6 +212,8 @@ export function importaPedana(
         )
       }
       importate++
+      // un promemoria "rifai questo test" si chiude da solo quando il test arriva
+      chiudiFatti(db, pazienteId, { pedanaChiave: chiaveTestPedana(r.test.codice, r.test.nome) })
     }
   })()
 

@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
-import { CheckCircle2, RotateCcw } from 'lucide-react'
+import { CalendarClock, CheckCircle2, HeartPulse, RotateCcw } from 'lucide-react'
+import StatoVuoto from '../components/StatoVuoto'
 import type { PazienteDettaglio, Promemoria } from '../../../shared/types'
 import { toastErrore } from '../components/Toast'
 import { chiedi } from '../components/Conferma'
 import Modale from '../components/Modale'
-import { errMsg, formatData, oggiIso } from '../lib'
+import { errMsg, etichettaPromemoria, formatData, oggiIso } from '../lib'
 
 // Chi stai seguendo adesso e chi hai finito di seguire.
 //
@@ -111,7 +112,7 @@ export default function FollowUpPage({
       </header>
 
       <div className="scheda">
-        {/* I questionari e gli screening da rifare, di tutti i pazienti: in
+        {/* I questionari, gli screening e i test da rifare, di tutti i pazienti: in
             cima, perche' hanno una data e sono i primi da guardare. */}
         {promemoria.length > 0 && (
           <section className="card">
@@ -140,7 +141,7 @@ export default function FollowUpPage({
                     {m.paziente_cognome} {m.paziente_nome}
                   </button>
                   <span className="promemoria-cosa">
-                    {m.tipo === 'questionario' ? 'Questionario' : 'Screening'}: {m.riferimento_nome}
+                    {etichettaPromemoria(m.tipo)}: {m.riferimento_nome}
                     {m.nota && <span className="sotto-riga">{m.nota}</span>}
                   </span>
                   <span className={m.scadenza <= oggi ? 'data-scaduta promemoria-data' : 'promemoria-data'}>
@@ -160,7 +161,11 @@ export default function FollowUpPage({
             </span>
           </div>
           {trattamento.length === 0 ? (
-            <p className="hint">Nessun paziente in trattamento.</p>
+            <StatoVuoto
+              icona={HeartPulse}
+              titolo="Nessun paziente in trattamento"
+              testo="Qui compaiono i pazienti che stai seguendo, con la data dell'ultima seduta: chi non si fa vivo da settimane si vede subito."
+            />
           ) : (
             <ul className="sedute-list elenco-followup">
               {trattamento.map((p) => (
@@ -207,10 +212,11 @@ export default function FollowUpPage({
             </span>
           </div>
           {inFollowUp.length === 0 ? (
-            <p className="hint">
-              Nessun paziente in follow-up. Quando concludi un paziente e scegli un follow-up
-              finisce qui.
-            </p>
+            <StatoVuoto
+              icona={CalendarClock}
+              titolo="Nessun paziente in follow-up"
+              testo="Quando concludi un paziente e scegli un follow-up, finisce qui con la data in cui risentirlo."
+            />
           ) : (
             <div className="tabella-scorre tabella-followup-scorre">
               <table className="data-table tabella-followup">

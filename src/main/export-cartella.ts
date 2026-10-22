@@ -331,6 +331,11 @@ function documento(c: Cartella, cheCosa: string): string {
   /* I due grafici riempiono la riga, meta' per uno: dicono l'andamento in un
      colpo d'occhio, i valori esatti stanno nei riquadri sopra. */
   .grafici { page-break-inside: avoid; margin: 0 0 10px; }
+  /* In stampa un grafico, una riga di grafici o una nota non si spezzano fra due
+     pagine: passano intere alla successiva. I titoli restano con quello che segue. */
+  figure, svg, .coppia-pedana, .sezione-pedana, .confronto-lati, .valori-riga, .riassunto-pedana li,
+  .andamento-pedana { break-inside: avoid; page-break-inside: avoid; }
+  h4 { break-after: avoid; page-break-after: avoid; }
   .grafici .disegni { display: flex; gap: 12px; }
   .grafici figure { margin: 0; flex: 1; min-width: 0; }
   .grafici figcaption { font-size: 11px; font-weight: 600; color: ${accento}; margin-bottom: 2px; }

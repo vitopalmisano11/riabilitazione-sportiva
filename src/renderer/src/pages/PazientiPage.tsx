@@ -1,6 +1,7 @@
 import Tendina from '../components/Tendina'
 import { useEffect, useRef, useState } from 'react'
-import { ChevronRight, Filter, Plus, Upload } from 'lucide-react'
+import { ChevronRight, Filter, Plus, Upload, Users } from 'lucide-react'
+import StatoVuoto from '../components/StatoVuoto'
 import type { Gruppo, Patologia, PazienteDettaglio } from '../../../shared/types'
 import SedutaBuilder from '../components/SedutaBuilder'
 import { ModaleDatiPaziente } from '../components/AnagraficaPaziente'
@@ -411,13 +412,17 @@ export default function PazientiPage({
             </div>
           )}
 
-          {trovati.length === 0 && (
-            <p className="hint">
-              {pazienti.length === 0
-                ? 'Nessun paziente: creane uno col pulsante + qui sopra.'
-                : 'Nessun risultato per la ricerca.'}
-            </p>
-          )}
+          {trovati.length === 0 &&
+            (pazienti.length === 0 ? (
+              <StatoVuoto
+                icona={Users}
+                titolo="Ancora nessun paziente"
+                testo="Aggiungi il primo: nome e cognome bastano, il resto lo compili quando vuoi."
+                azione={{ etichetta: 'Nuovo paziente', icona: Plus, onClick: () => setNuovo(true) }}
+              />
+            ) : (
+              <p className="hint">Nessun risultato per la ricerca.</p>
+            ))}
         </section>
 
         {/* Con i gruppi (Centro, Studio, Domicilio...) ogni gruppo e' un

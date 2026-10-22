@@ -71,6 +71,18 @@ export function daQuando(data: string | null, riferimento?: Date): string | null
   return pezzi.join(' e ')
 }
 
+// Quanto passa fra due date, per dirlo a voce: "5 giorni" fino a due settimane,
+// poi in settimane e mesi come daQuando. Null se la seconda e' prima della prima.
+// Senza la seconda si conta fino a oggi.
+export function durataTra(da: string, a?: string): string | null {
+  const fine = a ? mezzanotteLocale(a) : new Date()
+  fine.setHours(0, 0, 0, 0)
+  const giorni = Math.round((fine.getTime() - mezzanotteLocale(da).getTime()) / 86400000)
+  if (!Number.isFinite(giorni) || giorni < 0) return null
+  if (giorni < 14) return giorni === 1 ? '1 giorno' : `${giorni} giorni`
+  return daQuando(da, fine)
+}
+
 export function eta(dataNascita: string | null): number | null {
   return etaInAnni(dataNascita)
 }
@@ -80,3 +92,8 @@ export function eta(dataNascita: string | null): number | null {
 // restano come sono.
 export const maiuscola = (testo: string): string =>
   testo === '' ? testo : testo.charAt(0).toLocaleUpperCase('it-IT') + testo.slice(1)
+
+// Come si chiama, in un elenco di promemoria, quello che c'e' da rifare.
+export function etichettaPromemoria(tipo: 'questionario' | 'screening' | 'pedana'): string {
+  return tipo === 'questionario' ? 'Questionario' : tipo === 'screening' ? 'Screening' : 'Test pedana'
+}

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Copy, Eye, Pencil, Plus, Trash2 } from 'lucide-react'
+import { Copy, Eye, Pencil, Plus, Stethoscope, Trash2 } from 'lucide-react'
+import StatoVuoto from './StatoVuoto'
 import type { Distretto, PazienteDettaglio, ValutazioneRiepilogo } from '../../../shared/types'
 import { toastErrore } from './Toast'
 import { chiedi } from './Conferma'
@@ -104,7 +105,12 @@ export default function ValutazionePaziente({
           suoi movimenti e test.
         </p>
       ) : elenco.length === 0 ? (
-        <p className="hint">Nessuna valutazione per questo paziente.</p>
+        <StatoVuoto
+          icona={Stethoscope}
+          titolo="Nessuna valutazione obiettiva"
+          testo="Movimenti, dolore e test per distretto, con il confronto fra una valutazione e l'altra."
+          azione={{ etichetta: 'Nuova valutazione', icona: Plus, onClick: () => void apriScelta() }}
+        />
       ) : (
         <ul className="sedute-list">
           {elenco.map((v) => (

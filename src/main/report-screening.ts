@@ -143,6 +143,11 @@ export function stileReport(accento: string, accentoScuro: string, intestazione:
   .valori-riga .dx b { color: #2563eb; }
   .valori-riga .sx b { color: #d64545; }
   .sezione-pedana { margin: 18px 0 0; }
+  /* In stampa un grafico, una riga di grafici o una nota non si spezzano fra due
+     pagine: passano intere alla successiva. I titoli restano con quello che segue. */
+  figure, svg, .coppia-pedana, .sezione-pedana, .confronto-lati, .valori-riga, .riassunto-pedana li,
+  .andamento-pedana { break-inside: avoid; page-break-inside: avoid; }
+  h4 { break-after: avoid; page-break-after: avoid; }
   .nota-pedana { margin: 4px 0 0; color: #8b93a0; font-size: 10px; }
   .coppia-pedana > .confronto-lati { flex: 0 1 62mm; }
   .coppia-pedana.confronto > .andamento-pedana { flex: 0 1 80mm; max-width: none; }
