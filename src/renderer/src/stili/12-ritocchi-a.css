@@ -844,8 +844,27 @@
   color: var(--text);
 }
 
+/* L'etichetta "Ogni quanto" di fianco alla casella, non sopra. */
 .campo-frequenza {
-  max-width: 260px;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  max-width: 420px;
+}
+
+.campo-frequenza input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Il campo "Ogni quanto" a sinistra, il pulsante per aggiungere una frase a
+   destra. */
+.riga-frequenza {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 /* L'esame neurologico di un distretto: un blocco a parte, con una riga sopra e

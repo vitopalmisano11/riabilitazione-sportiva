@@ -1062,10 +1062,23 @@
 
 .promemoria-nuovo {
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
+  flex-direction: column;
   gap: 10px;
   margin-bottom: 12px;
+}
+
+/* Una riga del modulo: gli elementi vanno a capo solo se la finestra e'
+   davvero stretta; la nota prende lo spazio che resta. */
+.riga-promemoria {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.riga-promemoria .nota-promemoria {
+  flex: 1;
+  min-width: 180px;
 }
 
 .scadenze-rapide {

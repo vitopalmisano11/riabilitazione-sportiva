@@ -135,7 +135,7 @@ export function sezAnamnesi(pazienteId: number): Blocco[] {
         ['Traumatico', x.traumatico == null ? null : x.traumatico ? 'sì' : 'no'],
         ['Come è iniziato', x.esordio],
         ['Intensità del dolore (NPRS)', intensitaNprs(x)],
-        ['Comportamento messo in atto', x.comportamento],
+        ['Comportamento in atto', x.comportamento],
         ['Cosa lo aggrava', x.aggrava],
         ['Cosa lo allevia', x.allevia]
       ])

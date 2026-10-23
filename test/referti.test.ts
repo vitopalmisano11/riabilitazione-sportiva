@@ -101,7 +101,27 @@ test('Migrazione 56: i data URL diventano byte, il resto non si tocca, e l\'arch
   // sta bassa apposta, a un quarto di quanto si risparmia, cosi' non va ritoccata
   // a ogni migrazione.
   const ora = statSync(file).size
-  assert.ok(prima - ora > 50_000, `il file doveva rimpicciolire: ${prima} -> ${ora}`)
+  //
+  // Le migrazioni dopo la 56 aggiungono pagine anche a un archivio senza referti
+  // (ogni indice ne occupa almeno una): quanto, lo dice un archivio di controllo
+  // uguale ma senza foto, che attraversa le stesse migrazioni. Il risparmio e'
+  // la differenza al netto di quella crescita.
+  const controllo = join(prova.cartella(), 'v55-senza-foto.db')
+  const c = new Database(controllo)
+  c.pragma('foreign_keys = ON')
+  for (let i = 0; i < 55; i++) {
+    c.exec(MIGRATIONS[i])
+    c.pragma(`user_version = ${i + 1}`)
+  }
+  c.prepare("INSERT INTO pazienti (nome, cognome) VALUES ('Vec', 'Chio')").run()
+  c.close()
+  const controlloPrima = statSync(controllo).size
+  const cDopo = new Database(controllo)
+  cDopo.pragma('foreign_keys = ON')
+  runMigrations(cDopo)
+  cDopo.close()
+  const crescita = statSync(controllo).size - controlloPrima
+  assert.ok(prima - ora + crescita > 50_000, `il file doveva rimpicciolire: ${prima} -> ${ora} (le migrazioni aggiungono ${crescita})`)
 }, 120_000)
 
 test('Cestino: un referto torna con i suoi byte, da solo o con il paziente', () => {

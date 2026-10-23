@@ -180,6 +180,20 @@ app.whenReady().then(() => {
 // programma aperto per sempre.
 let copiaAttesa = false
 app.on('before-quit', (evento) => {
+  // Una chiusura chiesta dal programma con le finestre ancora aperte ("Aggiorna
+  // adesso"): prima si chiudono loro, per la strada solita, cosi' le schermate
+  // salvano quello che c'e' scritto; la copia viene dopo. Prima partiva qui, a
+  // finestre aperte: il programma restava fermo davanti per tutto il controllo
+  // della copia, e quello che le schermate salvavano chiudendo restava fuori.
+  // Chiusa l'ultima finestra, 'window-all-closed' richiama quit e si ripassa di
+  // qui. Se una finestra resta aperta (un salvataggio non riuscito, e si sceglie
+  // di restare), il programma non si chiude.
+  const aperte = BrowserWindow.getAllWindows().filter((w) => !w.isDestroyed())
+  if (aperte.length > 0) {
+    evento.preventDefault()
+    for (const w of aperte) w.close()
+    return
+  }
   if (copiaInCorso() && !copiaAttesa) {
     evento.preventDefault()
     copiaAttesa = true

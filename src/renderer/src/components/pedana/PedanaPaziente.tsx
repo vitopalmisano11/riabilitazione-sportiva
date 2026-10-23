@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Activity, AlertTriangle, ChevronRight, FileText, Trash2, Upload } from 'lucide-react'
-import StatoVuoto from '../StatoVuoto'
 import type { PazienteDettaglio } from '../../../../shared/types'
 import {
   riepilogoPedana,
@@ -103,6 +102,7 @@ export default function PedanaPaziente({
     <section className="card">
       <div className="card-header-row">
         <h3>
+          <Activity size={18} className="icona-titolo" aria-hidden="true" />
           Test con pedana
           <Aiuto testo="I test fatti con la pedana di forza, importati dal file che esporta l'app della pedana. Ogni riga è un test: clicca per aprirlo e vedere il risultato, tutte le misure, i grafici, come è stato fatto e come cambia nel tempo. Una destra e una sinistra fatte a meno di una settimana di distanza stanno nella stessa riga. Il lato interessato (per l'LSI) è l'arto operato della scheda del paziente, ma lo puoi cambiare solo per un test dentro la finestra del test." />
         </h3>
@@ -124,14 +124,7 @@ export default function PedanaPaziente({
         </span>
       </div>
 
-      {archivio && voci.length === 0 && (
-        <StatoVuoto
-          icona={Activity}
-          titolo="Nessun test con la pedana"
-          testo="Esporta il file dall'app della pedana e importalo qui: compaiono i valori, le curve e il confronto fra i lati."
-          azione={{ etichetta: 'Importa un file', icona: Upload, onClick: () => void scegliFile() }}
-        />
-      )}
+      {archivio && voci.length === 0 && <p className="hint">Nessun test con la pedana.</p>}
 
       {voci.length > 0 && (
         <ul className="sedute-list elenco-pedana">

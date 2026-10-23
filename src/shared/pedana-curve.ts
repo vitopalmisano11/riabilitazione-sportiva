@@ -460,7 +460,10 @@ export function tracciatoSvg(
   // il margine fuori dal riquadro, dove stanno le scritte dei quattro lati
   const B = report ? 30 : 0
   const S = LATO - 2 * B
-  const M = 30
+  // lo spazio vuoto fra il tracciato e il bordo del riquadro: nel report e'
+  // stretto, cosi' il tracciato riempie il quadrato (la scala resta la stessa
+  // per i due piedi: e' il raggio comune a decidere)
+  const M = report ? 10 : 30
   const cx = media(xs)
   const cy = media(ys)
   const raggio = Math.max(raggioTracciato(serie), opzioni.raggio ?? 0)
@@ -501,13 +504,24 @@ export function tracciatoSvg(
   const colorePercorso = report ? coloreOvale : COLORE_NEUTRO
 
   if (report) {
+    // La traiettoria e' sottile e un po' trasparente: dove il piede torna
+    // spesso la linea si addensa e si fa scura, invece di diventare una
+    // matassa piena. L'ovale ha il riempimento sotto e il contorno, pieno,
+    // sopra: e' il numero che conta (l'area) e deve restare leggibile.
+    const contornoOvale = el
+      ? `<polygon points="${el.x.map((v, i) => `${n(px(v))},${n(py(el.y[i]))}`).join(' ')}" fill="none" stroke="${coloreOvale}" stroke-width="1.8" stroke-linejoin="round"/>`
+      : ''
+    const fondoOvale = el
+      ? `<polygon points="${el.x.map((v, i) => `${n(px(v))},${n(py(el.y[i]))}`).join(' ')}" fill="${coloreOvale}" fill-opacity="0.12" stroke="none"/>`
+      : ''
     return `<svg viewBox="0 0 ${LATO} ${LATO}" style="width:${opzioni.larghezza ?? '100%'};height:auto;display:block" role="img" aria-label="Tracciato del centro di pressione">
     <rect x="${B + 0.5}" y="${B + 0.5}" width="${S - 1}" height="${S - 1}" rx="12" fill="#f1f3f9" stroke="#e3e6f0"/>
     ${griglia}
-    <line x1="${B}" y1="${LATO / 2}" x2="${LATO - B}" y2="${LATO / 2}" stroke="#8b93a0" stroke-width="1.4"/>
-    <line x1="${LATO / 2}" y1="${B}" x2="${LATO / 2}" y2="${LATO - B}" stroke="#8b93a0" stroke-width="1.4"/>
-    ${ovale}
-    <polyline points="${punti}" fill="none" stroke="${colorePercorso}" stroke-width="2" stroke-linejoin="round"/>
+    <line x1="${B}" y1="${LATO / 2}" x2="${LATO - B}" y2="${LATO / 2}" stroke="#a3aab5" stroke-width="1"/>
+    <line x1="${LATO / 2}" y1="${B}" x2="${LATO / 2}" y2="${LATO - B}" stroke="#a3aab5" stroke-width="1"/>
+    ${fondoOvale}
+    <polyline points="${punti}" fill="none" stroke="${colorePercorso}" stroke-width="1" stroke-opacity="0.65" stroke-linejoin="round"/>
+    ${contornoOvale}
     ${scritta(LATO / 2, 17, 'avanti', 'middle')}
     ${scritta(LATO / 2, LATO - 8, 'indietro', 'middle')}
     ${scritta(B - 6, LATO / 2 + 5, 'sx', 'end')}

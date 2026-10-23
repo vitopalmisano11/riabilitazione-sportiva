@@ -193,13 +193,8 @@ export default function App(): React.JSX.Element {
   const contaDaSentire = (): void => {
     // Chi ha la data per essere risentito, piu' i promemoria (un questionario o
     // uno screening da rifare) arrivati a scadenza.
-    Promise.all([window.api.followUp.list(), window.api.promemoria.conta()])
-      .then(([{ concluso }, promemoria]) => {
-        const oggi = oggiIso()
-        setDaSentire(
-          concluso.filter((p) => p.follow_up_il != null && p.follow_up_il <= oggi).length + promemoria
-        )
-      })
+    Promise.all([window.api.followUp.daSentire(), window.api.promemoria.conta()])
+      .then(([followUp, promemoria]) => setDaSentire(followUp + promemoria))
       .catch(() => {})
   }
   // Una versione nuova del programma: si scarica da sola, e quando e' pronta

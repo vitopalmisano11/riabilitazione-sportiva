@@ -411,7 +411,7 @@ function Step2Fasi({
       {patologia.ha_campo === 1 && <div className="sotto-titolo">Fasi in palestra</div>}
       <ElencoFasi fasi={dellaPalestra} onSelect={onSelect} onChanged={onChanged} />
       {dellaPalestra.length === 0 && (
-        <p className="hint">Nessuna fase ancora: creala qui sopra (es. Fase iniziale).</p>
+        <p className="hint">Nessuna fase.</p>
       )}
 
       {patologia.ha_campo === 1 && (
@@ -628,7 +628,7 @@ function StrutturaTab({ faseId }: { faseId: number }): React.JSX.Element {
         }}
         etichettaAggiungi="Nuova sezione"
         addPlaceholder="es. Riscaldamento"
-        emptyHint="Es. Riscaldamento, Mobilità, Rinforzo, Pliometria"
+        emptyHint="Nessuna sezione."
       />
       <section className="crud-list">
         <h3>
@@ -728,7 +728,7 @@ function ObiettiviTab({ faseId }: { faseId: number }): React.JSX.Element {
         }}
         etichettaAggiungi="Nuovo obiettivo"
         addPlaceholder="es. Camminare senza stampelle"
-        emptyHint="Es. Controllo del dolore e gonfiore"
+        emptyHint="Nessun obiettivo."
       />
     </div>
   )
@@ -771,7 +771,7 @@ function TestTab({ faseId }: { faseId: number }): React.JSX.Element {
         }}
         etichettaAggiungi="Nuovo test"
         addPlaceholder="es. Hop test (cm)"
-        emptyHint="Nessun test definito per questa fase (facoltativo)."
+        emptyHint="Nessun test."
       />
     </div>
   )

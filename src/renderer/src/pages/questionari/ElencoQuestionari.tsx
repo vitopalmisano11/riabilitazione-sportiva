@@ -164,7 +164,7 @@ export function ElencoQuestionari({
       {filtrati.length === 0 && (
         <p className="hint">
           {questionari.length === 0
-            ? 'Nessun questionario: aggiungine uno col pulsante + qui sopra.'
+            ? 'Nessun questionario.'
             : 'Nessun risultato per la ricerca.'}
         </p>
       )}

@@ -316,6 +316,7 @@ export interface Canali {
   'sedute:delete': (id: number) => void
   // I due elenchi della sezione: chi e' in trattamento e chi ha finito.
   'followUp:list': () => { trattamento: PazienteDettaglio[]; concluso: PazienteDettaglio[] }
+  'followUp:daSentire': () => number
   // Sposta il paziente fra i due elenchi. Passando una data la imposta come
   // primo contatto da fare.
   'followUp:setStato': (id: number, stato: StatoPaziente, followUpIl: string | null) => void
@@ -753,6 +754,7 @@ export const MAPPA_API = {
   },
   followUp: {
     list: 'followUp:list',
+    daSentire: 'followUp:daSentire',
     setStato: 'followUp:setStato',
     setFollowUp: 'followUp:setFollowUp',
     segnaContattato: 'followUp:segnaContattato',

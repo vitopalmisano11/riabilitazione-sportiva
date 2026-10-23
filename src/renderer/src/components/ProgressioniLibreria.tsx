@@ -162,10 +162,6 @@ export default function ProgressioniLibreria(): React.JSX.Element {
           </div>
         )}
 
-        {gruppi.length === 0 && progressioni.length === 0 && !aggiungi && (
-          <p className="hint">Es. il gruppo «Braking strategies», con dentro «Vertical braking» e «Horizontal braking».</p>
-        )}
-
         {riordinoGruppi.ordine.map((g, idx) => {
           const dnd = riordinoGruppi.contenitore(idx)
           return (
@@ -228,7 +224,7 @@ export default function ProgressioniLibreria(): React.JSX.Element {
         ) : (
           <>
             <h3>Step della progressione</h3>
-            <p className="hint">Scegli una progressione a sinistra, oppure creane una.</p>
+            <p className="hint">Nessuna progressione scelta.</p>
           </>
         )}
       </section>
@@ -376,7 +372,7 @@ function EditorProgressione({
         <Aiuto testo="Si supera uno step alla volta. Il «requisito» è quello che deve saper fare per arrivarci (es. «solo se il front squat è di qualità»). Trascina per cambiare l'ordine." />
       </div>
 
-      {p.step.length === 0 && <p className="hint">Nessuno step: aggiungi il primo esercizio.</p>}
+      {p.step.length === 0 && <p className="hint">Nessuno step.</p>}
       <ul className="step-editor">
         {ordine.map((s, idx) => {
           const dnd = contenitore(idx)

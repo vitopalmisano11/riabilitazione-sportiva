@@ -249,7 +249,7 @@ function ElencoTest({
       {filtrati.length === 0 && (
         <p className="hint">
           {test.length === 0
-            ? 'Nessun test: aggiungine uno col pulsante + qui sopra (es. Drop Jump Test).'
+            ? 'Nessun test.'
             : 'Nessun risultato per la ricerca.'}
         </p>
       )}

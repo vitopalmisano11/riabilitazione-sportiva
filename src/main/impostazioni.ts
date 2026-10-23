@@ -287,16 +287,32 @@ export function impostaCartellaExport(dir: string): void {
   salva({ cartellaExport: dir })
 }
 
+// La versione di prova (npm run dev, avvia-prova.cmd) e quella installata hanno
+// archivi separati, ma la cartella scelta per le copie puo' essere la stessa
+// (quella di OneDrive, di solito). Li' le copie dell'una e dell'altra si
+// mescolavano: la copia del giorno fatta da una faceva saltare quella
+// dell'altra, chiudendo si cancellavano a vicenda le copie di oggi, e le dieci
+// da tenere si contavano insieme. La versione di prova tiene quindi le sue in
+// una sottocartella della cartella scelta. Le cartelle di default sono gia'
+// separate (stanno dentro a cartelle dati diverse).
+export const SOTTOCARTELLA_COPIE_PROVA = 'Versione di prova'
+
+function doveCopie(dati: string): string {
+  const scelta = leggi().cartellaBackup
+  if (!scelta) return join(dati, 'Backup')
+  return app.isPackaged ? scelta : join(scelta, SOTTOCARTELLA_COPIE_PROVA)
+}
+
 // Dove sono le copie, senza crearla: per cercarci dentro prima dell'accesso.
 export function cartellaBackupSenzaCreare(dati: string): string {
-  return leggi().cartellaBackup || join(dati, 'Backup')
+  return doveCopie(dati)
 }
 
 // Le copie di sicurezza: di default in una sottocartella dell'archivio, ma si
 // puo' puntare altrove — dentro OneDrive, per esempio, e finiscono online da
 // sole.
 export function cartellaBackup(): string {
-  const dir = leggi().cartellaBackup || join(cartellaDati(), 'Backup')
+  const dir = doveCopie(cartellaDati())
   mkdirSync(dir, { recursive: true })
   return dir
 }

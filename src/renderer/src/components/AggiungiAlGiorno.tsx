@@ -172,9 +172,6 @@ export default function AggiungiAlGiorno({
                     <input type="time" value={ora} onChange={(e) => setOra(e.target.value)} />
                   </label>
                 </div>
-                <p className="hint">
-                  La seduta compare nel giorno scelto: poi la apri e cambi quello che serve.
-                </p>
                 <div className="modal-actions">
                   <button onClick={() => onChiudi(false)}>Annulla</button>
                   {/* Da zero, quando non c'e' niente da ricopiare: si apre la

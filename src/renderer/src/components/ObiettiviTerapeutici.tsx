@@ -157,9 +157,7 @@ export default function ObiettiviTerapeutici({
         </div>
 
         {lista.length === 0 ? (
-          <p className="hint">
-            Nessun obiettivo. Scrivine uno qui sopra e scegli se è a breve, medio o lungo termine.
-          </p>
+          <p className="hint">Nessun obiettivo.</p>
         ) : (
           TERMINI.filter((t) => lista.some((o) => o.termine === t.valore)).map((t) => (
             <div key={t.valore} className="blocco-impostazione">

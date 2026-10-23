@@ -313,7 +313,8 @@ function documento(c: Cartella, cheCosa: string): string {
   .griglia-voci .voce > h3 { margin-top: 8px; }
   dl.dati { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 20px; margin: 0 0 8px; }
   dl.dati div { display: flex; gap: 6px; }
-  dl.dati dt { color: #6b7280; margin: 0; }
+  /* l'etichetta non va a capo: e' il valore ad andare a capo, non lei */
+  dl.dati dt { color: #6b7280; margin: 0; flex: none; white-space: nowrap; }
   dl.dati dt::after { content: ':'; }
   dl.dati dd { margin: 0; font-weight: 600; }
   table { width: 100%; border-collapse: collapse; margin: 0 0 8px; }

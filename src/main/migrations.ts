@@ -1620,6 +1620,38 @@ export const MIGRATIONS: string[] = [
   ALTER TABLE promemoria_nuova RENAME TO promemoria;
   CREATE INDEX idx_promemoria_paziente ON promemoria(paziente_id);
   CREATE INDEX idx_promemoria_aperti ON promemoria(scadenza) WHERE fatto_il IS NULL;
+  `,
+
+  // 67 - indici per i collegamenti che ne erano rimasti senza (audit del 23
+  //      ottobre 2026). Servono a chi cancella: eliminare un questionario, un
+  //      distretto o un esercizio (e il cestino che ne fotografa i figli) deve
+  //      cercare chi lo cita in ogni tabella, e senza indice lo fa leggendola
+  //      tutta. Solo indici: i dati non si toccano.
+  `
+  CREATE INDEX IF NOT EXISTS idx_pazienti_fase_corrente ON pazienti(fase_corrente_id);
+  CREATE INDEX IF NOT EXISTS idx_categorie_padre ON categorie(padre_id);
+  CREATE INDEX IF NOT EXISTS idx_obiettivo_categorie_categoria ON obiettivo_categorie(categoria_id);
+  CREATE INDEX IF NOT EXISTS idx_sezione_categorie_categoria ON sezione_categorie(categoria_id);
+  CREATE INDEX IF NOT EXISTS idx_paziente_obiettivi_obiettivo ON paziente_obiettivi(obiettivo_id);
+  CREATE INDEX IF NOT EXISTS idx_paziente_test_test ON paziente_test(test_id);
+  CREATE INDEX IF NOT EXISTS idx_paziente_indicazioni_indicazione ON paziente_indicazioni(indicazione_id);
+  CREATE INDEX IF NOT EXISTS idx_questionario_punteggi_questionario ON questionario_punteggi(questionario_id);
+  CREATE INDEX IF NOT EXISTS idx_punteggio_domande_domanda ON punteggio_domande(domanda_id);
+  CREATE INDEX IF NOT EXISTS idx_questionario_fasce_questionario ON questionario_fasce(questionario_id);
+  CREATE INDEX IF NOT EXISTS idx_questionario_fasce_punteggio ON questionario_fasce(punteggio_id);
+  CREATE INDEX IF NOT EXISTS idx_questionario_fasce_punteggio2 ON questionario_fasce(punteggio2_id);
+  CREATE INDEX IF NOT EXISTS idx_patologia_distretti_distretto ON patologia_distretti(distretto_id);
+  CREATE INDEX IF NOT EXISTS idx_valutazione_distretti_distretto ON valutazione_distretti(distretto_id);
+  CREATE INDEX IF NOT EXISTS idx_valutazione_neuro_voce ON valutazione_neuro(voce_id);
+  CREATE INDEX IF NOT EXISTS idx_screening_voci_questionario ON screening_voci(questionario_id);
+  CREATE INDEX IF NOT EXISTS idx_screening_voci_test ON screening_voci(test_id);
+  CREATE INDEX IF NOT EXISTS idx_screening_questionari_questionario ON screening_questionari(questionario_id);
+  CREATE INDEX IF NOT EXISTS idx_screening_punteggio_regole_punteggio ON screening_punteggio_regole(punteggio_id);
+  CREATE INDEX IF NOT EXISTS idx_screening_punteggio_regole_misura ON screening_punteggio_regole(misura_id);
+  CREATE INDEX IF NOT EXISTS idx_fase_progressione_gruppi_gruppo ON fase_progressione_gruppi(gruppo_id);
+  CREATE INDEX IF NOT EXISTS idx_fase_progressioni_progressione ON fase_progressioni(progressione_id);
+  CREATE INDEX IF NOT EXISTS idx_promemoria_questionario ON promemoria(questionario_id);
+  CREATE INDEX IF NOT EXISTS idx_promemoria_protocollo ON promemoria(protocollo_id);
   `
 ]
 

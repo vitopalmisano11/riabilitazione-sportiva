@@ -662,7 +662,6 @@ export default function EserciziPage(): React.JSX.Element {
               ) : (
                 <div className="campo-immagine-azioni">
                   <button onClick={() => void scegliImmagine()}>Scegli immagine…</button>
-                  <span className="hint">Viene rimpicciolita e salvata nel database cifrato.</span>
                 </div>
               )}
             </div>

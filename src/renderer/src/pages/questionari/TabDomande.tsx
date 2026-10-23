@@ -1,8 +1,11 @@
+import { useState } from 'react'
 import Tendina from '../../components/Tendina'
-import { Copy, Plus, X } from 'lucide-react'
+import { Copy, Eye, Plus, X } from 'lucide-react'
 import type { DomandaQuestionario, OpzioneDomanda, TipoDomanda } from '../../../../shared/types'
 import { sposta, useRiordino, type PropsContenitore, type PropsPresa } from '../../riordino'
 import GrigliaQuestionario from '../../components/GrigliaQuestionario'
+import Modale from '../../components/Modale'
+import { useScorciatoie } from '../../scorciatoie'
 import { raggruppaDomande } from '../../../../shared/griglie-questionario'
 import { TIPI, nuovaChiave } from './modello'
 
@@ -264,6 +267,12 @@ function SchedaGriglia({
   const { contenitore, presa: presaRiga } = useRiordino<number>((da, a) =>
     onChange(sposta(righe, da, a))
   )
+  // L'anteprima occupa quanto la tabella stessa: si apre in una finestra, solo
+  // quando serve.
+  const [anteprima, setAnteprima] = useState(false)
+  useScorciatoie([
+    { tasto: 'Escape', azione: () => setAnteprima(false), attiva: anteprima, inCasella: true }
+  ])
 
   const cambiaIntestazione = (testo: string): void =>
     onChange(righe.map((r) => ({ ...r, intestazione: testo })))
@@ -273,92 +282,110 @@ function SchedaGriglia({
     cambiaOpzioni(opzioni.map((o, j) => (j === k ? { ...o, ...patch } : o)))
 
   return (
-    <div {...dnd} {...presa} className={['domanda-card', dnd.className].filter(Boolean).join(' ')}>
-      <div className="domanda-testata">
-        <span className="domanda-numero">▦</span>
-        <input
-          className="domanda-testo"
-          placeholder="Domanda comune (es. Come influisce il ginocchio sulla capacità di:)"
-          value={intestazione}
-          onChange={(e) => cambiaIntestazione(e.target.value)}
-        />
-        <span className="item-actions-static">
-          <button title="Elimina la tabella" className="danger" onClick={() => onChange([])}>
-            <X size={16} />
-          </button>
-        </span>
-      </div>
-
-      <div className="sotto-titolo">Colonne: le risposte, uguali per tutte le righe</div>
-      <div className="colonne-griglia">
-        {opzioni.map((o, k) => (
-          <div key={k} className="colonna-griglia">
-            <input
-              placeholder="es. Non difficile"
-              value={o.etichetta}
-              onChange={(e) => cambiaOpzione(k, { etichetta: e.target.value })}
-            />
-            <span className="colonna-punti">
-              <input
-                type="number"
-                title="Quanti punti vale questa risposta"
-                value={o.punteggio}
-                onChange={(e) => cambiaOpzione(k, { punteggio: Number(e.target.value) })}
-              />
-              punti
-            </span>
-            <button
-              className="danger"
-              title="Togli questa colonna"
-              onClick={() => cambiaOpzioni(opzioni.filter((_, j) => j !== k))}
-            >
+    <>
+      <div {...dnd} {...presa} className={['domanda-card', dnd.className].filter(Boolean).join(' ')}>
+        <div className="domanda-testata">
+          <span className="domanda-numero">▦</span>
+          <input
+            className="domanda-testo"
+            placeholder="Domanda comune (es. Come influisce il ginocchio sulla capacità di:)"
+            value={intestazione}
+            onChange={(e) => cambiaIntestazione(e.target.value)}
+          />
+          <span className="item-actions-static">
+            <button title="Elimina la tabella" className="danger" onClick={() => onChange([])}>
               <X size={16} />
             </button>
-          </div>
-        ))}
-        <button onClick={() => cambiaOpzioni([...opzioni, { id: null, etichetta: '', punteggio: 0 }])}>
-          <Plus size={16} /> Aggiungi colonna
-        </button>
-      </div>
+          </span>
+        </div>
 
-      <div className="sotto-titolo">Righe: le attività o le voci da valutare</div>
-      <div className="opzioni-domanda">
-        {righe.map((r, k) => {
-          const riga = contenitore(k)
-          return (
-            <div
-              key={r.id ?? k}
-              {...riga}
-              {...presaRiga(k)}
-              className={['opzione-riga', riga.className].filter(Boolean).join(' ')}
-            >
+        <div className="sotto-titolo">Colonne: le risposte, uguali per tutte le righe</div>
+        <div className="colonne-griglia">
+          {opzioni.map((o, k) => (
+            <div key={k} className="colonna-griglia">
               <input
-                placeholder="Riga (es. Salire le scale)"
-                value={r.testo}
-                onChange={(e) =>
-                  onChange(righe.map((x, j) => (j === k ? { ...x, testo: e.target.value } : x)))
-                }
+                placeholder="es. Non difficile"
+                value={o.etichetta}
+                onChange={(e) => cambiaOpzione(k, { etichetta: e.target.value })}
               />
+              <span className="colonna-punti">
+                <input
+                  type="number"
+                  title="Quanti punti vale questa risposta"
+                  value={o.punteggio}
+                  onChange={(e) => cambiaOpzione(k, { punteggio: Number(e.target.value) })}
+                />
+                punti
+              </span>
               <button
                 className="danger"
-                title="Togli questa riga"
-                onClick={() => onChange(righe.filter((_, j) => j !== k))}
+                title="Togli questa colonna"
+                onClick={() => cambiaOpzioni(opzioni.filter((_, j) => j !== k))}
               >
                 <X size={16} />
               </button>
             </div>
-          )
-        })}
-        <button onClick={() => onChange([...righe, rigaNuova(intestazione, opzioni)])}>
-          <Plus size={16} /> Aggiungi riga
-        </button>
+          ))}
+          <button onClick={() => cambiaOpzioni([...opzioni, { id: null, etichetta: '', punteggio: 0 }])}>
+            <Plus size={16} /> Aggiungi colonna
+          </button>
+        </div>
+
+        <div className="sotto-titolo riga-con-pulsante">
+          <span>Righe: le attività o le voci da valutare</span>
+          <button onClick={() => setAnteprima(true)}>
+            <Eye size={16} /> Anteprima
+          </button>
+        </div>
+        <div className="opzioni-domanda">
+          {righe.map((r, k) => {
+            const riga = contenitore(k)
+            return (
+              <div
+                key={r.id ?? k}
+                {...riga}
+                {...presaRiga(k)}
+                className={['opzione-riga', riga.className].filter(Boolean).join(' ')}
+              >
+                <input
+                  placeholder="Riga (es. Salire le scale)"
+                  value={r.testo}
+                  onChange={(e) =>
+                    onChange(righe.map((x, j) => (j === k ? { ...x, testo: e.target.value } : x)))
+                  }
+                />
+                <button
+                  className="danger"
+                  title="Togli questa riga"
+                  onClick={() => onChange(righe.filter((_, j) => j !== k))}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            )
+          })}
+          <button onClick={() => onChange([...righe, rigaNuova(intestazione, opzioni)])}>
+            <Plus size={16} /> Aggiungi riga
+          </button>
+        </div>
+
       </div>
 
       {/* Com'e' per chi compila: serve a controllare titoli e righe senza
-          aprire il questionario da un paziente. */}
-      <div className="sotto-titolo">Anteprima</div>
-      {intestazione.trim() && <p className="compila-testo">{intestazione}</p>}
-      <GrigliaQuestionario righe={righe} risposte={{}} soloLettura />
-    </div>
+          aprire il questionario da un paziente. Fuori dalla scheda, cosi' un
+          clic nella finestra non comincia a trascinare la tabella. */}
+      {anteprima && (
+        <Modale className="modal-lg" onConferma={() => setAnteprima(false)}>
+          <h3>Anteprima</h3>
+          {intestazione.trim() && <p className="compila-testo">{intestazione}</p>}
+          <GrigliaQuestionario righe={righe} risposte={{}} soloLettura />
+          <div className="modal-actions">
+            <button className="primary" onClick={() => setAnteprima(false)}>
+              Chiudi
+            </button>
+          </div>
+        </Modale>
+      )}
+    </>
   )
 }

@@ -154,10 +154,7 @@ export default function ProtocolliScreeningPage({
             </span>
           </div>
           {protocolli.length === 0 ? (
-            <p className="hint">
-              Nessun protocollo. Creane uno col + qui sopra: sceglierai i test fra quelli che hai
-              in libreria.
-            </p>
+            <p className="hint">Nessun protocollo.</p>
           ) : (
             sport.map((s) => (
               // Lo sport a sinistra e i suoi protocolli sulla stessa riga: si

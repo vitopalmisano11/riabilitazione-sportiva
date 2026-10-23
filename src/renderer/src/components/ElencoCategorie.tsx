@@ -148,7 +148,7 @@ export default function ElencoCategorie({
         })}
       </div>
       {categorie.length === 0 && (
-        <p className="hint">Nessuna categoria: aggiungine una col pulsante + qui sopra ({esempio}).</p>
+        <p className="hint">Nessuna categoria.</p>
       )}
 
       {nuovaAperta && (

@@ -1,7 +1,6 @@
 import Tendina from './Tendina'
 import { useCallback, useEffect, useState } from 'react'
 import { BellRing, Plus, X } from 'lucide-react'
-import StatoVuoto from './StatoVuoto'
 import type {
   PazienteDettaglio,
   ProtocolloScreening,
@@ -102,18 +101,24 @@ export default function PromemoriaPaziente({
     <section className="card">
       <div className="card-header-row">
         <h3>
+          <BellRing size={18} className="icona-titolo" aria-hidden="true" />
           Promemoria
           <Aiuto testo="Quando fargli rifare un questionario, uno screening o un test con la pedana. Compare nella pagina Follow-up e nel numerino del menu quando la data arriva. Si chiude da solo appena compili quel questionario, apri quello screening o importi quel test della pedana per questo paziente; puoi anche spuntarlo a mano." />
         </h3>
         {!aggiungi && (
-          <button className="btn-icona" title="Aggiungi un promemoria" onClick={() => setAggiungi(true)}>
-            <Plus size={18} />
-          </button>
+          <span className="row-actions">
+            <button className="primary" title="Aggiungi un promemoria" onClick={() => setAggiungi(true)}>
+              <Plus size={18} />
+            </button>
+          </span>
         )}
       </div>
 
       {aggiungi && (
         <div className="promemoria-nuovo">
+          {/* Tre righe fisse (cosa, quando, pulsanti): cosi' il modulo non
+              cambia forma a seconda di quanto e' lungo il nome scelto. */}
+          <div className="riga-promemoria">
           <span className="scelta-coppia segmentata">
             {(['questionario', 'screening', 'pedana'] as const).map((t) => (
               <button
@@ -154,6 +159,8 @@ export default function PromemoriaPaziente({
               ))}
             </Tendina>
           )}
+          </div>
+          <div className="riga-promemoria">
           <label className="compila-data">
             Entro il
             <input type="date" value={scadenza} onChange={(e) => setScadenza(e.target.value)} />
@@ -165,23 +172,24 @@ export default function PromemoriaPaziente({
               </button>
             ))}
           </span>
-          <input placeholder="Nota (facoltativa)" value={nota} onChange={(e) => setNota(e.target.value)} />
-          <span className="modal-actions">
+          <input
+            className="nota-promemoria"
+            placeholder="Nota (facoltativa)"
+            value={nota}
+            onChange={(e) => setNota(e.target.value)}
+          />
+          </div>
+          <div className="modal-actions">
             <button onClick={() => setAggiungi(false)}>Annulla</button>
             <button className="primary" disabled={!sceltoValido || !scadenza} onClick={salva}>
               Aggiungi
             </button>
-          </span>
+          </div>
         </div>
       )}
 
       {aperti.length === 0 && !aggiungi && (
-        <StatoVuoto
-          icona={BellRing}
-          titolo="Nessun promemoria in programma"
-          testo="Segnati quando fargli rifare un questionario, uno screening o un test con la pedana: lo trovi in Follow-up."
-          azione={{ etichetta: 'Aggiungi un promemoria', icona: Plus, onClick: () => setAggiungi(true) }}
-        />
+        <p className="hint">Nessun promemoria in programma.</p>
       )}
 
       <ul className="sedute-list elenco-promemoria">

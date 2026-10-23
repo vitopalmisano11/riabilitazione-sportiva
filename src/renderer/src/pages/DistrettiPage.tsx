@@ -208,7 +208,7 @@ function ElencoDistretti({
       </div>
       {distretti.length === 0 && (
         <p className="hint">
-          Nessun distretto: aggiungine uno col pulsante + qui sopra (es. Rachide cervicale).
+          Nessun distretto.
         </p>
       )}
 

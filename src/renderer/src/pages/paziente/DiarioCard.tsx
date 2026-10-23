@@ -196,7 +196,7 @@ export function DiarioCard({
       )}
       {fatte.length === 0 ? (
         programmate.length > 0 ? (
-          <p className="hint">Nessuna seduta svolta finora: quelle qui sopra sono programmate.</p>
+          <p className="hint">Nessuna seduta svolta finora.</p>
         ) : (
           <StatoVuoto
             icona={ClipboardList}

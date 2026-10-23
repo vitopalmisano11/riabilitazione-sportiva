@@ -12,17 +12,10 @@ import {
   ripetizioniTesto,
   volumeTesto
 } from '../shared/dosaggio'
-import {
-  Document,
-  HeadingLevel,
-  Packer,
-  Paragraph,
-  Table,
-  TableCell,
-  TableRow,
-  TextRun,
-  WidthType
-} from 'docx'
+// La libreria di Word pesa (circa 180 ms a caricarla) e serve solo a chi esporta
+// in .docx: si carica in generaDocx, alla prima esportazione, e non all'avvio.
+// Qui entrano solo i tipi, che spariscono a compilazione.
+import type { Paragraph as ParagrafoWord, Table as TabellaWord } from 'docx'
 
 export interface DatiPazienteExport {
   nome: string
@@ -358,7 +351,9 @@ export async function generaDocx(
   p: DatiPazienteExport,
   sedute: DatiSedutaExport[]
 ): Promise<Buffer> {
-  const children: (Paragraph | Table)[] = []
+  const { Document, HeadingLevel, Packer, Paragraph, Table, TableCell, TableRow, TextRun, WidthType } =
+    await import('docx')
+  const children: (ParagrafoWord | TabellaWord)[] = []
 
   // Anche il documento Word esce con l'intestazione di chi firma: chi lo
   // riceve deve sapere da chi arriva, in qualunque formato.

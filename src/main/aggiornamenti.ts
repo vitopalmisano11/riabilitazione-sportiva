@@ -14,14 +14,20 @@
 // Solo nel programma installato: la versione di prova (npm run dev,
 // avvia-prova.cmd) non si aggiorna da sola.
 import { app, BrowserWindow } from 'electron'
-import electronUpdater from 'electron-updater'
+import type { AppUpdater } from 'electron-updater'
 import type { StatoAggiornamento } from '../shared/types'
 import { registraErrore } from './registro'
 
-// Il gestore degli aggiornamenti si crea solo quando serve, cioe' nel programma
-// installato: toccarlo all'avvio, anche nella versione di prova, lo
-// costruirebbe per niente.
-const aggiornatore = (): typeof electronUpdater.autoUpdater => electronUpdater.autoUpdater
+// La libreria degli aggiornamenti (circa 330 ms a caricarla) si carica solo nel
+// programma installato, e non all'avvio ma al primo controllo, quindici secondi
+// dopo: la finestra non ci aspetta.
+let aggiornatore: AppUpdater | null = null
+async function caricaAggiornatore(): Promise<AppUpdater> {
+  if (aggiornatore) return aggiornatore
+  const modulo = await import('electron-updater')
+  aggiornatore = (modulo.default ?? modulo).autoUpdater
+  return aggiornatore
+}
 
 const PRIMO_CONTROLLO = 15_000
 const OGNI = 6 * 60 * 60 * 1000
@@ -41,25 +47,42 @@ export function statoAggiornamento(): StatoAggiornamento {
 
 export function avviaAggiornamenti(): void {
   if (!app.isPackaged) return
-  const autoUpdater = aggiornatore()
-  // niente righe su ogni controllo: nel registro vanno solo gli errori
-  autoUpdater.logger = null
-  autoUpdater.autoDownload = true
-  autoUpdater.autoInstallOnAppQuit = true
+  // Il gestore si prepara una volta sola, al primo controllo.
+  let preparato: Promise<AppUpdater> | null = null
+  const prepara = (): Promise<AppUpdater> => {
+    preparato ??= caricaAggiornatore().then((autoUpdater) => {
+      // niente righe su ogni controllo: nel registro vanno solo gli errori
+      autoUpdater.logger = null
+      autoUpdater.autoDownload = true
+      autoUpdater.autoInstallOnAppQuit = true
 
-  autoUpdater.on('update-available', (info) => cambia({ stato: 'scaricamento', versione: info.version }))
-  autoUpdater.on('update-downloaded', (info) => cambia({ stato: 'pronto', versione: info.version }))
-  autoUpdater.on('error', (e) => {
-    // Di solito e' il computer senza rete: si riprova al prossimo giro. Una
-    // riga nel registro serve a capire perche' un aggiornamento non arriva.
-    registraErrore('aggiornamento', e)
-    if (stato.stato === 'scaricamento') cambia({ stato: 'nessuno' })
-  })
+      autoUpdater.on('update-available', (info) =>
+        cambia({ stato: 'scaricamento', versione: info.version })
+      )
+      autoUpdater.on('update-downloaded', (info) => cambia({ stato: 'pronto', versione: info.version }))
+      autoUpdater.on('error', (e) => {
+        // Di solito e' il computer senza rete: si riprova al prossimo giro. Una
+        // riga nel registro serve a capire perche' un aggiornamento non arriva.
+        registraErrore('aggiornamento', e)
+        if (stato.stato === 'scaricamento') cambia({ stato: 'nessuno' })
+      })
+      return autoUpdater
+    })
+    return preparato
+  }
 
   const controlla = (): void => {
     // gia' scaricato: si aspetta la chiusura
     if (stato.stato === 'pronto') return
-    autoUpdater.checkForUpdates().catch(() => undefined) // l'errore passa da 'error'
+    prepara().then(
+      // l'errore di un controllo passa da 'error'
+      (autoUpdater) => autoUpdater.checkForUpdates().catch(() => undefined),
+      // la libreria non si e' caricata: si riprova al giro dopo
+      (e) => {
+        preparato = null
+        registraErrore('aggiornamento', e)
+      }
+    )
   }
   setTimeout(controlla, PRIMO_CONTROLLO)
   setInterval(controlla, OGNI)
@@ -67,7 +90,8 @@ export function avviaAggiornamenti(): void {
   // L'installer parte solo all'ultimo, quando le finestre sono gia' chiuse:
   // vedi installaAdesso.
   app.on('will-quit', () => {
-    if (riapriDopo && stato.stato === 'pronto') aggiornatore().quitAndInstall(true, true)
+    // 'pronto' vuol dire che la libreria e' gia' stata caricata
+    if (riapriDopo && stato.stato === 'pronto') aggiornatore?.quitAndInstall(true, true)
   })
 }
 

@@ -137,6 +137,21 @@ export function elencoFollowUp(): { trattamento: PazienteDettaglio[]; concluso: 
   }
 }
 
+// Quanti pazienti hanno la data per essere risentiti oggi o gia' passata: il
+// numerino accanto a "Follow-up", che si rilegge spesso e non ha bisogno
+// dell'elenco intero.
+export function followUpDaSentire(): number {
+  return (
+    getDb()
+      .prepare(
+        `SELECT COUNT(*) AS n FROM pazienti
+         WHERE stato = 'concluso' AND follow_up_il IS NOT NULL
+           AND follow_up_il <= date('now', 'localtime')`
+      )
+      .get() as { n: number }
+  ).n
+}
+
 export function impostaStato(id: number, stato: StatoPaziente, followUpIl: string | null): void {
   getDb()
     .prepare('UPDATE pazienti SET stato = ?, follow_up_il = ? WHERE id = ?')

@@ -64,6 +64,23 @@ supera con *Ulteriori informazioni → Esegui comunque*.
 Le versioni vere dell'app sono quelle di `package.json` e dei tag `vX.Y.Z`: le sezioni «giro di
 feedback» qui sopra sono precedenti e usavano una numerazione propria.
 
+### v0.5.12
+
+**Prima di tutto:** al primo accesso dopo l'aggiornamento il programma aggiunge alcuni indici al database
+(migrazione 67): non tocca i dati, ma non si può annullare, quindi prima fa da solo una copia
+dell'archivio.
+
+- Copie di sicurezza: la versione di prova tiene le sue copie in una sottocartella «Versione di prova»
+  della cartella scelta, così non si mescolano con quelle del programma installato (prima, se la
+  cartella era la stessa, una saltava la copia del giorno e cancellava le copie di oggi dell'altra)
+- Chiusura con «Aggiorna adesso»: prima si chiudono le finestre (che salvano quello che c'è scritto) e
+  solo dopo si fa la copia di chiusura, invece di tenere il programma fermo davanti per tutto il controllo
+- Ricerca generale (Ctrl+K) molto più veloce con l'archivio grande, e si ferma appena ha 25 risultati per tipo
+- Avvio più rapido: le librerie dei documenti Word e degli aggiornamenti si caricano solo quando servono
+- Il numerino accanto a «Follow-up» non rilegge più tutti i pazienti
+- Le immagini degli esercizi e le foto dei referti molto alte vengono rimpicciolite anche in altezza
+- Eliminare questionari, distretti ed esercizi è più rapido con molti dati (nuovi indici, migrazione 67)
+
 ### v0.5.11
 
 **Prima di tutto:** al primo accesso dopo l'aggiornamento il programma applica due modifiche al formato

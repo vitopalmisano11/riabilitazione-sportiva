@@ -9,6 +9,7 @@ import {
   eliminaPaziente,
   elencoFollowUp,
   elencoPazienti,
+  followUpDaSentire,
   impostaFollowUp,
   impostaObiettivoRaggiunto,
   impostaPatologiaFase,
@@ -132,6 +133,31 @@ test('Follow-up: concluso con la data, contattato, recensione, e le due liste', 
   assert.equal(elencoFollowUp().concluso.find((p) => p.id === b)!.recensione, 1)
   impostaRecensione(b, false)
   assert.equal(elencoFollowUp().concluso.find((p) => p.id === b)!.recensione, 0)
+})
+
+test('Follow-up: il numerino conta solo i conclusi con la data di oggi o passata', () => {
+  const prima = followUpDaSentire()
+  const oggi = new Date()
+  const iso = (g: number): string => {
+    const d = new Date(oggi.getFullYear(), oggi.getMonth(), oggi.getDate() + g)
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  }
+  const scaduto = creaPaziente(nuovo({ cognome: 'Scaduto', nome: 'Numerino' }))
+  const oggiStesso = creaPaziente(nuovo({ cognome: 'Oggi', nome: 'Numerino' }))
+  const futuro = creaPaziente(nuovo({ cognome: 'Futuro', nome: 'Numerino' }))
+  const senzaData = creaPaziente(nuovo({ cognome: 'Senza', nome: 'Numerino' }))
+  const inCura = creaPaziente(nuovo({ cognome: 'InCura', nome: 'Numerino' }))
+  impostaStato(scaduto, 'concluso', iso(-3))
+  impostaStato(oggiStesso, 'concluso', iso(0))
+  impostaStato(futuro, 'concluso', iso(2))
+  impostaStato(senzaData, 'concluso', null)
+  impostaStato(inCura, 'trattamento', iso(-3))
+  assert.equal(followUpDaSentire(), prima + 2)
+  // lo stesso conto che si farebbe a mano dall'elenco
+  assert.equal(
+    followUpDaSentire(),
+    elencoFollowUp().concluso.filter((p) => p.follow_up_il != null && p.follow_up_il <= iso(0)).length
+  )
 })
 
 test('Obiettivi raggiunti e test della fase, per paziente', () => {

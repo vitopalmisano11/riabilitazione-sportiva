@@ -41,7 +41,7 @@ export default function GruppiPage(): React.JSX.Element {
         }}
         etichettaAggiungi="Nuovo gruppo"
         addPlaceholder="es. Centro"
-        emptyHint="Nessun gruppo: aggiungine uno col pulsante qui sopra (es. Centro, Studio, Domicilio)."
+        emptyHint="Nessun gruppo."
       />
     </div>
   )

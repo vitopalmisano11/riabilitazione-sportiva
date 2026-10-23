@@ -104,10 +104,7 @@ export default function ProgrammaSettimana({
         </div>
 
         {date.length === 0 ? (
-          <p className="hint">
-            Nessuna data scelta. Usa i pulsanti qui sopra per la settimana prossima, o aggiungi le
-            date una per una.
-          </p>
+          <p className="hint">Nessuna data scelta.</p>
         ) : (
           <ul className="date-scelte">
             {date.map((d) => (

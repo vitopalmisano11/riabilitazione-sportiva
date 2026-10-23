@@ -6,6 +6,7 @@ import {
   Copy,
   Download,
   FileText,
+  Images,
   Pencil,
   UserRound,
   Plus,
@@ -17,6 +18,7 @@ import type { PazienteDettaglio, SedutaSettimana } from '../../../shared/types'
 import { toast, toastErrore } from '../components/Toast'
 import { chiedi } from '../components/Conferma'
 import Modale from '../components/Modale'
+import { SchedaIllustrata } from './paziente/SchedaIllustrata'
 import { errMsg, formatData, maiuscola, oggiIso } from '../lib'
 
 // La settimana di tutti i pazienti in una schermata.
@@ -96,6 +98,8 @@ export default function SettimanaPage({
   const [daCopiare, setDaCopiare] = useState<SedutaSettimana | null>(null)
   // La seduta di cui e' aperto il menu "Scarica".
   const [menuScarica, setMenuScarica] = useState<number | null>(null)
+  // La seduta di cui e' aperta la scheda illustrata, con il suo "Scarica PDF".
+  const [anteprima, setAnteprima] = useState<number | null>(null)
   const [altraData, setAltraData] = useState('')
   // La ricerca del paziente in cima: si apre la sua scheda o gli si aggiunge
   // una seduta scegliendo il giorno.
@@ -156,11 +160,18 @@ Finisce nel cestino: puoi rimetterla a posto da Impostazioni entro un mese.`
     }
   }
 
-  // Scaricare la seduta in PDF o Word, come dal diario del paziente.
-  const scarica = async (id: number, formato: 'pdf' | 'docx'): Promise<void> => {
+  // Scaricare la seduta in PDF o Word, come dal diario del paziente; la scheda
+  // illustrata (foto e spiegazioni) e' solo in PDF.
+  const scarica = async (id: number, formato: 'pdf' | 'docx', illustrata = false): Promise<void> => {
     try {
-      const path = await window.api.esporta.seduta(id, formato, false)
-      if (path) toast(`Seduta esportata${formato === 'pdf' ? ' in PDF' : ' in Word'}.`)
+      const path = await window.api.esporta.seduta(id, formato, illustrata)
+      if (path) {
+        toast(
+          illustrata
+            ? 'Scheda illustrata esportata in PDF.'
+            : `Seduta esportata${formato === 'pdf' ? ' in PDF' : ' in Word'}.`
+        )
+      }
     } catch (e) {
       toastErrore(errMsg(e))
     }
@@ -350,6 +361,12 @@ Finisce nel cestino: puoi rimetterla a posto da Impostazioni entro un mese.`
                         <Presentation size={16} />
                       </button>
                       <button
+                        title="Scheda illustrata per il paziente (foto e spiegazioni)"
+                        onClick={() => setAnteprima(s.id)}
+                      >
+                        <Images size={16} />
+                      </button>
+                      <button
                         title="Apri la seduta"
                         onClick={() => onApriSeduta(s.paziente_id, s.id)}
                       >
@@ -413,6 +430,14 @@ Finisce nel cestino: puoi rimetterla a posto da Impostazioni entro un mese.`
           </div>
         ))}
       </section>
+
+      {anteprima != null && (
+        <SchedaIllustrata
+          sedutaId={anteprima}
+          onClose={() => setAnteprima(null)}
+          onScarica={() => void scarica(anteprima, 'pdf', true)}
+        />
+      )}
 
       {/* Il giorno della seduta nuova, per il paziente trovato con la ricerca. */}
       {perSeduta && (

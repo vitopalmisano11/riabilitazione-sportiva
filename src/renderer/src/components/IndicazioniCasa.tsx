@@ -108,26 +108,27 @@ export default function IndicazioniCasa({
         <Aiuto testo="Quello che spunti qui esce sul foglio che dai al paziente, sotto al programma: ogni quanto farlo e come regolarsi con il dolore. Le frasi sono in comune, si scrivono una volta e si riusano su chi ti serve." />
       </summary>
       <div className="contenuto-apribile contenuto-indicazioni">
-      <div className="card-header-row riga-titolo-segni">
+      {/* Il campo e il pulsante sulla stessa riga: da soli, in una riga
+          vuota sopra al campo, sembravano fuori posto. */}
+      <div className="riga-frequenza">
+        <label className="field campo-frequenza">
+          Ogni quanto
+          <input
+            type="text"
+            placeholder="es. 3 volte a settimana"
+            value={frequenza}
+            onChange={(e) => {
+              setFrequenza(e.target.value)
+              setSalvato(false)
+            }}
+          />
+        </label>
         {!nuova && (
           <button className="btn-aggiungi-lista" onClick={() => setNuova(true)}>
             <Plus size={16} /> Aggiungi indicazione
           </button>
         )}
       </div>
-
-      <label className="field campo-frequenza">
-        Ogni quanto
-        <input
-          type="text"
-          placeholder="es. 3 volte a settimana"
-          value={frequenza}
-          onChange={(e) => {
-            setFrequenza(e.target.value)
-            setSalvato(false)
-          }}
-        />
-      </label>
 
       {nuova && (
         <div className="riga-nuovo-segno">

@@ -32,13 +32,15 @@ import { MIGRATIONS, registraFunzioniMigrazioni } from '../src/main/migrations'
 import { cambiaPasswordAuth, loginAuth, recoverAuth, setupAuth } from '../src/main/auth'
 import { apriAltroDb, closeDb, getDb, impostaCopiaPrimaDelleMigrazioni, initDb } from '../src/main/db'
 import {
+  cartellaBackup,
   cartellaDati,
   copiaFallita,
   impostaBackupAttivo,
   impostaCartellaBackup,
   impostaCartellaDati,
   percorsoImpostazioni,
-  ricominciaImpostazioni
+  ricominciaImpostazioni,
+  SOTTOCARTELLA_COPIE_PROVA
 } from '../src/main/impostazioni'
 import {
   backupDiChiusura,
@@ -63,11 +65,15 @@ const base = process.env['RIAB_PROVA_DIR']
 if (!base) throw new Error('Manca la cartella di prova: avviare con npm run smoke:ripristino.')
 
 const dati = join(base, 'dati')
-const copie = join(base, 'copie')
+const scelta = join(base, 'copie')
 mkdirSync(dati, { recursive: true })
-mkdirSync(copie, { recursive: true })
+mkdirSync(scelta, { recursive: true })
 impostaCartellaDati(dati)
-impostaCartellaBackup(copie)
+impostaCartellaBackup(scelta)
+// Fuori dal programma installato (come qui) le copie stanno in una
+// sottocartella di quella scelta: non si mescolano con quelle dell'app vera.
+const copie = cartellaBackup()
+assert.equal(copie, join(scelta, SOTTOCARTELLA_COPIE_PROVA))
 assert.equal(join(dati, DB).startsWith(base), true, 'la prova deve restare nella cartella temporanea')
 
 const dbApp = join(dati, DB)

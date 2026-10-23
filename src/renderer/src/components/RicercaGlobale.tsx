@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Search } from 'lucide-react'
 import type { RisultatoRicerca } from '../../../shared/types'
 import { useClicSulFondo } from '../clicSulFondo'
+import { scorciatoieBloccate } from '../scorciatoie'
 import { errMsg, formatData } from '../lib'
 import { toastErrore } from './Toast'
 
@@ -63,11 +64,24 @@ export default function RicercaGlobale({
     else onApriPaziente(r.pazienteId)
   }
 
-  const tasto = (e: React.KeyboardEvent): void => {
-    if (e.key === 'Escape') {
+  // Esc ascolta tutta la finestra e non solo la card: dopo un clic su un'area
+  // vuota o su un risultato il cursore esce dalla casella, e un Esc sentito
+  // solo da dentro la card non chiudeva piu' niente.
+  // In fase di cattura e fermando l'evento: le schermate sotto ascoltano lo
+  // stesso Esc, e non devono chiudere anche la scheda che c'e' dietro.
+  useEffect(() => {
+    const esc = (e: KeyboardEvent): void => {
+      if (e.key !== 'Escape' || scorciatoieBloccate()) return
       e.preventDefault()
+      e.stopPropagation()
       onChiudi()
-    } else if (e.key === 'ArrowDown') {
+    }
+    window.addEventListener('keydown', esc, true)
+    return () => window.removeEventListener('keydown', esc, true)
+  })
+
+  const tasto = (e: React.KeyboardEvent): void => {
+    if (e.key === 'ArrowDown') {
       e.preventDefault()
       setScelto((i) => Math.min(inOrdine.length - 1, i + 1))
     } else if (e.key === 'ArrowUp') {

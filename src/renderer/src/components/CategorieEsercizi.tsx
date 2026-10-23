@@ -193,8 +193,8 @@ export default function CategorieEsercizi({
           </div>
 
           <p className="hint">
+            Scegli un tipo di lavoro.
             <Aiuto testo="Il tipo di lavoro sta nelle piastrelle: rinforzo, mobilità, pliometria. Aprendone una ci si mettono dentro i distretti — quadricipite, spalla, cervicale — e gli esercizi si assegnano al distretto. Una sezione della fase agganciata al tipo di lavoro propone anche tutti i suoi distretti." />
-            Scegli un tipo di lavoro per gestire i suoi distretti.
           </p>
 
           <div className="scelta-tiles">
@@ -228,7 +228,7 @@ export default function CategorieEsercizi({
             })}
             {trovate.length === 0 && (
               <p className="hint">
-                {q === '' ? 'Nessuna categoria: creane una qui sopra.' : 'Nessuna con questo nome.'}
+                {q === '' ? 'Nessuna categoria.' : 'Nessuna con questo nome.'}
               </p>
             )}
           </div>

@@ -60,30 +60,33 @@ test('primo avvio, paziente, ricerca, nuovo accesso', async () => {
   }
 })
 
-test('elimina per sempre: la conferma spiega cosa resta, poi il paziente non si trova piu\'', async () => {
+// La cancellazione definitiva (il paziente che chiede di essere cancellato) passa
+// dal cestino: dalla scheda si elimina, dal cestino si toglie per sempre.
+test('elimina per sempre dal cestino: la conferma spiega cosa resta, poi il paziente non si trova piu\'', async () => {
   const prova = await avvia()
   try {
     const { pagina } = prova
     await creaArchivio(pagina)
     await nuovoPaziente(pagina, { nome: 'Da', cognome: 'Cancellare' })
 
-    await pagina.getByTitle('Elimina per sempre, senza passare dal cestino').click()
+    await pagina.getByTitle('Elimina paziente').click()
+    await pagina.locator('.modal-domanda').getByRole('button', { name: 'Elimina' }).click()
+
+    await vaiA(pagina, 'Impostazioni')
+    await pagina.getByRole('button', { name: 'Dati e backup' }).click()
+    // il cestino e' un blocco chiuso: si apre dal titolo
+    await pagina.locator('.blocco-cestino summary').click()
+    await pagina.getByTitle('Elimina definitivamente').click()
     const domanda = pagina.locator('.modal-domanda')
-    await expect(domanda).toContainText('non passa dal cestino')
+    await expect(domanda).toContainText('Non si torna indietro')
     await expect(domanda).toContainText('copie di sicurezza')
     await pagina.screenshot({ path: join(FOTO, '05-elimina-per-sempre.png') })
-    await domanda.getByRole('button', { name: 'Elimina per sempre' }).click()
-    await expect(pagina.getByText('è stato eliminato per sempre')).toBeVisible()
+    await domanda.getByRole('button', { name: 'Elimina' }).click()
+    await expect(pagina.getByText('Cestino — vuoto')).toBeVisible()
 
     await pagina.keyboard.press('Control+k')
     await pagina.getByPlaceholder(/Cerca un paziente/).fill('cancellare')
     await expect(pagina.getByText('Niente trovato')).toBeVisible()
-
-    // e nel cestino non c'e'
-    await pagina.keyboard.press('Escape')
-    await vaiA(pagina, 'Impostazioni')
-    await pagina.getByRole('button', { name: 'Dati e backup' }).click()
-    await expect(pagina.getByText('Cestino — vuoto')).toBeVisible()
     expect(prova.errori, 'errori nella console').toEqual([])
   } finally {
     await prova.chiudi()

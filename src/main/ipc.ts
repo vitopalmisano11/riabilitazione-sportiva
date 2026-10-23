@@ -41,6 +41,7 @@ import {
   tema
 } from './impostazioni'
 import { spostaFileDati } from './file-dati'
+import { entraNelRiquadro } from './immagini'
 import { eliminaTemporaneo, eliminaTemporaneoPresto, scriviTemporaneo } from './temporanei'
 import { apriScheda } from './scheda'
 import { datiScheda } from './scheda-dati'
@@ -64,6 +65,7 @@ import {
   eliminaPaziente,
   eliminaPazienteDefinitivamente,
   elencoFollowUp,
+  followUpDaSentire,
   elencoPazienti,
   impostaFollowUp,
   impostaObiettivoRaggiunto,
@@ -875,6 +877,7 @@ export function registerIpc(): void {
   // L'immagine sta nel database come data URL (vedi esercizi.ts); la larghezza
   // massima, che tiene il file sotto controllo, si applica qui, scegliendola.
   const IMG_LARGHEZZA_MAX = 1000
+  const IMG_ALTEZZA_MAX = 1400
 
   handle('esercizi:immagine', (id: number) => leggiImmagine(id))
 
@@ -889,9 +892,7 @@ export function registerIpc(): void {
     if (canceled || filePaths.length === 0) return null
     let img = nativeImage.createFromPath(filePaths[0])
     if (img.isEmpty()) throw new Error('Immagine non leggibile o in un formato non supportato.')
-    if (img.getSize().width > IMG_LARGHEZZA_MAX) {
-      img = img.resize({ width: IMG_LARGHEZZA_MAX, quality: 'good' })
-    }
+    img = entraNelRiquadro(img, IMG_LARGHEZZA_MAX, IMG_ALTEZZA_MAX)
     // PNG se resta leggero (conserva la trasparenza), altrimenti JPEG.
     const png = img.toPNG()
     if (png.length <= 400 * 1024) return `data:image/png;base64,${png.toString('base64')}`
@@ -999,6 +1000,7 @@ export function registerIpc(): void {
 
   // ---- Follow-up ----
   handle('followUp:list', () => elencoFollowUp())
+  handle('followUp:daSentire', () => followUpDaSentire())
   handle('followUp:setStato', (id: number, stato: StatoPaziente, followUpIl: string | null) =>
     impostaStato(id, stato, followUpIl)
   )
@@ -1278,7 +1280,7 @@ export function registerIpc(): void {
           if (img.isEmpty()) {
             throw erroreSenzaDatiNelRegistro(`"${nome}" non e' leggibile.`, 'Referto non leggibile.')
           }
-          if (img.getSize().width > 1600) img = img.resize({ width: 1600, quality: 'good' })
+          img = entraNelRiquadro(img, 1600, 2400)
           tipo = 'image/jpeg'
           dati = img.toJPEG(82)
         }

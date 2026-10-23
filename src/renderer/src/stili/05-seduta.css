@@ -429,6 +429,14 @@
   margin: 0;
 }
 
+/* L'icona della sezione, davanti al titolo: sostituisce quella che stava nel
+   riquadro "nessun dato", cosi' si riconosce anche quando la sezione e' vuota. */
+.card-header-row h3 .icona-titolo {
+  vertical-align: -3px;
+  margin-right: 8px;
+  color: var(--accent);
+}
+
 /* Ogni sezione della scheda paziente dentro il suo riquadro: si riconoscono a
    colpo d'occhio invece di doverle separare leggendo i titoli. Il riquadro vale
    solo qui: nelle pagine di configurazione le sezioni sono gia' divise dalle
