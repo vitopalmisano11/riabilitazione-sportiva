@@ -189,7 +189,7 @@ function Step1Patologie({
           </button>
         </div>
       </div>
-      <div className="scelta-tiles">
+      <div className="scelta-tiles scelta-tiles-uguali">
         {filtrate.map((p, idx) => {
           const dnd = contenitore(idx)
           return (

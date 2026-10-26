@@ -191,6 +191,21 @@ textarea {
   min-height: 24px;
 }
 
+/* Piastrelle tutte della stessa altezza: quella della piastrella piu' piccola
+   (un nome su una riga, con lo spazio dell'etichetta sotto). Senza, la fila
+   con un nome lungo su tre righe diventava piu' alta delle altre. Per farci
+   stare anche tre righe il margine sopra e sotto e' piu' stretto del solito. */
+.scelta-tiles-uguali {
+  grid-auto-rows: 116px;
+}
+
+.scelta-tiles-uguali .scelta-tile {
+  min-height: 0;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  gap: 6px;
+}
+
 /* Un titolo di sezione con il suo pulsante in fondo alla riga. */
 .riga-con-pulsante {
   display: flex;
