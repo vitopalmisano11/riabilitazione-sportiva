@@ -117,3 +117,42 @@ test('La migrazione 66 conserva i promemoria di prima', () => {
   assert.deepEqual(db.pragma('foreign_key_check'), [])
   db.close()
 })
+
+// La 68 ricostruisce progressione_step per togliere il divieto di ripetere lo
+// stesso esercizio e dare una dose a ogni step: gli step di prima restano.
+test("La migrazione 68 conserva gli step di prima e ammette lo stesso esercizio piu' volte", () => {
+  const db = new Database(':memory:')
+  db.pragma('foreign_keys = ON')
+  registraFunzioniMigrazioni(db)
+  for (let i = 0; i < 67; i++) {
+    db.exec(MIGRATIONS[i])
+    db.pragma(`user_version = ${i + 1}`)
+  }
+  const cat = Number(db.prepare("INSERT INTO categorie (nome, ordine) VALUES ('Corsa', 0)").run().lastInsertRowid)
+  const e1 = Number(db.prepare("INSERT INTO esercizi (nome, categoria_id) VALUES ('Wall sit', ?)").run(cat).lastInsertRowid)
+  const e2 = Number(db.prepare("INSERT INTO esercizi (nome, categoria_id) VALUES ('Squat', ?)").run(cat).lastInsertRowid)
+  const p = Number(db.prepare("INSERT INTO progressioni (nome, ordine) VALUES ('Vertical', 0)").run().lastInsertRowid)
+  const ins = db.prepare('INSERT INTO progressione_step (progressione_id, esercizio_id, requisito, ordine) VALUES (?, ?, ?, ?)')
+  ins.run(p, e1, null, 0)
+  ins.run(p, e2, 'front squat di qualita', 1)
+  // prima il doppione era vietato
+  assert.throws(() => ins.run(p, e1, null, 2))
+
+  runMigrations(db)
+
+  assert.deepEqual(
+    db.prepare('SELECT esercizio_id, requisito, ordine, serie, ripetizioni, recupero FROM progressione_step ORDER BY ordine').all(),
+    [
+      { esercizio_id: e1, requisito: null, ordine: 0, serie: null, ripetizioni: null, recupero: null },
+      { esercizio_id: e2, requisito: 'front squat di qualita', ordine: 1, serie: null, ripetizioni: null, recupero: null }
+    ]
+  )
+  // ora lo stesso esercizio puo' tornare, con la sua dose
+  db.prepare('INSERT INTO progressione_step (progressione_id, esercizio_id, serie, ripetizioni, ordine) VALUES (?, ?, ?, ?, ?)').run(p, e1, '5', "3'", 2)
+  // eliminare la progressione porta via i suoi step, come prima
+  db.prepare('DELETE FROM progressioni WHERE id = ?').run(p)
+  assert.equal((db.prepare('SELECT COUNT(*) AS n FROM progressione_step').get() as { n: number }).n, 0)
+  assert.equal(db.pragma('integrity_check', { simple: true }), 'ok')
+  assert.deepEqual(db.pragma('foreign_key_check'), [])
+  db.close()
+})

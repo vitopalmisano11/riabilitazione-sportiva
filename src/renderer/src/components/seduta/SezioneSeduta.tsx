@@ -213,7 +213,7 @@ export default function SezioneSeduta({
             gruppi={suggeriti}
             libreria={libreria}
             inSeduta={inSeduta}
-            onAggiungi={(e) => invia({ tipo: 'aggiungi', sez: idxSez, esercizio: e })}
+            onAggiungi={(e, dose) => invia({ tipo: 'aggiungi', sez: idxSez, esercizio: e, dose })}
             onSpecchietto={onSpecchietto}
           />
           <ElencoProposte

@@ -287,6 +287,32 @@ test('Progressioni: gli esiti si scrivono solo per chi ha un esercizio in seduta
   assert.deepEqual(campiDaBozza({ data: '2026-01-01', faseId: null, note: '', sezioni: [] }).esiti, {})
 })
 
+test("Progressioni: la dose dello step finisce nella riga, e lo stesso esercizio in piu' step non sposta la scala", () => {
+  const corsa = esercizio(30, 'Corsa intervallata', 40, 'Corsa')
+  // dove lo step ha una dose, vale quella; dove manca, quella dell'esercizio
+  const s = tutte([
+    { tipo: 'aggiungi', sez: 0, esercizio: corsa, dose: { serie: '5', ripetizioni: "3' corsa", recupero: "3' cammino" } }
+  ])
+  const r = s.sezioni[0].righe[0]
+  assert.deepEqual([r.serie, r.ripetizioni, r.recupero], ['5', "3' corsa", "3' cammino"])
+  const solo = tutte([
+    { tipo: 'aggiungi', sez: 0, esercizio: corsa, dose: { serie: null, ripetizioni: "20' corsa", recupero: null } }
+  ])
+  assert.deepEqual([solo.sezioni[0].righe[0].serie, solo.sezioni[0].righe[0].ripetizioni], ['3', "20' corsa"])
+
+  // con l'esercizio gia' in seduta la scala non salta in fondo: conta lo step calcolato
+  const livelli = {
+    id: 3,
+    nome: 'Ritorno alla corsa',
+    posizione: 1,
+    completata: false,
+    step: [0, 1, 2, 3].map((k) => ({ id: 300 + k, esercizio_id: 30, esercizio_nome: 'Corsa intervallata' }))
+  } as unknown as StatoProgressione
+  const g = suggerimentiProgressioni([livelli], new Set([30]), '')
+  assert.equal(g[0].base, 1)
+  assert.deepEqual(g[0].righe.map((x) => x.step.id), [301, 302])
+})
+
 test('Progressioni: si suggerisce lo step attuale e il successivo, e lo squat in due scale resta distinto', () => {
   const scala = (id: number, nome: string, posizione: number, esercizi: [number, string][]) =>
     ({

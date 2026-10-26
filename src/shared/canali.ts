@@ -18,6 +18,7 @@ import type {
   LatoPedana
 } from './pedana'
 import type {
+  DatiStep,
   Progressione,
   ProgressioneGruppo,
   ProgressioneInput,
@@ -466,7 +467,7 @@ export interface Canali {
   'progressioni:remove': (id: number) => void
   'progressioni:reorder': (ids: number[]) => void
   'progressioni:aggiungiStep': (progressioneId: number, esercizioId: number, requisito: string | null) => number
-  'progressioni:aggiornaStep': (id: number, requisito: string | null) => void
+  'progressioni:aggiornaStep': (id: number, dati: DatiStep) => void
   'progressioni:sostituisciStep': (id: number, esercizioId: number) => void
   'progressioni:togliStep': (id: number) => void
   'progressioni:riordinaStep': (ids: number[]) => void

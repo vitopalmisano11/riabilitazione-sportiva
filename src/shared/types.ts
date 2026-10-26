@@ -1323,7 +1323,16 @@ export interface StepProgressione {
   archiviato: 0 | 1
   // Cosa deve saper fare per passare a questo step (es. "front squat di qualita'").
   requisito: string | null
+  // La dose di questo step: se manca vale quella dell'esercizio. Serve alle scale
+  // dove lo stesso esercizio si ripete (es. il ritorno alla corsa: 5 x 3' di
+  // corsa, recupero 3' di cammino) e la dose e' proprio cio' che cambia.
+  serie: string | null
+  ripetizioni: string | null
+  recupero: string | null
 }
+
+// Quello che si scrive su uno step dall'editor: il requisito e la sua dose.
+export type DatiStep = Pick<StepProgressione, 'requisito' | 'serie' | 'ripetizioni' | 'recupero'>
 
 export interface Progressione {
   id: number

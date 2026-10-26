@@ -14,6 +14,8 @@ import type {
   SedutaInput,
   Segno,
   StatoProgressione,
+  StepConStato,
+  StepProgressione,
   UltimaVolta
 } from '../../../../shared/types'
 import { caricoTesto, recuperoTesto, rirTesto, volumeTesto } from '../../../../shared/dosaggio'
@@ -99,7 +101,7 @@ export type AzioneSezioni =
   | { tipo: 'imposta'; sezioni: SezioneBuilder[] }
   | { tipo: 'valore'; sez: number; riga: number; campo: CampoRiga; valore: string }
   // con storia: si annullano con Ctrl+Z
-  | { tipo: 'aggiungi'; sez: number; esercizio: EsercizioConCategoria }
+  | { tipo: 'aggiungi'; sez: number; esercizio: EsercizioConCategoria; dose?: DoseStep }
   | { tipo: 'alVolo'; sez: number; nome: string; chiave: number }
   | { tipo: 'ricopia'; sez: number; riga: number; ultima: UltimaVolta }
   | { tipo: 'togliRiga'; sez: number; riga: number }
@@ -112,20 +114,24 @@ export type AzioneSezioni =
 
 const MASSIMO_STORIA = 50
 
-export function rigaDaLibreria(e: EsercizioConCategoria): RigaBuilder {
+// La dose scritta sullo step di una progressione: dove c'e', vale al posto di
+// quella dell'esercizio (una casella vuota lascia quella dell'esercizio).
+export type DoseStep = Pick<StepProgressione, 'serie' | 'ripetizioni' | 'recupero'>
+
+export function rigaDaLibreria(e: EsercizioConCategoria, dose?: DoseStep): RigaBuilder {
   return {
     esercizio_id: e.id,
     nome_libero: null,
     nome: e.nome,
     categoria_nome: e.categoria_nome,
     unita_carico: e.unita_carico,
-    serie: e.serie_default,
+    serie: dose?.serie ?? e.serie_default,
     cluster: e.cluster_default,
-    ripetizioni: e.ripetizioni_default,
+    ripetizioni: dose?.ripetizioni ?? e.ripetizioni_default,
     rir: e.rir_default,
     carico: e.carico_default,
     recupero_cluster: e.recupero_cluster_default,
-    recupero: e.recupero_default,
+    recupero: dose?.recupero ?? e.recupero_default,
     nota: null,
     link: e.link,
     ha_immagine: e.ha_immagine
@@ -186,7 +192,7 @@ function applica(sezioni: SezioneBuilder[], a: AzioneSezioni): { sezioni: Sezion
         if (r.categoria_nome === a.esercizio.categoria_nome) dopo = k
       })
       const righe = [...s.righe]
-      righe.splice(dopo + 1 === 0 ? righe.length : dopo + 1, 0, rigaDaLibreria(a.esercizio))
+      righe.splice(dopo + 1 === 0 ? righe.length : dopo + 1, 0, rigaDaLibreria(a.esercizio, a.dose))
       return { sezioni: inSezione(sezioni, a.sez, (x) => ({ ...x, righe })), cosa: `aggiunto ${a.esercizio.nome}` }
     }
     case 'alVolo': {
@@ -330,7 +336,7 @@ export function daProporre(
 
 // ---- suggerimenti dalle progressioni ----
 
-export type StepSuggerito = StatoProgressione['step'][number]
+export type StepSuggerito = StepConStato
 
 export interface GruppoSuggerito {
   progressione: StatoProgressione
@@ -356,7 +362,10 @@ export function suggerimentiProgressioni(
   const gruppi: GruppoSuggerito[] = []
   for (const p of stati) {
     if (p.completata) continue
-    const piuAvanti = p.step.reduce((max, s, k) => (inSeduta.has(s.esercizio_id) ? k : max), -1)
+    // Un esercizio che e' piu' step della stessa scala (stessa cosa, dose
+    // diversa) non dice a che step si e': conta solo la posizione calcolata.
+    const unico = (s: StepConStato): boolean => p.step.filter((x) => x.esercizio_id === s.esercizio_id).length === 1
+    const piuAvanti = p.step.reduce((max, s, k) => (unico(s) && inSeduta.has(s.esercizio_id) ? k : max), -1)
     const base = Math.max(p.posizione, piuAvanti)
     const righe = p.step
       .slice(base, base + 2)

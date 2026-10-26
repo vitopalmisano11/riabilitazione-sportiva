@@ -92,6 +92,13 @@ export function recuperoTesto(d: Partial<Dosaggio>): string | null {
   return serie ? `${tra} / ${serie}` : tra
 }
 
+// Il dosaggio in una riga sola, "5 × 3' di corsa, rec. 3' di cammino": per dove
+// serve leggerlo di fretta (le scale delle progressioni).
+export function doseTesto(d: Partial<Dosaggio>): string | null {
+  const recupero = recuperoTesto(d)
+  return [volumeTesto(d), recupero && `rec. ${recupero}`].filter(Boolean).join(', ') || null
+}
+
 // Il recupero spiegato, per la scheda che legge il paziente: li' lo spazio c'e'
 // e "15\" / 2'" da solo non si capisce.
 export function recuperoEsteso(d: Partial<Dosaggio>): string | null {

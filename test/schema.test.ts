@@ -28,7 +28,7 @@ afterAll(() => {
 test('Le migrazioni si applicano, anche due volte, e creano gli indici', () => {
   runMigrations(db)
   runMigrations(db) // idempotente
-  assert.equal(db.pragma('user_version', { simple: true }), 67)
+  assert.equal(db.pragma('user_version', { simple: true }), 68)
   // gli indici delle ricerche frequenti ci sono
   for (const indice of [
     'idx_segno_valori_seduta',
@@ -40,7 +40,10 @@ test('Le migrazioni si applicano, anche due volte, e creano gli indici', () => {
     'idx_questionario_punteggi_questionario',
     'idx_screening_voci_test',
     'idx_valutazione_distretti_distretto',
-    'idx_promemoria_questionario'
+    'idx_promemoria_questionario',
+    // migrazione 68: la tabella si ricostruisce, gli indici tornano
+    'idx_progressione_step_esercizio',
+    'idx_progressione_step_progressione'
   ]) {
     assert.ok(
       db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = ?").get(indice),

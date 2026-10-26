@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Pencil, Plus, Replace, Trash2, X } from 'lucide-react'
-import type { EsercizioConCategoria, Progressione, ProgressioneGruppo } from '../../../shared/types'
+import type {
+  DatiStep,
+  EsercizioConCategoria,
+  Progressione,
+  ProgressioneGruppo,
+  StepProgressione
+} from '../../../shared/types'
 import { errMsg } from '../lib'
 import { useRiordinoSalvato } from '../riordino'
 import { toastErrore } from './Toast'
@@ -11,7 +17,8 @@ import SceltaConRicerca from './SceltaConRicerca'
 // La linguetta "Progressioni" della libreria: le scale di esercizi a step
 // (es. Vertical braking: wall sit → front squat → drop catch...). Uno step
 // rimanda a un esercizio della libreria, che resta li' dov'e': lo stesso
-// esercizio puo' essere step di piu' progressioni. A sinistra l'elenco per
+// esercizio puo' essere step di piu' progressioni, e anche piu' volte della
+// stessa (con una dose diversa su ogni step). A sinistra l'elenco per
 // gruppo, a destra la progressione scelta.
 export default function ProgressioniLibreria(): React.JSX.Element {
   const [gruppi, setGruppi] = useState<ProgressioneGruppo[]>([])
@@ -321,11 +328,8 @@ function EditorProgressione({
     }
   }
 
-  const gia = new Set(p.step.map((s) => s.esercizio_id))
   const q = ricerca.trim().toLowerCase()
-  const trovati = libreria
-    .filter((e) => !gia.has(e.id) && (q === '' ? false : e.nome.toLowerCase().includes(q)))
-    .slice(0, 10)
+  const trovati = libreria.filter((e) => (q === '' ? false : e.nome.toLowerCase().includes(q))).slice(0, 10)
 
   return (
     <div className="editor-progressione">
@@ -369,7 +373,7 @@ function EditorProgressione({
 
       <div className="sotto-titolo">
         Step, in ordine
-        <Aiuto testo="Si supera uno step alla volta. Il «requisito» è quello che deve saper fare per arrivarci (es. «solo se il front squat è di qualità»). Trascina per cambiare l'ordine." />
+        <Aiuto testo="Si supera uno step alla volta. Il «requisito» è quello che deve saper fare per arrivarci (es. «solo se il front squat è di qualità»). Serie, ripetizioni e recupero dello step, se li scrivi, valgono al posto di quelli dell'esercizio: così lo stesso esercizio può essere più step, ognuno con la sua dose. Trascina per cambiare l'ordine." />
       </div>
 
       {p.step.length === 0 && <p className="hint">Nessuno step.</p>}
@@ -383,9 +387,10 @@ function EditorProgressione({
                 {s.esercizio_nome}
                 {s.archiviato === 1 && <em className="hint"> (archiviato)</em>}
               </span>
-              <RequisitoStep
-                valore={s.requisito}
-                onSalva={(v) => run(() => window.api.progressioni.aggiornaStep(s.id, v))}
+              <CampiStep
+                step={s}
+                predefiniti={libreria.find((e) => e.id === s.esercizio_id)}
+                onSalva={(dati) => run(() => window.api.progressioni.aggiornaStep(s.id, dati))}
               />
               <span className="step-azioni">
                 <button
@@ -433,7 +438,7 @@ function EditorProgressione({
             }}
           />
           {q !== '' && trovati.length === 0 && (
-            <p className="hint">Nessun esercizio con questo nome (o è già uno step). Crealo prima nella libreria.</p>
+            <p className="hint">Nessun esercizio con questo nome. Crealo prima nella libreria.</p>
           )}
           <ul className="esercizi-proposti">
             {trovati.map((e) => (
@@ -470,21 +475,62 @@ function EditorProgressione({
   )
 }
 
-// Il requisito di uno step si scrive sul posto e si salva uscendo dalla casella.
-function RequisitoStep({
-  valore,
+// Il requisito e la dose di uno step si scrivono sul posto e si salvano uscendo
+// dalla casella. Le caselle della dose vuote valgono quanto l'esercizio: per
+// questo ne mostrano il valore, in grigio.
+function CampiStep({
+  step,
+  predefiniti,
   onSalva
 }: {
-  valore: string | null
-  onSalva: (v: string | null) => Promise<void>
+  step: StepProgressione
+  predefiniti: EsercizioConCategoria | undefined
+  onSalva: (dati: DatiStep) => Promise<void>
 }): React.JSX.Element {
-  const [testo, setTesto] = useState(valore ?? '')
+  const [dati, setDati] = useState<DatiStep>({
+    requisito: step.requisito ?? '',
+    serie: step.serie ?? '',
+    ripetizioni: step.ripetizioni ?? '',
+    recupero: step.recupero ?? ''
+  })
+  const salva = (): void => {
+    const pulito: DatiStep = {
+      requisito: dati.requisito?.trim() || null,
+      serie: dati.serie?.trim() || null,
+      ripetizioni: dati.ripetizioni?.trim() || null,
+      recupero: dati.recupero?.trim() || null
+    }
+    const cambiato =
+      pulito.requisito !== step.requisito ||
+      pulito.serie !== step.serie ||
+      pulito.ripetizioni !== step.ripetizioni ||
+      pulito.recupero !== step.recupero
+    if (cambiato) void onSalva(pulito)
+  }
+  const casella = (campo: 'serie' | 'ripetizioni' | 'recupero', etichetta: string, predefinito: string | null | undefined) => (
+    <label title={`${etichetta} di questo step. Vuoto: vale quello dell'esercizio.`}>
+      {etichetta}
+      <input
+        placeholder={predefinito || '—'}
+        value={dati[campo] ?? ''}
+        onChange={(e) => setDati({ ...dati, [campo]: e.target.value })}
+        onBlur={salva}
+      />
+    </label>
+  )
   return (
-    <input
-      placeholder="requisito per arrivarci…"
-      value={testo}
-      onChange={(e) => setTesto(e.target.value)}
-      onBlur={() => testo.trim() !== (valore ?? '') && void onSalva(testo.trim() || null)}
-    />
+    <>
+      <input
+        placeholder="requisito per arrivarci…"
+        value={dati.requisito ?? ''}
+        onChange={(e) => setDati({ ...dati, requisito: e.target.value })}
+        onBlur={salva}
+      />
+      <div className="step-dose">
+        {casella('serie', 'Serie', predefiniti?.serie_default)}
+        {casella('ripetizioni', 'Ripetizioni', predefiniti?.ripetizioni_default)}
+        {casella('recupero', 'Recupero', predefiniti?.recupero_default)}
+      </div>
+    </>
   )
 }

@@ -8,6 +8,7 @@ import { eliminaConCestino, nomeDi } from './cestino'
 import { elencoSemplice, prossimoOrdine, riordina } from './elenchi'
 import { posizioneInProgressione, type EsitoDatato } from '../shared/progressioni'
 import type {
+  DatiStep,
   EsitoProgressione,
   Progressione,
   ProgressioneInput,
@@ -32,7 +33,7 @@ export function elencoProgressioni(): Progressione[] {
   const step = db
     .prepare(
       `SELECT s.id, s.progressione_id, s.esercizio_id, e.nome AS esercizio_nome,
-              e.archiviato, s.requisito
+              e.archiviato, s.requisito, s.serie, s.ripetizioni, s.recupero
        FROM progressione_step s JOIN esercizi e ON e.id = s.esercizio_id
        ORDER BY s.ordine, s.id`
     )
@@ -77,14 +78,11 @@ export function eliminaProgressione(id: number): void {
 
 export const riordinaProgressioni = (ids: number[]): void => riordina('progressioni', ids)
 
+// Lo stesso esercizio puo' essere piu' step della stessa scala: succede quando
+// a cambiare e' la dose (il ritorno alla corsa) e non l'esercizio.
 export function aggiungiStep(progressioneId: number, esercizioId: number, requisito: string | null): number {
-  const db = getDb()
-  const gia = db
-    .prepare('SELECT 1 FROM progressione_step WHERE progressione_id = ? AND esercizio_id = ?')
-    .get(progressioneId, esercizioId)
-  if (gia) throw new Error('Questo esercizio è già uno step di questa progressione.')
   return Number(
-    db
+    getDb()
       .prepare('INSERT INTO progressione_step (progressione_id, esercizio_id, requisito, ordine) VALUES (?, ?, ?, ?)')
       .run(
         progressioneId,
@@ -95,24 +93,21 @@ export function aggiungiStep(progressioneId: number, esercizioId: number, requis
   )
 }
 
-export function aggiornaStep(id: number, requisito: string | null): void {
-  getDb().prepare('UPDATE progressione_step SET requisito = ? WHERE id = ?').run(vuotoNull(requisito), id)
+// Il requisito e la dose di uno step; una casella vuota vuol dire "come
+// l'esercizio".
+export function aggiornaStep(id: number, dati: DatiStep): void {
+  getDb()
+    .prepare('UPDATE progressione_step SET requisito = ?, serie = ?, ripetizioni = ?, recupero = ? WHERE id = ?')
+    .run(vuotoNull(dati.requisito), vuotoNull(dati.serie), vuotoNull(dati.ripetizioni), vuotoNull(dati.recupero), id)
 }
 
-// Cambia l'esercizio di uno step lasciandolo al suo posto (con il suo requisito):
-// serve soprattutto quando l'esercizio e' stato archiviato. Gli esiti sono della
-// progressione, non dello step, quindi lo step dei pazienti non si sposta.
+// Cambia l'esercizio di uno step lasciandolo al suo posto (con il suo requisito
+// e la sua dose): serve soprattutto quando l'esercizio e' stato archiviato. Gli
+// esiti sono della progressione, non dello step, quindi lo step dei pazienti non
+// si sposta.
 export function sostituisciStep(id: number, esercizioId: number): void {
-  const db = getDb()
-  const step = db.prepare('SELECT progressione_id FROM progressione_step WHERE id = ?').get(id) as
-    | { progressione_id: number }
-    | undefined
-  if (!step) throw new Error('Step non trovato.')
-  const gia = db
-    .prepare('SELECT 1 FROM progressione_step WHERE progressione_id = ? AND esercizio_id = ? AND id <> ?')
-    .get(step.progressione_id, esercizioId, id)
-  if (gia) throw new Error('Questo esercizio è già uno step di questa progressione.')
-  db.prepare('UPDATE progressione_step SET esercizio_id = ? WHERE id = ?').run(esercizioId, id)
+  const { changes } = getDb().prepare('UPDATE progressione_step SET esercizio_id = ? WHERE id = ?').run(esercizioId, id)
+  if (changes === 0) throw new Error('Step non trovato.')
 }
 
 // Togliere uno step non tocca le sedute: cambia solo la scala, e lo step di chi

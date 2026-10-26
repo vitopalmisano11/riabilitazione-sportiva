@@ -1652,6 +1652,33 @@ export const MIGRATIONS: string[] = [
   CREATE INDEX IF NOT EXISTS idx_fase_progressioni_progressione ON fase_progressioni(progressione_id);
   CREATE INDEX IF NOT EXISTS idx_promemoria_questionario ON promemoria(questionario_id);
   CREATE INDEX IF NOT EXISTS idx_promemoria_protocollo ON promemoria(protocollo_id);
+  `,
+
+  // 68 - la dose sta sullo step, e lo stesso esercizio puo' ripetersi nella
+  //      stessa progressione. Serve a scale come il ritorno alla corsa (otto
+  //      livelli di cammino/corsa): un esercizio solo, "Corsa intervallata", e
+  //      ogni step dice la sua dose (5 x 3' di corsa, recupero 3' di cammino),
+  //      cosi' cambiare il rapporto vuol dire cambiare lo step, non otto
+  //      esercizi. Senza dose sullo step vale quella dell'esercizio, quindi le
+  //      progressioni che ci sono gia' restano com'erano. Si ricostruisce la
+  //      tabella per togliere UNIQUE (progressione_id, esercizio_id).
+  `
+  CREATE TABLE progressione_step_nuova (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    progressione_id INTEGER NOT NULL REFERENCES progressioni(id) ON DELETE CASCADE,
+    esercizio_id INTEGER NOT NULL REFERENCES esercizi(id),
+    requisito TEXT,
+    ordine INTEGER NOT NULL DEFAULT 0,
+    serie TEXT,
+    ripetizioni TEXT,
+    recupero TEXT
+  );
+  INSERT INTO progressione_step_nuova (id, progressione_id, esercizio_id, requisito, ordine)
+    SELECT id, progressione_id, esercizio_id, requisito, ordine FROM progressione_step;
+  DROP TABLE progressione_step;
+  ALTER TABLE progressione_step_nuova RENAME TO progressione_step;
+  CREATE INDEX idx_progressione_step_esercizio ON progressione_step(esercizio_id);
+  CREATE INDEX idx_progressione_step_progressione ON progressione_step(progressione_id);
   `
 ]
 

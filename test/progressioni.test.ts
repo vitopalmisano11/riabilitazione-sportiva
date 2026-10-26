@@ -7,6 +7,7 @@ import { getDb } from '../src/main/db'
 import { creaCategoria, creaEsercizio, eliminaEsercizio } from '../src/main/esercizi'
 import {
   aggiornaProgressione,
+  aggiornaStep,
   aggiungiStep,
   creaProgressione,
   elencoProgressioni,
@@ -239,10 +240,9 @@ test('Un gruppo collegato alla fase vale anche per le progressioni aggiunte dopo
   assert.equal(statoProgressioni(paz, null, '2099-12-31', null, true).length, tutte.length)
 })
 
-test('Un esercizio che e\' uno step non si elimina, ne\' due volte nella stessa scala', () => {
-  const { prog, esercizi } = scenario()
+test('Un esercizio che e\' uno step non si elimina', () => {
+  const { esercizi } = scenario()
   assert.throws(() => eliminaEsercizio(esercizi[0]), /uno step di una progressione.*Vertical braking/)
-  assert.throws(() => aggiungiStep(prog, esercizi[0], null), /già uno step/)
 
   // lo stesso esercizio puo' stare in piu' progressioni
   const altra = creaProgressione('Altra scala', null)
@@ -268,8 +268,9 @@ test("Si cambia l'esercizio di uno step: stesso posto e stesso requisito, mai un
   )
   assert.equal(dopo[2].esercizio_id, nuovo)
   assert.equal(dopo[2].requisito, terzo.requisito)
-  // un esercizio gia' presente nella scala non si ripete
-  assert.throws(() => sostituisciStep(terzo.id, esercizi[0]), /già uno step/)
+  // anche un esercizio gia' presente nella scala: lo stesso puo' valere piu' step
+  sostituisciStep(terzo.id, esercizi[0])
+  assert.equal(elencoProgressioni().find((p) => p.id === prog)!.step[2].esercizio_id, esercizi[0])
   assert.throws(() => sostituisciStep(999999, nuovo), /non trovato/)
 })
 
@@ -289,4 +290,41 @@ test('Gruppi e progressioni nel cestino: si rimettono com\'erano', () => {
   assert.equal(elencoProgressioni().some((p) => p.id === prog), false)
   ripristina(elencoCestino().find((v) => v.tipo === 'Progressione di esercizi')!.id)
   assert.equal(elencoProgressioni().find((p) => p.id === prog)!.step.length, 3)
+})
+
+// Il ritorno alla corsa: un esercizio solo e piu' step, ognuno con la sua dose.
+test("Lo stesso esercizio puo' essere piu' step della stessa scala, ognuno con la sua dose", () => {
+  const { paz, fase, gruppo } = scenario()
+  const corsa = esercizio(creaCategoria(`Corsa ${Math.random()}`), `Corsa intervallata ${Math.random()}`)
+  const prog = creaProgressione('Ritorno alla corsa', gruppo)
+  const step = [1, 2, 3].map(() => aggiungiStep(prog, corsa, null))
+  const leggi = () => elencoProgressioni().find((p) => p.id === prog)!.step
+
+  // all'inizio nessuna dose: vale quella dell'esercizio
+  assert.deepEqual(
+    leggi().map((s) => [s.serie, s.ripetizioni, s.recupero]),
+    [[null, null, null], [null, null, null], [null, null, null]]
+  )
+
+  aggiornaStep(step[0], { requisito: null, serie: '5', ripetizioni: "1' corsa", recupero: "5' cammino" })
+  aggiornaStep(step[1], { requisito: 'dolore al massimo 2/10', serie: ' 5 ', ripetizioni: "2' corsa", recupero: '   ' })
+  const dopo = leggi()
+  assert.deepEqual([dopo[0].serie, dopo[0].ripetizioni, dopo[0].recupero], ['5', "1' corsa", "5' cammino"])
+  // gli spazi si tolgono e una casella vuota torna a "come l'esercizio"
+  assert.deepEqual(
+    [dopo[1].serie, dopo[1].ripetizioni, dopo[1].recupero, dopo[1].requisito],
+    ['5', "2' corsa", null, 'dolore al massimo 2/10']
+  )
+
+  // il paziente sale la scala come sempre, anche se gli step sono lo stesso esercizio
+  seduta(paz, fase, '2026-09-01', [{ progressione_id: prog, esito: 'avanza' }])
+  const r = stato(paz, fase).find((p) => p.id === prog)!
+  assert.equal(r.posizione, 1)
+  assert.deepEqual(r.step.map((x) => x.stato), ['fatto', 'attuale', 'da_sbloccare'])
+  assert.equal(r.step[1].ripetizioni, "2' corsa")
+
+  // cambiare la dose di uno step non sposta nessuno
+  aggiornaStep(step[2], { requisito: null, serie: '5', ripetizioni: "3' corsa", recupero: "3' cammino" })
+  assert.equal(stato(paz, fase).find((p) => p.id === prog)!.posizione, 1)
+  assert.deepEqual(leggi().map((s) => s.id), step)
 })

@@ -193,6 +193,24 @@
   grid-row: 2;
 }
 
+/* la dose dello step: tre caselle strette sotto al requisito */
+.step-editor .step-dose {
+  grid-column: 2 / 3;
+  grid-row: 3;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.step-editor .step-dose label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-dim);
+}
+
 .step-editor li > .step-azioni {
   grid-column: 3;
   grid-row: 1;

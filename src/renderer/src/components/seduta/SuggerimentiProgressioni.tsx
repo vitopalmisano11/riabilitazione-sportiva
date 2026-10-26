@@ -1,13 +1,14 @@
 import { Lock, Plus } from 'lucide-react'
 import type { EsercizioConCategoria } from '../../../../shared/types'
-import type { GruppoSuggerito } from './modello'
+import { doseTesto } from '../../../../shared/dosaggio'
+import type { DoseStep, GruppoSuggerito } from './modello'
 
 interface Props {
   gruppi: GruppoSuggerito[]
   libreria: EsercizioConCategoria[]
   // gli esercizi gia' messi in questa seduta, in qualunque sezione
   inSeduta: Set<number>
-  onAggiungi: (e: EsercizioConCategoria) => void
+  onAggiungi: (e: EsercizioConCategoria, dose: DoseStep) => void
   onSpecchietto: () => void
 }
 
@@ -22,6 +23,10 @@ interface Props {
 // di essere ripetuto su ogni riga: cosi' lo stesso esercizio (lo squat) in due
 // scale diverse si distingue a colpo d'occhio e lo schermo resta pulito. Il
 // calcolo di cosa mostrare sta in modello.ts (suggerimentiProgressioni).
+//
+// Dove lo step ha una sua dose (il ritorno alla corsa: lo stesso esercizio, una
+// dose per livello) si vede accanto al nome e, aggiungendo, e' quella a finire
+// nella riga.
 export default function SuggerimentiProgressioni({
   gruppi,
   libreria,
@@ -56,12 +61,16 @@ export default function SuggerimentiProgressioni({
                     className="btn-aggiungi-riga"
                     title={e ? `Aggiungi ${s.esercizio_nome} (${p.nome})` : 'Esercizio archiviato: non si può aggiungere'}
                     disabled={!e || giaQui}
-                    onClick={() => e && onAggiungi(e)}
+                    onClick={() => e && onAggiungi(e, s)}
                   >
                     {indice === 0 ? <Plus size={16} /> : <Lock size={14} />}
                   </button>
                   <span className="item-nome">{s.esercizio_nome}</span>
-                  <span className="default-hint">{giaQui ? 'già in seduta' : indice === 0 ? '' : s.requisito}</span>
+                  <span className="default-hint">
+                    {[doseTesto(s), indice === 0 ? (giaQui ? 'già in seduta' : '') : s.requisito]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </span>
                 </li>
               )
             })}

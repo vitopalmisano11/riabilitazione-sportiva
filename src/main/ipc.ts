@@ -299,6 +299,7 @@ import type {
   TipoRelazione,
   StatoPaziente,
   ProgressioneGruppo,
+  DatiStep,
   ProgressioneInput,
   ProgressioniFase,
   TermineObiettivo,
@@ -1210,7 +1211,7 @@ export function registerIpc(): void {
   handle('progressioni:aggiungiStep', (progressioneId: number, esercizioId: number, requisito: string | null) =>
     aggiungiStep(progressioneId, esercizioId, requisito)
   )
-  handle('progressioni:aggiornaStep', (id: number, requisito: string | null) => aggiornaStep(id, requisito))
+  handle('progressioni:aggiornaStep', (id: number, dati: DatiStep) => aggiornaStep(id, dati))
   handle('progressioni:sostituisciStep', (id: number, esercizioId: number) => sostituisciStep(id, esercizioId))
   handle('progressioni:togliStep', (id: number) => togliStep(id))
   handle('progressioni:riordinaStep', (ids: number[]) => riordinaStep(ids))
