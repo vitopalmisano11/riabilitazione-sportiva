@@ -113,6 +113,8 @@
   background: var(--accent-soft);
   border-radius: var(--radius-sm);
   font-size: 14px;
+  /* le istruzioni lunghe hanno paragrafi (obiettivo, svolgimento...) */
+  white-space: pre-line;
 }
 
 /* Scorre tutto insieme, domande e note: cosi' le note si incontrano dopo

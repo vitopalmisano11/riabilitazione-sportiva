@@ -502,3 +502,56 @@ test('Questionari: IKDC pronto, punteggio da 0 a 100', () => {
   assert.equal(totale(true), 100)
   assert.equal(totale(false), 0)
 })
+
+// La LESS pronta: 17 voci, punti da 0 a 19, e dove il Sì vale 0 o 1 come sulla scheda.
+test('Questionari: LESS pronta, 17 voci da 0 a 19 e le tre fasce', () => {
+  const db = getDb()
+  const cat = Number(
+    db.prepare("INSERT INTO questionario_categorie (nome, ordine) VALUES ('Atterraggio', 10)").run().lastInsertRowid
+  )
+  const id = creaDaModello('less', cat)
+  const q = leggiQuestionario(id)
+  assert.equal(q.domande.length, 17)
+  assert.equal(q.punteggi[0].domanda_ids.length, 17)
+  // ogni voce dice su quale piano si guarda
+  assert.ok(q.domande.every((d) => /piano (sagittale|frontale)/.test(d.testo)))
+  // otto solo frontali, otto solo sagittali, e l'impressione generale che li cita entrambi
+  assert.equal(q.domande.filter((d) => d.testo.includes('piano frontale')).length, 9)
+  assert.equal(q.domande.filter((d) => d.testo.includes('piano sagittale')).length, 9)
+  assert.equal(q.questionario.istruzioni?.includes('pedana alta circa 30 cm'), true)
+
+  const punti = (d: (typeof q.domande)[number], etichetta: string): number =>
+    d.opzioni.find((o) => o.etichetta === etichetta)!.punteggio
+  // il ginocchio flesso oltre 30° e' giusto (Sì = 0); il valgo al contatto e' un errore (Sì = 1)
+  assert.deepEqual([punti(q.domande[0], 'Sì'), punti(q.domande[0], 'No')], [0, 1])
+  assert.deepEqual([punti(q.domande[4], 'Sì'), punti(q.domande[4], 'No')], [1, 0])
+  assert.deepEqual([punti(q.domande[10], 'Sì'), punti(q.domande[10], 'No')], [0, 1])
+
+  const rispondi = (alto: boolean): { domanda_id: number; valore: number }[] =>
+    q.domande.map((d) => {
+      const p = d.opzioni.map((o) => o.punteggio)
+      return { domanda_id: d.id as number, valore: alto ? Math.max(...p) : Math.min(...p) }
+    })
+  const tutto = (alto: boolean) => calcola(id, rispondi(alto))
+  assert.equal(tutto(false).punteggi[0].valore, 0)
+  assert.equal(tutto(false).fascia, 'Buona tecnica, basso rischio')
+  assert.equal(tutto(true).punteggi[0].valore, 19)
+  assert.equal(tutto(true).fascia, 'Scarsa qualità del movimento')
+
+  // 4 buono, 5 e 6 discreto, 7 scarso: i confini della scheda
+  const conTotale = (n: number): string | null => {
+    const r = rispondi(false)
+    let resto = n
+    for (const x of r) {
+      const d = q.domande.find((y) => y.id === x.domanda_id)!
+      const massimo = Math.max(...d.opzioni.map((o) => o.punteggio))
+      x.valore = Math.min(massimo, resto)
+      resto -= x.valore
+    }
+    return calcola(id, r).fascia
+  }
+  assert.equal(conTotale(4), 'Buona tecnica, basso rischio')
+  assert.equal(conTotale(5), 'Tecnica discreta o moderatamente deficitaria')
+  assert.equal(conTotale(6), 'Tecnica discreta o moderatamente deficitaria')
+  assert.equal(conTotale(7), 'Scarsa qualità del movimento')
+})
