@@ -13,6 +13,16 @@ export function impostaCopiaPrimaDelleMigrazioni(fn: (versione: number) => void)
   copiaPrimaDelleMigrazioni = fn
 }
 
+// Cosa fare appena l'archivio e' aperto e a posto (i questionari pronti, che
+// si mettono da soli una volta sola). Si registra da fuori, come la copia qui
+// sopra, cosi' questo file non dipende da chi scrive nell'archivio e le prove
+// restano su un archivio vuoto.
+let dopoApertura: (() => void) | null = null
+
+export function impostaDopoApertura(fn: () => void): void {
+  dopoApertura = fn
+}
+
 const HEADER_PLAINTEXT = 'SQLite format 3\u0000'
 
 export function isPlaintextDb(path: string): boolean {
@@ -63,6 +73,13 @@ export function initDb(path: string, dekHex: string): void {
   }
   db = conn
   dekCorrente = dekHex
+  // Un intoppo qui non deve impedire di entrare: l'archivio e' a posto, al
+  // prossimo avvio si riprova.
+  try {
+    dopoApertura?.()
+  } catch (e) {
+    console.error('Operazioni dopo l’apertura non riuscite:', e)
+  }
 }
 
 export function closeDb(): void {

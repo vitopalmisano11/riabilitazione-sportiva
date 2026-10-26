@@ -370,8 +370,6 @@ export interface Canali {
   'questionari:list': (includiArchiviati: boolean) => Questionario[]
   'questionari:get': (id: number) => QuestionarioCompleto
   'questionari:create': (nome: string, categoriaId: number) => number
-  // Crea nella categoria un questionario gia' scritto (es. 'ikdc').
-  'questionari:daModello': (chiave: string, categoriaId: number) => number
   // Salva il questionario intero in una volta: le domande conservano il
   // proprio id, quelle sparite vengono eliminate. Cosi' le compilazioni gia'
   // fatte continuano a puntare alle domande giuste.
@@ -789,7 +787,6 @@ export const MAPPA_API = {
     list: 'questionari:list',
     get: 'questionari:get',
     create: 'questionari:create',
-    daModello: 'questionari:daModello',
     salva: 'questionari:salva',
     daRicalcolare: 'questionari:daRicalcolare',
     ricalcolaCompilazioni: 'questionari:ricalcolaCompilazioni',

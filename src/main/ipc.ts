@@ -236,7 +236,6 @@ import {
   leggiScreening,
   salvaValori
 } from './screening-sessioni'
-import { creaDaModello } from './questionari-pronti'
 import {
   contaInScadenza,
   creaPromemoria,
@@ -1080,7 +1079,6 @@ export function registerIpc(): void {
         .run(nome.trim(), categoriaId, next).lastInsertRowid
     )
   })
-  handle('questionari:daModello', (chiave: string, categoriaId: number) => creaDaModello(chiave, categoriaId))
   handle('questionari:salva', (dati: QuestionarioCompleto) => salvaQuestionario(dati))
   handle('questionari:daRicalcolare', (id: number) => contaDaRicalcolare(id))
   handle('questionari:ricalcolaCompilazioni', (id: number) => ricalcolaQuestionario(id))

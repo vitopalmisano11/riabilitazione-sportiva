@@ -83,30 +83,6 @@ export function ElencoQuestionari({
             onChange={(e) => setRicerca(e.target.value)}
           />
           <button
-            title="Aggiungi l’IKDC già pronto, in italiano"
-            onClick={() =>
-              void run(async () => {
-                const id = await window.api.questionari.daModello('ikdc', categoriaId)
-                await onChanged()
-                onApri(id)
-              })
-            }
-          >
-            + IKDC pronto
-          </button>
-          <button
-            title="Aggiungi la LESS (Landing Error Scoring System) già pronta, in italiano"
-            onClick={() =>
-              void run(async () => {
-                const id = await window.api.questionari.daModello('less', categoriaId)
-                await onChanged()
-                onApri(id)
-              })
-            }
-          >
-            + LESS pronta
-          </button>
-          <button
             className="primary btn-icona"
             title="Aggiungi un questionario"
             onClick={() => setNuovoAperto(true)}

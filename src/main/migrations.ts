@@ -1679,6 +1679,16 @@ export const MIGRATIONS: string[] = [
   ALTER TABLE progressione_step_nuova RENAME TO progressione_step;
   CREATE INDEX idx_progressione_step_esercizio ON progressione_step(esercizio_id);
   CREATE INDEX idx_progressione_step_progressione ON progressione_step(progressione_id);
+  `,
+
+  // 69 - cio' che il programma mette da solo nell'archivio, una volta sola (i
+  //      questionari pronti: IKDC e LESS, nelle loro categorie). Il segno resta
+  //      anche se poi l'utente elimina la voce: non deve rinascere a ogni avvio.
+  `
+  CREATE TABLE installazioni (
+    chiave TEXT PRIMARY KEY,
+    installato_il TEXT NOT NULL DEFAULT (datetime('now'))
+  );
   `
 ]
 

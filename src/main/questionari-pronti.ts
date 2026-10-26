@@ -1,7 +1,8 @@
-// Questionari già scritti, da aggiungere con un clic invece di ricopiarli a mano.
+// Questionari già scritti (IKDC, LESS), che il programma mette da solo
+// nell'archivio, ognuno nella sua categoria, la prima volta che lo si apre.
 //
-// Si creano come un questionario qualunque (poi si modificano come gli altri):
-// qui c'è solo il testo. La traduzione italiana è nostra, non una versione
+// Si creano come un questionario qualunque (poi si modificano, si spostano o si
+// eliminano come gli altri): qui c'è solo il testo. La traduzione italiana è nostra, non una versione
 // validata: per l'uso clinico ufficiale conviene confrontarla con la versione
 // italiana autorizzata del questionario.
 import { getDb } from './db'
@@ -348,4 +349,44 @@ export function creaDaModello(chiaveModello: string, categoriaId: number): numbe
     salvaQuestionario({ ...dati, questionario: { ...dati.questionario, id, categoria_id: categoriaId, ordine: next } })
     return id
   })()
+}
+
+// Dove va ogni questionario pronto. Una categoria con quel nome (maiuscole a
+// parte) si riusa, altrimenti si crea.
+const CATEGORIE_PRONTI: { chiave: string; categoria: string }[] = [
+  { chiave: 'ikdc', categoria: 'Ginocchio' },
+  { chiave: 'less', categoria: 'Qualità del movimento' }
+]
+
+function categoriaPerNome(nome: string): number {
+  const db = getDb()
+  const trovata = db.prepare('SELECT id FROM questionario_categorie WHERE nome = ? COLLATE NOCASE').get(nome) as
+    | { id: number }
+    | undefined
+  if (trovata) return trovata.id
+  const { next } = db.prepare('SELECT COALESCE(MAX(ordine), -1) + 1 AS next FROM questionario_categorie').get() as {
+    next: number
+  }
+  return Number(db.prepare('INSERT INTO questionario_categorie (nome, ordine) VALUES (?, ?)').run(nome, next).lastInsertRowid)
+}
+
+// Mette nell'archivio i questionari pronti che non ci sono ancora, ognuno nella
+// sua categoria. Si fa una volta sola per questionario: il segno resta in
+// `installazioni` anche se poi lo si elimina, perche' non deve rinascere a ogni
+// avvio. Se ce n'e' gia' uno con lo stesso nome (creato a mano) non se ne fa un
+// secondo.
+export function installaQuestionariPronti(): void {
+  const db = getDb()
+  for (const { chiave, categoria } of CATEGORIE_PRONTI) {
+    const segno = `questionario:${chiave}`
+    if (db.prepare('SELECT 1 FROM installazioni WHERE chiave = ?').get(segno)) continue
+    const modello = MODELLI.find((m) => m.chiave === chiave)
+    if (!modello) continue
+    db.transaction(() => {
+      if (!db.prepare('SELECT 1 FROM questionari WHERE nome = ?').get(modello.nome)) {
+        creaDaModello(chiave, categoriaPerNome(categoria))
+      }
+      db.prepare('INSERT INTO installazioni (chiave) VALUES (?)').run(segno)
+    })()
+  }
 }

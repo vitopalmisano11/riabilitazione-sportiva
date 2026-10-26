@@ -11,7 +11,8 @@ import {
   posizioneFinestra
 } from './impostazioni'
 import { attendiCopie, backupDiChiusura, copiaInCorso, copiaPrimaDellaMigrazione } from './backup'
-import { impostaCopiaPrimaDelleMigrazioni } from './db'
+import { impostaCopiaPrimaDelleMigrazioni, impostaDopoApertura } from './db'
+import { installaQuestionariPronti } from './questionari-pronti'
 import { barraDisegnata } from './finestre'
 import { ripulisciTemporanei, usaCartellaTemporanei } from './temporanei'
 import icona from '../../resources/icon.png?asset'
@@ -154,6 +155,8 @@ app.whenReady().then(() => {
   if (!primaCopia) return
   // Prima di ogni aggiornamento dello schema dell'archivio, una copia com'era.
   impostaCopiaPrimaDelleMigrazioni(copiaPrimaDellaMigrazione)
+  // IKDC e LESS nelle loro categorie, la prima volta che si apre l'archivio.
+  impostaDopoApertura(installaQuestionariPronti)
   // Resti di una chiusura andata male: un referto rimasto aperto altrove, o
   // un'anteprima non cancellata.
   ripulisciTemporanei()
