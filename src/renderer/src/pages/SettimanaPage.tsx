@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import {
   CalendarDays,
   ChevronLeft,
@@ -189,7 +189,9 @@ Finisce nel cestino: puoi rimetterla a posto da Impostazioni entro un mese.`
   // ricaricamento non riportano su mentre si sta lavorando piu' in basso.
   const giornoOggi = useRef<HTMLDivElement | null>(null)
   const scorsaPer = useRef<string | null>(null)
-  useEffect(() => {
+  // useLayoutEffect: lo scorrimento avviene prima che la pagina sia disegnata,
+  // cosi' non si vede la lista partire dall'alto e saltare.
+  useLayoutEffect(() => {
     if (caricataPer !== iso(lunedi) || scorsaPer.current === caricataPer || !giornoOggi.current) return
     scorsaPer.current = caricataPer
     giornoOggi.current.scrollIntoView({ block: 'start' })
@@ -306,7 +308,11 @@ Finisce nel cestino: puoi rimetterla a posto da Impostazioni entro un mese.`
         </div>
       </div>
 
-      <section className="card settimana-card">
+      <section
+        className="card settimana-card"
+        // alla prima apertura resta nascosta finche' le sedute non sono arrivate
+        style={caricataPer === null ? { visibility: 'hidden' } : undefined}
+      >
         {giorni.map((g) => (
           <div
             key={g.data}

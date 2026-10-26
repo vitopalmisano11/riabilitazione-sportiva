@@ -429,6 +429,16 @@
   line-height: 1.25;
 }
 
+/* La variante sta sotto al nome, nel colore dell'app: il paziente deve vedere
+   a colpo d'occhio se l'esercizio e' quello normale o con qualcosa in piu'. */
+.tabella-scheda .variante {
+  display: block;
+  margin-top: 2px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
 /* La nota sta sotto al nome e in corsivo: e' un'indicazione, non un dato da
    incolonnare, e nessuno la cerca in una colonna. */
 .tabella-scheda .nota-es {

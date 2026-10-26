@@ -1689,6 +1689,32 @@ export const MIGRATIONS: string[] = [
     chiave TEXT PRIMARY KEY,
     installato_il TEXT NOT NULL DEFAULT (datetime('now'))
   );
+  `,
+
+  // 70 - le varianti di un esercizio. L'equilibrio monopodalico si fa normale o
+  //      con uno stimolo (un conteggio, delle luci, una palla): e' lo stesso
+  //      esercizio, ma sulla scheda il paziente deve sapere quale dei due. Le
+  //      varianti si scrivono sull'esercizio della libreria, dalla piu' facile
+  //      alla piu' difficile; quasi tutti gli esercizi non ne hanno e non
+  //      cambia niente.
+  //
+  //      Sulla riga della seduta si salva il testo della variante, come per la
+  //      dose: rinominarla o toglierla dalla libreria non cambia le sedute gia'
+  //      fatte. Sullo step di una progressione invece si salva il rimando, cosi'
+  //      rinominandola la scala la segue (e una variante usata da una scala non
+  //      si puo' togliere).
+  `
+  CREATE TABLE esercizio_varianti (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    esercizio_id INTEGER NOT NULL REFERENCES esercizi(id) ON DELETE CASCADE,
+    nome TEXT NOT NULL,
+    ordine INTEGER NOT NULL DEFAULT 0
+  );
+  CREATE INDEX idx_esercizio_varianti_esercizio ON esercizio_varianti(esercizio_id);
+
+  ALTER TABLE seduta_esercizi ADD COLUMN variante TEXT;
+  ALTER TABLE progressione_step ADD COLUMN variante_id INTEGER
+    REFERENCES esercizio_varianti(id) ON DELETE SET NULL;
   `
 ]
 

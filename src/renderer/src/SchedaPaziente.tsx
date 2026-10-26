@@ -84,6 +84,7 @@ export default function SchedaPaziente({ sedutaId }: { sedutaId: number }): Reac
                   <tr key={j}>
                     <td className="col-esercizio">
                       <span className="nome">{e.nome}</span>
+                      {e.variante && <span className="variante">{e.variante}</span>}
                       {/* La nota sta sotto al nome, non in una riga sua: e'
                           quella l'unica colonna che puo' allungarsi. */}
                       {e.nota && <span className="nota-es">{e.nota}</span>}

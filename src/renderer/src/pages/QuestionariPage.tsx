@@ -3,21 +3,22 @@ import { ChevronRight } from 'lucide-react'
 import type { CategoriaQuestionario, Questionario } from '../../../shared/types'
 import ElencoCategorie from '../components/ElencoCategorie'
 import { useRileggiDopoSalvataggio } from '../salvaUscendo'
+import { daPrecarico, ricorda } from '../precarico'
 import { ElencoQuestionari } from './questionari/ElencoQuestionari'
 import { EditorQuestionario } from './questionari/EditorQuestionario'
 
 export default function QuestionariPage(): React.JSX.Element {
-  const [categorie, setCategorie] = useState<CategoriaQuestionario[]>([])
-  const [questionari, setQuestionari] = useState<Questionario[]>([])
+  const [categorie, setCategorie] = useState<CategoriaQuestionario[]>(() => daPrecarico('questionariCategorie', []))
+  const [questionari, setQuestionari] = useState<Questionario[]>(() => daPrecarico('questionari', []))
   const [catId, setCatId] = useState<number | null>(null)
   const [apertoId, setApertoId] = useState<number | null>(null)
 
   const loadCategorie = useCallback(
-    (): Promise<void> => window.api.questionariCategorie.list().then(setCategorie),
+    (): Promise<void> => window.api.questionariCategorie.list().then(ricorda('questionariCategorie')).then(setCategorie),
     []
   )
   const loadQuestionari = useCallback(
-    (): Promise<void> => window.api.questionari.list(false).then(setQuestionari),
+    (): Promise<void> => window.api.questionari.list(false).then(ricorda('questionari')).then(setQuestionari),
     []
   )
 

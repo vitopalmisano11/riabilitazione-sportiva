@@ -30,6 +30,27 @@ test('La scheda della seduta: tabella, dosaggi, escaping', () => {
   assert.ok(!html.includes('<div class="scheda-es">'))
 })
 
+// L'esercizio con una variante: il paziente deve vedere se e' normale o con
+// qualcosa in piu', e per quello normale non si scrive niente.
+test("La variante dell'esercizio si legge sulla scheda, e l'esercizio normale non ne ha", async () => {
+  const [prima, ...altri] = seduteExport[0].sezioni[0].esercizi
+  const sedute = [
+    {
+      ...seduteExport[0],
+      sezioni: [{ nome: 'Equilibrio', esercizi: [{ ...prima, variante: 'con luci <reattive>' }, ...altri] }]
+    }
+  ]
+  const html = generaHtml(pazExport, sedute)
+  assert.ok(html.includes('<span class="variante">con luci &lt;reattive&gt;</span>'), 'la variante sta sotto al nome')
+  assert.equal(html.split('<span class="variante">').length - 1, 1, 'solo l\'esercizio che ce l\'ha')
+  assert.ok(!generaHtml(pazExport, seduteExport).includes('<span class="variante">'), 'nessuna se non c\'e\'')
+  // anche nella scheda illustrata
+  assert.ok(generaHtml(pazExport, sedute, true).includes('<span class="variante">con luci'))
+  // e nel Word
+  const docx = await generaDocx(pazExport, sedute)
+  assert.ok(docx.length > 1000)
+})
+
 // La scheda illustrata, da consegnare a chi si allena da solo: foto, come si
 // esegue e il link al video, che nel PDF resta cliccabile.
 const conFoto = [

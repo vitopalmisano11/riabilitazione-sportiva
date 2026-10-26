@@ -7,6 +7,7 @@ import type {
   ProgressioneGruppo,
   StepProgressione
 } from '../../../shared/types'
+import { nomeConVariante } from '../../../shared/varianti'
 import { errMsg } from '../lib'
 import { useRiordinoSalvato } from '../riordino'
 import { toastErrore } from './Toast'
@@ -265,7 +266,7 @@ function ElencoProgressioni({
             onClick={() => onSeleziona(p.id)}
           >
             {p.nome}
-            <span className="hint"> · {p.step.length === 1 ? '1 step' : `${p.step.length} step`}</span>
+            <span className="hint"> {p.step.length === 1 ? '1 step' : `${p.step.length} step`}</span>
           </li>
         )
       })}
@@ -384,7 +385,7 @@ function EditorProgressione({
             <li key={s.id} {...dnd} {...presa(idx)} className={dnd.className}>
               <span className="step-numero">{idx + 1}</span>
               <span className="item-nome">
-                {s.esercizio_nome}
+                {nomeConVariante(s.esercizio_nome, s.variante)}
                 {s.archiviato === 1 && <em className="hint"> (archiviato)</em>}
               </span>
               <CampiStep
@@ -491,22 +492,26 @@ function CampiStep({
     requisito: step.requisito ?? '',
     serie: step.serie ?? '',
     ripetizioni: step.ripetizioni ?? '',
-    recupero: step.recupero ?? ''
+    recupero: step.recupero ?? '',
+    variante_id: step.variante_id
   })
-  const salva = (): void => {
+  const salva = (variante_id: number | null = dati.variante_id): void => {
     const pulito: DatiStep = {
       requisito: dati.requisito?.trim() || null,
       serie: dati.serie?.trim() || null,
       ripetizioni: dati.ripetizioni?.trim() || null,
-      recupero: dati.recupero?.trim() || null
+      recupero: dati.recupero?.trim() || null,
+      variante_id
     }
     const cambiato =
       pulito.requisito !== step.requisito ||
       pulito.serie !== step.serie ||
       pulito.ripetizioni !== step.ripetizioni ||
-      pulito.recupero !== step.recupero
+      pulito.recupero !== step.recupero ||
+      pulito.variante_id !== step.variante_id
     if (cambiato) void onSalva(pulito)
   }
+  const varianti = predefiniti?.varianti ?? []
   const casella = (campo: 'serie' | 'ripetizioni' | 'recupero', etichetta: string, predefinito: string | null | undefined) => (
     <label title={`${etichetta} di questo step. Vuoto: vale quello dell'esercizio.`}>
       {etichetta}
@@ -514,17 +519,40 @@ function CampiStep({
         placeholder={predefinito || '—'}
         value={dati[campo] ?? ''}
         onChange={(e) => setDati({ ...dati, [campo]: e.target.value })}
-        onBlur={salva}
+        onBlur={() => salva()}
       />
     </label>
   )
   return (
     <>
+      {/* Solo se l'esercizio ha delle varianti in libreria: lo step puo' essere
+          l'esercizio normale o una sua variante (l'equilibrio, poi con il
+          conteggio, poi con le luci). */}
+      {varianti.length > 0 && (
+        <label className="step-variante" title="Quale variante dell'esercizio si fa a questo step">
+          Variante
+          <select
+            value={dati.variante_id ?? ''}
+            onChange={(e) => {
+              const id = e.target.value === '' ? null : Number(e.target.value)
+              setDati({ ...dati, variante_id: id })
+              salva(id)
+            }}
+          >
+            <option value="">normale</option>
+            {varianti.map((v) => (
+              <option key={v.id} value={v.id}>
+                {v.nome}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       <input
         placeholder="requisito per arrivarci…"
         value={dati.requisito ?? ''}
         onChange={(e) => setDati({ ...dati, requisito: e.target.value })}
-        onBlur={salva}
+        onBlur={() => salva()}
       />
       <div className="step-dose">
         {casella('serie', 'Serie', predefiniti?.serie_default)}

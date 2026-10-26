@@ -17,6 +17,7 @@ import { chiedi } from '../components/Conferma'
 import Modale from '../components/Modale'
 import { errMsg } from '../lib'
 import { useRileggiDopoSalvataggio } from '../salvaUscendo'
+import { daPrecarico, ricorda } from '../precarico'
 import { useSalvataggio } from '../salvataggio'
 import IndicatoreSalvataggio from '../components/IndicatoreSalvataggio'
 import { sposta, useRiordino, useRiordinoSalvato } from '../riordino'
@@ -40,11 +41,11 @@ let ultimaChiave = 0
 const nuovaChiave = (): number => --ultimaChiave
 
 export default function DistrettiPage(): React.JSX.Element {
-  const [distretti, setDistretti] = useState<Distretto[]>([])
+  const [distretti, setDistretti] = useState<Distretto[]>(() => daPrecarico('distretti', []))
   const [apertoId, setApertoId] = useState<number | null>(null)
 
   const load = useCallback(
-    (): Promise<void> => window.api.distretti.list().then(setDistretti),
+    (): Promise<void> => window.api.distretti.list().then(ricorda('distretti')).then(setDistretti),
     []
   )
 

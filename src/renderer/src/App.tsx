@@ -33,6 +33,7 @@ import type { Tema } from '../../shared/temi'
 import type { StatoAggiornamento } from '../../shared/types'
 import { chiedi } from './components/Conferma'
 import LogoApp from './components/LogoApp'
+import { precaricaConfigurazione } from './precarico'
 
 type Sezione =
   | 'settimana'
@@ -121,6 +122,12 @@ export default function App(): React.JSX.Element {
   // Le scorciatoie ascoltano tutta la finestra: bloccate anche loro (vedi
   // scorciatoie.ts), altrimenti Esc o Ctrl+S davanti al blocco agirebbero
   // sull'editor che c'e' sotto.
+  // Appena il programma e' sbloccato si leggono gli elenchi della configurazione,
+  // cosi' la prima volta che si apre una linguetta le schede ci sono gia'.
+  useEffect(() => {
+    if (sbloccata) void precaricaConfigurazione()
+  }, [sbloccata])
+
   useEffect(() => {
     bloccaScorciatoie(bloccata)
     return () => bloccaScorciatoie(false)
@@ -508,6 +515,11 @@ function ConfigurazionePage({
   tornaAllInizio: number
 }): React.JSX.Element {
   const [tab, setTab] = useState<TabConfig>('patologie')
+  // Gli elenchi di tutte le linguette si rileggono entrando: le pagine partono da
+  // quelli e hanno le schede gia' pronte (vedi precarico.ts).
+  useEffect(() => {
+    void precaricaConfigurazione()
+  }, [])
   // Cambia a ogni pressione di una linguetta, anche quella gia' aperta: la
   // pagina ricomincia dal suo elenco. Stavi modificando il ginocchio, premi
   // "Distretti", e ritrovi tutti i distretti; quello che avevi scritto si e'

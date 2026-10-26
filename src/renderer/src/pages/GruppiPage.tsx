@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { Gruppo } from '../../../shared/types'
 import CrudList from '../components/CrudList'
+import { daPrecarico, ricorda } from '../precarico'
 
 // I gruppi dei pazienti: dove li segui (Centro, Studio, Domicilio...). Una
 // lista semplice come le patologie, ma senza fasi o distretti sotto: qui c'e'
 // solo il nome.
 export default function GruppiPage(): React.JSX.Element {
-  const [gruppi, setGruppi] = useState<Gruppo[]>([])
+  const [gruppi, setGruppi] = useState<Gruppo[]>(() => daPrecarico('gruppi', []))
 
-  const load = useCallback((): Promise<void> => window.api.gruppi.list().then(setGruppi), [])
+  const load = useCallback((): Promise<void> => window.api.gruppi.list().then(ricorda('gruppi')).then(setGruppi), [])
 
   useEffect(() => {
     void load()

@@ -72,6 +72,54 @@
     outline-color 0.15s ease;
 }
 
+/* ---- Varianti dell'esercizio ---- */
+
+.campo-varianti {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.campo-varianti-etichetta {
+  font-size: 15px;
+  color: var(--text-dim);
+}
+
+.campo-varianti .hint {
+  margin: 0;
+}
+
+.campo-varianti .btn-aggiungi-lista {
+  align-self: flex-start;
+}
+
+.variante-riga {
+  position: relative;
+}
+
+/* Le frecce e il cestino stanno dentro la casella, a destra: cosi' la variante
+   e' larga e allineata come il nome dell'esercizio. */
+.variante-riga input {
+  width: 100%;
+  padding-right: 112px;
+}
+
+.variante-riga .variante-azioni {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  gap: 2px;
+}
+
+.variante-riga .variante-azioni button {
+  padding: 4px;
+  border: none;
+  background: none;
+  color: var(--text-dim);
+}
+
 /* ---- Immagine dell'esercizio ---- */
 
 .campo-immagine {

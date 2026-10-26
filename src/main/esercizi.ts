@@ -5,8 +5,8 @@
 import { getDb } from './db'
 import { eliminaConCestino, nomeDi } from './cestino'
 import { validaImmagine, validaLink } from './validazione'
-import { progressioniConEsercizio } from './progressioni'
-import type { EsercizioInput } from '../shared/types'
+import { progressioniConEsercizio, progressioniConVariante } from './progressioni'
+import type { EsercizioInput, VarianteEsercizio, VarianteInput } from '../shared/types'
 
 // Sta nel database (quindi cifrata e inclusa nel backup della cartella) come
 // data URL. Il peso massimo tiene il file sotto controllo.
@@ -25,7 +25,18 @@ export function elencoCategorie(): unknown[] {
 
 // Colonne esplicite: `e.*` trascinerebbe anche `immagine` in ogni elenco.
 export function elencoEsercizi(includiArchiviati: boolean): unknown[] {
-  return getDb()
+  const db = getDb()
+  // Le varianti si leggono tutte insieme e si distribuiscono: sono poche, e
+  // una query per esercizio sarebbe lenta con la libreria aperta.
+  const varianti = new Map<number, VarianteEsercizio[]>()
+  for (const v of db
+    .prepare('SELECT id, esercizio_id, nome FROM esercizio_varianti ORDER BY ordine, id')
+    .all() as (VarianteEsercizio & { esercizio_id: number })[]) {
+    const elenco = varianti.get(v.esercizio_id) ?? []
+    elenco.push({ id: v.id, nome: v.nome })
+    varianti.set(v.esercizio_id, elenco)
+  }
+  const esercizi = db
     .prepare(
       `SELECT e.id, e.nome, e.categoria_id, e.serie_default, e.cluster_default,
               e.ripetizioni_default, e.rir_default, e.carico_default, e.unita_carico,
@@ -38,7 +49,8 @@ export function elencoEsercizi(includiArchiviati: boolean): unknown[] {
        ${includiArchiviati ? '' : 'WHERE e.archiviato = 0'}
        ORDER BY e.nome`
     )
-    .all()
+    .all() as { id: number }[]
+  return esercizi.map((e) => ({ ...e, varianti: varianti.get(e.id) ?? [] }))
 }
 
 export function creaCategoria(nome: string): number {
@@ -92,28 +104,70 @@ export function eliminaCategoria(id: number): void {
   eliminaConCestino('categorie', id, 'Categoria di esercizi', nomeDi('categorie', id))
 }
 
+// Le varianti di un esercizio, nell'ordine in cui arrivano (dalla piu' facile
+// alla piu' difficile). Quelle con un id si aggiornano, le altre si aggiungono,
+// quelle che non ci sono piu' si tolgono -- ma non se una progressione le usa:
+// lo step di una scala resterebbe senza la sua variante, e in silenzio diventerebbe
+// l'esercizio normale.
+function salvaVarianti(esercizioId: number, varianti: VarianteInput[]): void {
+  const db = getDb()
+  const nuove = varianti.map((v) => ({ id: v.id, nome: v.nome.trim() })).filter((v) => v.nome !== '')
+  const visti = new Set<string>()
+  for (const v of nuove) {
+    const chiave = v.nome.toLowerCase()
+    if (visti.has(chiave)) throw new Error(`Due varianti si chiamano «${v.nome}»: dai loro nomi diversi.`)
+    visti.add(chiave)
+  }
+  const attuali = db.prepare('SELECT id, nome FROM esercizio_varianti WHERE esercizio_id = ?').all(esercizioId) as VarianteEsercizio[]
+  const tenute = new Set(nuove.map((v) => v.id))
+  for (const v of attuali) {
+    if (tenute.has(v.id)) continue
+    const usate = progressioniConVariante(v.id)
+    if (usate.length > 0) {
+      throw new Error(
+        `La variante «${v.nome}» è uno step di ${usate.length === 1 ? 'una progressione' : 'più progressioni'} (${usate.join(', ')}): toglila prima da lì, in Libreria → Progressioni.`
+      )
+    }
+    db.prepare('DELETE FROM esercizio_varianti WHERE id = ?').run(v.id)
+  }
+  const aggiorna = db.prepare('UPDATE esercizio_varianti SET nome = ?, ordine = ? WHERE id = ? AND esercizio_id = ?')
+  const inserisci = db.prepare('INSERT INTO esercizio_varianti (esercizio_id, nome, ordine) VALUES (?, ?, ?)')
+  nuove.forEach((v, i) => {
+    if (v.id != null && attuali.some((a) => a.id === v.id)) aggiorna.run(v.nome, i, v.id, esercizioId)
+    else inserisci.run(esercizioId, v.nome, i)
+  })
+}
+
 export function creaEsercizio(data: EsercizioInput): number {
   validaLink(data.link, 'Il link del video')
-  return Number(
-    getDb()
-      .prepare(
-        `INSERT INTO esercizi (nome, categoria_id, serie_default, cluster_default,
-                               ripetizioni_default, rir_default, carico_default, unita_carico,
-                               recupero_cluster_default,
-                               recupero_default, nota_tecnica, link)
-         VALUES (@nome, @categoria_id, @serie_default, @cluster_default,
-                 @ripetizioni_default, @rir_default, @carico_default, @unita_carico,
-                 @recupero_cluster_default,
-                 @recupero_default, @nota_tecnica, @link)`
-      )
-      .run({ ...data, nome: data.nome.trim(), link: data.link?.trim() || null }).lastInsertRowid
-  )
+  const { varianti, ...campi } = data
+  const db = getDb()
+  return db.transaction(() => {
+    const id = Number(
+      db
+        .prepare(
+          `INSERT INTO esercizi (nome, categoria_id, serie_default, cluster_default,
+                                 ripetizioni_default, rir_default, carico_default, unita_carico,
+                                 recupero_cluster_default,
+                                 recupero_default, nota_tecnica, link)
+           VALUES (@nome, @categoria_id, @serie_default, @cluster_default,
+                   @ripetizioni_default, @rir_default, @carico_default, @unita_carico,
+                   @recupero_cluster_default,
+                   @recupero_default, @nota_tecnica, @link)`
+        )
+        .run({ ...campi, nome: campi.nome.trim(), link: campi.link?.trim() || null }).lastInsertRowid
+    )
+    if (varianti) salvaVarianti(id, varianti)
+    return id
+  })()
 }
 
 export function aggiornaEsercizio(id: number, data: EsercizioInput): void {
   validaLink(data.link, 'Il link del video')
-  getDb()
-    .prepare(
+  const { varianti, ...campi } = data
+  const db = getDb()
+  db.transaction(() => {
+    db.prepare(
       `UPDATE esercizi SET nome = @nome, categoria_id = @categoria_id,
        serie_default = @serie_default, cluster_default = @cluster_default,
        ripetizioni_default = @ripetizioni_default, rir_default = @rir_default,
@@ -123,8 +177,9 @@ export function aggiornaEsercizio(id: number, data: EsercizioInput): void {
        recupero_default = @recupero_default,
        nota_tecnica = @nota_tecnica, link = @link
        WHERE id = @id`
-    )
-    .run({ ...data, nome: data.nome.trim(), link: data.link?.trim() || null, id })
+    ).run({ ...campi, nome: campi.nome.trim(), link: campi.link?.trim() || null, id })
+    if (varianti) salvaVarianti(id, varianti)
+  })()
 }
 
 export function archiviaEsercizio(id: number, archiviato: boolean): void {

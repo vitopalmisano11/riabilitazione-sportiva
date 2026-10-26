@@ -112,7 +112,7 @@ test('progressioni: dalla libreria alla seduta e allo specchietto', async () => 
 
     // un esercizio che e' uno step non si elimina dalla libreria
     await pagina.getByRole('button', { name: 'Esercizi', exact: true }).click()
-    await pagina.getByPlaceholder('Cerca esercizio…').fill('Wall sit')
+    await pagina.getByPlaceholder('Cerca categoria, distretto o esercizio…').fill('Wall sit')
     await pagina.getByTitle('Elimina').first().click()
     await pagina.getByRole('button', { name: /Elimina|Conferma|Sì/ }).last().click()
     await expect(pagina.getByText(/uno step di una progressione/)).toBeVisible()

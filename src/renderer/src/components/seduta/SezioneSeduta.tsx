@@ -1,6 +1,12 @@
 import { useState } from 'react'
 import { ImageIcon, Pencil, Plus, Video, X } from 'lucide-react'
-import type { Categoria, EsercizioConCategoria, StatoProgressione, UltimaVolta } from '../../../../shared/types'
+import type {
+  Categoria,
+  EsercizioConCategoria,
+  StatoProgressione,
+  UltimaVolta,
+  VarianteEsercizio
+} from '../../../../shared/types'
 import type { Riordino } from '../../riordino'
 import { volumeTesto } from '../../../../shared/dosaggio'
 import { errMsg } from '../../lib'
@@ -18,6 +24,10 @@ import {
   type AzioneSezioni,
   type SezioneBuilder
 } from './modello'
+
+// Sempre lo stesso elenco vuoto: una riga ferma non deve ridisegnarsi solo
+// perche' ne e' nato uno nuovo.
+const SENZA_VARIANTI: VarianteEsercizio[] = []
 
 interface Props {
   sezione: SezioneBuilder
@@ -155,6 +165,7 @@ export default function SezioneSeduta({
                 indice={idxRiga}
                 cluster={mostraCluster(r, categorie)}
                 rir={mostraRir(r, categorie)}
+                varianti={libreria.find((x) => x.id === id)?.varianti ?? SENZA_VARIANTI}
                 ultima={ultima}
                 dnd={riordinoRighe.contenitore(chiave)}
                 presa={riordinoRighe.presa(chiave)}

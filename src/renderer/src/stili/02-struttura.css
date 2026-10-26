@@ -229,7 +229,9 @@
 
 .cella-nome {
   display: flex;
-  align-items: flex-start;
+  /* icone e cartellini (varianti, archiviato) al centro del nome, anche quando
+     il nome va su due righe: in cima restavano sfasati rispetto al testo */
+  align-items: center;
   gap: 4px;
 }
 

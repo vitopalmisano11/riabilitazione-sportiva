@@ -70,10 +70,25 @@ export interface Esercizio {
   usi: number
 }
 
+// Una variante di un esercizio ("con conteggio all'indietro"). Un esercizio ne
+// ha zero, e quasi tutti restano cosi': solo dove ce ne sono, in seduta compare
+// il menu per sceglierla. Stanno in ordine, dalla piu' facile alla piu' difficile.
+export interface VarianteEsercizio {
+  id: number
+  nome: string
+}
+
+// id null = variante nuova, non ancora salvata
+export interface VarianteInput {
+  id: number | null
+  nome: string
+}
+
 // ha_immagine e' un flag, non l'immagine: l'elenco non trasporta i dati binari.
 export type EsercizioConCategoria = Esercizio & {
   categoria_nome: string
   ha_immagine: 0 | 1
+  varianti: VarianteEsercizio[]
 }
 
 export interface EsercizioInput {
@@ -89,6 +104,9 @@ export interface EsercizioInput {
   recupero_default: string | null
   nota_tecnica: string | null
   link: string | null
+  // L'elenco intero delle varianti, in ordine. Se manca, le varianti
+  // dell'esercizio restano come sono.
+  varianti?: VarianteInput[]
 }
 
 export interface Sezione {
@@ -261,6 +279,9 @@ export interface SedutaEsercizioInput {
   recupero_cluster: string | null
   recupero: string | null
   nota: string | null
+  // La variante scelta ("con conteggio all'indietro"), scritta per esteso:
+  // null = l'esercizio normale. E' il testo, non un rimando alla libreria.
+  variante?: string | null
   // indice nella lista sezioni della seduta; null = fuori sezione (dati vecchi)
   sezioneIndex: number | null
 }
@@ -408,6 +429,7 @@ export interface UltimaVolta {
   carico: string | null
   recupero_cluster: string | null
   recupero: string | null
+  variante: string | null
 }
 
 export interface SedutaRiepilogo {
@@ -988,6 +1010,8 @@ export interface EsercizioScheda {
   recupero_cluster: string | null
   recupero: string | null
   nota: string | null
+  // La variante, se l'esercizio non e' quello normale.
+  variante: string | null
 }
 
 export interface SchedaPaziente {
@@ -1329,10 +1353,14 @@ export interface StepProgressione {
   serie: string | null
   ripetizioni: string | null
   recupero: string | null
+  // La variante dell'esercizio da fare a questo step (es. l'equilibrio con il
+  // conteggio): il rimando alla libreria e il suo nome di adesso. Null = l'esercizio normale.
+  variante_id: number | null
+  variante: string | null
 }
 
-// Quello che si scrive su uno step dall'editor: il requisito e la sua dose.
-export type DatiStep = Pick<StepProgressione, 'requisito' | 'serie' | 'ripetizioni' | 'recupero'>
+// Quello che si scrive su uno step dall'editor: il requisito, la dose e la variante.
+export type DatiStep = Pick<StepProgressione, 'requisito' | 'serie' | 'ripetizioni' | 'recupero' | 'variante_id'>
 
 export interface Progressione {
   id: number

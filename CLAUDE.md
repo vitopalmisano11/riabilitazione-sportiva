@@ -40,6 +40,17 @@ Specifica originale e feedback dell'utente sono nei file `prompt-*.md` alla radi
   dagli esiti delle sedute. L'interfaccia: `ProgressioniLibreria` (linguetta della libreria),
   `ProgressioniFase` (tab della fase), `ProgressioniPaziente` e `SpecchiettoProgressioni` (specchietto),
   `seduta/SuggerimentiProgressioni` e `seduta/EsitiProgressioni`.
+- Le **varianti** di un esercizio (equilibrio monopodalico normale o con uno stimolo cognitivo) si
+  scrivono sull'esercizio in libreria (`esercizio_varianti`, migrazione 70, ordinate dalla più facile
+  alla più difficile; `EsercizioInput.varianti` le salva insieme all'esercizio, `salvaVarianti` in
+  `main/esercizi.ts`). Quasi tutti gli esercizi non ne hanno e non cambia niente: il menu «normale ▾»
+  compare in `RigaSeduta` solo dove ce ne sono. Sulla riga della seduta si salva il **testo**
+  (`seduta_esercizi.variante`, come la dose: rinominare la variante non cambia le sedute fatte); sullo
+  step di una progressione il **rimando** (`progressione_step.variante_id`: la scala segue le
+  rinominazioni, e una variante usata da uno step non si toglie). «Normale» = nessuna variante e sulla
+  scheda non si scrive niente; altrimenti si legge sotto il nome (`nomeConVariante` in
+  `shared/varianti.ts`, PDF/Word/finestra della scheda/CSV). Prove: `esercizi`, `progressioni`,
+  `sedute`, `costruzione-seduta`, `export-seduta`, `e2e/varianti.spec.ts`.
 - I test con la pedana di forza (file `*.pedana.json` della Balance Squat App, contratto in
   `docs/formato-pedana.md`, esempio vero in `docs/esempio.pedana.json`) hanno un archivio proprio, NON
   righe di screening: `main/pedana.ts` (anteprima con candidati paziente, importazione senza doppioni

@@ -1,6 +1,7 @@
 import { Lock, Plus } from 'lucide-react'
 import type { EsercizioConCategoria } from '../../../../shared/types'
 import { doseTesto } from '../../../../shared/dosaggio'
+import { nomeConVariante } from '../../../../shared/varianti'
 import type { DoseStep, GruppoSuggerito } from './modello'
 
 interface Props {
@@ -59,13 +60,17 @@ export default function SuggerimentiProgressioni({
                 <li key={s.id} className={indice === 0 ? undefined : 'successivo'}>
                   <button
                     className="btn-aggiungi-riga"
-                    title={e ? `Aggiungi ${s.esercizio_nome} (${p.nome})` : 'Esercizio archiviato: non si può aggiungere'}
+                    title={
+                      e
+                        ? `Aggiungi ${nomeConVariante(s.esercizio_nome, s.variante)} (${p.nome})`
+                        : 'Esercizio archiviato: non si può aggiungere'
+                    }
                     disabled={!e || giaQui}
                     onClick={() => e && onAggiungi(e, s)}
                   >
                     {indice === 0 ? <Plus size={16} /> : <Lock size={14} />}
                   </button>
-                  <span className="item-nome">{s.esercizio_nome}</span>
+                  <span className="item-nome">{nomeConVariante(s.esercizio_nome, s.variante)}</span>
                   <span className="default-hint">
                     {[doseTesto(s), indice === 0 ? (giaQui ? 'già in seduta' : '') : s.requisito]
                       .filter(Boolean)

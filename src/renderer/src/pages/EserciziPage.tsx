@@ -1,16 +1,19 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Archive,
   ArchiveRestore,
   ArrowDownAZ,
   ArrowDownWideNarrow,
+  ChevronDown,
+  ChevronUp,
   HelpCircle,
   ImageIcon,
   Pencil,
+  Plus,
   Trash2,
   Video
 } from 'lucide-react'
-import type { Categoria, EsercizioConCategoria, EsercizioInput } from '../../../shared/types'
+import type { Categoria, EsercizioConCategoria, EsercizioInput, VarianteInput } from '../../../shared/types'
 import { toastErrore } from '../components/Toast'
 import { chiedi } from '../components/Conferma'
 import CategorieEsercizi from '../components/CategorieEsercizi'
@@ -20,6 +23,7 @@ import ImmagineEsercizio from '../components/ImmagineEsercizio'
 import RitaglioImmagine from '../components/RitaglioImmagine'
 import Modale from '../components/Modale'
 import { errMsg } from '../lib'
+import { daPrecarico, ricorda } from '../precarico'
 import type { Dosaggio } from '../../../shared/dosaggio'
 import {
   aCluster,
@@ -48,6 +52,8 @@ interface FormState {
   // (pesante) quando si salva un esercizio senza aver toccato l'immagine.
   immagine: string | null
   immagineCambiata: boolean
+  // Dalla piu' facile alla piu' difficile. Quasi sempre vuote.
+  varianti: VarianteInput[]
 }
 
 const FORM_VUOTO: FormState = {
@@ -65,7 +71,15 @@ const FORM_VUOTO: FormState = {
   nota_tecnica: '',
   link: '',
   immagine: null,
-  immagineCambiata: false
+  immagineCambiata: false,
+  varianti: []
+}
+
+function spostaVariante(varianti: VarianteInput[], da: number, a: number): VarianteInput[] {
+  const copia = [...varianti]
+  const [spostata] = copia.splice(da, 1)
+  copia.splice(a, 0, spostata)
+  return copia
 }
 
 // URL vuoto -> null; senza schema -> prefissa https://
@@ -76,13 +90,16 @@ function normalizzaLink(valore: string): string | null {
 }
 
 export default function EserciziPage(): React.JSX.Element {
-  const [esercizi, setEsercizi] = useState<EsercizioConCategoria[]>([])
-  const [categorie, setCategorie] = useState<Categoria[]>([])
+  const [esercizi, setEsercizi] = useState<EsercizioConCategoria[]>(() => daPrecarico('esercizi', []))
+  const [categorie, setCategorie] = useState<Categoria[]>(() => daPrecarico('categorie', []))
   const [mostraArchiviati, setMostraArchiviati] = useState(false)
   const [ordine, setOrdine] = useState<'alfabetico' | 'usati'>('alfabetico')
   const [ricerca, setRicerca] = useState('')
-  // Le due linguette della libreria: gli esercizi e le loro categorie.
-  const [vista, setVista] = useState<'esercizi' | 'categorie' | 'progressioni'>('esercizi')
+  // Sale a ogni pressione della linguetta «Esercizi»: la libreria torna alle schede.
+  const [giroCategorie, setGiroCategorie] = useState(0)
+  // Le due linguette della libreria: gli esercizi, che si aprono dalle schede
+  // delle loro categorie, e le progressioni.
+  const [vista, setVista] = useState<'esercizi' | 'progressioni'>('esercizi')
   // Nelle caselle in cui si sceglie l'elenco e' a due livelli: prima le
   // categorie, e premendone una i suoi distretti, scritti col loro nome e basta.
   const vociCategorie = categorie
@@ -100,7 +117,6 @@ export default function EserciziPage(): React.JSX.Element {
       categorie.filter((c) => c.padre_id != null && !categorie.some((x) => x.id === c.padre_id))
     )
 
-  const [filtroCategoria, setFiltroCategoria] = useState<number | ''>('')
   const [form, setForm] = useState<FormState | null>(null)
   const [immagineAperta, setImmagineAperta] = useState<EsercizioConCategoria | null>(null)
   // L'immagine (appena scelta da file, o gia' presente nell'esercizio) in
@@ -115,10 +131,11 @@ export default function EserciziPage(): React.JSX.Element {
   )
 
   const load = async (archiviati = mostraArchiviati): Promise<void> => {
-    setEsercizi(await window.api.esercizi.list(archiviati))
+    const lista = await window.api.esercizi.list(archiviati)
+    setEsercizi(archiviati ? lista : ricorda<EsercizioConCategoria[]>('esercizi')(lista))
   }
 
-  const loadCategorie = (): Promise<void> => window.api.categorie.list().then(setCategorie)
+  const loadCategorie = (): Promise<void> => window.api.categorie.list().then(ricorda('categorie')).then(setCategorie)
 
   useEffect(() => {
     void load()
@@ -130,22 +147,10 @@ export default function EserciziPage(): React.JSX.Element {
   // esercizio che si sa gia' come si chiama, oppure dai piu' usati, che sono
   // quelli che si rimettono in quasi tutte le schede. A parita' di utilizzi
   // resta l'alfabetico, cosi' l'ordine non balla a ogni ricarica.
-  const visibili = useMemo(() => {
-    const q = ricerca.trim().toLowerCase()
-    const filtrati = esercizi.filter(
-      (e) =>
-        (q === '' || e.nome.toLowerCase().includes(q)) &&
-        (filtroCategoria === '' ||
-          e.categoria_id === filtroCategoria ||
-          // Filtrando per "Rinforzo" si vedono anche quelli dei distretti che
-          // ci stanno dentro.
-          categorie.find((c) => c.id === e.categoria_id)?.padre_id === filtroCategoria)
-    )
-    if (ordine === 'usati') {
-      return [...filtrati].sort((a, b) => b.usi - a.usi || a.nome.localeCompare(b.nome))
-    }
-    return filtrati
-  }, [esercizi, ricerca, filtroCategoria, ordine])
+  const ordinati = (lista: EsercizioConCategoria[]): EsercizioConCategoria[] =>
+    ordine === 'usati'
+      ? [...lista].sort((a, b) => b.usi - a.usi || a.nome.localeCompare(b.nome))
+      : lista
 
   const salva = async (): Promise<void> => {
     if (!form) return
@@ -176,7 +181,8 @@ export default function EserciziPage(): React.JSX.Element {
         : null,
       recupero_default: form.recupero_default.trim() || null,
       nota_tecnica: form.nota_tecnica.trim() || null,
-      link: normalizzaLink(form.link)
+      link: normalizzaLink(form.link),
+      varianti: form.varianti
     }
     try {
       const id =
@@ -259,7 +265,8 @@ export default function EserciziPage(): React.JSX.Element {
         nota_tecnica: e.nota_tecnica ?? '',
         link: e.link ?? '',
         immagine,
-        immagineCambiata: false
+        immagineCambiata: false,
+        varianti: e.varianti.map((v) => ({ id: v.id, nome: v.nome }))
       })
     } catch (err) {
       toastErrore(errMsg(err))
@@ -303,65 +310,24 @@ export default function EserciziPage(): React.JSX.Element {
     }
   }
 
-  return (
-    <div className="page">
-      <header className="page-header">
-        <h2>Libreria esercizi</h2>
-      </header>
-
-      {/* Gli esercizi e le loro categorie stanno nella stessa voce di menu, su
-          due linguette: sono la stessa cosa vista da due parti, e le categorie
-          in un riquadro stretto non ci stavano. */}
-      <div className="config-tabs">
-        <button
-          className={vista === 'esercizi' ? 'active' : ''}
-          onClick={() => setVista('esercizi')}
-        >
-          Esercizi
-        </button>
-        <button
-          className={vista === 'categorie' ? 'active' : ''}
-          onClick={() => setVista('categorie')}
-        >
-          Categorie
-        </button>
-        <button
-          className={vista === 'progressioni' ? 'active' : ''}
-          onClick={() => setVista('progressioni')}
-        >
-          Progressioni
-        </button>
-      </div>
-
-      {vista === 'progressioni' ? (
-        <ProgressioniLibreria />
-      ) : vista === 'categorie' ? (
-        <CategorieEsercizi
-          tornaAllInizio={0}
-          onCambiato={async () => {
-            await loadCategorie()
-            await load()
-          }}
-        />
-      ) : (
-      <>
+  // La barra e la tabella degli esercizi: la disegna la categoria aperta (o la
+  // ricerca per nome) con gli esercizi che le spettano. `categoriaNuovo` e' la
+  // categoria in cui nasce un esercizio creato da qui, '' fuori da una categoria.
+  const blocco = (
+    lista: EsercizioConCategoria[],
+    categoriaNuovo: number | '',
+    mostraCategoria: boolean
+  ): React.ReactNode => (
+    <>
       <div className="toolbar">
-        <input
-          type="search"
-          placeholder="Cerca esercizio…"
-          value={ricerca}
-          onChange={(e) => setRicerca(e.target.value)}
-        />
-        <div className="filtro-categorie">
-          <SceltaConRicerca
-            voci={vociCategorie}
-            valore={filtroCategoria}
-            segnaposto="Tutte le categorie"
-            vuoto="Tutte le categorie"
-            sceltaGruppo
-            onCambia={setFiltroCategoria}
+        {categoriaNuovo !== '' && (
+          <input
+            type="search"
+            placeholder="Cerca esercizio…"
+            value={ricerca}
+            onChange={(e) => setRicerca(e.target.value)}
           />
-        </div>
+        )}
         {/* Due interruttori, non due scritte: l'ordine e gli archiviati sono
             stati dell'elenco, e da pulsanti occupano un quarto dello spazio. */}
         <button
@@ -391,17 +357,8 @@ export default function EserciziPage(): React.JSX.Element {
           <Archive size={16} /> Archiviati
         </button>
         <span className="spacer" />
-        <button
-          className="primary"
-          onClick={() => {
-            if (categorie.length === 0) {
-              toastErrore('Prima crea almeno una categoria in "Categorie esercizi".')
-              return
-            }
-            setForm(FORM_VUOTO)
-          }}
-        >
-          + Nuovo esercizio
+        <button className="primary" onClick={() => setForm({ ...FORM_VUOTO, categoria_id: categoriaNuovo })}>
+          <Plus size={16} /> Nuovo esercizio
         </button>
       </div>
 
@@ -412,7 +369,7 @@ export default function EserciziPage(): React.JSX.Element {
           <thead>
             <tr>
               <th className="col-nome">Nome</th>
-              <th className="col-categoria">Categoria</th>
+              {mostraCategoria && <th className="col-categoria">Categoria</th>}
               <th className="col-param">Serie</th>
               <th className="col-param" title="Ripetizioni">
                 Rip.
@@ -424,7 +381,7 @@ export default function EserciziPage(): React.JSX.Element {
             </tr>
           </thead>
           <tbody>
-            {visibili.map((e) => (
+            {ordinati(lista).map((e) => (
               <tr key={e.id} className={e.archiviato ? 'archiviato' : ''}>
                 <td className="col-nome">
                   {/* Nome e icone in due colonne: in linea, con un nome lungo che
@@ -452,13 +409,20 @@ export default function EserciziPage(): React.JSX.Element {
                       <ImageIcon size={16} />
                     </button>
                   )}
+                  {e.varianti.length > 0 && (
+                    <span className="badge" title={e.varianti.map((v) => v.nome).join('\n')}>
+                      {e.varianti.length === 1 ? '1 variante' : `${e.varianti.length} varianti`}
+                    </span>
+                  )}
                   {e.archiviato ? <span className="badge">archiviato</span> : null}
                     </span>
                   </div>
                 </td>
-                <td className="col-categoria" title={e.categoria_nome}>
-                  {e.categoria_nome}
-                </td>
+                {mostraCategoria && (
+                  <td className="col-categoria" title={e.categoria_nome}>
+                    {e.categoria_nome}
+                  </td>
+                )}
                 <td className="col-param">{e.serie_default ?? '—'}</td>
                 <td className="col-param" title={aCluster(dosaggioDi(e)) ? 'Cluster × ripetizioni' : undefined}>
                   {ripetizioniTesto(dosaggioDi(e)) ?? '—'}
@@ -509,17 +473,61 @@ export default function EserciziPage(): React.JSX.Element {
                 </td>
               </tr>
             ))}
-            {visibili.length === 0 && (
+            {lista.length === 0 && (
               <tr>
-                <td colSpan={8} className="empty">
-                  Nessun esercizio. Crea le categorie, poi aggiungi qui gli esercizi.
+                <td colSpan={mostraCategoria ? 8 : 7} className="empty">
+                  Nessun esercizio qui.
                 </td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
-      </>
+    </>
+  )
+
+  return (
+    <div className="page">
+      <header className="page-header">
+        <h2>Libreria esercizi</h2>
+      </header>
+
+      {/* Si entra dalle schede delle categorie: un elenco unico di tutti gli
+          esercizi serviva a poco, a un esercizio si arriva dal suo tipo di
+          lavoro. La ricerca per nome li trova comunque, da qualunque parte. */}
+      <div className="config-tabs">
+        <button
+          className={vista === 'esercizi' ? 'active' : ''}
+          onClick={() => {
+            setVista('esercizi')
+            // Premuta da dentro una categoria, riporta alle schede.
+            setGiroCategorie((g) => g + 1)
+          }}
+        >
+          Esercizi
+        </button>
+        <button
+          className={vista === 'progressioni' ? 'active' : ''}
+          onClick={() => setVista('progressioni')}
+        >
+          Progressioni
+        </button>
+      </div>
+
+      {vista === 'progressioni' ? (
+        <ProgressioniLibreria />
+      ) : (
+        <CategorieEsercizi
+          tornaAllInizio={giroCategorie}
+          esercizi={esercizi}
+          ricerca={ricerca}
+          onRicerca={setRicerca}
+          renderEsercizi={blocco}
+          onCambiato={async () => {
+            await loadCategorie()
+            await load()
+          }}
+        />
       )}
 
       {form && (
@@ -536,6 +544,52 @@ export default function EserciziPage(): React.JSX.Element {
                 onChange={(e) => setForm({ ...form, nome: e.target.value })}
               />
             </label>
+            <div className="campo-varianti">
+              <span className="campo-varianti-etichetta">Varianti (opzionale)</span>
+              {form.varianti.map((v, i) => (
+                <div className="variante-riga" key={v.id ?? `nuova-${i}`}>
+                  <input
+                    value={v.nome}
+                    placeholder="es. con conteggio all'indietro"
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        varianti: form.varianti.map((x, j) => (j === i ? { ...x, nome: e.target.value } : x))
+                      })
+                    }
+                  />
+                  <span className="variante-azioni">
+                    <button
+                      title="Più in alto (più facile)"
+                      disabled={i === 0}
+                      onClick={() => setForm({ ...form, varianti: spostaVariante(form.varianti, i, i - 1) })}
+                    >
+                      <ChevronUp size={16} />
+                    </button>
+                    <button
+                      title="Più in basso (più difficile)"
+                      disabled={i === form.varianti.length - 1}
+                      onClick={() => setForm({ ...form, varianti: spostaVariante(form.varianti, i, i + 1) })}
+                    >
+                      <ChevronDown size={16} />
+                    </button>
+                    <button
+                      className="danger"
+                      title="Togli la variante"
+                      onClick={() => setForm({ ...form, varianti: form.varianti.filter((_, j) => j !== i) })}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </span>
+                </div>
+              ))}
+              <button
+                className="btn-aggiungi-lista"
+                onClick={() => setForm({ ...form, varianti: [...form.varianti, { id: null, nome: '' }] })}
+              >
+                <Plus size={16} /> Aggiungi una variante
+              </button>
+            </div>
             <label>
               Categoria *
               {/* Si scrive invece di scorrere: con trenta categorie la tendina

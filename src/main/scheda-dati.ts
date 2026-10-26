@@ -18,6 +18,7 @@ export interface EsercizioScheda {
   recupero_cluster: string | null
   recupero: string | null
   nota: string | null
+  variante: string | null
 }
 
 export interface SchedaPaziente {
@@ -54,7 +55,7 @@ export function datiScheda(sedutaId: number): SchedaPaziente {
       `SELECT COALESCE(e.nome, se.nome_libero) AS nome, c.nome AS categoria_nome,
               e.unita_carico,
               se.serie, se.cluster, se.ripetizioni, se.carico, se.recupero_cluster,
-              se.recupero, se.nota, se.seduta_sezione_id
+              se.recupero, se.nota, se.variante, se.seduta_sezione_id
        FROM seduta_esercizi se
        LEFT JOIN esercizi e ON e.id = se.esercizio_id
        LEFT JOIN categorie c ON c.id = e.categoria_id

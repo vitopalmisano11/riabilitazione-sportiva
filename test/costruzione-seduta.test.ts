@@ -15,6 +15,7 @@ import {
   mostraCluster,
   riduciSezioni,
   suggerimentiProgressioni,
+  testoUltima,
   type AzioneSezioni,
   type CampiSeduta,
   type StatoSezioni
@@ -287,16 +288,68 @@ test('Progressioni: gli esiti si scrivono solo per chi ha un esercizio in seduta
   assert.deepEqual(campiDaBozza({ data: '2026-01-01', faseId: null, note: '', sezioni: [] }).esiti, {})
 })
 
+test("Varianti: la riga nasce normale, la variante dello step entra con la dose, si sceglie, si ricopia e si salva", () => {
+  const slb = esercizio(40, 'Equilibrio monopodalico', 50, 'Propriocezione')
+  // dalla libreria la riga e' l'esercizio normale
+  const normale = tutte([{ tipo: 'aggiungi', sez: 0, esercizio: slb }])
+  assert.equal(normale.sezioni[0].righe[0].variante, null)
+
+  // da uno step con una variante, la variante entra insieme alla dose
+  const daStep = tutte([
+    {
+      tipo: 'aggiungi',
+      sez: 0,
+      esercizio: slb,
+      dose: { serie: null, ripetizioni: null, recupero: null, variante: 'con conteggio' }
+    }
+  ])
+  assert.equal(daStep.sezioni[0].righe[0].variante, 'con conteggio')
+
+  // dal menu della riga: si cambia senza toccare la storia (come ogni casella)
+  const scelta = riduciSezioni(normale, { tipo: 'valore', sez: 0, riga: 0, campo: 'variante', valore: 'con luci' })
+  assert.equal(scelta.sezioni[0].righe[0].variante, 'con luci')
+  assert.equal(scelta.storia.length, normale.storia.length)
+
+  // l'ultima volta la dice, e "Ricopia" la rimette in riga
+  const ultima = {
+    esercizio_id: 40,
+    data: '2026-01-01',
+    serie: '3',
+    cluster: null,
+    ripetizioni: '30"',
+    rir: null,
+    carico: null,
+    recupero_cluster: null,
+    recupero: null,
+    variante: 'con conteggio'
+  } as UltimaVolta
+  assert.equal(testoUltima(normale.sezioni[0].righe[0], ultima), 'con conteggio · 3 × 30"')
+  const ricopiata = riduciSezioni(normale, { tipo: 'ricopia', sez: 0, riga: 0, ultima })
+  assert.equal(ricopiata.sezioni[0].righe[0].variante, 'con conteggio')
+  // un esercizio senza variante non cambia di una virgola
+  assert.equal(testoUltima(normale.sezioni[0].righe[0], { ...ultima, variante: null }), '3 × 30"')
+
+  // si salva il testo; "normale" (vuoto) e' nessuna variante
+  const salvata = inputSeduta(1, campi(), scelta.sezioni, [])
+  assert.equal(salvata.esercizi[0].variante, 'con luci')
+  const vuota = riduciSezioni(scelta, { tipo: 'valore', sez: 0, riga: 0, campo: 'variante', valore: '' })
+  assert.equal(inputSeduta(1, campi(), vuota.sezioni, []).esercizi[0].variante, null)
+  // una bozza di prima delle varianti (riga senza il campo) si salva come normale
+  const vecchia = JSON.parse(JSON.stringify(normale.sezioni)) as typeof normale.sezioni
+  delete (vecchia[0].righe[0] as { variante?: string | null }).variante
+  assert.equal(inputSeduta(1, campi(), vecchia, []).esercizi[0].variante, null)
+})
+
 test("Progressioni: la dose dello step finisce nella riga, e lo stesso esercizio in piu' step non sposta la scala", () => {
   const corsa = esercizio(30, 'Corsa intervallata', 40, 'Corsa')
   // dove lo step ha una dose, vale quella; dove manca, quella dell'esercizio
   const s = tutte([
-    { tipo: 'aggiungi', sez: 0, esercizio: corsa, dose: { serie: '5', ripetizioni: "3' corsa", recupero: "3' cammino" } }
+    { tipo: 'aggiungi', sez: 0, esercizio: corsa, dose: { serie: '5', ripetizioni: "3' corsa", recupero: "3' cammino", variante: null } }
   ])
   const r = s.sezioni[0].righe[0]
   assert.deepEqual([r.serie, r.ripetizioni, r.recupero], ['5', "3' corsa", "3' cammino"])
   const solo = tutte([
-    { tipo: 'aggiungi', sez: 0, esercizio: corsa, dose: { serie: null, ripetizioni: "20' corsa", recupero: null } }
+    { tipo: 'aggiungi', sez: 0, esercizio: corsa, dose: { serie: null, ripetizioni: "20' corsa", recupero: null, variante: null } }
   ])
   assert.deepEqual([solo.sezioni[0].righe[0].serie, solo.sezioni[0].righe[0].ripetizioni], ['3', "20' corsa"])
 

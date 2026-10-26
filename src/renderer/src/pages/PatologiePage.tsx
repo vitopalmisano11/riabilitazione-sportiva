@@ -10,6 +10,7 @@ import type {
   TestAvanzamento
 } from '../../../shared/types'
 import CrudList from '../components/CrudList'
+import { daPrecarico, ricorda } from '../precarico'
 import ProgressioniFaseTab from '../components/ProgressioniFase'
 import Aiuto from '../components/Aiuto'
 import { useRiordinoSalvato } from '../riordino'
@@ -29,14 +30,14 @@ const TABS: { key: Tab; label: string }[] = [
 
 // Flusso progressivo: 1) scegli patologia -> 2) scegli fase -> 3) editor della fase
 export default function PatologiePage(): React.JSX.Element {
-  const [patologie, setPatologie] = useState<Patologia[]>([])
+  const [patologie, setPatologie] = useState<Patologia[]>(() => daPrecarico('patologie', []))
   const [selPatId, setSelPatId] = useState<number | null>(null)
   const [fasi, setFasi] = useState<Fase[]>([])
   const [selFaseId, setSelFaseId] = useState<number | null>(null)
   const [tab, setTab] = useState<Tab>('struttura')
 
   const loadPatologie = useCallback(
-    (): Promise<void> => window.api.patologie.list().then(setPatologie),
+    (): Promise<void> => window.api.patologie.list().then(ricorda('patologie')).then(setPatologie),
     []
   )
   const loadFasi = useCallback((): Promise<void> => {

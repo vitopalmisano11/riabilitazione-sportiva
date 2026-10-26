@@ -246,6 +246,7 @@ const RIGA: SedutaInput['esercizi'][number] = {
   recupero_cluster: null,
   recupero: null,
   nota: null,
+  variante: null,
   sezioneIndex: null
 }
 
@@ -329,6 +330,35 @@ test('Programmare la settimana: la stessa seduta su piu\' giorni', () => {
   assert.equal(elencoSedute(pz).length, 3)
   assert.throws(() => programmaSeduta(lun, ['9 settembre']), /data/i)
   assert.throws(() => programmaSeduta(999999, ['2026-09-12']), /non trovata/)
+})
+
+test("La variante dell'esercizio: si salva sulla riga, si rilegge e segue la copia e l'ultima volta", () => {
+  const { pz, input } = sedutaDiProva()
+  const id = creaSeduta({
+    ...input,
+    esercizi: input.esercizi.map((e) => (e.esercizio_id != null ? { ...e, variante: ' con conteggio ' } : e))
+  })
+  const righe = (sedutaId: number) => leggiSeduta(sedutaId).sezioni.flatMap((s) => s.esercizi)
+  // gli spazi si tolgono; la riga senza variante e' l'esercizio normale
+  assert.deepEqual(
+    righe(id).map((e) => [e.nome, e.variante]),
+    [
+      ['Slancio con elastico rosso', null],
+      ['Squat', 'con conteggio']
+    ]
+  )
+
+  // programmando la settimana la variante segue la riga
+  const [copia] = programmaSeduta(id, ['2026-09-20'])
+  assert.equal(righe(copia).find((e) => e.nome === 'Squat')!.variante, 'con conteggio')
+
+  // l'ultima volta dice anche con quale variante e' stato fatto
+  const ultima = ultimaVoltaPerPaziente(pz, copia, '2026-09-30').find((u) => u.esercizio_id != null)!
+  assert.equal(ultima.variante, 'con conteggio')
+
+  // salvando di nuovo senza variante la riga torna normale
+  aggiornaSeduta(id, { ...input, esercizi: input.esercizi })
+  assert.equal(righe(id).find((e) => e.nome === 'Squat')!.variante, null)
 })
 
 test('Esercizio "al volo": un nome scritto solo per questa seduta, senza passare dalla libreria', () => {

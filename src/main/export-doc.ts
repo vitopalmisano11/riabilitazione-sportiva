@@ -12,6 +12,7 @@ import {
   ripetizioniTesto,
   volumeTesto
 } from '../shared/dosaggio'
+import { nomeConVariante } from '../shared/varianti'
 // La libreria di Word pesa (circa 180 ms a caricarla) e serve solo a chi esporta
 // in .docx: si carica in generaDocx, alla prima esportazione, e non all'avvio.
 // Qui entrano solo i tipi, che spariscono a compilazione.
@@ -49,6 +50,9 @@ export interface DatiSedutaExport {
       recupero_cluster: string | null
       recupero: string | null
       nota: string | null
+      // La variante dell'esercizio ("con conteggio all'indietro"): senza, e'
+      // l'esercizio normale e non si scrive niente.
+      variante?: string | null
       // Solo per la scheda illustrata: la spiegazione dell'esercizio, il video
       // e la foto (data URL). Nella scheda normale restano a null, cosi' le
       // immagini non vengono nemmeno lette dal database.
@@ -128,6 +132,11 @@ export function generaHtml(
   // sempre nello stesso posto — cosa fare, quanto, con che carico, quanto
   // riposare. Quello che si legge a schermo e quello che si stampa sono la
   // stessa cosa, e i numeri incolonnati si ritrovano a colpo d'occhio.
+  //
+  // La variante sta sotto al nome: il paziente deve vedere subito se l'esercizio
+  // e' quello normale (niente) o con qualcosa in piu'.
+  const variante = (e: { variante?: string | null }): string =>
+    e.variante?.trim() ? `<span class="variante">${esc(e.variante.trim())}</span>` : ''
   const tabella = (esercizi: DatiSedutaExport['sezioni'][number]['esercizi']): string =>
     `<table class="tabella-scheda">
       <thead><tr>
@@ -137,7 +146,7 @@ export function generaHtml(
       ${esercizi
         .map(
           (e) => `<tr>
-            <td class="col-esercizio"><span class="nome">${esc(e.nome)}</span>${
+            <td class="col-esercizio"><span class="nome">${esc(e.nome)}</span>${variante(e)}${
               e.nota ? `<span class="nota-es">${esc(e.nota)}</span>` : ''
             }</td>
             <td class="col-dose">${esc(volumeTesto(e) ?? '—')}</td>
@@ -195,6 +204,7 @@ export function generaHtml(
               <span class="num">${numero}</span>
               <div class="corpo">
                 <div class="nome">${esc(e.nome)}</div>
+                ${variante(e)}
                 ${numeri(e)}
                 ${
                   e.nota_tecnica
@@ -280,6 +290,8 @@ export function generaHtml(
   table.tabella-scheda tr { page-break-inside: avoid; }
   table.tabella-scheda .col-esercizio { width: auto; }
   table.tabella-scheda .nome { display: block; font-weight: 600; font-size: 12.5px; }
+  table.tabella-scheda .variante { display: block; margin-top: 1px; color: ${accento};
+                                   font-size: 11.5px; font-weight: 600; }
   table.tabella-scheda .nota-es { display: block; margin-top: 2px; color: #555b66;
                                   font-size: 11px; font-style: italic; }
   table.tabella-scheda .col-dose { width: 1%; white-space: nowrap; text-align: center; }
@@ -313,6 +325,7 @@ export function generaHtml(
   .scheda-es .foto + .testo .num { left: 12px; }
   .scheda-es .corpo { padding-left: 24px; min-width: 0; }
   .scheda-es .nome { font-weight: 600; font-size: 13.5px; }
+  .scheda-es .variante { display: block; color: ${accento}; font-weight: 600; font-size: 12px; }
   .scheda-es .num { position: absolute; left: 0; top: 1px; width: 17px; height: 17px;
                     border-radius: 50%; background: ${accento}; color: #fff; font-size: 10px;
                     text-align: center; line-height: 17px; }
@@ -405,7 +418,7 @@ export async function generaDocx(
         (e) =>
           new TableRow({
             children: [
-              e.nome,
+              nomeConVariante(e.nome, e.variante),
               e.serie ?? '',
               // A cluster: "3 × 2" sono i cluster per le ripetizioni di ognuno.
               ripetizioniTesto(e) ?? '',

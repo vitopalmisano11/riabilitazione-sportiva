@@ -90,7 +90,7 @@ function leggiSeduta(id: number, illustrata = false): DatiSedutaExport & { pazie
               e.unita_carico,
               se.serie, se.cluster, se.ripetizioni,
               se.carico, se.recupero_cluster, se.recupero,
-              se.nota, se.seduta_sezione_id${
+              se.nota, se.variante, se.seduta_sezione_id${
                 illustrata ? ', e.nota_tecnica, e.link, e.immagine' : ''
               }
        FROM seduta_esercizi se

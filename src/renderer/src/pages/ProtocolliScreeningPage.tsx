@@ -15,6 +15,7 @@ import CampoSuggerimenti from '../components/CampoSuggerimenti'
 import { chiedi } from '../components/Conferma'
 import { errMsg } from '../lib'
 import { useRileggiDopoSalvataggio } from '../salvaUscendo'
+import { daPrecarico, ricorda } from '../precarico'
 import { useSalvataggio } from '../salvataggio'
 import IndicatoreSalvataggio from '../components/IndicatoreSalvataggio'
 import PunteggioCluster from '../components/PunteggioCluster'
@@ -45,7 +46,7 @@ export default function ProtocolliScreeningPage({
   // aperto e si torna all'elenco.
   tornaAllElenco: number
 }): React.JSX.Element {
-  const [protocolli, setProtocolli] = useState<ProtocolloScreening[]>([])
+  const [protocolli, setProtocolli] = useState<ProtocolloScreening[]>(() => daPrecarico('protocolli', []))
   const [apertoId, setApertoId] = useState<number | null>(null)
   const [nuovo, setNuovo] = useState<{ nome: string; sport: string } | null>(null)
   const [sportNoti, setSportNoti] = useState<string[]>([])
@@ -54,7 +55,7 @@ export default function ProtocolliScreeningPage({
 
   const carica = useCallback(async (): Promise<void> => {
     try {
-      setProtocolli(await window.api.screening.list(null))
+      setProtocolli(ricorda<ProtocolloScreening[]>('protocolli')(await window.api.screening.list(null)))
       setSportNoti(await window.api.screening.sport())
     } catch (e) {
       toastErrore(errMsg(e))

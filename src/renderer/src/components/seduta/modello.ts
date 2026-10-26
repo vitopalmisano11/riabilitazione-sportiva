@@ -19,6 +19,7 @@ import type {
   UltimaVolta
 } from '../../../../shared/types'
 import { caricoTesto, recuperoTesto, rirTesto, volumeTesto } from '../../../../shared/dosaggio'
+import { nomeConVariante } from '../../../../shared/varianti'
 import { sposta } from '../../sposta'
 
 // Una riga della seduta in costruzione. chiaveVolo e' una chiave locale, mai
@@ -86,6 +87,7 @@ export type CampoRiga =
   | 'recupero_cluster'
   | 'recupero'
   | 'nota'
+  | 'variante'
 
 // ---- le sezioni, con la loro storia per Ctrl+Z ----
 
@@ -115,8 +117,9 @@ export type AzioneSezioni =
 const MASSIMO_STORIA = 50
 
 // La dose scritta sullo step di una progressione: dove c'e', vale al posto di
-// quella dell'esercizio (una casella vuota lascia quella dell'esercizio).
-export type DoseStep = Pick<StepProgressione, 'serie' | 'ripetizioni' | 'recupero'>
+// quella dell'esercizio (una casella vuota lascia quella dell'esercizio). La
+// variante dello step, se ne ha una, entra nella riga insieme alla dose.
+export type DoseStep = Pick<StepProgressione, 'serie' | 'ripetizioni' | 'recupero' | 'variante'>
 
 export function rigaDaLibreria(e: EsercizioConCategoria, dose?: DoseStep): RigaBuilder {
   return {
@@ -133,6 +136,7 @@ export function rigaDaLibreria(e: EsercizioConCategoria, dose?: DoseStep): RigaB
     recupero_cluster: e.recupero_cluster_default,
     recupero: dose?.recupero ?? e.recupero_default,
     nota: null,
+    variante: dose?.variante ?? null,
     link: e.link,
     ha_immagine: e.ha_immagine
   }
@@ -157,6 +161,7 @@ export function rigaAlVolo(nome: string, chiave: number): RigaBuilder {
     recupero_cluster: null,
     recupero: null,
     nota: null,
+    variante: null,
     link: null,
     ha_immagine: 0,
     chiaveVolo: chiave
@@ -219,7 +224,8 @@ function applica(sezioni: SezioneBuilder[], a: AzioneSezioni): { sezioni: Sezion
           rir: u.rir,
           carico: u.carico,
           recupero_cluster: u.recupero_cluster,
-          recupero: u.recupero
+          recupero: u.recupero,
+          variante: u.variante
         })),
         cosa: `ricopiati i numeri di ${nome}`
       }
@@ -370,7 +376,7 @@ export function suggerimentiProgressioni(
     const righe = p.step
       .slice(base, base + 2)
       .map((step, i) => ({ step, indice: i }))
-      .filter((r) => q === '' || r.step.esercizio_nome.toLowerCase().includes(q))
+      .filter((r) => q === '' || nomeConVariante(r.step.esercizio_nome, r.step.variante).toLowerCase().includes(q))
     if (righe.length > 0) gruppi.push({ progressione: p, base, righe })
   }
   return gruppi
@@ -391,7 +397,9 @@ export const mostraRir = (r: { categoria_nome: string | null; rir: string | null
 
 // Cosa aveva fatto l'ultima volta, gia' scritto come si legge.
 export const testoUltima = (r: SedutaEsercizioDettaglio, u: UltimaVolta): string =>
-  [volumeTesto(u), rirTesto(u), caricoTesto(u.carico, r.unita_carico), recuperoTesto(u)].filter(Boolean).join(' · ')
+  [u.variante?.trim(), volumeTesto(u), rirTesto(u), caricoTesto(u.carico, r.unita_carico), recuperoTesto(u)]
+    .filter(Boolean)
+    .join(' · ')
 
 // ---- prima di salvare ----
 
@@ -517,6 +525,7 @@ export function inputSeduta(
         recupero_cluster: r.recupero_cluster?.trim() || null,
         recupero: r.recupero?.trim() || null,
         nota: r.nota?.trim() || null,
+        variante: r.variante?.trim() || null,
         sezioneIndex: i
       }))
     )

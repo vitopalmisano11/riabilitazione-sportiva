@@ -20,10 +20,10 @@ export function ultimaVoltaPerPaziente(
   return getDb()
     .prepare(
       `SELECT esercizio_id, data, serie, cluster, ripetizioni, rir, carico,
-              recupero_cluster, recupero
+              recupero_cluster, recupero, variante
        FROM (
          SELECT se.esercizio_id, s.data, se.serie, se.cluster, se.ripetizioni,
-                se.rir, se.carico, se.recupero_cluster, se.recupero,
+                se.rir, se.carico, se.recupero_cluster, se.recupero, se.variante,
                 ROW_NUMBER() OVER (
                   PARTITION BY se.esercizio_id ORDER BY s.data DESC, s.id DESC
                 ) AS n

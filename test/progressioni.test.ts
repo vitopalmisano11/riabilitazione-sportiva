@@ -4,7 +4,7 @@ import { test } from 'vitest'
 import assert from 'node:assert/strict'
 import { archivioDiProva } from './archivio-di-prova'
 import { getDb } from '../src/main/db'
-import { creaCategoria, creaEsercizio, eliminaEsercizio } from '../src/main/esercizi'
+import { aggiornaEsercizio, creaCategoria, creaEsercizio, elencoEsercizi, eliminaEsercizio } from '../src/main/esercizi'
 import {
   aggiornaProgressione,
   aggiornaStep,
@@ -28,8 +28,8 @@ archivioDiProva()
 
 const ins = (sql: string, ...a: unknown[]): number => Number(getDb().prepare(sql).run(...a).lastInsertRowid)
 
-function esercizio(categoria_id: number, nome: string): number {
-  return creaEsercizio({
+function datiEsercizio(categoria_id: number, nome: string, varianti?: EsercizioInput['varianti']): EsercizioInput {
+  return {
     nome,
     categoria_id,
     serie_default: null,
@@ -41,9 +41,12 @@ function esercizio(categoria_id: number, nome: string): number {
     recupero_cluster_default: null,
     recupero_default: null,
     nota_tecnica: null,
-    link: null
-  } as EsercizioInput)
+    link: null,
+    varianti
+  } as EsercizioInput
 }
+
+const esercizio = (categoria_id: number, nome: string): number => creaEsercizio(datiEsercizio(categoria_id, nome))
 
 function seduta(
   pazienteId: number,
@@ -306,8 +309,14 @@ test("Lo stesso esercizio puo' essere piu' step della stessa scala, ognuno con l
     [[null, null, null], [null, null, null], [null, null, null]]
   )
 
-  aggiornaStep(step[0], { requisito: null, serie: '5', ripetizioni: "1' corsa", recupero: "5' cammino" })
-  aggiornaStep(step[1], { requisito: 'dolore al massimo 2/10', serie: ' 5 ', ripetizioni: "2' corsa", recupero: '   ' })
+  aggiornaStep(step[0], { requisito: null, serie: '5', ripetizioni: "1' corsa", recupero: "5' cammino", variante_id: null })
+  aggiornaStep(step[1], {
+    requisito: 'dolore al massimo 2/10',
+    serie: ' 5 ',
+    ripetizioni: "2' corsa",
+    recupero: '   ',
+    variante_id: null
+  })
   const dopo = leggi()
   assert.deepEqual([dopo[0].serie, dopo[0].ripetizioni, dopo[0].recupero], ['5', "1' corsa", "5' cammino"])
   // gli spazi si tolgono e una casella vuota torna a "come l'esercizio"
@@ -324,7 +333,74 @@ test("Lo stesso esercizio puo' essere piu' step della stessa scala, ognuno con l
   assert.equal(r.step[1].ripetizioni, "2' corsa")
 
   // cambiare la dose di uno step non sposta nessuno
-  aggiornaStep(step[2], { requisito: null, serie: '5', ripetizioni: "3' corsa", recupero: "3' cammino" })
+  aggiornaStep(step[2], { requisito: null, serie: '5', ripetizioni: "3' corsa", recupero: "3' cammino", variante_id: null })
   assert.equal(stato(paz, fase).find((p) => p.id === prog)!.posizione, 1)
   assert.deepEqual(leggi().map((s) => s.id), step)
+})
+
+// L'equilibrio monopodalico normale, poi con il conteggio, poi con le luci: lo
+// stesso esercizio, e a cambiare e' la variante.
+test("Una variante dell'esercizio puo' essere uno step, e la scala la segue anche rinominandola", () => {
+  const { paz, fase, gruppo } = scenario()
+  const cat = creaCategoria(`Equilibrio ${Math.random()}`)
+  const slb = creaEsercizio(
+    datiEsercizio(cat, `Equilibrio monopodalico ${Math.random()}`, [
+      { id: null, nome: 'con conteggio' },
+      { id: null, nome: 'con luci' }
+    ])
+  )
+  const altro = creaEsercizio(datiEsercizio(cat, `Squat ${Math.random()}`, [{ id: null, nome: 'con palla' }]))
+  const variantiDi = (id: number) =>
+    (elencoEsercizi(true) as { id: number; varianti: { id: number; nome: string }[] }[]).find((e) => e.id === id)!
+      .varianti
+  const [conteggio, luci] = variantiDi(slb)
+  const [conPalla] = variantiDi(altro)
+
+  const prog = creaProgressione('Equilibrio', gruppo)
+  const step = [1, 2, 3].map(() => aggiungiStep(prog, slb, null))
+  const dati = (variante_id: number | null) => ({
+    requisito: null,
+    serie: null,
+    ripetizioni: null,
+    recupero: null,
+    variante_id
+  })
+  aggiornaStep(step[1], dati(conteggio.id))
+  aggiornaStep(step[2], dati(luci.id))
+  const leggi = () => elencoProgressioni().find((p) => p.id === prog)!.step
+  assert.deepEqual(leggi().map((s) => s.variante), [null, 'con conteggio', 'con luci'])
+
+  // chi sale la scala trova la variante di ogni step
+  seduta(paz, fase, '2026-09-01', [{ progressione_id: prog, esito: 'avanza' }])
+  const r = stato(paz, fase).find((p) => p.id === prog)!
+  assert.equal(r.step[r.posizione].variante, 'con conteggio')
+
+  // la variante di un altro esercizio non si mette su questo step
+  assert.throws(() => aggiornaStep(step[0], dati(conPalla.id)), /non è di questo esercizio/)
+  assert.equal(leggi()[0].variante_id, null)
+
+  // rinominandola in libreria la scala la segue, perche' lo step ne tiene il rimando
+  aggiornaEsercizio(
+    slb,
+    datiEsercizio(cat, 'Equilibrio monopodalico', [
+      { id: conteggio.id, nome: "con conteggio all'indietro" },
+      { id: luci.id, nome: 'con luci' }
+    ])
+  )
+  assert.equal(leggi()[1].variante, "con conteggio all'indietro")
+
+  // una variante che e' uno step non si toglie: la scala resterebbe con un buco
+  assert.throws(
+    () => aggiornaEsercizio(slb, datiEsercizio(cat, 'Equilibrio monopodalico', [{ id: conteggio.id, nome: 'con conteggio' }])),
+    /uno step di una progressione \(Equilibrio\)/
+  )
+
+  // cambiando l'esercizio dello step la variante non lo segue: era dell'altro
+  sostituisciStep(step[1], altro)
+  assert.deepEqual([leggi()[1].esercizio_id, leggi()[1].variante_id], [altro, null])
+
+  // tolto lo step, la variante si puo' togliere dall'esercizio
+  togliStep(step[2])
+  aggiornaEsercizio(slb, datiEsercizio(cat, 'Equilibrio monopodalico', [{ id: conteggio.id, nome: 'con conteggio' }]))
+  assert.deepEqual(variantiDi(slb).map((v) => v.nome), ['con conteggio'])
 })

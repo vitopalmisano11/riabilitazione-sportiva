@@ -187,16 +187,34 @@
   width: 100%;
 }
 
-/* il requisito sta su una riga sua, sotto al nome: affiancato si tagliava */
+/* il requisito sta su una riga sua, sotto al nome: affiancato si tagliava. Le
+   righe sotto al nome non hanno una posizione fissa perche' la variante, che
+   c'e' solo per gli esercizi che ne hanno, va fra il nome e il requisito. */
 .step-editor li > input {
   grid-column: 2 / 3;
-  grid-row: 2;
+}
+
+.step-editor li > .step-variante {
+  grid-column: 2 / 3;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-dim);
+}
+
+.step-editor .step-variante select {
+  flex: 0 1 280px;
+  min-width: 0;
+  padding: 6px 10px;
+  font-size: 14px;
 }
 
 /* la dose dello step: tre caselle strette sotto al requisito */
 .step-editor .step-dose {
   grid-column: 2 / 3;
-  grid-row: 3;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;

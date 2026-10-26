@@ -330,9 +330,11 @@ export default function SedutaBuilder({
     () => new Set(sezioni.flatMap((s) => s.righe.map((r) => r.esercizio_id).filter((x): x is number => x != null))),
     [sezioni]
   )
+  // Solo quelle collegate alla fase: un esercizio che per caso sta anche in una
+  // progressione che la fase non usa (es. fase iniziale) non chiede nessun esito.
   const progressioniInSeduta = useMemo(
-    () => contesto.progressioniTutte.filter((p) => p.step.some((s) => inSeduta.has(s.esercizio_id))),
-    [contesto.progressioniTutte, inSeduta]
+    () => contesto.progressioni.filter((p) => p.step.some((s) => inSeduta.has(s.esercizio_id))),
+    [contesto.progressioni, inSeduta]
   )
   // una seduta programmata per i giorni a venire non e' ancora andata in nessun
   // modo: l'esito si segna quando si svolge (e la pagina lo dice)

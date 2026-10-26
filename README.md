@@ -64,6 +64,25 @@ supera con *Ulteriori informazioni → Esegui comunque*.
 Le versioni vere dell'app sono quelle di `package.json` e dei tag `vX.Y.Z`: le sezioni «giro di
 feedback» qui sopra sono precedenti e usavano una numerazione propria.
 
+### v0.5.13
+
+**Prima di tutto:** al primo accesso dopo l'aggiornamento il programma aggiunge alcune tabelle e colonne al
+database (migrazioni 68, 69 e 70): non toccano i dati, ma non si possono annullare, quindi prima fa da solo
+una copia dell'archivio.
+
+- Varianti degli esercizi (migrazione 70): l'equilibrio monopodalico normale o con uno stimolo (conteggio,
+  luci, palla). Le varianti si scrivono sull'esercizio in libreria, dalla più facile alla più difficile; in
+  seduta compare il menu «normale» solo sugli esercizi che ne hanno; sulla scheda del paziente (finestra,
+  PDF, Word, CSV) la variante si legge sotto il nome, e per l'esercizio normale non si scrive niente
+- Progressioni: lo step può essere una variante dell'esercizio (equilibrio → con conteggio → con luci), con
+  la sua dose; lo stesso esercizio può ripetersi nella scala (migrazione 68). Nella scheda dell'esito
+  compare solo la frase di dove si va
+- Questionari: IKDC e LESS già pronti in italiano, ognuno nella sua categoria (migrazione 69)
+- Configurazione: premendo una linguetta (Patologie, Distretti, Libreria esercizi…) le schede ci sono
+  subito, senza vedere prima la pagina vuota
+- Patologie: caselle tutte della stessa altezza
+- Libreria esercizi: icone e cartellini degli esercizi centrati sul nome
+
 ### v0.5.12
 
 **Prima di tutto:** al primo accesso dopo l'aggiornamento il programma aggiunge alcuni indici al database

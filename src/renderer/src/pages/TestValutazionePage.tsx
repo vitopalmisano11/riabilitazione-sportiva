@@ -20,6 +20,7 @@ import Aiuto from '../components/Aiuto'
 import { errMsg } from '../lib'
 import { unitaDiTempo } from '../../../shared/soglie'
 import { useRileggiDopoSalvataggio } from '../salvaUscendo'
+import { daPrecarico, ricorda } from '../precarico'
 import { useSalvataggio } from '../salvataggio'
 import IndicatoreSalvataggio from '../components/IndicatoreSalvataggio'
 import { sposta, useRiordino } from '../riordino'
@@ -31,17 +32,17 @@ const RIASSUNTI: { valore: RiassuntoMisura; etichetta: string }[] = [
 ]
 
 export default function TestValutazionePage(): React.JSX.Element {
-  const [categorie, setCategorie] = useState<CategoriaTest[]>([])
-  const [test, setTest] = useState<TestValutazione[]>([])
+  const [categorie, setCategorie] = useState<CategoriaTest[]>(() => daPrecarico('testCategorie', []))
+  const [test, setTest] = useState<TestValutazione[]>(() => daPrecarico('test', []))
   const [catId, setCatId] = useState<number | null>(null)
   const [apertoId, setApertoId] = useState<number | null>(null)
 
   const loadCategorie = useCallback(
-    (): Promise<void> => window.api.testCategorie.list().then(setCategorie),
+    (): Promise<void> => window.api.testCategorie.list().then(ricorda('testCategorie')).then(setCategorie),
     []
   )
   const loadTest = useCallback(
-    (): Promise<void> => window.api.testValutazione.list(false).then(setTest),
+    (): Promise<void> => window.api.testValutazione.list(false).then(ricorda('test')).then(setTest),
     []
   )
 

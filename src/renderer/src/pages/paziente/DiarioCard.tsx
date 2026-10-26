@@ -24,7 +24,14 @@ export function DiarioCard({
   const [menuScarica, setMenuScarica] = useState<number | null>(null)
   const [anteprima, setAnteprima] = useState<number | null>(null)
 
-  const load = async (): Promise<void> => setSedute(await window.api.sedute.list(paziente.id))
+  // Prima che le sedute arrivino l'elenco e' vuoto per forza: senza questo
+  // si vedrebbe per un attimo "Nessuna seduta ancora" e poi tutto si sposta.
+  const [caricate, setCaricate] = useState(false)
+
+  const load = async (): Promise<void> => {
+    setSedute(await window.api.sedute.list(paziente.id))
+    setCaricate(true)
+  }
 
   // Una seduta e' "programmata" se la sua data deve ancora arrivare: nessuno
   // stato da mettere a mano, la data basta. Le programmate si leggono dalla piu'
@@ -194,7 +201,7 @@ export function DiarioCard({
           <ul className="sedute-list">{programmate.map(riga)}</ul>
         </div>
       )}
-      {fatte.length === 0 ? (
+      {!caricate ? null : fatte.length === 0 ? (
         programmate.length > 0 ? (
           <p className="hint">Nessuna seduta svolta finora.</p>
         ) : (

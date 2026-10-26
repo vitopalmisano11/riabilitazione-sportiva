@@ -127,6 +127,77 @@ test('Un esercizio usato in una seduta non si elimina; uno mai usato va nel cest
   assert.throws(() => eliminaCategoria(cat), /(utilizzato|FOREIGN|esercizi)/i)
 })
 
+test('Le varianti di un esercizio: in ordine, senza doppioni, e tornano dal cestino', () => {
+  const cat = creaCategoria('Esercizi varianti')
+  type Riga = { id: number; varianti: { id: number; nome: string }[] }
+  const varianti = (id: number): { id: number; nome: string }[] =>
+    (elencoEsercizi(true) as Riga[]).find((e) => e.id === id)!.varianti
+
+  // le vuote si scartano e gli spazi si tolgono; un esercizio senza varianti non ne ha
+  const id = creaEsercizio(
+    esercizio(cat, 'Equilibrio monopodalico', {
+      varianti: [
+        { id: null, nome: ' con conteggio ' },
+        { id: null, nome: '   ' },
+        { id: null, nome: 'con luci' }
+      ]
+    })
+  )
+  const altro = creaEsercizio(esercizio(cat, 'Squat senza varianti'))
+  assert.deepEqual(varianti(id).map((v) => v.nome), ['con conteggio', 'con luci'])
+  assert.deepEqual(varianti(altro), [])
+
+  // si riordinano e si rinominano tenendo gli id, e ne nasce una nuova
+  const [conteggio, luci] = varianti(id)
+  aggiornaEsercizio(
+    id,
+    esercizio(cat, 'Equilibrio monopodalico', {
+      varianti: [
+        { id: luci.id, nome: 'con luci reattive' },
+        { id: conteggio.id, nome: 'con conteggio' },
+        { id: null, nome: 'con palla' }
+      ]
+    })
+  )
+  const dopo = varianti(id)
+  assert.deepEqual(dopo.map((v) => v.nome), ['con luci reattive', 'con conteggio', 'con palla'])
+  assert.deepEqual([dopo[0].id, dopo[1].id], [luci.id, conteggio.id])
+
+  // chi non parla di varianti non le tocca
+  aggiornaEsercizio(id, esercizio(cat, 'Equilibrio monopodalico', { serie_default: '4' }))
+  assert.equal(varianti(id).length, 3)
+
+  // due varianti con lo stesso nome (anche con maiuscole diverse) non si accettano
+  assert.throws(
+    () =>
+      aggiornaEsercizio(
+        id,
+        esercizio(cat, 'Equilibrio monopodalico', {
+          varianti: [
+            { id: null, nome: 'Con palla' },
+            { id: null, nome: 'con palla' }
+          ]
+        })
+      ),
+    /si chiamano/
+  )
+  assert.equal(varianti(id).length, 3, 'e non cambia niente')
+
+  // una variante di un altro esercizio non si puo' spacciare per propria
+  aggiornaEsercizio(altro, esercizio(cat, 'Squat senza varianti', { varianti: [{ id: luci.id, nome: 'rubata' }] }))
+  assert.deepEqual(varianti(altro).map((v) => v.nome), ['rubata'], 'diventa una variante nuova')
+  assert.equal(varianti(id).length, 3, 'e quella di prima resta dov\'era')
+
+  // togliendo tutte le varianti l'esercizio torna come tutti gli altri
+  aggiornaEsercizio(altro, esercizio(cat, 'Squat senza varianti', { varianti: [] }))
+  assert.deepEqual(varianti(altro), [])
+
+  // con l'esercizio nel cestino se ne vanno, e tornano uguali
+  eliminaEsercizio(id)
+  ripristina(elencoCestino().find((v) => v.etichetta === 'Equilibrio monopodalico')!.id)
+  assert.deepEqual(varianti(id), dopo)
+})
+
 test('L\'immagine dell\'esercizio: solo immagini vere e leggere, e si legge a parte', () => {
   const cat = creaCategoria('Esercizi immagine')
   const id = creaEsercizio(esercizio(cat, 'Con foto'))

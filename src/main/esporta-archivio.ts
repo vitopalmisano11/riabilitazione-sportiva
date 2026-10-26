@@ -212,7 +212,7 @@ export function esportaArchivio(cartella: string): string {
   scriviCsv(
     join(dest, 'sedute.csv'),
     q(`SELECT p.cognome, p.nome, s.data, f.nome AS fase, sez.nome AS sezione,
-              COALESCE(e.nome, se.nome_libero) AS esercizio, c.nome AS categoria,
+              COALESCE(e.nome, se.nome_libero) AS esercizio, se.variante, c.nome AS categoria,
               se.serie, se.cluster AS cluster_per_serie, se.ripetizioni,
               se.carico, se.recupero_cluster AS recupero_tra_i_cluster, se.recupero, se.nota,
               s.note AS note_seduta
@@ -231,6 +231,7 @@ export function esportaArchivio(cartella: string): string {
       'fase',
       'sezione',
       'esercizio',
+      'variante',
       'categoria',
       'serie',
       'cluster_per_serie',

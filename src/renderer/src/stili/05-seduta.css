@@ -349,6 +349,24 @@
   margin-bottom: 8px;
 }
 
+/* La variante dell'esercizio: compare solo dove l'esercizio ne ha. Scelta una
+   variante diversa da "normale" si colora, cosi' a colpo d'occhio si vede quali
+   righe hanno qualcosa in piu'. */
+.select-variante {
+  flex: none;
+  max-width: 220px;
+  padding: 4px 8px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.select-variante.con-variante {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  font-weight: 600;
+}
+
 .item-actions-static {
   display: flex;
   gap: 2px;

@@ -33,8 +33,11 @@ export function elencoProgressioni(): Progressione[] {
   const step = db
     .prepare(
       `SELECT s.id, s.progressione_id, s.esercizio_id, e.nome AS esercizio_nome,
-              e.archiviato, s.requisito, s.serie, s.ripetizioni, s.recupero
-       FROM progressione_step s JOIN esercizi e ON e.id = s.esercizio_id
+              e.archiviato, s.requisito, s.serie, s.ripetizioni, s.recupero,
+              s.variante_id, v.nome AS variante
+       FROM progressione_step s
+       JOIN esercizi e ON e.id = s.esercizio_id
+       LEFT JOIN esercizio_varianti v ON v.id = s.variante_id
        ORDER BY s.ordine, s.id`
     )
     .all() as (StepProgressione & { progressione_id: number })[]
@@ -93,20 +96,43 @@ export function aggiungiStep(progressioneId: number, esercizioId: number, requis
   )
 }
 
-// Il requisito e la dose di uno step; una casella vuota vuol dire "come
-// l'esercizio".
+// Il requisito, la dose e la variante di uno step; una casella vuota vuol dire
+// "come l'esercizio", nessuna variante "l'esercizio normale". La variante deve
+// essere una di quelle dell'esercizio dello step.
 export function aggiornaStep(id: number, dati: DatiStep): void {
-  getDb()
-    .prepare('UPDATE progressione_step SET requisito = ?, serie = ?, ripetizioni = ?, recupero = ? WHERE id = ?')
-    .run(vuotoNull(dati.requisito), vuotoNull(dati.serie), vuotoNull(dati.ripetizioni), vuotoNull(dati.recupero), id)
+  const db = getDb()
+  if (
+    dati.variante_id != null &&
+    !db
+      .prepare(
+        `SELECT 1 FROM progressione_step s
+         JOIN esercizio_varianti v ON v.esercizio_id = s.esercizio_id
+         WHERE s.id = ? AND v.id = ?`
+      )
+      .get(id, dati.variante_id)
+  ) {
+    throw new Error('Quella variante non è di questo esercizio: riprova.')
+  }
+  db.prepare(
+    'UPDATE progressione_step SET requisito = ?, serie = ?, ripetizioni = ?, recupero = ?, variante_id = ? WHERE id = ?'
+  ).run(
+    vuotoNull(dati.requisito),
+    vuotoNull(dati.serie),
+    vuotoNull(dati.ripetizioni),
+    vuotoNull(dati.recupero),
+    dati.variante_id,
+    id
+  )
 }
 
 // Cambia l'esercizio di uno step lasciandolo al suo posto (con il suo requisito
 // e la sua dose): serve soprattutto quando l'esercizio e' stato archiviato. Gli
 // esiti sono della progressione, non dello step, quindi lo step dei pazienti non
-// si sposta.
+// si sposta. La variante resta indietro: era dell'esercizio di prima.
 export function sostituisciStep(id: number, esercizioId: number): void {
-  const { changes } = getDb().prepare('UPDATE progressione_step SET esercizio_id = ? WHERE id = ?').run(esercizioId, id)
+  const { changes } = getDb()
+    .prepare('UPDATE progressione_step SET esercizio_id = ?, variante_id = NULL WHERE id = ?')
+    .run(esercizioId, id)
   if (changes === 0) throw new Error('Step non trovato.')
 }
 
@@ -128,6 +154,18 @@ export function progressioniConEsercizio(esercizioId: number): string[] {
          WHERE s.esercizio_id = ? ORDER BY p.nome`
       )
       .all(esercizioId) as { nome: string }[]
+  ).map((r) => r.nome)
+}
+
+// Lo stesso per una variante: quali progressioni la usano come step.
+export function progressioniConVariante(varianteId: number): string[] {
+  return (
+    getDb()
+      .prepare(
+        `SELECT DISTINCT p.nome FROM progressione_step s JOIN progressioni p ON p.id = s.progressione_id
+         WHERE s.variante_id = ? ORDER BY p.nome`
+      )
+      .all(varianteId) as { nome: string }[]
   ).map((r) => r.nome)
 }
 

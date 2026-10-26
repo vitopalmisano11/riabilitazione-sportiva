@@ -874,3 +874,46 @@
   padding-top: 18px;
   border-top: 1px solid var(--border);
 }
+
+/* Dentro una categoria della libreria: i distretti sono pulsantini sopra la
+   tabella, e premendone uno restano solo i suoi esercizi. */
+.filtro-distretti {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.pillola-distretto {
+  padding: 4px 14px;
+  border-radius: 999px;
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+.pillola-distretto.attivo {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.btn-aggiungi-lista.attivo {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+/* I comandi dei distretti, aperti a richiesta: un fondo diverso dice che e'
+   un pannello di sistemazione, non parte dell'elenco. */
+.pannello-distretti {
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--pannello);
+}
+
+.pannello-distretti h4 {
+  margin: 0;
+}

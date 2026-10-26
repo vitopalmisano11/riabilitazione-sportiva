@@ -1,6 +1,6 @@
 import { memo } from 'react'
 import { CornerDownLeft, ImageIcon, Video, X } from 'lucide-react'
-import type { UltimaVolta } from '../../../../shared/types'
+import type { UltimaVolta, VarianteEsercizio } from '../../../../shared/types'
 import type { PropsContenitore, PropsPresa } from '../../riordino'
 import { errMsg, formatData } from '../../lib'
 import { toast, toastErrore } from '../Toast'
@@ -13,6 +13,8 @@ interface Props {
   // quali caselle in piu' mostrare (vedi mostraCluster e mostraRir)
   cluster: boolean
   rir: boolean
+  // le varianti che l'esercizio ha in libreria (quasi sempre nessuna)
+  varianti: VarianteEsercizio[]
   // cosa aveva fatto l'ultima volta, se c'e' da mostrarlo
   ultima: UltimaVolta | undefined
   dnd: PropsContenitore
@@ -35,6 +37,7 @@ function RigaSeduta({
   indice,
   cluster,
   rir,
+  varianti,
   ultima,
   dnd,
   presa,
@@ -71,6 +74,29 @@ function RigaSeduta({
             </button>
           )}
         </span>
+        {/* Il menu compare solo sugli esercizi che hanno delle varianti (o su una
+            riga che ne ha gia' una, anche se poi e' stata tolta dalla libreria):
+            per tutti gli altri la riga e' quella di sempre. Sceglie "normale"
+            e non si scrive niente sulla scheda. */}
+        {(varianti.length > 0 || r.variante) && (
+          <select
+            className={`select-variante${r.variante ? ' con-variante' : ''}`}
+            title="Variante dell'esercizio"
+            aria-label={`Variante di ${r.nome}`}
+            value={r.variante ?? ''}
+            onChange={cambia('variante')}
+          >
+            <option value="">normale</option>
+            {varianti.map((v) => (
+              <option key={v.id} value={v.nome}>
+                {v.nome}
+              </option>
+            ))}
+            {r.variante && !varianti.some((v) => v.nome === r.variante) && (
+              <option value={r.variante}>{r.variante}</option>
+            )}
+          </select>
+        )}
       </div>
       {/* Parametri e nota sulla stessa riga del nome: le etichette sono nei
           segnaposto, cosi' un esercizio occupa una riga invece di tre. */}
@@ -168,6 +194,7 @@ const uguali = (a: Props, b: Props): boolean =>
   a.indice === b.indice &&
   a.cluster === b.cluster &&
   a.rir === b.rir &&
+  a.varianti === b.varianti &&
   a.ultima === b.ultima &&
   a.dnd.draggable === b.dnd.draggable &&
   a.dnd.className === b.dnd.className &&
