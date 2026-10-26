@@ -152,7 +152,9 @@ test('progressioni: dalla libreria alla seduta e allo specchietto', async () => 
     // nessun pulsante in piu' nelle righe: l'esito sta in fondo, e solo con un esercizio della progressione
     await expect(pagina.locator('.esiti-prog')).toHaveCount(0)
     await suggeriti.getByTitle('Aggiungi Wall sit').click()
-    await expect(pagina.locator('.esiti-prog')).toContainText('Vertical braking')
+    // solo la frase di dove si va: niente nome della progressione ne' pallini
+    await expect(pagina.locator('.esiti-prog')).toContainText('si resta allo step 1 di 3 · Wall sit')
+    await expect(pagina.locator('.esiti-prog')).not.toContainText('Vertical braking')
     await pagina.getByRole('button', { name: 'Avanza', exact: true }).click()
     await pagina.locator('.esiti-prog').screenshot({ path: join(FOTO, '24-progressioni-esito.png') })
     await pagina.getByRole('button', { name: /Salva seduta \(1 esercizi\)/ }).click()

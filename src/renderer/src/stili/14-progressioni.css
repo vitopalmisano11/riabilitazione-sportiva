@@ -308,47 +308,6 @@
   border-radius: var(--radius-sm);
 }
 
-.esito-testata {
-  display: flex;
-  align-items: center;
-  flex: 1 1 260px;
-  min-width: 0;
-  gap: 10px;
-}
-
-.esito-nome {
-  font-weight: 600;
-}
-
-.esito-posizione {
-  color: var(--text-dim);
-  font-size: 14px;
-}
-
-/* La scala in piccolo: un tondino per step, i fatti pieni, l'attuale col bordo. */
-.esito-scala {
-  display: inline-flex;
-  gap: 4px;
-}
-
-.esito-scala i {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  border: 1.5px solid var(--border-forte);
-}
-
-.esito-scala i.fatto {
-  background: var(--success);
-  border-color: var(--success);
-}
-
-.esito-scala i.attuale {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-  box-shadow: 0 0 0 2px var(--accent-soft);
-}
-
 .esito-criteri {
   display: inline-flex;
   color: var(--text-dim);

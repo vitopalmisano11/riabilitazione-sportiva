@@ -62,25 +62,8 @@ export default function EsitiProgressioni({
       {!rimandato &&
         stati.map((p) => {
           const scelta: Scelta = esiti[p.id] ?? 'rimani'
-          const attuale = p.step[p.posizione]
           return (
             <div className="esito-card" key={p.id}>
-              <span className="esito-testata">
-                <span className="esito-nome">{p.nome}</span>
-                <span className="esito-posizione">
-                  {p.completata
-                    ? 'scala completata'
-                    : `step ${p.posizione + 1} di ${p.step.length}${attuale ? ` · ${attuale.esercizio_nome}` : ''}`}
-                </span>
-                <span className="esito-scala" aria-hidden="true">
-                  {p.step.map((s, i) => (
-                    <i
-                      key={s.id ?? i}
-                      className={i < p.posizione ? 'fatto' : i === p.posizione ? 'attuale' : ''}
-                    />
-                  ))}
-                </span>
-              </span>
               <span className="esito-scelte" role="group" aria-label={`Esito di ${p.nome}`}>
                 {SCELTE.map(({ chiave, etichetta, Icona }) => (
                   <button
