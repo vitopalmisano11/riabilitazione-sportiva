@@ -16,9 +16,11 @@ import Aiuto from '../Aiuto'
 import RigaSeduta from './RigaSeduta'
 import SuggerimentiProgressioni from './SuggerimentiProgressioni'
 import {
+  categorieDellaSezione,
   daProporre,
   mostraCluster,
   mostraRir,
+  sezioneAmmetteStep,
   suggerimentiProgressioni,
   testoUltima,
   type AzioneSezioni,
@@ -41,6 +43,8 @@ interface Props {
   // messi in seduta (in qualunque sezione)
   progressioni: StatoProgressione[]
   inSeduta: Set<number>
+  // le categorie proposte da almeno una sezione della seduta
+  categorieCoperte: Set<number>
   onSpecchietto: () => void
   // la ricerca degli esercizi e' aperta in questa sezione (una per volta)
   aperta: boolean
@@ -65,6 +69,7 @@ export default function SezioneSeduta({
   ricopiate,
   progressioni,
   inSeduta,
+  categorieCoperte,
   onSpecchietto,
   aperta,
   onApri,
@@ -97,7 +102,15 @@ export default function SezioneSeduta({
 
   const testoRicerca = ricerca.trim()
   // Solo per la sezione aperta, come le proposte.
-  const suggeriti = aperta ? suggerimentiProgressioni(progressioni, inSeduta, testoRicerca) : []
+  const suggeriti = aperta
+    ? suggerimentiProgressioni(progressioni, inSeduta, testoRicerca, (id) =>
+        sezioneAmmetteStep(
+          libreria.find((e) => e.id === id)?.categoria_id,
+          categorieDellaSezione(s, templateCats, categorie),
+          categorieCoperte
+        )
+      )
+    : []
   const giaSuggeriti = new Set(suggeriti.flatMap((g) => g.righe.map((r) => r.step.esercizio_id)))
   const nomeCategoria = (cid: number): string => categorie.find((c) => c.id === cid)?.nome ?? '?'
   const dndSez = riordinoSezioni.contenitore(idxSez)

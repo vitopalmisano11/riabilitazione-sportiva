@@ -35,6 +35,10 @@ async function prepara(pagina: Page): Promise<void> {
     const fase = await api.fasi.create(pat, 'Fase 2')
     const sez = await api.sezioni.create(fase, 'Propriocezione')
     await api.sezioni.setCategorie(sez, [cat])
+    // una seconda sezione, d'altro tipo: le progressioni non vanno suggerite li'
+    const catMobilita = await api.categorie.create('Mobilizzazione')
+    const sezMobilita = await api.sezioni.create(fase, 'Mobilizzazione')
+    await api.sezioni.setCategorie(sezMobilita, [catMobilita])
     await api.progressioni.impostaFase(fase, { gruppo_ids: [], progressione_ids: [prog] })
     await api.pazienti.create({
       nome: 'Marco',
@@ -110,8 +114,14 @@ test('varianti: dalla libreria alla progressione e alla seduta', async () => {
     // ---- in seduta: lo step con la variante entra con la variante
     await apriPaziente(pagina)
     await pagina.getByRole('button', { name: 'Nuova seduta', exact: true }).click()
-    await pagina.getByTitle('Aggiungi un esercizio a questa sezione').click()
+    await pagina.getByTitle('Aggiungi un esercizio a questa sezione').nth(0).click()
     const suggeriti = pagina.locator('.suggeriti-prog')
+    await expect(suggeriti).toContainText(`Equilibrio monopodalico — ${CONTEGGIO}`)
+    // nella sezione di mobilizzazione la progressione dell'equilibrio non si suggerisce
+    await pagina.getByTitle('Aggiungi un esercizio a questa sezione').nth(1).click()
+    await expect(pagina.getByText('Scegli un esercizio da aggiungere a “Mobilizzazione”')).toBeVisible()
+    await expect(suggeriti).toHaveCount(0)
+    await pagina.getByTitle('Aggiungi un esercizio a questa sezione').nth(0).click()
     await expect(suggeriti).toContainText(`Equilibrio monopodalico — ${CONTEGGIO}`)
     await suggeriti.locator('li.successivo').getByRole('button').click()
     await pagina.getByTitle('Aggiungi Plank').click()

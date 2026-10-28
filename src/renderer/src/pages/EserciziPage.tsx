@@ -544,52 +544,6 @@ export default function EserciziPage(): React.JSX.Element {
                 onChange={(e) => setForm({ ...form, nome: e.target.value })}
               />
             </label>
-            <div className="campo-varianti">
-              <span className="campo-varianti-etichetta">Varianti (opzionale)</span>
-              {form.varianti.map((v, i) => (
-                <div className="variante-riga" key={v.id ?? `nuova-${i}`}>
-                  <input
-                    value={v.nome}
-                    placeholder="es. con conteggio all'indietro"
-                    onChange={(e) =>
-                      setForm({
-                        ...form,
-                        varianti: form.varianti.map((x, j) => (j === i ? { ...x, nome: e.target.value } : x))
-                      })
-                    }
-                  />
-                  <span className="variante-azioni">
-                    <button
-                      title="Più in alto (più facile)"
-                      disabled={i === 0}
-                      onClick={() => setForm({ ...form, varianti: spostaVariante(form.varianti, i, i - 1) })}
-                    >
-                      <ChevronUp size={16} />
-                    </button>
-                    <button
-                      title="Più in basso (più difficile)"
-                      disabled={i === form.varianti.length - 1}
-                      onClick={() => setForm({ ...form, varianti: spostaVariante(form.varianti, i, i + 1) })}
-                    >
-                      <ChevronDown size={16} />
-                    </button>
-                    <button
-                      className="danger"
-                      title="Togli la variante"
-                      onClick={() => setForm({ ...form, varianti: form.varianti.filter((_, j) => j !== i) })}
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </span>
-                </div>
-              ))}
-              <button
-                className="btn-aggiungi-lista"
-                onClick={() => setForm({ ...form, varianti: [...form.varianti, { id: null, nome: '' }] })}
-              >
-                <Plus size={16} /> Aggiungi una variante
-              </button>
-            </div>
             <label>
               Categoria *
               {/* Si scrive invece di scorrere: con trenta categorie la tendina
@@ -728,6 +682,52 @@ export default function EserciziPage(): React.JSX.Element {
                 onChange={(e) => setForm({ ...form, nota_tecnica: e.target.value })}
               />
             </label>
+            <div className="campo-varianti">
+              <span className="campo-varianti-etichetta">Varianti (opzionale)</span>
+              {form.varianti.map((v, i) => (
+                <div className="variante-riga" key={v.id ?? `nuova-${i}`}>
+                  <input
+                    value={v.nome}
+                    placeholder="es. con conteggio all'indietro"
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        varianti: form.varianti.map((x, j) => (j === i ? { ...x, nome: e.target.value } : x))
+                      })
+                    }
+                  />
+                  <span className="variante-azioni">
+                    <button
+                      title="Più in alto (più facile)"
+                      disabled={i === 0}
+                      onClick={() => setForm({ ...form, varianti: spostaVariante(form.varianti, i, i - 1) })}
+                    >
+                      <ChevronUp size={16} />
+                    </button>
+                    <button
+                      title="Più in basso (più difficile)"
+                      disabled={i === form.varianti.length - 1}
+                      onClick={() => setForm({ ...form, varianti: spostaVariante(form.varianti, i, i + 1) })}
+                    >
+                      <ChevronDown size={16} />
+                    </button>
+                    <button
+                      className="danger"
+                      title="Togli la variante"
+                      onClick={() => setForm({ ...form, varianti: form.varianti.filter((_, j) => j !== i) })}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </span>
+                </div>
+              ))}
+              <button
+                className="btn-aggiungi-lista"
+                onClick={() => setForm({ ...form, varianti: [...form.varianti, { id: null, nome: '' }] })}
+              >
+                <Plus size={16} /> Aggiungi una variante
+              </button>
+            </div>
             <div className="modal-actions">
               <button onClick={() => setForm(null)}>Annulla</button>
               <button className="primary" onClick={() => void salva()}>

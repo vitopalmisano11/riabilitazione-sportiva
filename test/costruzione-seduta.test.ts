@@ -6,6 +6,7 @@ import type { Categoria, EsercizioConCategoria, Segno, StatoProgressione, Ultima
 import {
   bozzaVuota,
   campiDaBozza,
+  categorieDellaSezione,
   daProporre,
   haQualcosa,
   esitiDaSalvare,
@@ -14,6 +15,7 @@ import {
   misuraNonNumerica,
   mostraCluster,
   riduciSezioni,
+  sezioneAmmetteStep,
   suggerimentiProgressioni,
   testoUltima,
   type AzioneSezioni,
@@ -412,4 +414,41 @@ test('Progressioni: si suggerisce lo step attuale e il successivo, e lo squat in
 
   // una scala completata non suggerisce niente
   assert.deepEqual(suggerimentiProgressioni([{ ...verticale, completata: true }], new Set(), ''), [])
+
+  // in una sezione si suggeriscono solo gli esercizi che ammette
+  assert.deepEqual(nomi(suggerimentiProgressioni(stati, new Set(), '', (id) => id !== 11)), [['Wall sit'], ['Affondo']])
+  assert.deepEqual(suggerimentiProgressioni(stati, new Set(), '', () => false), [])
+})
+
+test("Progressioni: si suggeriscono solo nelle sezioni che propongono la categoria dell'esercizio", () => {
+  const rinforzo = categoria(10, 'Rinforzo')
+  const quadricipite = categoria(11, 'Quadricipite', 10)
+  const mobilita = categoria(20, 'Mobilizzazione')
+  const cambi = categoria(30, 'Cambi di direzione')
+  const categorie = [rinforzo, quadricipite, mobilita, cambi]
+  const templateCats = { 1: [10], 2: [20], 3: [30], 4: [] }
+  const sezione = (sezione_id: number | null) => ({ sezione_id, nome: 'S', righe: [] })
+
+  // una categoria porta con se' quelle che ci stanno dentro; fuori struttura non si sa niente
+  assert.deepEqual(categorieDellaSezione(sezione(1), templateCats, categorie), [10, 11])
+  assert.deepEqual(categorieDellaSezione(sezione(4), templateCats, categorie), [])
+  assert.equal(categorieDellaSezione(sezione(null), templateCats, categorie), null)
+
+  // lo squat (quadricipite) in "Forza" si, in "Mobilizzazione" no; i cambi di direzione solo nei loro
+  const coperte = new Set([10, 11, 20, 30])
+  const forza = categorieDellaSezione(sezione(1), templateCats, categorie)
+  const mob = categorieDellaSezione(sezione(2), templateCats, categorie)
+  assert.equal(sezioneAmmetteStep(11, forza, coperte), true)
+  assert.equal(sezioneAmmetteStep(11, mob, coperte), false)
+  assert.equal(sezioneAmmetteStep(30, forza, coperte), false)
+  assert.equal(sezioneAmmetteStep(30, categorieDellaSezione(sezione(3), templateCats, categorie), coperte), true)
+  // una sezione senza categorie non ne ammette nessuna di quelle che altre sezioni propongono
+  assert.equal(sezioneAmmetteStep(11, categorieDellaSezione(sezione(4), templateCats, categorie), coperte), false)
+
+  // una sezione aggiunta al volo le vede tutte
+  assert.equal(sezioneAmmetteStep(11, null, coperte), true)
+  // una categoria che nessuna sezione propone si suggerisce dappertutto, o non comparirebbe mai
+  assert.equal(sezioneAmmetteStep(99, mob, coperte), true)
+  // un esercizio che non e' in libreria (archiviato) non si puo' escludere
+  assert.equal(sezioneAmmetteStep(undefined, mob, coperte), true)
 })

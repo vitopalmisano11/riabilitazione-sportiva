@@ -303,16 +303,42 @@ export function proposte(
   categorie: Categoria[],
   libreria: EsercizioConCategoria[]
 ): EsercizioConCategoria[] {
-  if (s.sezione_id == null) return []
-  const cats = templateCats[s.sezione_id] ?? []
+  return (categorieDellaSezione(s, templateCats, categorie) ?? []).flatMap((cid) =>
+    libreria.filter((e) => e.categoria_id === cid)
+  )
+}
+
+// Le categorie che una sezione propone, con quelle che ci stanno dentro, nell'ordine
+// configurato. null = la sezione non e' della struttura della fase (una aggiunta
+// al volo): di lei non si sa niente.
+export function categorieDellaSezione(
+  s: SezioneBuilder,
+  templateCats: Record<number, number[]>,
+  categorie: Categoria[]
+): number[] | null {
+  if (s.sezione_id == null) return null
   const conDentro: number[] = []
-  for (const cid of cats) {
+  for (const cid of templateCats[s.sezione_id] ?? []) {
     if (!conDentro.includes(cid)) conDentro.push(cid)
     for (const c of categorie) {
       if (c.padre_id === cid && !conDentro.includes(c.id)) conDentro.push(c.id)
     }
   }
-  return conDentro.flatMap((cid) => libreria.filter((e) => e.categoria_id === cid))
+  return conDentro
+}
+
+// Le progressioni si suggeriscono solo nelle sezioni che propongono la categoria
+// del loro esercizio: lo squat della progressione in "Forza", non in "Mobilizzazione".
+// Una sezione aggiunta al volo non ha categorie e le vede tutte; e un esercizio la
+// cui categoria nessuna sezione della seduta propone si suggerisce dappertutto,
+// invece di non comparire da nessuna parte.
+export function sezioneAmmetteStep(
+  categoriaEsercizio: number | undefined,
+  dellaSezione: number[] | null,
+  coperte: Set<number>
+): boolean {
+  if (categoriaEsercizio === undefined || dellaSezione === null) return true
+  return dellaSezione.includes(categoriaEsercizio) || !coperte.has(categoriaEsercizio)
 }
 
 // Cosa elencare sotto alla casella di ricerca di una sezione. Cercando si trova
@@ -362,7 +388,9 @@ export interface GruppoSuggerito {
 export function suggerimentiProgressioni(
   stati: StatoProgressione[],
   inSeduta: Set<number>,
-  testoRicerca: string
+  testoRicerca: string,
+  // Quali esercizi si possono suggerire in questa sezione (vedi sezioneAmmetteStep)
+  ammesso: (esercizioId: number) => boolean = () => true
 ): GruppoSuggerito[] {
   const q = testoRicerca.trim().toLowerCase()
   const gruppi: GruppoSuggerito[] = []
@@ -376,6 +404,7 @@ export function suggerimentiProgressioni(
     const righe = p.step
       .slice(base, base + 2)
       .map((step, i) => ({ step, indice: i }))
+      .filter((r) => ammesso(r.step.esercizio_id))
       .filter((r) => q === '' || nomeConVariante(r.step.esercizio_nome, r.step.variante).toLowerCase().includes(q))
     if (righe.length > 0) gruppi.push({ progressione: p, base, righe })
   }

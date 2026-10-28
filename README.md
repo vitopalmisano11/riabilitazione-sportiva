@@ -64,6 +64,14 @@ supera con *Ulteriori informazioni → Esegui comunque*.
 Le versioni vere dell'app sono quelle di `package.json` e dei tag `vX.Y.Z`: le sezioni «giro di
 feedback» qui sopra sono precedenti e usavano una numerazione propria.
 
+### v0.5.14
+
+Nessuna migrazione: i dati non vengono toccati.
+
+- Seduta: le progressioni si suggeriscono solo nelle sezioni che propongono la categoria del loro esercizio
+  (niente squat in «Mobilizzazione»); nelle sezioni aggiunte al volo si vedono tutte
+- Libreria esercizi: nel modulo dell'esercizio le varianti stanno più in basso, dopo i campi principali
+
 ### v0.5.13
 
 **Prima di tutto:** al primo accesso dopo l'aggiornamento il programma aggiunge alcune tabelle e colonne al

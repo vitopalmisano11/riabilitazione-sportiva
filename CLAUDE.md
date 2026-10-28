@@ -39,7 +39,10 @@ Specifica originale e feedback dell'utente sono nei file `prompt-*.md` alla radi
   programmando la settimana) in `seduta_progressioni`. Lo step del paziente NON è salvato: si ricalcola
   dagli esiti delle sedute. L'interfaccia: `ProgressioniLibreria` (linguetta della libreria),
   `ProgressioniFase` (tab della fase), `ProgressioniPaziente` e `SpecchiettoProgressioni` (specchietto),
-  `seduta/SuggerimentiProgressioni` e `seduta/EsitiProgressioni`.
+  `seduta/SuggerimentiProgressioni` e `seduta/EsitiProgressioni`. In seduta una progressione si suggerisce
+  solo nelle sezioni che propongono la categoria del suo esercizio (`sezioneAmmetteStep` in
+  `seduta/modello.ts`): niente squat in «Mobilizzazione». Sezione al volo = le vede tutte; categoria che
+  nessuna sezione propone = suggerita dappertutto.
 - Le **varianti** di un esercizio (equilibrio monopodalico normale o con uno stimolo cognitivo) si
   scrivono sull'esercizio in libreria (`esercizio_varianti`, migrazione 70, ordinate dalla più facile
   alla più difficile; `EsercizioInput.varianti` le salva insieme all'esercizio, `salvaVarianti` in
