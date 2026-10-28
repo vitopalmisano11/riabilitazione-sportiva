@@ -535,7 +535,12 @@ export default function EserciziPage(): React.JSX.Element {
         // configurazione: si butta via solo un esercizio nuovo ancora senza
         // nome. "Annulla" resta il modo per uscire senza salvare.
         <Modale onConferma={chiudiCliccandoFuori}>
-            <h3>{form.id == null ? 'Nuovo esercizio' : 'Modifica esercizio'}</h3>
+            <div className="modal-testata">
+              <h3>{form.id == null ? 'Nuovo esercizio' : 'Modifica esercizio'}</h3>
+              <button className="primary" onClick={() => void salva()}>
+                Salva
+              </button>
+            </div>
             <label>
               Nome *
               <input

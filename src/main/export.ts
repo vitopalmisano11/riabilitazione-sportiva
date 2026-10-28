@@ -1,5 +1,5 @@
 // Export sedute in PDF (via finestra nascosta + printToPDF) e Word (docx).
-import { BrowserWindow, dialog, shell } from 'electron'
+import { BrowserWindow, dialog } from 'electron'
 import icona from '../../resources/icon.png?asset'
 import { writeFile } from 'fs/promises'
 import { dirname, join } from 'path'
@@ -170,7 +170,6 @@ async function salvaExport(
     await htmlToPdf(generaHtml(paziente, sedute, illustrata), filePath, `${paziente.cognome} ${paziente.nome}`)
   }
   impostaCartellaExport(dirname(filePath)) // ricorda l'ultima cartella scelta
-  shell.showItemInFolder(filePath)
   return filePath
 }
 
@@ -298,7 +297,6 @@ export async function esportaCartella(
   if (canceled || !filePath) return null
   await htmlToPdf(generaCartella(pazienteId, sezioni), filePath, `${cognome} ${nome}`)
   impostaCartellaExport(dirname(filePath))
-  shell.showItemInFolder(filePath)
   return filePath
 }
 
@@ -379,7 +377,6 @@ export async function esportaRelazione(
   if (canceled || !filePath) return null
   await htmlToPdf(generaRelazione(pazienteId, tipo), filePath, `${cognome} ${nome}`)
   impostaCartellaExport(dirname(filePath))
-  shell.showItemInFolder(filePath)
   return filePath
 }
 
@@ -400,7 +397,6 @@ export async function esportaCertificato(dati: CertificatoInput): Promise<string
   if (canceled || !filePath) return null
   await htmlToPdf(html, filePath)
   impostaCartellaExport(dirname(filePath))
-  shell.showItemInFolder(filePath)
   return filePath
 }
 
@@ -480,6 +476,5 @@ export async function esportaReport(
   if (canceled || !filePath) return null
   await htmlToPdf(r.html, filePath, `${r.cognome} ${r.nome}`)
   impostaCartellaExport(dirname(filePath))
-  shell.showItemInFolder(filePath)
   return filePath
 }

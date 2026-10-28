@@ -106,7 +106,7 @@ export default function ImportaPedana({
   // Esc scarta il file, come "Annulla"
   useScorciatoie([{ tasto: 'Escape', azione: annulla }])
 
-  const nuovoValido = nuovo.cognome.trim() !== '' && nuovo.nome.trim() !== ''
+  const nuovoValido = nuovo.cognome.trim() !== '' || nuovo.nome.trim() !== ''
   const pronto =
     scelte.size > 0 &&
     !inCorso &&

@@ -64,6 +64,15 @@ supera con *Ulteriori informazioni → Esegui comunque*.
 Le versioni vere dell'app sono quelle di `package.json` e dei tag `vX.Y.Z`: le sezioni «giro di
 feedback» qui sopra sono precedenti e usavano una numerazione propria.
 
+### v0.5.15
+
+Nessuna migrazione: i dati non vengono toccati.
+
+- Nuovo paziente: basta il nome o il cognome, non servono entrambi
+- Libreria esercizi: «Aggiungi una variante» sta sotto a «Varianti» e «Salva» compare anche in alto a destra
+- PDF e Word scaricati: la cartella non si apre più da sola, il file si salva in silenzio
+- Prove automatiche: le finestre non prendono più il fuoco mentre si lavora altrove
+
 ### v0.5.14
 
 Nessuna migrazione: i dati non vengono toccati.

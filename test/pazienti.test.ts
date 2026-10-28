@@ -51,7 +51,7 @@ function nuovo(extra: Partial<PazienteCreateInput> = {}): PazienteCreateInput {
   } as PazienteCreateInput
 }
 
-test('Un paziente si crea, si rilegge e si modifica; nome e cognome si ripuliscono e servono', () => {
+test('Un paziente si crea, si rilegge e si modifica; nome e cognome si ripuliscono e ne basta uno', () => {
   const id = creaPaziente(nuovo({ nome: '  Anna ', cognome: ' Bianchi  ', sport: 'Pallavolo' }))
   const p = elencoPazienti().find((x) => x.id === id)!
   assert.equal(p.nome, 'Anna')
@@ -59,8 +59,12 @@ test('Un paziente si crea, si rilegge e si modifica; nome e cognome si ripulisco
   assert.equal(p.sport, 'Pallavolo')
   assert.equal(p.stato, 'trattamento', 'si comincia in trattamento')
 
-  assert.throws(() => creaPaziente(nuovo({ nome: '   ' })), /nome/i)
-  assert.throws(() => creaPaziente(nuovo({ cognome: '' })), /cognome/i)
+  assert.throws(() => creaPaziente(nuovo({ nome: '   ', cognome: '' })), /nome o il cognome/i)
+  // basta uno dei due
+  const soloCognome = creaPaziente(nuovo({ nome: '', cognome: 'Verdi' }))
+  assert.equal(elencoPazienti().find((x) => x.id === soloCognome)!.cognome, 'Verdi')
+  const soloNome = creaPaziente(nuovo({ nome: 'Luca', cognome: '  ' }))
+  assert.equal(elencoPazienti().find((x) => x.id === soloNome)!.nome, 'Luca')
   assert.throws(() => creaPaziente(nuovo({ data_nascita: '12 maggio' })), /data di nascita/i)
 
   aggiornaPaziente(id, { ...p, nome: 'Anna Maria', telefono: '333 1234567' } as unknown as PazienteInput)

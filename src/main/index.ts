@@ -72,7 +72,10 @@ function createWindow(): void {
   win.on('ready-to-show', () => {
     // La prima volta si apre massimizzata; dopo, com'era quando l'hai chiusa.
     if (salvata == null || salvata.massimizzata) win.maximize()
-    win.show()
+    // Nelle prove automatiche la finestra compare senza prendere il fuoco, cosi'
+    // chi lavora su altre finestre non viene interrotto.
+    if (process.env['RIABILITAZIONE_CARTELLA_PROVA'] && !app.isPackaged) win.showInactive()
+    else win.show()
   })
 
   // Si registra dove sta un attimo dopo l'ultimo spostamento: scrivere il file a

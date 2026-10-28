@@ -243,8 +243,8 @@ export function ModaleDatiPaziente({
       setForm({ ...form, [k]: e.target.value })
 
   const salva = async (): Promise<void> => {
-    if (!form.nome.trim() || !form.cognome.trim()) {
-      toastErrore('Nome e cognome sono obbligatori.')
+    if (!form.nome.trim() && !form.cognome.trim()) {
+      toastErrore('Scrivi almeno il nome o il cognome.')
       return
     }
     const vuotoNull = (v: string): string | null => v.trim() || null
@@ -323,11 +323,11 @@ export function ModaleDatiPaziente({
 
             <div className="form-row-2">
               <label>
-                Nome *
+                Nome
                 <input autoFocus value={form.nome} onChange={campo('nome')} />
               </label>
               <label>
-                Cognome *
+                Cognome
                 <input value={form.cognome} onChange={campo('cognome')} />
               </label>
             </div>

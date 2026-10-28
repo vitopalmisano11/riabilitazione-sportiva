@@ -78,6 +78,11 @@ export function richiedeTesto(valore: string, etichetta: string): void {
   if (!valore.trim()) throw new Error(`${etichetta} non può essere vuoto.`)
 }
 
+// Del paziente basta uno fra nome e cognome.
+export function richiedeNomeOCognome(nome: string, cognome: string): void {
+  if (!nome.trim() && !cognome.trim()) throw new Error('Scrivi almeno il nome o il cognome.')
+}
+
 const FORMATO_DATA = /^\d{4}-\d{2}-\d{2}$/
 
 // Vera data di calendario, non solo il formato: il costruttore di Date

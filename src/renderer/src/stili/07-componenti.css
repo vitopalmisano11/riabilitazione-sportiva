@@ -91,6 +91,22 @@
 
 .campo-varianti .btn-aggiungi-lista {
   align-self: flex-start;
+  /* il margine automatico di .btn-aggiungi-lista lo spingeva a destra */
+  margin-left: 0;
+}
+
+/* Titolo della finestra con «Salva» a destra: resta in vista anche scorrendo. */
+.modal-testata {
+  position: sticky;
+  top: -26px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: -26px -26px 0;
+  padding: 26px 26px 10px;
+  background: var(--surface);
 }
 
 .variante-riga {

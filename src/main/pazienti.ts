@@ -3,7 +3,7 @@
 // canali, e le prove automatiche chiamano questo codice (test/pazienti.test.ts).
 import { getDb } from './db'
 import { eliminaConCestino, eliminaPazientePerSempre } from './cestino'
-import { richiedeTesto, validaData } from './validazione'
+import { richiedeNomeOCognome, validaData } from './validazione'
 import { andamentoDolorePerPaziente } from './andamento-dolore'
 import type {
   PazienteCreateInput,
@@ -52,8 +52,7 @@ export function elencoPazienti(): PazienteDettaglio[] {
 }
 
 export function creaPaziente(data: PazienteCreateInput): number {
-  richiedeTesto(data.nome, 'Il nome')
-  richiedeTesto(data.cognome, 'Il cognome')
+  richiedeNomeOCognome(data.nome, data.cognome)
   validaData(data.data_nascita, 'La data di nascita')
   validaData(data.data_intervento, "La data dell'intervento")
   checkFaseCoerente(data.patologia_id, data.fase_corrente_id)
@@ -72,8 +71,7 @@ export function creaPaziente(data: PazienteCreateInput): number {
 }
 
 export function aggiornaPaziente(id: number, data: PazienteInput): void {
-  richiedeTesto(data.nome, 'Il nome')
-  richiedeTesto(data.cognome, 'Il cognome')
+  richiedeNomeOCognome(data.nome, data.cognome)
   validaData(data.data_nascita, 'La data di nascita')
   validaData(data.data_intervento, "La data dell'intervento")
   getDb()
