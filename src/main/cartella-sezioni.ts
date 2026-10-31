@@ -387,7 +387,9 @@ export function sezValutazioni(pazienteId: number): Blocco[] {
           `SELECT t.nome, t.gruppo, vt.lato, vt.valore, vt.nota
            FROM distretto_test t
            JOIN valutazione_test vt ON vt.test_id = t.id AND vt.valutazione_id = ?
-           WHERE t.distretto_id = ? ORDER BY t.ordine, t.id, vt.lato`
+           WHERE t.distretto_id = ?
+             AND (t.gruppo <> 'forza' OR t.distretto_id IN (SELECT id FROM distretti WHERE test_muscolari = 1))
+           ORDER BY t.ordine, t.id, vt.lato`
         )
         .all(v.id, d.id) as Record<string, unknown>[]
       const neuro = neuroTestuale(Number(v.id), d.id)

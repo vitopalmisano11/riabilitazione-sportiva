@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ClipboardList, Eye, FileClock, Pencil, Trash2 } from 'lucide-react'
-import type { BodyChartRiepilogo, PazienteDettaglio } from '../../../shared/types'
+import type { BodyChartRiepilogo, PazienteDettaglio, SezioneCartella } from '../../../shared/types'
 import { toastErrore } from './Toast'
 import { chiedi } from './Conferma'
 import { errMsg, formatData, oggiIso } from '../lib'
@@ -10,6 +10,41 @@ import IconaObiettivi from './IconaObiettivi'
 import AnamnesiProssima from './AnamnesiProssima'
 import AnamnesiRemota from './AnamnesiRemota'
 import ObiettiviTerapeutici from './ObiettiviTerapeutici'
+
+function RigaRiassunto({
+  nome,
+  testo,
+  onApri,
+  onAnteprima
+}: {
+  nome: string
+  testo: string
+  onApri: () => void
+  onAnteprima?: () => void
+}): React.JSX.Element {
+  return (
+    <li>
+      <div className="seduta-info">
+        <span className="seduta-data">{nome}</span>
+        <span className="seduta-meta riga-riassunto">{testo || 'Non compilata'}</span>
+      </div>
+      <span className="row-actions">
+        {onAnteprima && testo && (
+          <button
+            title="Anteprima"
+            aria-label={`Anteprima di ${nome}`}
+            onClick={onAnteprima}
+          >
+            <Eye size={18} />
+          </button>
+        )}
+        <button aria-label={`Apri ${nome}`} onClick={onApri}>
+          <Pencil size={18} />
+        </button>
+      </span>
+    </li>
+  )
+}
 
 // Raccolta anamnestica. Ogni parte si compila per conto suo, in qualunque
 // ordine: non c'e' una sequenza obbligata da seguire durante il colloquio.
@@ -23,6 +58,7 @@ export default function AnamnesiPaziente({
   const [prossima, setProssima] = useState(false)
   const [remota, setRemota] = useState(false)
   const [obiettivi, setObiettivi] = useState(false)
+  const [riassunti, setRiassunti] = useState({ prossima: '', remota: '', obiettivi: '' })
 
   const load = useCallback(async (): Promise<void> => {
     try {
@@ -35,6 +71,47 @@ export default function AnamnesiPaziente({
   useEffect(() => {
     void load()
   }, [load])
+
+  // Una riga di sintesi per ciascuna scheda: si legge senza aprirla.
+  const caricaRiassunti = useCallback(async (): Promise<void> => {
+    try {
+      const [p, r, o] = await Promise.all([
+        window.api.anamnesi.get(paziente.id),
+        window.api.anamnesi.remota(paziente.id),
+        window.api.obiettiviTerapeutici.list(paziente.id)
+      ])
+      const parti = (voci: [string, string | null | undefined][]): string =>
+        voci
+          .filter(([, v]) => v && v.trim())
+          .map(([n, v]) => `${n}: ${v!.trim()}`)
+          .join(' · ')
+      setRiassunti({
+        prossima: [
+          p?.motivo_consulto?.trim(),
+          p?.sintomi?.length
+            ? p.sintomi.length === 1
+              ? '1 sintomo'
+              : `${p.sintomi.length} sintomi`
+            : ''
+        ]
+          .filter(Boolean)
+          .join(' · '),
+        remota: parti([
+          ['Patologie', r?.patologie],
+          ['Traumi', r?.traumi],
+          ['Interventi', r?.interventi],
+          ['Riabilitazioni', r?.riabilitazioni]
+        ]),
+        obiettivi: o.map((x) => x.testo).join(' · ')
+      })
+    } catch (e) {
+      toastErrore(errMsg(e))
+    }
+  }, [paziente.id])
+
+  useEffect(() => {
+    void caricaRiassunti()
+  }, [caricaRiassunti])
 
   // La riga nasce subito perche' l'editor lavora su una body chart esistente,
   // ma se si chiude senza salvare niente viene tolta: un clic per sbaglio non
@@ -52,6 +129,15 @@ export default function AnamnesiPaziente({
     }
   }
 
+  // L'anteprima di una scheda e' la sua sezione della cartella, da sola.
+  const anteprima = async (sezione: SezioneCartella): Promise<void> => {
+    try {
+      await window.api.esporta.anteprimaCartella(paziente.id, [sezione])
+    } catch (e) {
+      toastErrore(errMsg(e))
+    }
+  }
+
   const elimina = async (c: BodyChartRiepilogo): Promise<void> => {
     if (!(await chiedi(`Eliminare la body chart del ${formatData(c.data)}?`))) return
     try {
@@ -64,11 +150,11 @@ export default function AnamnesiPaziente({
 
   return (
     <section className="card">
-      <h3>Anamnesi</h3>
-
-      {/* Le sotto-sezioni stanno affiancate sotto al titolo: body chart ora,
-          poi anamnesi prossima, remota e informazioni cliniche complementari. */}
-      <div className="sotto-sezioni">
+      {/* I pulsanti delle sotto-sezioni stanno sulla riga del titolo; sotto, le
+          schede riassumono quello che c'e' dentro. */}
+      <div className="card-header-row">
+        <h3>Anamnesi</h3>
+        <div className="sotto-sezioni">
         <button
           className="btn-sagoma"
           title="Anamnesi prossima"
@@ -91,13 +177,31 @@ export default function AnamnesiPaziente({
         >
           <IconaObiettivi size={24} />
         </button>
+        </div>
       </div>
-      {charts.length === 0 ? (
-        <p className="hint">
-          Nessuna body chart. Creane una per segnare dove e come il paziente sente il dolore; le
-          successive restano in elenco per confrontare com&apos;è cambiato.
-        </p>
-      ) : (
+
+      <ul className="sedute-list">
+        <RigaRiassunto
+          nome="Anamnesi prossima"
+          testo={riassunti.prossima}
+          onApri={() => setProssima(true)}
+          onAnteprima={() => void anteprima('anamnesi')}
+        />
+        <RigaRiassunto
+          nome="Anamnesi remota"
+          testo={riassunti.remota}
+          onApri={() => setRemota(true)}
+          onAnteprima={() => void anteprima('remota')}
+        />
+        <RigaRiassunto
+          nome="Obiettivi terapeutici"
+          testo={riassunti.obiettivi}
+          onApri={() => setObiettivi(true)}
+          onAnteprima={() => void anteprima('obiettivi')}
+        />
+      </ul>
+
+      {charts.length > 0 && (
         <ul className="sedute-list">
           {charts.map((c) => (
             <li key={c.id}>
@@ -133,13 +237,33 @@ export default function AnamnesiPaziente({
       )}
 
       {prossima && (
-        <AnamnesiProssima pazienteId={paziente.id} onChiudi={() => setProssima(false)} />
+        <AnamnesiProssima
+          pazienteId={paziente.id}
+          onChiudi={() => {
+            setProssima(false)
+            void caricaRiassunti()
+          }}
+        />
       )}
 
-      {remota && <AnamnesiRemota pazienteId={paziente.id} onChiudi={() => setRemota(false)} />}
+      {remota && (
+        <AnamnesiRemota
+          pazienteId={paziente.id}
+          onChiudi={() => {
+            setRemota(false)
+            void caricaRiassunti()
+          }}
+        />
+      )}
 
       {obiettivi && (
-        <ObiettiviTerapeutici pazienteId={paziente.id} onChiudi={() => setObiettivi(false)} />
+        <ObiettiviTerapeutici
+          pazienteId={paziente.id}
+          onChiudi={() => {
+            setObiettivi(false)
+            void caricaRiassunti()
+          }}
+        />
       )}
 
       {aperta && (

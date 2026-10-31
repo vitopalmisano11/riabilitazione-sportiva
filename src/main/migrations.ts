@@ -1715,6 +1715,17 @@ export const MIGRATIONS: string[] = [
   ALTER TABLE seduta_esercizi ADD COLUMN variante TEXT;
   ALTER TABLE progressione_step ADD COLUMN variante_id INTEGER
     REFERENCES esercizio_varianti(id) ON DELETE SET NULL;
+  `,
+
+  // 71 - i test muscolari di un distretto, con un interruttore come l'esame
+  //      neurologico: acceso, nella configurazione si scrivono i muscoli da
+  //      testare (kg o + / −, destra e sinistra). Sono i test del gruppo
+  //      "forza": dove ce ne sono gia', l'interruttore parte acceso e non
+  //      cambia niente.
+  `
+  ALTER TABLE distretti ADD COLUMN test_muscolari INTEGER NOT NULL DEFAULT 0;
+  UPDATE distretti SET test_muscolari = 1
+    WHERE id IN (SELECT distretto_id FROM distretto_test WHERE gruppo = 'forza');
   `
 ]
 

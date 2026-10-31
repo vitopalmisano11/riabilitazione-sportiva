@@ -50,7 +50,7 @@ export default function AnamnesiProssima({
   // Il salvataggio aspetta un secondo e mezzo dall'ultima lettera: chiudendo
   // il programma in quel mezzo, quello che resta si salva subito.
   const salvaAllaChiusura = useSalvaUscendo(stato === 'salvo' || stato === 'errore')
-  useScorciatoie([{ tasto: 'Escape', azione: () => chiudi() }])
+  useScorciatoie([{ tasto: 'Escape', azione: () => chiudi(), inCasella: true }])
   const [sintomoAttivo, setSintomoAttivo] = useState(0)
   const [attivita, setAttivita] = useState<AttivitaPartecipazione | null>(null)
   const attesa = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -174,7 +174,9 @@ export default function AnamnesiProssima({
           {/* Piu' alta delle altre: qui si trascrive quello che dice il
               paziente, e sono righe intere, non due parole. */}
           <textarea
-            rows={5}
+            rows={8}
+            className="testo-ampio"
+            style={{ ['--altezza-minima' as string]: '12em' }}
             autoFocus
             placeholder="Che cosa la porta qui? — trascrivi come lo dice lui"
             value={dati.motivo_consulto ?? ''}

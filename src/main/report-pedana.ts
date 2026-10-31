@@ -72,7 +72,6 @@ ${stileReport(accento, accentoScuro, intestazione)}
 
   ${riassunto.html()}
 
-  <p class="pie">Contiene dati sanitari: trattare con riservatezza.</p>
 </div>
 </body>
 </html>`

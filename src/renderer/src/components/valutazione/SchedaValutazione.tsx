@@ -309,6 +309,8 @@ export function SchedaValutazione({
               )}
 
               {GRUPPI.map((g) => {
+                // la forza dei muscoli compare solo dove l'interruttore e' acceso
+                if (g.valore === 'forza' && lib.distretto.test_muscolari !== 1) return null
                 const test = lib.test.filter((t) => t.gruppo === g.valore)
                 if (test.length === 0) return null
                 return (

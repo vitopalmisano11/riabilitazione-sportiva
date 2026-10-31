@@ -34,6 +34,7 @@ export { GRUPPI }
 const RISPOSTE: { valore: RispostaTest; etichetta: string }[] = [
   { valore: 'posneg', etichetta: 'positivo / negativo' },
   { valore: 'scala5', etichetta: 'forza da 0 a 5' },
+  { valore: 'kg', etichetta: 'kg oppure + / − (deficit)' },
   { valore: 'testo', etichetta: 'testo libero' }
 ]
 
@@ -290,6 +291,9 @@ function EditorDistretto({
   }
   salvataggio.funzione.current = salva
 
+  const muscoli = dati.test.filter((t) => t.gruppo === 'forza')
+  const altriTest = dati.test.filter((t) => t.gruppo !== 'forza')
+
   return (
     <section className="card">
       {/* Una spunta sola per i due lati: il resto della configurazione non
@@ -308,7 +312,32 @@ function EditorDistretto({
       </label>
 
       <Movimenti movimenti={dati.movimenti} onChange={(movimenti) => aggiorna({ movimenti })} />
-      <TestDistrettuali test={dati.test} onChange={(test) => aggiorna({ test })} />
+      {/* I muscoli stanno in un blocco loro (interruttore qui sotto): la lista
+          dei test mostra gli altri, ma il salvataggio li tiene tutti insieme. */}
+      <TestDistrettuali
+        test={altriTest}
+        onChange={(nuovi) => aggiorna({ test: [...nuovi, ...muscoli] })}
+      />
+
+      {/* La forza dei muscoli non serve in ogni distretto: si accende dove
+          c'e'. Spento, i muscoli scritti restano ma non compaiono in valutazione. */}
+      <div className="blocco-neuro">
+        <label className="checkbox-inline">
+          <input
+            type="checkbox"
+            className="interruttore"
+            checked={dati.distretto.test_muscolari === 1}
+            onChange={(e) =>
+              aggiorna({ distretto: { ...dati.distretto, test_muscolari: e.target.checked ? 1 : 0 } })
+            }
+          />
+          Ha i test muscolari
+          <Aiuto testo="Da accendere per i distretti dove vuoi misurare la forza di muscoli specifici (per esempio quadricipite e ischiocrurali al ginocchio). Qui sotto scrivi i muscoli. Nella valutazione, per ognuno, hai una casella a destra e una a sinistra dove scrivi i kg misurati con il dinamometro, oppure + o − se c’è debolezza rispetto all’altro lato; nella nota scrivi con cosa hai misurato." />
+        </label>
+        {dati.distretto.test_muscolari === 1 && (
+          <MuscoliTest muscoli={muscoli} onChange={(nuovi) => aggiorna({ test: [...altriTest, ...nuovi] })} />
+        )}
+      </div>
 
       {/* L'esame neurologico non serve in tutti i distretti: si accende dove
           c'e' (di solito cervicale e lombare). Spento, le voci scritte restano.
@@ -432,7 +461,7 @@ function TestDistrettuali({
               value={t.gruppo}
               onChange={(e) => modifica(i, { gruppo: e.target.value as GruppoTest })}
             >
-              {GRUPPI.map((g) => (
+              {GRUPPI.filter((g) => g.valore !== 'forza').map((g) => (
                 <option key={g.valore} value={g.valore}>
                   {g.etichetta}
                 </option>
@@ -470,6 +499,55 @@ function TestDistrettuali({
         }
       >
         <Plus size={16} /> Aggiungi test
+      </button>
+    </div>
+  )
+}
+
+// I muscoli di cui si misura la forza in un distretto: sono test del gruppo
+// "forza", che in valutazione hanno destra e sinistra.
+function MuscoliTest({
+  muscoli,
+  onChange
+}: {
+  muscoli: TestDistretto[]
+  onChange: (m: TestDistretto[]) => void
+}): React.JSX.Element {
+  const { contenitore, presa } = useRiordino<number>((da, a) => onChange(sposta(muscoli, da, a)))
+
+  const modifica = (i: number, patch: Partial<TestDistretto>): void =>
+    onChange(muscoli.map((t, j) => (i === j ? { ...t, ...patch } : t)))
+
+  return (
+    <div className="lista-domande">
+      {muscoli.map((t, i) => {
+        const dnd = contenitore(i)
+        return (
+          <div key={t.id} {...dnd} {...presa(i)} className={['riga-parametro', dnd.className].filter(Boolean).join(' ')}>
+            <input
+              placeholder="es. Quadricipite"
+              value={t.nome}
+              onChange={(e) => modifica(i, { nome: e.target.value })}
+            />
+            <span className="item-actions-static">
+              <button
+                className="danger"
+                title="Elimina muscolo"
+                onClick={() => onChange(muscoli.filter((_, j) => j !== i))}
+              >
+                <X size={16} />
+              </button>
+            </span>
+          </div>
+        )
+      })}
+
+      <button
+        onClick={() =>
+          onChange([...muscoli, { id: nuovaChiave(), nome: '', gruppo: 'forza', risposta: 'kg' }])
+        }
+      >
+        <Plus size={16} /> Aggiungi muscolo
       </button>
     </div>
   )

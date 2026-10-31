@@ -503,7 +503,14 @@
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  margin-bottom: 4px;
+}
+
+/* il riassunto di una scheda: al massimo due righe, il resto si legge aprendola */
+.riga-riassunto {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 /* stesso colore delle icone lucide degli altri pulsanti della sezione */

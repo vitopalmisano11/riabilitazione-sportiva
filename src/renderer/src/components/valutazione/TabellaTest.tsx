@@ -59,6 +59,21 @@ export function TabellaTest({
         />
       )
     }
+    if (t.risposta === 'kg') {
+      // Una cifra se si misura con il dinamometro, "+" o "−" se si valuta
+      // la debolezza rispetto al lato opposto; la nota dice con cosa.
+      return (
+        <span className="esito-kg">
+          <input
+            disabled={soloLettura}
+            inputMode="decimal"
+            placeholder="kg, + o −"
+            value={r.valore ?? ''}
+            onChange={(e) => onCambia(id, lato, { valore: e.target.value || null })}
+          />
+        </span>
+      )
+    }
     return (
       <input
         disabled={soloLettura}

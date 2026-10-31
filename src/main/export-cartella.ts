@@ -306,9 +306,17 @@ function documento(c: Cartella, cheCosa: string): string {
   .griglia-voci .voce { page-break-inside: avoid; }
   .griglia-voci .voce-larga { grid-column: 1 / -1; }
   .paragrafi p { margin: 4px 0 8px; line-height: 1.55; }
-  .elenchi-relazione { display: flex; flex-wrap: wrap; gap: 6px 36px; margin: -2px 0 10px 2px; }
-  .elenchi-relazione .titolo-elenco { font-weight: 600; color: #555b66; }
-  .elenchi-relazione ul { margin: 2px 0 0; padding-left: 18px; }
+  /* Aggrava e allevia affiancati, due colonne uguali, ognuna nel suo riquadro
+     con il titolo sopra: si confrontano a colpo d'occhio. Un riquadro non si
+     spezza fra due pagine. */
+  .elenchi-relazione { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px;
+                       margin: 2px 0 12px; }
+  .elenchi-relazione > div { background: #f6f7f9; border: 1px solid #e3e7ec;
+                             border-left: 3px solid ${accento}; border-radius: 4px;
+                             padding: 6px 10px 7px; page-break-inside: avoid; }
+  .elenchi-relazione .titolo-elenco { font-weight: 600; color: #555b66; font-size: 11px;
+                                      margin-bottom: 3px; }
+  .elenchi-relazione ul { margin: 0; padding-left: 16px; }
   .elenchi-relazione li { line-height: 1.45; }
   .griglia-voci .voce > h3 { margin-top: 8px; }
   dl.dati { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 20px; margin: 0 0 8px; }
@@ -369,7 +377,6 @@ function documento(c: Cartella, cheCosa: string): string {
   <h1>${esc(c.cognome)} ${esc(c.nome)}</h1>
   <p class="info">${esc(cheCosa)} · stampata il ${data(oggiIso())}</p>
   ${corpo || '<p class="testo">Nessun contenuto da stampare.</p>'}
-  <p class="pie">Contiene dati sanitari: trattare con riservatezza.</p>
 </div>
 </body>
 </html>`

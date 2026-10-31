@@ -104,7 +104,9 @@ export function relazioneValutazione(pazienteId: number): ParagrafoValutazione[]
   const testStmt = db.prepare(
     `SELECT t.id, t.nome, t.gruppo, t.risposta, vt.lato, vt.valore, vt.nota FROM distretto_test t
      JOIN valutazione_test vt ON vt.test_id = t.id AND vt.valutazione_id = ?
-     WHERE t.distretto_id = ? ORDER BY t.ordine, t.id, vt.lato`
+     WHERE t.distretto_id = ?
+       AND (t.gruppo <> 'forza' OR t.distretto_id IN (SELECT id FROM distretti WHERE test_muscolari = 1))
+     ORDER BY t.ordine, t.id, vt.lato`
   )
 
   const nomeLato = (l: unknown): string => {
@@ -179,6 +181,7 @@ export function relazioneValutazione(pazienteId: number): ParagrafoValutazione[]
       const esito = (t: Riga): string | null => {
         const valore = testoLibero(t.valore)
         if (valore == null) return null
+        if (t.risposta === 'kg') return /^\d+([.,]\d+)?$/.test(valore.trim()) ? `${valore.trim()} kg` : valore
         return t.risposta === 'scala5' ? `${valore}/5` : valore
       }
       const gruppi = [...GRUPPI.map((g) => g.valore as string), ...new Set(test.map((t) => String(t.gruppo)))]

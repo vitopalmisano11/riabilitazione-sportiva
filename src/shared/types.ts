@@ -1043,8 +1043,10 @@ export type GruppoTest =
   | 'neurologico'
   | 'altri'
 
-// Come si risponde a un test: positivo/negativo, scala di forza 0-5, testo.
-export type RispostaTest = 'posneg' | 'scala5' | 'testo'
+// Come si risponde a un test: positivo/negativo, scala di forza 0-5, testo,
+// oppure kg misurati con il dinamometro (o + / − se c'e' debolezza rispetto
+// al lato opposto).
+export type RispostaTest = 'posneg' | 'scala5' | 'kg' | 'testo'
 
 // 0 nulla, 1 lieve, 2 moderata, 3 severa. null = non valutato.
 export type Grado = 0 | 1 | 2 | 3 | null
@@ -1060,6 +1062,9 @@ export interface Distretto {
   // 1 = nella valutazione compare la sezione dell'esame neurologico
   // (cervicale, lombare...), con le voci scritte in DistrettoCompleto.neuro
   esame_neuro: 0 | 1
+  // 1 = nella valutazione compare la forza dei muscoli del distretto: sono i
+  // test del gruppo 'forza' (kg oppure + / −, destra e sinistra)
+  test_muscolari: 0 | 1
 }
 
 // Il lato di un rilievo: '' per i distretti senza lato, e per tutto quello

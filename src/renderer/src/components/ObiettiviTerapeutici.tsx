@@ -48,7 +48,15 @@ export default function ObiettiviTerapeutici({
   // Qui non c'e' niente in sospeso da salvare alla chiusura: il testo si
   // salva uscendo dalla casella e il menu appena si sceglie (vedi sopra),
   // quindi Esc puo' chiudere direttamente.
-  useScorciatoie([{ tasto: 'Escape', azione: onChiudi }])
+  // Esc vale anche scrivendo in una casella: prima di chiudere si esce dalla
+  // casella (cosi' il testo si salva) e si aggiunge l'obiettivo scritto a metà.
+  const chiudi = (): void => {
+    ;(document.activeElement as HTMLElement | null)?.blur()
+    const testo = nuovo.trim()
+    if (testo) void window.api.obiettiviTerapeutici.create(pazienteId, testo, termineNuovo).catch((e) => toastErrore(errMsg(e)))
+    onChiudi()
+  }
+  useScorciatoie([{ tasto: 'Escape', azione: chiudi, inCasella: true }])
 
   const aggiungi = async (): Promise<void> => {
     const testo = nuovo.trim()
@@ -107,7 +115,7 @@ export default function ObiettiviTerapeutici({
   )
 
   return (
-    <Modale onConferma={onChiudi}>
+    <Modale onConferma={chiudi}>
         <h3>Obiettivi terapeutici</h3>
 
         {/* Prima degli obiettivi c'e' quello che il paziente si aspetta, con
@@ -205,7 +213,7 @@ export default function ObiettiviTerapeutici({
         )}
 
         <div className="modal-actions">
-          <button className="primary" onClick={onChiudi}>
+          <button className="primary" onClick={chiudi}>
             Chiudi
           </button>
         </div>

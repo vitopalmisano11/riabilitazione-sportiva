@@ -269,7 +269,13 @@ Finisce nel cestino: puoi rimetterla a posto da Impostazioni entro un mese.`
                 .slice(0, 8)
                 .map((p) => (
                   <li key={p.id}>
-                    <span className="nome-risultato">
+                    {/* il nome apre la scheda, come l'icona accanto */}
+                    <span
+                      className="nome-risultato"
+                      title="Apri la scheda"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => onApriPaziente(p.id)}
+                    >
                       {p.cognome} {p.nome}
                     </span>
                     <button

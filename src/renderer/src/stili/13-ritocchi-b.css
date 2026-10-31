@@ -511,7 +511,8 @@ textarea.cresce {
 
 .risultati-settimana {
   left: auto;
-  right: 0;
+  /* e' fixed: con right 0 finiva sopra la barra di scorrimento della pagina */
+  right: 32px;
   width: 340px;
   max-width: 90vw;
 }
@@ -534,6 +535,11 @@ textarea.cresce {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  cursor: pointer;
+}
+
+.risultati-settimana .nome-risultato:hover {
+  text-decoration: underline;
 }
 
 .orari-scuro {
@@ -837,6 +843,15 @@ textarea.testo-adatta {
   field-sizing: content;
   min-height: 3em;
   resize: none;
+}
+
+/* Caselle di testo lungo (motivo del consulto, referto): partono alte e,
+   se si va a capo molte volte, crescono con il testo senza scorrere. */
+textarea.testo-ampio {
+  field-sizing: content;
+  min-height: var(--altezza-minima, 9em);
+  max-height: 70vh;
+  resize: vertical;
 }
 
 /* Il giorno di oggi, portato in vista aprendo la settimana, lascia un po' d'aria sopra. */

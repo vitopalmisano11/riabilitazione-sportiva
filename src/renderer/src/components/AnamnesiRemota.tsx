@@ -58,7 +58,7 @@ export default function AnamnesiRemota({
   // Il salvataggio aspetta un secondo e mezzo dall'ultima lettera: chiudendo
   // il programma in quel mezzo, quello che resta si salva subito.
   const salvaAllaChiusura = useSalvaUscendo(stato === 'salvo' || stato === 'errore')
-  useScorciatoie([{ tasto: 'Escape', azione: () => chiudi() }])
+  useScorciatoie([{ tasto: 'Escape', azione: () => chiudi(), inCasella: true }])
   const attesa = useRef<ReturnType<typeof setTimeout> | null>(null)
   const daSalvare = useRef<Dati | null>(null)
 
@@ -209,7 +209,8 @@ export default function AnamnesiRemota({
         <label>
           In breve
           <textarea
-            rows={2}
+            rows={6}
+            className="testo-ampio"
             placeholder="Le cose essenziali del referto"
             value={dati.bioimmagini_note ?? ''}
             onChange={testo('bioimmagini_note')}

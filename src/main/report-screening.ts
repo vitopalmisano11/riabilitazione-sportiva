@@ -583,7 +583,6 @@ ${stileReport(accento, accentoScuro, intestazione)}
       ? `<div class="note"><h4>Note</h4><p>${esc(s.note).replace(/\n/g, '<br>')}</p></div>`
       : ''
   }
-  <p class="pie">Contiene dati sanitari: trattare con riservatezza.</p>
 </div>
 </body>
 </html>`

@@ -60,10 +60,13 @@ export function salvaDistretto(dati: DistrettoCompleto): void {
   const id = dati.distretto.id
 
   db.transaction(() => {
-    db.prepare('UPDATE distretti SET nome = ?, bilaterale = ?, esame_neuro = ? WHERE id = ?').run(
+    db.prepare(
+      'UPDATE distretti SET nome = ?, bilaterale = ?, esame_neuro = ?, test_muscolari = ? WHERE id = ?'
+    ).run(
       dati.distretto.nome.trim(),
       dati.distretto.bilaterale === 1 ? 1 : 0,
       dati.distretto.esame_neuro === 1 ? 1 : 0,
+      dati.distretto.test_muscolari === 1 ? 1 : 0,
       id
     )
 
