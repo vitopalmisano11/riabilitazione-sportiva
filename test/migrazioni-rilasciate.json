@@ -63,5 +63,10 @@
     "versione": "0.5.13",
     "migrazioni": 70,
     "sha256": "b45737e3880dcb956706b2a5307da6139962e5481ff9b50ffbee16664b54b6e4"
+  },
+  {
+    "versione": "0.5.16",
+    "migrazioni": 71,
+    "sha256": "7c159f606c3ec9f102a0701ddcd73842730c9d19104f2ff892e6018419f69145"
   }
 ]

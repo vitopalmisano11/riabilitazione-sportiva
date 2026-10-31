@@ -64,6 +64,17 @@ supera con *Ulteriori informazioni → Esegui comunque*.
 Le versioni vere dell'app sono quelle di `package.json` e dei tag `vX.Y.Z`: le sezioni «giro di
 feedback» qui sopra sono precedenti e usavano una numerazione propria.
 
+### v0.5.16
+
+**Prima di tutto:** al primo accesso dopo l'aggiornamento il programma aggiunge una colonna al database
+(migrazione 71): non tocca i dati, ma non si può annullare, quindi prima fa da solo una copia dell'archivio.
+
+- Distretti: interruttore «Ha i test muscolari» (migrazione 71). Acceso, nella configurazione si scrivono i
+  muscoli da testare e in valutazione compaiono con kg o + / − a destra e a sinistra; dove c'erano già
+  test di forza l'interruttore parte acceso e non cambia niente
+- Obiettivi terapeutici: con Esc si salva anche l'obiettivo scritto a metà prima di chiudere
+- Ritocchi a anamnesi, scheda di valutazione, relazione, report pedana e screening
+
 ### v0.5.15
 
 Nessuna migrazione: i dati non vengono toccati.
