@@ -91,7 +91,7 @@ test('varianti: dalla libreria alla progressione e alla seduta', async () => {
     await pagina.getByRole('button', { name: 'Aggiungi una variante' }).click()
     await segnaposto.nth(1).fill('con luci reattive')
     await pagina.locator('.modal').screenshot({ path: join(FOTO, '30-varianti-esercizio.png') })
-    await pagina.getByRole('button', { name: 'Salva', exact: true }).click()
+    await pagina.getByRole('button', { name: 'Salva', exact: true }).first().click()
     await pagina.screenshot({ path: join(FOTO, '33-varianti-elenco.png') })
     // l'elenco dice quali esercizi ne hanno; quelli senza restano come prima
     await expect(pagina.locator('.tabella-esercizi tbody tr', { hasText: 'Equilibrio monopodalico' })).toContainText(

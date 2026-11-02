@@ -453,3 +453,19 @@ test('Cartella completa del paziente: ogni tabella arriva nel documento', () => 
   assert.equal(scheda.sezioni[0].esercizi[0].ripetizioni, '30"')
   assert.throws(() => datiScheda(999999), /non trovata/)
 })
+
+// Le note scritte su piu' righe restano su piu' righe anche nelle relazioni:
+// prima finivano tutte attaccate in un paragrafo solo.
+test('Le relazioni mantengono gli a capo delle note', () => {
+  const c = getDb()
+  const pz = c.prepare("INSERT INTO pazienti (nome, cognome) VALUES ('A', 'Capo')").run().lastInsertRowid
+  c.prepare(
+    "INSERT INTO anamnesi_prossima (paziente_id, motivo_consulto) VALUES (?, 'Dolore al ginocchio\nda due settimane')"
+  ).run(pz)
+  c.prepare(
+    "INSERT INTO valutazioni (paziente_id, data, note) VALUES (?, '2026-10-01', 'Prima riga\nSeconda riga')"
+  ).run(pz)
+
+  assert.ok(generaRelazione(Number(pz)).includes('ginocchio<br>da due settimane'))
+  assert.ok(generaRelazione(Number(pz), 'valutazione').includes('Prima riga<br>Seconda riga'))
+})

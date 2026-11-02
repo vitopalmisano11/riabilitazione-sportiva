@@ -1726,6 +1726,28 @@ export const MIGRATIONS: string[] = [
   ALTER TABLE distretti ADD COLUMN test_muscolari INTEGER NOT NULL DEFAULT 0;
   UPDATE distretti SET test_muscolari = 1
     WHERE id IN (SELECT distretto_id FROM distretto_test WHERE gruppo = 'forza');
+  `,
+
+  // 72 - la dose di una fase e il monopodalico.
+  //      conta_come: come si contano gli esercizi della categoria (pliometria
+  //      estensiva o intensiva in contatti, forza o potenza in serie); vuoto =
+  //      fuori dal conto, o come la categoria che la contiene. gambe: 'due',
+  //      'scelta' (in seduta si puo' segnare monopodalico) o 'una' (lo e'
+  //      sempre, il nome lo dice gia'). Sulla riga della seduta il segno si
+  //      fotografa come la dose. La dose della fase e' per seduta: chiave =
+  //      'plio_est', 'plio_int', 'potenza' o 'forza:<id della categoria>'.
+  `
+  ALTER TABLE categorie ADD COLUMN conta_come TEXT;
+  ALTER TABLE esercizi ADD COLUMN gambe TEXT NOT NULL DEFAULT 'due';
+  ALTER TABLE seduta_esercizi ADD COLUMN monopodalico INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE pazienti ADD COLUMN sedute_settimana INTEGER;
+  CREATE TABLE fase_dose (
+    fase_id INTEGER NOT NULL REFERENCES fasi(id) ON DELETE CASCADE,
+    chiave TEXT NOT NULL,
+    minimo INTEGER,
+    massimo INTEGER,
+    PRIMARY KEY (fase_id, chiave)
+  );
   `
 ]
 

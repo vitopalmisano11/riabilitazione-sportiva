@@ -158,7 +158,8 @@ function bloccoHtml(b: Blocco): string {
       return `<div class="paragrafi">${b.voci
         .map(
           (v) =>
-            `${v.testo ? `<p>${esc(v.testo)}</p>` : ''}${
+            // gli a capo di chi ha scritto le note restano, come nei blocchi di testo
+            `${v.testo ? `<p>${esc(v.testo).replace(/\n/g, '<br>')}</p>` : ''}${
               v.elenchi && v.elenchi.length > 0
                 ? `<div class="elenchi-relazione">${v.elenchi
                     .map(

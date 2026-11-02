@@ -117,6 +117,21 @@ export function SchedaPaziente({
     }
   }
 
+  const [seduteSettimana, setSeduteSettimana] = useState(paziente.sedute_settimana?.toString() ?? '')
+  useEffect(() => setSeduteSettimana(paziente.sedute_settimana?.toString() ?? ''), [paziente.sedute_settimana])
+  const salvaSeduteSettimana = async (): Promise<void> => {
+    const testo = seduteSettimana.trim()
+    const quante = testo === '' ? null : Number(testo)
+    if (quante === paziente.sedute_settimana) return
+    try {
+      await window.api.pazienti.setSeduteSettimana(paziente.id, quante)
+      await onChanged()
+    } catch (e) {
+      toastErrore(errMsg(e))
+      setSeduteSettimana(paziente.sedute_settimana?.toString() ?? '')
+    }
+  }
+
   // L'avanzamento cammina solo sulle fasi di palestra: da Intermedia si passa
   // ad Avanzata, mai a una fase del campo, che e' un percorso parallelo.
   const fasiPalestra = fasi.filter((f) => f.campo !== 1)
@@ -284,6 +299,22 @@ export function SchedaPaziente({
               </button>
             </label>
           )}
+          {/* Un numero solo, che si cambia al volo: dipende dalla fase ma anche
+              da quanto puo' spendere. Divide la dose di forza sulla settimana. */}
+          <label className="field campo-sedute-settimana">
+            Sedute a settimana
+            <input
+              type="number"
+              min={1}
+              max={14}
+              value={seduteSettimana}
+              onChange={(e) => setSeduteSettimana(e.target.value)}
+              onBlur={() => void salvaSeduteSettimana()}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+              }}
+            />
+          </label>
         </div>
         {paziente.patologia_id == null ? (
           <p className="hint">Assegna una patologia per impostare le fasi.</p>

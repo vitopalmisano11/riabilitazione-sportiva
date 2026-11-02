@@ -1,5 +1,6 @@
 import type { ApiDaCanali } from './canali'
 import type { Tema } from './temi'
+import type { Gambe, TipoLavoro } from './dose'
 
 export interface Patologia {
   id: number
@@ -45,6 +46,9 @@ export interface Categoria {
   dosaggio_cluster: 0 | 1
   // ...e/o con le ripetizioni di riserva (la forza).
   dosaggio_rir: 0 | 1
+  // Come si contano i suoi esercizi nella dose della fase. null = fuori dal
+  // conto, o come la categoria che la contiene.
+  conta_come: TipoLavoro | null
 }
 
 export interface Esercizio {
@@ -64,6 +68,8 @@ export interface Esercizio {
   recupero_default: string | null
   nota_tecnica: string | null
   link: string | null
+  // A una gamba: mai, a scelta in seduta (il segno monopodalico), sempre.
+  gambe: Gambe
   archiviato: 0 | 1
   // Quante volte l'esercizio compare in una seduta: serve solo a ordinare
   // l'elenco per i piu' usati.
@@ -104,6 +110,8 @@ export interface EsercizioInput {
   recupero_default: string | null
   nota_tecnica: string | null
   link: string | null
+  // Se manca resta com'e' (un esercizio nuovo nasce a due gambe).
+  gambe?: Gambe
   // L'elenco intero delle varianti, in ordine. Se manca, le varianti
   // dell'esercizio restano come sono.
   varianti?: VarianteInput[]
@@ -177,6 +185,9 @@ export interface Paziente {
   // Qual e' l'arto operato: serve a calcolare l'LSI come operato ÷ sano invece
   // che come semplice differenza fra destra e sinistra.
   arto_operato: 'dx' | 'sx' | null
+  // Quante sedute a settimana fa: dipende dalla fase ma anche da quanto puo'
+  // spendere. Serve a dividere la dose di forza sulla settimana.
+  sedute_settimana: number | null
 }
 
 export type PazienteDettaglio = Paziente & {
@@ -282,6 +293,8 @@ export interface SedutaEsercizioInput {
   // La variante scelta ("con conteggio all'indietro"), scritta per esteso:
   // null = l'esercizio normale. E' il testo, non un rimando alla libreria.
   variante?: string | null
+  // 1 = fatto a una gamba (segnato in seduta): si legge "Squat monopodalico".
+  monopodalico?: 0 | 1
   // indice nella lista sezioni della seduta; null = fuori sezione (dati vecchi)
   sezioneIndex: number | null
 }
@@ -430,6 +443,7 @@ export interface UltimaVolta {
   recupero_cluster: string | null
   recupero: string | null
   variante: string | null
+  monopodalico: 0 | 1
 }
 
 export interface SedutaRiepilogo {
@@ -1012,6 +1026,8 @@ export interface EsercizioScheda {
   nota: string | null
   // La variante, se l'esercizio non e' quello normale.
   variante: string | null
+  // 1 = a una gamba: "Squat monopodalico".
+  monopodalico: 0 | 1
 }
 
 export interface SchedaPaziente {

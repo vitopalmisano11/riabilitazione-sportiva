@@ -71,6 +71,7 @@ import {
   impostaObiettivoRaggiunto,
   impostaPatologiaFase,
   impostaRecensione,
+  impostaSeduteSettimana,
   impostaStato,
   impostaValoreTest,
   obiettiviRaggiunti,
@@ -106,6 +107,8 @@ import {
   segniDellaSeduta
 } from './segni'
 import { eliminaBozza, leggiBozza, salvaBozza } from './bozze'
+import { doseSettimana, leggiDoseFase, salvaDoseFase } from './dose'
+import type { DoseFase, TipoLavoro } from '../shared/dose'
 import { cercaInArchivio } from './ricerca'
 import { aggiungiReferto, elencoReferti, eliminaReferto, leggiReferto, PESO_MASSIMO_REFERTO } from './referti'
 import {
@@ -118,6 +121,7 @@ import {
   eliminaCategoria,
   eliminaEsercizio,
   impostaCluster,
+  impostaContaCome,
   impostaImmagine,
   impostaPadre,
   impostaRir,
@@ -860,6 +864,7 @@ export function registerIpc(): void {
   // Stessa cosa per le ripetizioni di riserva: hanno senso nella forza, non
   // nella mobilita'.
   handle('categorie:setRir', (id: number, attivo: boolean) => impostaRir(id, attivo))
+  handle('categorie:setContaCome', (id: number, tipo: TipoLavoro | null) => impostaContaCome(id, tipo))
   // Un solo livello: una categoria che ha gia' dei distretti dentro non puo'
   // finire dentro a un'altra, e non ci si puo' mettere dentro a se stessa.
   handle('categorie:setPadre', (id: number, padreId: number | null) => impostaPadre(id, padreId))
@@ -907,6 +912,7 @@ export function registerIpc(): void {
   handle('pazienti:setPatologiaFase', (id: number, patologiaId: number | null, faseId: number | null) =>
     impostaPatologiaFase(id, patologiaId, faseId)
   )
+  handle('pazienti:setSeduteSettimana', (id: number, quante: number | null) => impostaSeduteSettimana(id, quante))
   handle('pazienti:delete', (id: number) => eliminaPaziente(id))
   handle('pazienti:deleteForever', (id: number) => eliminaPazienteDefinitivamente(id))
 
@@ -1216,6 +1222,11 @@ export function registerIpc(): void {
   handle('progressioni:fase', (faseId: number) => progressioniDellaFase(faseId))
   handle('progressioni:impostaFase', (faseId: number, dati: ProgressioniFase) =>
     impostaProgressioniFase(faseId, dati)
+  )
+  handle('dose:fase', (faseId: number) => leggiDoseFase(faseId))
+  handle('dose:impostaFase', (faseId: number, dosi: DoseFase[]) => salvaDoseFase(faseId, dosi))
+  handle('dose:settimana', (pazienteId: number, data: string, sedutaId: number | null) =>
+    doseSettimana(pazienteId, data, sedutaId)
   )
   handle(
     'progressioni:stato',

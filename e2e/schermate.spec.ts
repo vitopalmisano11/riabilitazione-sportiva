@@ -28,6 +28,42 @@ test('impostazioni: ogni scheda si apre', async () => {
     await expect(pagina.getByText('Cartella dei dati', { exact: false }).first()).toBeVisible()
     await expect(pagina.getByText('Cestino', { exact: false }).first()).toBeVisible()
     await pagina.screenshot({ path: join(FOTO, '15-impostazioni-dati.png'), fullPage: true })
+    // la spiegazione dei dati sta nella Guida, non piu' in una finestra qui
+    await expect(pagina.getByText('Come vengono conservati', { exact: false })).toHaveCount(0)
+
+    await pagina.getByRole('button', { name: 'Guida', exact: true }).click()
+    const campo = pagina.getByLabel('Cerca nella guida')
+    await expect(campo).toBeVisible()
+    await expect(pagina.getByRole('heading', { name: 'Esercizi in libreria' })).toBeVisible()
+    await pagina.screenshot({ path: join(FOTO, '16-impostazioni-guida.png'), fullPage: true })
+
+    // con il cursore dentro la guida la rotella fa scorrere il testo, non la pagina
+    const testo = pagina.locator('.guida-testo')
+    const scorso = (): Promise<number> => testo.evaluate((e) => e.scrollTop)
+    expect(await scorso()).toBe(0)
+    const riquadro = await testo.boundingBox()
+    await pagina.mouse.move(riquadro!.x + riquadro!.width / 2, riquadro!.y + 100)
+    await pagina.mouse.wheel(0, 300)
+    await expect.poll(scorso).toBeGreaterThan(0)
+    // cambiando voce il testo riparte dall'alto
+    await pagina.getByRole('button', { name: /Progressioni a step/ }).click()
+    await expect.poll(scorso).toBe(0)
+    await pagina.getByRole('button', { name: /Esercizi in libreria/ }).click()
+
+    // si sceglie un argomento dall'elenco
+    await pagina.getByRole('button', { name: /Dati, copie e chiave di recupero/ }).click()
+    await expect(pagina.getByText('Se il computer si rompe', { exact: true })).toBeVisible()
+
+    // si cerca: l'elenco si restringe e si apre la voce che risponde
+    await campo.fill('sedute a settimana')
+    await expect(pagina.getByRole('heading', { name: 'Dose per seduta e per settimana' })).toBeVisible()
+    await pagina.screenshot({ path: join(FOTO, '17-impostazioni-guida-ricerca.png'), fullPage: true })
+    await campo.fill('zzzz')
+    await expect(pagina.getByText('Nessun argomento parla di', { exact: false })).toBeVisible()
+    // Esc svuota la ricerca e riporta l'elenco intero
+    await campo.press('Escape')
+    await expect(campo).toHaveValue('')
+    await expect(pagina.getByRole('button', { name: /Dati, copie e chiave di recupero/ })).toBeVisible()
 
     expect(prova.errori, 'errori nella console').toEqual([])
   } finally {

@@ -54,6 +54,24 @@ Specifica originale e feedback dell'utente sono nei file `prompt-*.md` alla radi
   scheda non si scrive niente; altrimenti si legge sotto il nome (`nomeConVariante` in
   `shared/varianti.ts`, PDF/Word/finestra della scheda/CSV). Prove: `esercizi`, `progressioni`,
   `sedute`, `costruzione-seduta`, `export-seduta`, `e2e/varianti.spec.ts`.
+- La **dose** (migrazione 72) serve SOLO a programmare, come le progressioni: non entra in documenti.
+  La categoria dice come si contano i suoi esercizi (`categorie.conta_come`: pliometria estensiva o
+  intensiva in contatti, forza o potenza con carico in serie; un distretto vuoto eredita dalla
+  categoria che lo contiene). La forza si conta per categoria, cioè per muscolo. La fase ha la sua
+  dose per seduta (`fase_dose`, chiave `plio_est` / `plio_int` / `potenza` / `forza:<id categoria>`,
+  linguetta «Dose» = `components/DoseFase.tsx`, con i modelli RTP 1 / RTP 2 / Preparazione atletica
+  presi dagli appunti dell'utente). Il paziente ha `sedute_settimana` (in Percorso e nella riga della
+  dose). In seduta `seduta/RigaDose.tsx` confronta la seduta con la fase: la pliometria per seduta, la
+  forza per settimana (dose × sedute a settimana, meno le altre sedute della settimana, divisa su quelle
+  che restano; le sedute in una fase «al campo» non contano). Il calcolo è in `shared/dose.ts`
+  («8-10» = 8, una ripetizione a tempo è un'isometria e non conta, a una gamba i contatti valgono
+  doppio, i cluster si moltiplicano), le query in `main/dose.ts`; prove in `test/dose.test.ts` ed
+  `e2e/dose.spec.ts`.
+- **Monopodalico**: l'esercizio in libreria ha `gambe` (`due` / `scelta` / `una`). Su quelli «a
+  scelta» la riga della seduta ha il bottoncino «1 gamba»; acceso si salva sulla riga
+  (`seduta_esercizi.monopodalico`, fotografato come la dose: si copia, si ricopia dall'ultima volta) e
+  sulla scheda si legge accanto al nome, «Squat monopodalico» (`nomeConMonopodalico` in
+  `shared/varianti.ts`). Gli esercizi «sempre una» non scrivono niente: lo dice già il nome.
 - I test con la pedana di forza (file `*.pedana.json` della Balance Squat App, contratto in
   `docs/formato-pedana.md`, esempio vero in `docs/esempio.pedana.json`) hanno un archivio proprio, NON
   righe di screening: `main/pedana.ts` (anteprima con candidati paziente, importazione senza doppioni
@@ -82,6 +100,14 @@ Specifica originale e feedback dell'utente sono nei file `prompt-*.md` alla radi
   `pages/questionari/` (elenco, editor, una scheda per tab; costanti e id provvisori in `modello.ts`),
   `pages/impostazioni/` (una scheda per file), `components/anamnesi/` e `components/valutazione/`. Il
   file di prima (es. `PazientiPage.tsx`) resta il punto d'ingresso e tiene stato e caricamento.
+- La **Guida** (Impostazioni → Guida, `pages/impostazioni/SchedaGuida.tsx`) spiega a chi usa il programma le
+  funzioni che si usano di rado e si dimenticano: elenco a sinistra, campo di ricerca, testo a destra. I testi
+  sono dati, una voce per file in `pages/impostazioni/guida/argomenti/` (formato in `guida/modello.ts`,
+  `**grassetto**` per i nomi di pulsanti e linguette; la ricerca è in `guida/ricerca.ts`), raccolti in
+  `guida/contenuti.ts`. **Chi cambia una di queste funzioni (esercizi e varianti, progressioni, dose, patologie
+  e fasi, screening, pedana, questionari, dati e copie) aggiorna anche la sua voce**: i nomi di linguette e
+  pulsanti nella guida devono essere quelli veri. Voce nuova = file in `argomenti/` + riga in `contenuti.ts`.
+  Prove: `guida` ed `e2e/schermate.spec.ts`.
 - Lingua dell'interfaccia, dei commenti e dei commit: **italiano**.
 
 ## Regole che contano

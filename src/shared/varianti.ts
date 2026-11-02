@@ -9,3 +9,10 @@ export function nomeConVariante(nome: string, variante: string | null | undefine
   const v = (variante ?? '').trim()
   return v === '' ? nome : `${nome} — ${v}`
 }
+
+// "Squat monopodalico": il segno messo in seduta si legge accanto al nome.
+// Senza segno (o per un esercizio che e' sempre a una gamba, dove il nome lo
+// dice gia') il nome resta com'e'.
+export function nomeConMonopodalico(nome: string, monopodalico: number | null | undefined): string {
+  return monopodalico === 1 ? `${nome} monopodalico` : nome
+}

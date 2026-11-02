@@ -179,6 +179,7 @@ export default function SezioneSeduta({
                 cluster={mostraCluster(r, categorie)}
                 rir={mostraRir(r, categorie)}
                 varianti={libreria.find((x) => x.id === id)?.varianti ?? SENZA_VARIANTI}
+                gambe={libreria.find((x) => x.id === id)?.gambe ?? null}
                 ultima={ultima}
                 dnd={riordinoRighe.contenitore(chiave)}
                 presa={riordinoRighe.presa(chiave)}

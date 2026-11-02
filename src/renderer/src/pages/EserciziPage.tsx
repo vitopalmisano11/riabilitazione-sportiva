@@ -25,6 +25,7 @@ import Modale from '../components/Modale'
 import { errMsg } from '../lib'
 import { daPrecarico, ricorda } from '../precarico'
 import type { Dosaggio } from '../../../shared/dosaggio'
+import type { Gambe } from '../../../shared/dose'
 import {
   aCluster,
   caricoTesto,
@@ -48,6 +49,8 @@ interface FormState {
   recupero_default: string
   nota_tecnica: string
   link: string
+  // A una gamba: mai, a scelta in seduta (il segno monopodalico), sempre.
+  gambe: Gambe
   // null = nessuna immagine. `immagineCambiata` evita di riscrivere il campo
   // (pesante) quando si salva un esercizio senza aver toccato l'immagine.
   immagine: string | null
@@ -70,6 +73,7 @@ const FORM_VUOTO: FormState = {
   recupero_default: '',
   nota_tecnica: '',
   link: '',
+  gambe: 'due',
   immagine: null,
   immagineCambiata: false,
   varianti: []
@@ -182,6 +186,7 @@ export default function EserciziPage(): React.JSX.Element {
       recupero_default: form.recupero_default.trim() || null,
       nota_tecnica: form.nota_tecnica.trim() || null,
       link: normalizzaLink(form.link),
+      gambe: form.gambe,
       varianti: form.varianti
     }
     try {
@@ -264,6 +269,7 @@ export default function EserciziPage(): React.JSX.Element {
         recupero_default: e.recupero_default ?? '',
         nota_tecnica: e.nota_tecnica ?? '',
         link: e.link ?? '',
+        gambe: e.gambe,
         immagine,
         immagineCambiata: false,
         varianti: e.varianti.map((v) => ({ id: v.id, nome: v.nome }))
@@ -522,6 +528,7 @@ export default function EserciziPage(): React.JSX.Element {
           esercizi={esercizi}
           ricerca={ricerca}
           onRicerca={setRicerca}
+          onNuovoEsercizio={() => setForm({ ...FORM_VUOTO })}
           renderEsercizi={blocco}
           onCambiato={async () => {
             await loadCategorie()
@@ -559,6 +566,17 @@ export default function EserciziPage(): React.JSX.Element {
                 segnaposto="Scrivi o scegli la categoria…"
                 onCambia={(id) => setForm({ ...form, categoria_id: id })}
               />
+            </label>
+            <label>
+              Gambe
+              <select
+                value={form.gambe}
+                onChange={(e) => setForm({ ...form, gambe: e.target.value as Gambe })}
+              >
+                <option value="due">Due</option>
+                <option value="scelta">A scelta in seduta (squat, CMJ, affondi…)</option>
+                <option value="una">Sempre una (single leg hop…)</option>
+              </select>
             </label>
             <p className="modal-testo">
               Valori di default, proposti quando aggiungi l&apos;esercizio a una seduta:

@@ -2,14 +2,12 @@ import { useEffect, useState } from 'react'
 import Aiuto from '../../components/Aiuto'
 import type { EsitoArchivio } from '../../../../shared/types'
 import PannelloBackup from '../../components/PannelloBackup'
-import GuidaDati from '../../components/GuidaDati'
-import { BookOpen, FolderOpen, ShieldCheck } from 'lucide-react'
+import { FolderOpen, ShieldCheck } from 'lucide-react'
 import { toast, toastErrore } from '../../components/Toast'
 import { errMsg } from '../../lib'
 import { SchedaCestino } from './SchedaCestino'
 
 export function SchedaDati(): React.JSX.Element {
-  const [guida, setGuida] = useState(false)
   const [esitoArchivio, setEsitoArchivio] = useState<EsitoArchivio | null>(null)
   const [inCorso, setInCorso] = useState(false)
 
@@ -128,16 +126,6 @@ export function SchedaDati(): React.JSX.Element {
           </span>
         </div>
       </div>
-
-      {/* In fondo, dove uno arriva dopo aver visto i pulsanti e si e' chiesto
-          cosa fa ognuno: la spiegazione di tutti, in una finestra sola. */}
-      <div className="modal-actions riga-guida">
-        <button onClick={() => setGuida(true)}>
-          <BookOpen size={16} /> Come vengono conservati i miei dati?
-        </button>
-      </div>
-
-      {guida && <GuidaDati onChiudi={() => setGuida(false)} />}
     </section>
   )
 }

@@ -64,6 +64,17 @@ supera con *Ulteriori informazioni → Esegui comunque*.
 Le versioni vere dell'app sono quelle di `package.json` e dei tag `vX.Y.Z`: le sezioni «giro di
 feedback» qui sopra sono precedenti e usavano una numerazione propria.
 
+### v0.5.17
+
+**Prima di tutto:** al primo accesso dopo l'aggiornamento il programma aggiunge delle tabelle al database
+(migrazione 72): non tocca i dati, ma non si può annullare, quindi prima fa da solo una copia dell'archivio.
+
+- Dose: ogni fase ha la sua dose per seduta (linguetta «Dose», con i modelli RTP 1 / RTP 2 / Preparazione
+  atletica) e in seduta una riga confronta quello che hai messo con la dose della fase: pliometria in contatti
+  per seduta, forza e potenza in serie per settimana. Serve solo a programmare, non entra nei documenti
+- Il paziente ha le «sedute a settimana» (in Percorso)
+- Guida: in Impostazioni c'è la nuova scheda «Guida», con ricerca, che spiega le funzioni che si usano di rado
+
 ### v0.5.16
 
 **Prima di tutto:** al primo accesso dopo l'aggiornamento il programma aggiunge una colonna al database

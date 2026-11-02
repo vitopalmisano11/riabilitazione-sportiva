@@ -20,6 +20,7 @@ import type {
 } from '../../../../shared/types'
 import { caricoTesto, recuperoTesto, rirTesto, volumeTesto } from '../../../../shared/dosaggio'
 import { nomeConVariante } from '../../../../shared/varianti'
+import { contaRighe, type RigaConto } from '../../../../shared/dose'
 import { sposta } from '../../sposta'
 
 // Una riga della seduta in costruzione. chiaveVolo e' una chiave locale, mai
@@ -103,6 +104,7 @@ export type AzioneSezioni =
   | { tipo: 'imposta'; sezioni: SezioneBuilder[] }
   | { tipo: 'valore'; sez: number; riga: number; campo: CampoRiga; valore: string }
   // con storia: si annullano con Ctrl+Z
+  | { tipo: 'monopodalico'; sez: number; riga: number; valore: boolean }
   | { tipo: 'aggiungi'; sez: number; esercizio: EsercizioConCategoria; dose?: DoseStep }
   | { tipo: 'alVolo'; sez: number; nome: string; chiave: number }
   | { tipo: 'ricopia'; sez: number; riga: number; ultima: UltimaVolta }
@@ -137,6 +139,7 @@ export function rigaDaLibreria(e: EsercizioConCategoria, dose?: DoseStep): RigaB
     recupero: dose?.recupero ?? e.recupero_default,
     nota: null,
     variante: dose?.variante ?? null,
+    monopodalico: 0,
     link: e.link,
     ha_immagine: e.ha_immagine
   }
@@ -162,6 +165,7 @@ export function rigaAlVolo(nome: string, chiave: number): RigaBuilder {
     recupero: null,
     nota: null,
     variante: null,
+    monopodalico: 0,
     link: null,
     ha_immagine: 0,
     chiaveVolo: chiave
@@ -225,9 +229,17 @@ function applica(sezioni: SezioneBuilder[], a: AzioneSezioni): { sezioni: Sezion
           carico: u.carico,
           recupero_cluster: u.recupero_cluster,
           recupero: u.recupero,
-          variante: u.variante
+          variante: u.variante,
+          monopodalico: u.monopodalico
         })),
         cosa: `ricopiati i numeri di ${nome}`
+      }
+    }
+    case 'monopodalico': {
+      const nome = sezioni[a.sez]?.righe[a.riga]?.nome ?? 'un esercizio'
+      return {
+        sezioni: inRiga(sezioni, a.sez, a.riga, (r) => ({ ...r, monopodalico: a.valore ? 1 : 0 })),
+        cosa: a.valore ? `${nome} a una gamba` : `${nome} a due gambe`
       }
     }
     case 'togliRiga': {
@@ -426,9 +438,43 @@ export const mostraRir = (r: { categoria_nome: string | null; rir: string | null
 
 // Cosa aveva fatto l'ultima volta, gia' scritto come si legge.
 export const testoUltima = (r: SedutaEsercizioDettaglio, u: UltimaVolta): string =>
-  [u.variante?.trim(), volumeTesto(u), rirTesto(u), caricoTesto(u.carico, r.unita_carico), recuperoTesto(u)]
+  [
+    u.monopodalico === 1 ? 'monopodalico' : null,
+    u.variante?.trim(),
+    volumeTesto(u),
+    rirTesto(u),
+    caricoTesto(u.carico, r.unita_carico),
+    recuperoTesto(u)
+  ]
     .filter(Boolean)
     .join(' · ')
+
+// ---- la dose ----
+
+// Il conto della seduta che si compone (contatti, serie) per chiave della dose.
+// Categoria e gambe vengono dalla libreria; un esercizio al volo non ha una
+// categoria e resta fuori.
+export function contaSeduta(
+  sezioni: SezioneBuilder[],
+  libreria: EsercizioConCategoria[],
+  categorie: Categoria[]
+): Record<string, number> {
+  const perId = new Map(libreria.map((e) => [e.id, e]))
+  const righe: RigaConto[] = sezioni.flatMap((s) =>
+    s.righe.map((r) => {
+      const e = r.esercizio_id == null ? undefined : perId.get(r.esercizio_id)
+      return {
+        categoria_id: e?.categoria_id ?? null,
+        gambe: e?.gambe ?? null,
+        monopodalico: r.monopodalico ?? 0,
+        serie: r.serie,
+        cluster: r.cluster,
+        ripetizioni: r.ripetizioni
+      }
+    })
+  )
+  return contaRighe(righe, categorie)
+}
 
 // ---- prima di salvare ----
 
@@ -555,6 +601,7 @@ export function inputSeduta(
         recupero: r.recupero?.trim() || null,
         nota: r.nota?.trim() || null,
         variante: r.variante?.trim() || null,
+        monopodalico: r.monopodalico === 1 ? 1 : 0,
         sezioneIndex: i
       }))
     )

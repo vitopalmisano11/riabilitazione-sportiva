@@ -12,7 +12,7 @@ import {
   ripetizioniTesto,
   volumeTesto
 } from '../shared/dosaggio'
-import { nomeConVariante } from '../shared/varianti'
+import { nomeConMonopodalico, nomeConVariante } from '../shared/varianti'
 // La libreria di Word pesa (circa 180 ms a caricarla) e serve solo a chi esporta
 // in .docx: si carica in generaDocx, alla prima esportazione, e non all'avvio.
 // Qui entrano solo i tipi, che spariscono a compilazione.
@@ -53,6 +53,8 @@ export interface DatiSedutaExport {
       // La variante dell'esercizio ("con conteggio all'indietro"): senza, e'
       // l'esercizio normale e non si scrive niente.
       variante?: string | null
+      // 1 = fatto a una gamba: "Squat monopodalico".
+      monopodalico?: 0 | 1 | null
       // Solo per la scheda illustrata: la spiegazione dell'esercizio, il video
       // e la foto (data URL). Nella scheda normale restano a null, cosi' le
       // immagini non vengono nemmeno lette dal database.
@@ -135,6 +137,10 @@ export function generaHtml(
   //
   // La variante sta sotto al nome: il paziente deve vedere subito se l'esercizio
   // e' quello normale (niente) o con qualcosa in piu'.
+  // Un testo scritto a mano si stampa come e' stato scritto: gli a capo e i
+  // rientri li tiene la pagina (white-space: pre-wrap nelle regole sotto), qui
+  // basta che i ritorni a capo di Windows ("\r\n") diventino "\n".
+  const comeScritto = (testo: string): string => esc(testo.replace(/\r\n?/g, '\n'))
   const variante = (e: { variante?: string | null }): string =>
     e.variante?.trim() ? `<span class="variante">${esc(e.variante.trim())}</span>` : ''
   const tabella = (esercizi: DatiSedutaExport['sezioni'][number]['esercizi']): string =>
@@ -146,8 +152,10 @@ export function generaHtml(
       ${esercizi
         .map(
           (e) => `<tr>
-            <td class="col-esercizio"><span class="nome">${esc(e.nome)}</span>${variante(e)}${
-              e.nota ? `<span class="nota-es">${esc(e.nota)}</span>` : ''
+            <td class="col-esercizio"><span class="nome">${esc(
+              nomeConMonopodalico(e.nome, e.monopodalico)
+            )}</span>${variante(e)}${
+              e.nota ? `<span class="nota-es">${comeScritto(e.nota)}</span>` : ''
             }</td>
             <td class="col-dose">${esc(volumeTesto(e) ?? '—')}</td>
             <td class="col-dose">${esc(intensitaTesto(e) ?? '—')}</td>
@@ -203,15 +211,15 @@ export function generaHtml(
             <div class="testo">
               <span class="num">${numero}</span>
               <div class="corpo">
-                <div class="nome">${esc(e.nome)}</div>
+                <div class="nome">${esc(nomeConMonopodalico(e.nome, e.monopodalico))}</div>
                 ${variante(e)}
                 ${numeri(e)}
                 ${
                   e.nota_tecnica
-                    ? `<div class="come">${esc(e.nota_tecnica).replace(/\n/g, '<br>')}</div>`
+                    ? `<div class="come">${comeScritto(e.nota_tecnica)}</div>`
                     : ''
                 }
-                ${e.nota ? `<div class="nota-es">${esc(e.nota)}</div>` : ''}
+                ${e.nota ? `<div class="nota-es">${comeScritto(e.nota)}</div>` : ''}
                 ${e.link && LINK_WEB.test(e.link) ? `<a class="video" href="${esc(e.link)}">Guarda il video</a>` : ''}
               </div>
             </div>
@@ -236,7 +244,7 @@ export function generaHtml(
       ${illustrata ? schede(sez.esercizi) : tabella(sez.esercizi)}`
         )
         .join('')}
-      ${s.note ? `<p class="note"><strong>Note della seduta:</strong> ${esc(s.note)}</p>` : ''}
+      ${s.note ? `<p class="note"><strong>Note della seduta:</strong> ${comeScritto(s.note)}</p>` : ''}
     </section>`
     })
     .join('')
@@ -293,14 +301,16 @@ export function generaHtml(
   table.tabella-scheda .variante { display: block; margin-top: 1px; color: ${accento};
                                    font-size: 11.5px; font-weight: 600; }
   table.tabella-scheda .nota-es { display: block; margin-top: 2px; color: #555b66;
-                                  font-size: 11px; font-style: italic; }
+                                  font-size: 11px; font-style: italic; white-space: pre-wrap; }
   table.tabella-scheda .col-dose { width: 1%; white-space: nowrap; text-align: center; }
   table { width: 100%; border-collapse: collapse; }
   th, td { border: 1px solid #ccd2da; padding: 6px 8px; text-align: left; vertical-align: top; }
   th { background: ${intestazione}; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; }
   tr { page-break-inside: avoid; }
   .cat { color: #777e88; font-size: 10px; }
-  .note { margin: 10px 0 0; background: #f5f6f8; padding: 8px 10px; border-radius: 4px; }
+  /* Le note si scrivono come le ha scritte il fisioterapista: a capo e spazi restano. */
+  .note { margin: 10px 0 0; background: #f5f6f8; padding: 8px 10px; border-radius: 4px;
+          white-space: pre-wrap; }
   /* Scheda illustrata: un esercizio per riga, foto a sinistra. Il riquadro e'
      sempre della stessa misura, cosi' le righe non si sfalsano, ma la foto ci
      sta dentro intera: ritagliata al centro perdeva pezzi di esercizio, e in
@@ -336,8 +346,10 @@ export function generaHtml(
   .scheda-es .numero .et { font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em;
                            color: #6b7280; }
   .scheda-es .numero .val { font-size: 13px; }
-  .scheda-es .come { color: #555b66; margin-top: 4px; }
-  .scheda-es .nota-es { color: #555b66; margin-top: 4px; font-style: italic; }
+  /* La spiegazione e la nota si leggono come le ha scritte il fisioterapista:
+     a capo, righe vuote e rientri restano. */
+  .scheda-es .come { color: #555b66; margin-top: 4px; white-space: pre-wrap; }
+  .scheda-es .nota-es { color: #555b66; margin-top: 4px; font-style: italic; white-space: pre-wrap; }
   .scheda-es .video { display: inline-block; margin-top: 6px; color: ${accento}; font-weight: 600; }
   /* Le indicazioni per casa: un riquadro chiaro in fondo, staccato dal
      programma ma sullo stesso foglio. */
@@ -367,6 +379,14 @@ export async function generaDocx(
   const { Document, HeadingLevel, Packer, Paragraph, Table, TableCell, TableRow, TextRun, WidthType } =
     await import('docx')
   const children: (ParagrafoWord | TabellaWord)[] = []
+
+  // Un testo scritto a mano con i suoi a capo: in Word un "\n" dentro un testo
+  // non basta, serve un'interruzione di riga a ogni riga.
+  const conACapo = (testo: string): InstanceType<typeof TextRun>[] =>
+    testo
+      .replace(/\r\n?/g, '\n')
+      .split('\n')
+      .map((riga, i) => new TextRun({ text: riga, break: i > 0 ? 1 : 0 }))
 
   // Anche il documento Word esce con l'intestazione di chi firma: chi lo
   // riceve deve sapere da chi arriva, in qualunque formato.
@@ -418,14 +438,14 @@ export async function generaDocx(
         (e) =>
           new TableRow({
             children: [
-              nomeConVariante(e.nome, e.variante),
+              nomeConVariante(nomeConMonopodalico(e.nome, e.monopodalico), e.variante),
               e.serie ?? '',
               // A cluster: "3 × 2" sono i cluster per le ripetizioni di ognuno.
               ripetizioniTesto(e) ?? '',
               caricoTesto(e.carico, e.unita_carico) ?? '',
               recuperoTesto(e) ?? '',
               e.nota ?? ''
-            ].map((t) => new TableCell({ children: [new Paragraph(t)] }))
+            ].map((t) => new TableCell({ children: [new Paragraph({ children: conACapo(t) })] }))
           })
       )
       children.push(
@@ -442,7 +462,7 @@ export async function generaDocx(
         new Paragraph({
           children: [
             new TextRun({ text: 'Note della seduta: ', bold: true }),
-            new TextRun(s.note)
+            ...conACapo(s.note)
           ],
           spacing: { before: 200 }
         })

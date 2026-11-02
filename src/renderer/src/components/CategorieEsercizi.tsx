@@ -9,6 +9,7 @@ import Modale from './Modale'
 import { errMsg } from '../lib'
 import { useRiordinoSalvato } from '../riordino'
 import { daPrecarico, ricorda } from '../precarico'
+import { TIPI_LAVORO, type TipoLavoro } from '../../../shared/dose'
 
 // La prima pagina della libreria: le categorie degli esercizi.
 //
@@ -28,6 +29,8 @@ interface FormCat {
   rir: boolean
   // Dentro a quale categoria nasce (null = e' un tipo di lavoro a se').
   padre: number | null
+  // Come si contano i suoi esercizi nella dose della fase.
+  contaCome: TipoLavoro | null
 }
 
 export default function CategorieEsercizi({
@@ -36,6 +39,7 @@ export default function CategorieEsercizi({
   esercizi,
   ricerca,
   onRicerca,
+  onNuovoEsercizio,
   renderEsercizi
 }: {
   tornaAllInizio: number
@@ -47,6 +51,9 @@ export default function CategorieEsercizi({
   // casella, e filtra gli esercizi di quella categoria.
   ricerca: string
   onRicerca: (testo: string) => void
+  // Il pulsante «Nuovo esercizio» della prima pagina: apre la finestra della
+  // libreria, che sta fuori da qui.
+  onNuovoEsercizio: () => void
   // La tabella degli esercizi con i suoi comandi. `categoriaNuovo` e' la
   // categoria in cui nasce un esercizio creato da li' ('' = da scegliere);
   // `mostraCategoria` dice se la colonna della categoria serve, o se
@@ -159,6 +166,7 @@ export default function CategorieEsercizi({
           : (await window.api.categorie.update(form.id, nome), form.id)
       await window.api.categorie.setCluster(id, form.cluster)
       await window.api.categorie.setRir(id, form.rir)
+      await window.api.categorie.setContaCome(id, form.contaCome)
       if (form.id == null && form.padre != null) {
         await window.api.categorie.setPadre(id, form.padre)
       }
@@ -202,13 +210,17 @@ export default function CategorieEsercizi({
       nome: c.nome,
       cluster: c.dosaggio_cluster === 1,
       rir: c.dosaggio_rir === 1,
-      padre: c.padre_id
+      padre: c.padre_id,
+      contaCome: c.conta_come
     })
 
   const etichette = (c: Categoria): React.JSX.Element => (
     <>
       {c.dosaggio_cluster === 1 && <span className="badge">cluster</span>}
       {c.dosaggio_rir === 1 && <span className="badge">RIR</span>}
+      {c.conta_come && (
+        <span className="badge">{TIPI_LAVORO.find((t) => t.tipo === c.conta_come)?.breve.toLowerCase()}</span>
+      )}
     </>
   )
 
@@ -240,10 +252,15 @@ export default function CategorieEsercizi({
             <button
               className="primary"
               onClick={() =>
-                setForm({ id: null, nome: '', cluster: false, rir: false, padre: null })
+                setForm({ id: null, nome: '', cluster: false, rir: false, padre: null, contaCome: null })
               }
             >
               <Plus size={18} /> Nuova categoria
+            </button>
+            {/* Un esercizio nuovo si puo' fare anche da qui, senza aprire prima la
+                categoria: la sua si sceglie nella finestra. */}
+            <button className="primary" onClick={onNuovoEsercizio}>
+              <Plus size={18} /> Nuovo esercizio
             </button>
           </div>
 
@@ -490,6 +507,27 @@ export default function CategorieEsercizi({
               />
               Ripetizioni di riserva (RIR)
               <Aiuto testo="Quante ripetizioni restano in canna a fine serie: RIR 2 vuol dire fermarsi due prima del cedimento. Dice quanto è pesante la serie meglio del carico da solo, e serve nella forza più che nella mobilità. Spuntandola, gli esercizi di questa categoria hanno una casellina in più nella seduta." />
+            </label>
+            <label className="riga-staccata">
+              <span>
+                Nel conto della dose
+                <Aiuto testo="Come si contano gli esercizi di questa categoria nella dose della fase: la pliometria in contatti per seduta (un esercizio a una gamba vale doppio), la forza in serie per settimana, una voce per ogni distretto (quadricipite, hamstring), la potenza con carico in serie per seduta. I numeri della dose si scrivono in Patologie e fasi, linguetta «Dose». Isometrie, core e accessori restano fuori." />
+              </span>
+              <select
+                value={form.contaCome ?? ''}
+                onChange={(e) => setForm({ ...form, contaCome: (e.target.value || null) as TipoLavoro | null })}
+              >
+                <option value="">
+                  {form.padre != null
+                    ? `Come «${categorie.find((c) => c.id === form.padre)?.nome ?? 'la categoria'}»`
+                    : 'Non si conta'}
+                </option>
+                {TIPI_LAVORO.map((t) => (
+                  <option key={t.tipo} value={t.tipo}>
+                    {t.nome} ({t.unita})
+                  </option>
+                ))}
+              </select>
             </label>
 
             <div className="modal-actions">

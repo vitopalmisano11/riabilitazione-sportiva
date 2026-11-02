@@ -367,6 +367,95 @@
   font-weight: 600;
 }
 
+/* La dose della seduta: una riga sola sopra agli esercizi, che si apre con un
+   clic. Verde quando va bene, ambra quando e' poco o troppo: e' un consiglio,
+   non un errore. */
+.riga-dose {
+  margin-bottom: var(--spazio);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.riga-dose-sintesi {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px 14px;
+  width: 100%;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  text-align: left;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.voce-dose {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+}
+
+.voce-dose.ok {
+  color: var(--success);
+}
+
+.voce-dose.poco,
+.voce-dose.troppo {
+  color: var(--attenzione);
+}
+
+.riga-dose-dettaglio {
+  padding: 0 12px 10px 34px;
+  font-size: 13px;
+}
+
+.riga-dose-dettaglio ul {
+  margin: 0 0 8px;
+  padding-left: 16px;
+}
+
+.riga-dose-dettaglio li {
+  margin: 3px 0;
+}
+
+.riga-dose-dettaglio li.poco b,
+.riga-dose-dettaglio li.troppo b {
+  color: var(--attenzione);
+}
+
+.riga-dose-frequenza {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.riga-dose-frequenza input {
+  width: 64px;
+}
+
+/* Il segno "a una gamba": spento e' un bottoncino che quasi non si vede,
+   acceso ha i colori della variante scelta. */
+.btn-monopodalico {
+  flex: none;
+  padding: 3px 9px;
+  font-size: 12px;
+  color: var(--text-dim);
+  background: transparent;
+  border: 1px dashed var(--border);
+  border-radius: 999px;
+}
+
+.btn-monopodalico.acceso {
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  background: var(--accent-soft);
+  font-weight: 600;
+}
+
 .item-actions-static {
   display: flex;
   gap: 2px;
@@ -532,6 +621,15 @@
 .riga-percorso .campo-avanza button {
   padding: 10px 16px;
   min-width: 230px;
+}
+
+/* Un numero solo: la casella non deve prendersi la larghezza della fase. */
+.riga-percorso .campo-sedute-settimana {
+  flex: none;
+}
+
+.riga-percorso .campo-sedute-settimana input {
+  width: 90px;
 }
 
 .sedute-list {

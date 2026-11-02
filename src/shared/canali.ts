@@ -98,6 +98,7 @@ import type {
 import type {
   Tema,
 } from './temi'
+import type { DoseFase, DoseSettimana, TipoLavoro } from './dose'
 
 export interface Canali {
   // apre un URL http/https nel browser predefinito
@@ -251,6 +252,8 @@ export interface Canali {
   // Accende o spegne il dosaggio a cluster per gli esercizi di questa categoria.
   'categorie:setCluster': (id: number, attivo: boolean) => void
   'categorie:setRir': (id: number, attivo: boolean) => void
+  // Come si contano i suoi esercizi nella dose della fase (null = fuori dal conto).
+  'categorie:setContaCome': (id: number, tipo: TipoLavoro | null) => void
   // Sposta una categoria dentro a un'altra, o la riporta al primo livello.
   'categorie:setPadre': (id: number, padreId: number | null) => void
   'categorie:delete': (id: number) => void
@@ -271,6 +274,7 @@ export interface Canali {
     patologiaId: number | null,
     faseId: number | null,
   ) => void
+  'pazienti:setSeduteSettimana': (id: number, quante: number | null) => void
   'pazienti:delete': (id: number) => void
   // via subito dall'archivio e dal cestino (diritto alla cancellazione)
   'pazienti:deleteForever': (id: number) => void
@@ -481,6 +485,11 @@ export interface Canali {
     // tutte le progressioni, non solo quelle della fase
     tutte?: boolean
   ) => StatoProgressione[]
+  // La dose della fase, per seduta: contatti di pliometria, serie di forza e potenza.
+  'dose:fase': (faseId: number) => DoseFase[]
+  'dose:impostaFase': (faseId: number, dosi: DoseFase[]) => void
+  // Le altre sedute della settimana di quella data, gia' contate.
+  'dose:settimana': (pazienteId: number, data: string, sedutaId: number | null) => DoseSettimana
   'obiettiviTerapeutici:list': (pazienteId: number) => ObiettivoTerapeutico[]
   // Quello che il paziente si aspetta, con parole sue: una casella sola.
   'obiettiviTerapeutici:aspettative': (pazienteId: number) => string | null
@@ -677,6 +686,7 @@ export const MAPPA_API = {
     update: 'categorie:update',
     setCluster: 'categorie:setCluster',
     setRir: 'categorie:setRir',
+    setContaCome: 'categorie:setContaCome',
     setPadre: 'categorie:setPadre',
     remove: 'categorie:delete',
     reorder: 'categorie:reorder'
@@ -695,6 +705,7 @@ export const MAPPA_API = {
     create: 'pazienti:create',
     update: 'pazienti:update',
     setPatologiaFase: 'pazienti:setPatologiaFase',
+    setSeduteSettimana: 'pazienti:setSeduteSettimana',
     remove: 'pazienti:delete',
     removeForever: 'pazienti:deleteForever',
     obiettiviRaggiunti: 'pazienti:obiettiviRaggiunti',
@@ -877,6 +888,11 @@ export const MAPPA_API = {
     fase: 'progressioni:fase',
     impostaFase: 'progressioni:impostaFase',
     stato: 'progressioni:stato'
+  },
+  dose: {
+    fase: 'dose:fase',
+    impostaFase: 'dose:impostaFase',
+    settimana: 'dose:settimana'
   },
   obiettiviTerapeutici: {
     list: 'obiettiviTerapeutici:list',

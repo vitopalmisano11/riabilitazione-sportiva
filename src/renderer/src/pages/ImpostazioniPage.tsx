@@ -4,6 +4,7 @@ import type { Profilo } from '../../../shared/types'
 import { SchedaDati } from './impostazioni/SchedaDati'
 import { SchedaProfilo } from './impostazioni/SchedaProfilo'
 import { SchedaRecupero } from './impostazioni/SchedaRecupero'
+import { SchedaGuida } from './impostazioni/SchedaGuida'
 import { SchedaPassword } from './impostazioni/SchedaPassword'
 import { SchedaBlocco } from './impostazioni/SchedaBlocco'
 import { ModoScuro, SchedaAspetto } from './impostazioni/SchedaAspetto'
@@ -14,19 +15,21 @@ import { ModoScuro, SchedaAspetto } from './impostazioni/SchedaAspetto'
 // c'era. Sono cose che si toccano di rado ma che vanno trovate subito, percio'
 // stanno in una sezione sola, a schede, come la configurazione.
 
-// Tre schede, divise per domanda: "chi sono io", "come si comporta l'app con
-// me" e "dove stanno le mie cose e come sono al sicuro". Il cestino sta con i
-// dati perche' e' l'ultima rete prima di perderli davvero; il colore sta con la
-// password perche' sono tutte e due preferenze tue, non dell'archivio.
-type Scheda = 'profilo' | 'app' | 'dati'
+// Quattro schede, divise per domanda: "chi sono io", "come si comporta l'app
+// con me", "dove stanno le mie cose e come sono al sicuro" e "come si faceva
+// quella cosa". Il cestino sta con i dati perche' e' l'ultima rete prima di
+// perderli davvero; il colore sta con la password perche' sono tutte e due
+// preferenze tue, non dell'archivio.
+type Scheda = 'profilo' | 'app' | 'dati' | 'guida'
 
 // Dall'alto in basso come si scende dal proprio nome all'archivio: prima chi
-// sei, poi come si comporta l'app con te, e in fondo dove stanno le cose e
-// come sono al sicuro.
+// sei, poi come si comporta l'app con te, poi dove stanno le cose e come sono
+// al sicuro, e in fondo la guida, che si apre solo quando serve.
 const SCHEDE: { key: Scheda; label: string }[] = [
   { key: 'profilo', label: 'Profilo' },
   { key: 'app', label: 'Accesso e aspetto' },
-  { key: 'dati', label: 'Dati e backup' }
+  { key: 'dati', label: 'Dati e backup' },
+  { key: 'guida', label: 'Guida' }
 ]
 
 export default function ImpostazioniPage({
@@ -83,6 +86,7 @@ export default function ImpostazioniPage({
       <div className="scheda">
         {scheda === 'dati' && <SchedaDati />}
         {scheda === 'profilo' && <SchedaProfilo />}
+        {scheda === 'guida' && <SchedaGuida />}
         {scheda === 'app' && (
           <>
             {/* L'aspetto a sinistra e la password a destra, alti uguale: sono

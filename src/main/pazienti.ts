@@ -93,6 +93,14 @@ export function impostaPatologiaFase(id: number, patologiaId: number | null, fas
     .run(patologiaId, faseId, id)
 }
 
+// Quante sedute a settimana fa: un numero da 1 a 14, o niente.
+export function impostaSeduteSettimana(id: number, quante: number | null): void {
+  if (quante != null && (!Number.isInteger(quante) || quante < 1 || quante > 14)) {
+    throw new Error('Le sedute a settimana vanno da 1 a 14.')
+  }
+  getDb().prepare('UPDATE pazienti SET sedute_settimana = ? WHERE id = ?').run(quante, id)
+}
+
 export function eliminaPaziente(id: number): void {
   const p = getDb().prepare('SELECT nome, cognome FROM pazienti WHERE id = ?').get(id) as
     | { nome: string; cognome: string }

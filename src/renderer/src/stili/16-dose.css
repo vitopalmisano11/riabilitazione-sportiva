@@ -1,0 +1,43 @@
+/* La dose della fase (Patologie e fasi, linguetta «Dose»). La riga della dose
+   in seduta e il bottoncino monopodalico stanno in 05-seduta.css. */
+
+.modelli-dose {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 12px;
+}
+
+.tabella-dose {
+  border-collapse: collapse;
+}
+
+.tabella-dose th {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-align: left;
+  padding: 0 6px 4px;
+}
+
+.tabella-dose td {
+  padding: 3px 6px;
+}
+
+.tabella-dose td:first-child {
+  min-width: 180px;
+}
+
+.tabella-dose input {
+  width: 72px;
+}
+
+.tabella-dose .sotto-titolo-dose td {
+  padding-top: 14px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-dim);
+}

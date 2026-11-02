@@ -51,6 +51,24 @@ test("La variante dell'esercizio si legge sulla scheda, e l'esercizio normale no
   assert.ok(docx.length > 1000)
 })
 
+// L'esercizio fatto a una gamba si legge accanto al nome: "Squat monopodalico",
+// in PDF, scheda illustrata e Word.
+test('Il monopodalico si legge accanto al nome, solo dove e\' segnato', async () => {
+  const [prima, ...altri] = seduteExport[0].sezioni[0].esercizi
+  const sedute = [
+    {
+      ...seduteExport[0],
+      sezioni: [{ nome: 'Forza', esercizi: [{ ...prima, nome: 'Squat', monopodalico: 1 as const }, ...altri] }]
+    }
+  ]
+  assert.ok(generaHtml(pazExport, sedute).includes('<span class="nome">Squat monopodalico</span>'))
+  assert.equal(generaHtml(pazExport, sedute).split('monopodalico').length - 1, 1, 'solo l\'esercizio segnato')
+  assert.ok(generaHtml(pazExport, sedute, true).includes('<div class="nome">Squat monopodalico</div>'))
+  const { default: JSZip } = await import('jszip')
+  const zip = await JSZip.loadAsync(await generaDocx(pazExport, sedute))
+  assert.ok((await zip.file('word/document.xml')!.async('string')).includes('Squat monopodalico'))
+})
+
 // La scheda illustrata, da consegnare a chi si allena da solo: foto, come si
 // esegue e il link al video, che nel PDF resta cliccabile.
 const conFoto = [
@@ -129,4 +147,47 @@ test('Un link che non e\' web non diventa cliccabile', () => {
 test('Il Word della seduta e\' un file vero', async () => {
   const docxBuf = await generaDocx(pazExport, seduteExport)
   assert.ok(docxBuf.length > 1000 && docxBuf[0] === 0x50 && docxBuf[1] === 0x4b) // magic 'PK' (zip)
+})
+
+// Le note in fondo restano come le ha scritte chi le ha scritte: a capo e spazi
+// non si perdono ne' nel PDF ne' nel Word.
+// Lo stesso vale per la spiegazione dell'esercizio e per la nota sulla sua riga,
+// anche nella scheda illustrata: a capo, righe vuote e rientri restano.
+test('Spiegazione e nota dell\'esercizio mantengono gli a capo, nel PDF e nel Word', async () => {
+  const es = {
+    ...seduteExport[0].sezioni[0].esercizi[0],
+    nota: 'Prima\nSeconda',
+    nota_tecnica: 'Passo 1\r\n\r\n   - rientrato\nPasso 3',
+    immagine: null,
+    link: null
+  }
+  const sedute = [{ ...seduteExport[0], sezioni: [{ nome: 'A casa', esercizi: [es] }] }]
+  const illustrata = generaHtml(pazExport, sedute, true)
+  assert.ok(illustrata.includes('>Passo 1\n\n   - rientrato\nPasso 3<'), 'la spiegazione arriva com\'e\'')
+  assert.ok(!illustrata.includes('\r'), 'senza ritorni a capo di Windows')
+  assert.match(illustrata, /\.scheda-es \.come \{[^}]*white-space: pre-wrap/)
+  assert.match(illustrata, /\.scheda-es \.nota-es \{[^}]*white-space: pre-wrap/)
+  assert.ok(illustrata.includes('>Prima\nSeconda<'))
+  // anche nella tabella della scheda normale
+  const tabella = generaHtml(pazExport, sedute)
+  assert.ok(tabella.includes('>Prima\nSeconda<'))
+  assert.match(tabella, /table\.tabella-scheda \.nota-es \{[^}]*white-space: pre-wrap/)
+
+  const { default: JSZip } = await import('jszip')
+  const zip = await JSZip.loadAsync(await generaDocx(pazExport, sedute))
+  const xml = await zip.file('word/document.xml')!.async('string')
+  assert.equal(xml.split('<w:br/>').length - 1, 1, 'la nota in tabella ha il suo a capo')
+})
+
+test('Le note della seduta mantengono gli a capo, nel PDF e nel Word', async () => {
+  const sedute = [{ ...seduteExport[0], note: 'Prima riga\n\n   Terza riga rientrata' }]
+  const html = generaHtml(pazExport, sedute)
+  assert.ok(html.includes('Prima riga\n\n   Terza riga rientrata'), 'il testo arriva con gli a capo')
+  assert.match(html, /\.note \{[^}]*white-space: pre-wrap/, 'e la pagina li rispetta')
+
+  const { default: JSZip } = await import('jszip')
+  const zip = await JSZip.loadAsync(await generaDocx(pazExport, sedute))
+  const xml = await zip.file('word/document.xml')!.async('string')
+  assert.equal(xml.split('<w:br/>').length - 1, 2, 'due interruzioni di riga')
+  assert.ok(xml.includes('xml:space="preserve">   Terza riga rientrata'), 'gli spazi restano')
 })

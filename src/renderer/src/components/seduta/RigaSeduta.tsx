@@ -1,6 +1,7 @@
 import { memo } from 'react'
 import { CornerDownLeft, ImageIcon, Video, X } from 'lucide-react'
 import type { UltimaVolta, VarianteEsercizio } from '../../../../shared/types'
+import type { Gambe } from '../../../../shared/dose'
 import type { PropsContenitore, PropsPresa } from '../../riordino'
 import { errMsg, formatData } from '../../lib'
 import { toast, toastErrore } from '../Toast'
@@ -15,6 +16,8 @@ interface Props {
   rir: boolean
   // le varianti che l'esercizio ha in libreria (quasi sempre nessuna)
   varianti: VarianteEsercizio[]
+  // 'scelta' = si puo' segnare monopodalico (null per un esercizio al volo)
+  gambe: Gambe | null
   // cosa aveva fatto l'ultima volta, se c'e' da mostrarlo
   ultima: UltimaVolta | undefined
   dnd: PropsContenitore
@@ -38,6 +41,7 @@ function RigaSeduta({
   cluster,
   rir,
   varianti,
+  gambe,
   ultima,
   dnd,
   presa,
@@ -45,6 +49,7 @@ function RigaSeduta({
   onRicopiata,
   onImmagine
 }: Props): React.JSX.Element {
+  const mono = r.monopodalico === 1
   const cambia = (campo: CampoRiga) => (e: { target: { value: string } }) =>
     invia({ tipo: 'valore', sez, riga: indice, campo, valore: e.target.value })
 
@@ -74,6 +79,19 @@ function RigaSeduta({
             </button>
           )}
         </span>
+        {/* Solo sugli esercizi che in libreria si fanno "a scelta" a una o due
+            gambe (o su una riga gia' segnata): spento e' un bottoncino grigio,
+            acceso si legge "monopodalico", come poi sulla scheda. */}
+        {(gambe === 'scelta' || mono) && (
+          <button
+            className={`btn-monopodalico${mono ? ' acceso' : ''}`}
+            aria-pressed={mono}
+            title={mono ? 'A una gamba: clic per tornare a due' : 'Fallo a una gamba (monopodalico)'}
+            onClick={() => invia({ tipo: 'monopodalico', sez, riga: indice, valore: !mono })}
+          >
+            {mono ? 'monopodalico' : '1 gamba'}
+          </button>
+        )}
         {/* Il menu compare solo sugli esercizi che hanno delle varianti (o su una
             riga che ne ha gia' una, anche se poi e' stata tolta dalla libreria):
             per tutti gli altri la riga e' quella di sempre. Sceglie "normale"
@@ -195,6 +213,7 @@ const uguali = (a: Props, b: Props): boolean =>
   a.cluster === b.cluster &&
   a.rir === b.rir &&
   a.varianti === b.varianti &&
+  a.gambe === b.gambe &&
   a.ultima === b.ultima &&
   a.dnd.draggable === b.dnd.draggable &&
   a.dnd.className === b.dnd.className &&

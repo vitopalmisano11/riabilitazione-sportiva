@@ -25,6 +25,7 @@ import { useRiordino } from '../riordino'
 import {
   campiDaBozza,
   categorieDellaSezione,
+  contaSeduta,
   esitiDaSalvare,
   haQualcosa,
   inputSeduta,
@@ -39,6 +40,8 @@ import { useBozza } from './seduta/useBozza'
 import TestataSeduta from './seduta/TestataSeduta'
 import SezioneSeduta from './seduta/SezioneSeduta'
 import ChiusuraSeduta from './seduta/ChiusuraSeduta'
+import RigaDose from './seduta/RigaDose'
+import type { DoseFase, DoseSettimana } from '../../../shared/dose'
 
 // La costruzione di una seduta. Qui stanno il caricamento, il salvataggio e
 // l'uscita; i pezzi stanno in seduta/: le forme dei dati e le loro
@@ -324,6 +327,26 @@ export default function SedutaBuilder({
 
   const totaleEsercizi = useMemo(() => contaEsercizi(sezioni), [sezioni])
 
+  // La dose: quella della fase, quella delle altre sedute della settimana, e
+  // il conto di questa. Al campo non si conta niente.
+  const [dosi, setDosi] = useState<DoseFase[]>([])
+  const [settimana, setSettimana] = useState<DoseSettimana>({ frequenza: null, altreSedute: 0, altre: {} })
+  useEffect(() => {
+    if (!pronto || campi.faseId == null || alCampo) {
+      setDosi([])
+      return
+    }
+    window.api.dose.fase(campi.faseId).then(setDosi, (e) => toastErrore(errMsg(e)))
+  }, [pronto, campi.faseId, alCampo])
+  useEffect(() => {
+    if (!pronto || !/^\d{4}-\d{2}-\d{2}$/.test(campi.data)) return
+    window.api.dose.settimana(paziente.id, campi.data, sedutaId).then(setSettimana, (e) => toastErrore(errMsg(e)))
+  }, [pronto, paziente.id, campi.data, sedutaId])
+  const contoDose = useMemo(
+    () => (dosi.length === 0 ? {} : contaSeduta(sezioni, contesto.libreria, contesto.categorie)),
+    [dosi, sezioni, contesto.libreria, contesto.categorie]
+  )
+
   // Gli esercizi gia' in seduta, per non riproporli, e le progressioni che ne
   // hanno almeno uno: per quelle si chiede com'e' andata (ma solo se la seduta
   // e' di oggi o passata).
@@ -555,6 +578,17 @@ export default function SedutaBuilder({
         <Dumbbell size={18} />
         Esercizi
       </div>
+
+      {dosi.length > 0 && (
+        <RigaDose
+          dosi={dosi}
+          conto={contoDose}
+          settimana={settimana}
+          categorie={contesto.categorie}
+          pazienteId={paziente.id}
+          onFrequenza={(frequenza) => setSettimana((s) => ({ ...s, frequenza }))}
+        />
+      )}
 
       {campi.faseId != null && obiettivi.length > 0 && (
         <section className="card obiettivi-info">

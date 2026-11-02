@@ -1,0 +1,233 @@
+/* La guida (Impostazioni → Guida): a sinistra gli argomenti con il campo per
+   cercare, a destra il testo. Su finestra stretta l'elenco passa sopra. */
+
+/* Un riquadro alto quasi quanto la finestra, con l'elenco e il testo che
+   scorrono ognuno per conto suo. La rotella scorre la pagina finche' il
+   cursore sta fuori: dentro al riquadro scorre solo la colonna sotto il
+   cursore, e arrivata in fondo passa di nuovo la mano alla pagina. */
+.guida {
+  display: grid;
+  grid-template-columns: 270px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  gap: calc(var(--spazio) * 1.5);
+  /* titolo, linguette e barra della finestra stanno sopra: il riquadro finisce
+     dove finisce la finestra */
+  height: calc(100vh - 300px);
+  min-height: 420px;
+}
+
+.guida-elenco,
+.guida-testo {
+  min-height: 0;
+  overflow-y: auto;
+  /* un po' d'aria fra il testo e la barra di scorrimento */
+  padding-right: 8px;
+}
+
+.guida-elenco {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.guida-ricerca {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  background: var(--campo);
+  border: 1px solid var(--border-forte);
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+}
+
+.guida-ricerca:focus-within {
+  border-color: var(--accent);
+}
+
+.guida-ricerca input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 7px 0;
+}
+
+.guida-svuota {
+  display: inline-flex;
+  padding: 2px;
+  border: 0;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.guida-voci {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.guida-voce {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 10px;
+  text-align: left;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.guida-voce:hover {
+  background: var(--accent-soft);
+}
+
+.guida-voce.attiva {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.guida-voce-titolo {
+  font-weight: 600;
+}
+
+.guida-voce-breve {
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--text-dim);
+}
+
+.guida-nessuno {
+  margin: 4px 2px;
+  color: var(--text-dim);
+}
+
+/* Testo da leggere, non un modulo da compilare: righe larghe il giusto e
+   spazio fra i paragrafi. */
+.guida-testo {
+  max-width: 720px;
+}
+
+.guida-testo h3 {
+  margin: 0 0 4px;
+}
+
+.guida-testo p,
+.guida-testo li {
+  margin: 6px 0;
+  line-height: 1.55;
+}
+
+.guida-testo ul,
+.guida-testo ol {
+  margin: 4px 0 10px;
+  padding-left: 22px;
+}
+
+.guida-testo li {
+  margin-bottom: 6px;
+}
+
+.guida-blocco .sotto-titolo {
+  margin-top: 18px;
+}
+
+/* I passi: un cerchio col numero, uno dopo l'altro, cosi' si vede da dove si
+   comincia e dove si e' arrivati. */
+.guida-testo ol.guida-passi {
+  list-style: none;
+  counter-reset: passo;
+  padding-left: 0;
+  margin: 8px 0 12px;
+}
+
+.guida-testo ol.guida-passi > li {
+  counter-increment: passo;
+  position: relative;
+  padding-left: 38px;
+  margin: 0 0 10px;
+  min-height: 26px;
+}
+
+.guida-testo ol.guida-passi > li::before {
+  content: counter(passo);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* Una sequenza di clic: tasti uniti da frecce. Se non ci sta in una riga, va a
+   capo fra un tasto e l'altro. */
+.guida-percorso {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px 4px;
+  vertical-align: middle;
+  margin: 1px 0;
+}
+
+.guida-tasto {
+  display: inline-block;
+  padding: 1px 9px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-weight: 600;
+  font-size: 0.94em;
+  line-height: 1.5;
+}
+
+.guida-freccia {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.guida-legenda {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--text-dim);
+}
+
+/* La parola cercata, dove compare nel testo. */
+.guida-testo mark {
+  background: var(--accent-soft);
+  color: inherit;
+  border-radius: 2px;
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+
+/* Su finestra stretta l'elenco passa sopra e scorre solo la pagina. */
+@media (max-width: 820px) {
+  .guida {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+    height: auto;
+    min-height: 0;
+  }
+
+  .guida-elenco,
+  .guida-testo {
+    overflow-y: visible;
+    padding-right: 0;
+  }
+}

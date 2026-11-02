@@ -12,6 +12,7 @@ import type {
 import CrudList from '../components/CrudList'
 import { daPrecarico, ricorda } from '../precarico'
 import ProgressioniFaseTab from '../components/ProgressioniFase'
+import DoseFaseTab from '../components/DoseFase'
 import Aiuto from '../components/Aiuto'
 import { useRiordinoSalvato } from '../riordino'
 import { toastErrore } from '../components/Toast'
@@ -19,12 +20,13 @@ import { chiedi } from '../components/Conferma'
 import Modale from '../components/Modale'
 import { errMsg } from '../lib'
 
-type Tab = 'struttura' | 'obiettivi' | 'progressioni' | 'test'
+type Tab = 'struttura' | 'obiettivi' | 'progressioni' | 'dose' | 'test'
 
 const TABS: { key: Tab; label: string }[] = [
   { key: 'struttura', label: 'Struttura della seduta' },
   { key: 'obiettivi', label: 'Obiettivi' },
   { key: 'progressioni', label: 'Progressioni' },
+  { key: 'dose', label: 'Dose' },
   { key: 'test', label: 'Test di avanzamento' }
 ]
 
@@ -109,6 +111,7 @@ export default function PatologiePage(): React.JSX.Element {
           {tab === 'struttura' && <StrutturaTab key={faseSel.id} faseId={faseSel.id} />}
           {tab === 'obiettivi' && <ObiettiviTab key={faseSel.id} faseId={faseSel.id} />}
           {tab === 'progressioni' && <ProgressioniFaseTab key={faseSel.id} faseId={faseSel.id} />}
+          {tab === 'dose' && <DoseFaseTab key={faseSel.id} faseId={faseSel.id} />}
           {tab === 'test' && <TestTab key={faseSel.id} faseId={faseSel.id} />}
         </section>
       )}

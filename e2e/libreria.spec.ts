@@ -87,7 +87,7 @@ test('libreria: schede delle categorie, esercizi dentro, ricerca da fuori', asyn
     await pillola('Ischiocrurali').click()
     await pagina.getByRole('button', { name: 'Nuovo esercizio' }).click()
     await pagina.getByLabel('Nome *').fill('Ponte monopodalico')
-    await pagina.getByRole('button', { name: 'Salva', exact: true }).click()
+    await pagina.getByRole('button', { name: 'Salva', exact: true }).first().click()
     await expect(pagina.locator('.tabella-esercizi tbody tr')).toHaveCount(2)
     await expect(pagina.locator('.tabella-esercizi').getByText('Ponte monopodalico')).toBeVisible()
 
@@ -111,6 +111,16 @@ test('libreria: schede delle categorie, esercizi dentro, ricerca da fuori', asyn
     await pagina.getByRole('button', { name: 'Progressioni', exact: true }).click()
     await pagina.locator('.config-tabs').getByRole('button', { name: 'Esercizi', exact: true }).click()
     await expect.poll(nomi).toEqual(['Mobilità', 'Rinforzo'])
+
+    // «Nuovo esercizio» sta anche accanto a «Nuova categoria», senza aprire prima
+    // una categoria: la finestra si apre con la categoria ancora da scegliere
+    await expect(pagina.getByRole('button', { name: 'Nuova categoria' })).toBeVisible()
+    await pagina.getByRole('button', { name: 'Nuovo esercizio' }).click()
+    await expect(pagina.getByRole('heading', { name: 'Nuovo esercizio' })).toBeVisible()
+    await expect(pagina.getByLabel('Nome *')).toHaveValue('')
+    await pagina.screenshot({ path: join(FOTO, '25-libreria-nuovo-esercizio-da-categorie.png'), fullPage: true })
+    await pagina.getByRole('button', { name: 'Annulla' }).click()
+    await expect(pagina.getByRole('heading', { name: 'Nuovo esercizio' })).toHaveCount(0)
 
     expect(prova.errori, 'errori nella console').toEqual([])
   } finally {

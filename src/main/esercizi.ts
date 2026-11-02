@@ -7,6 +7,12 @@ import { eliminaConCestino, nomeDi } from './cestino'
 import { validaImmagine, validaLink } from './validazione'
 import { progressioniConEsercizio, progressioniConVariante } from './progressioni'
 import type { EsercizioInput, VarianteEsercizio, VarianteInput } from '../shared/types'
+import { tipoValido, type Gambe, type TipoLavoro } from '../shared/dose'
+
+const GAMBE: Gambe[] = ['due', 'scelta', 'una']
+const validaGambe = (g: Gambe | undefined): void => {
+  if (g !== undefined && !GAMBE.includes(g)) throw new Error('Scelta delle gambe non valida: riprova.')
+}
 
 // Sta nel database (quindi cifrata e inclusa nel backup della cartella) come
 // data URL. Il peso massimo tiene il file sotto controllo.
@@ -41,7 +47,7 @@ export function elencoEsercizi(includiArchiviati: boolean): unknown[] {
       `SELECT e.id, e.nome, e.categoria_id, e.serie_default, e.cluster_default,
               e.ripetizioni_default, e.rir_default, e.carico_default, e.unita_carico,
               e.recupero_cluster_default,
-              e.recupero_default, e.nota_tecnica, e.link, e.archiviato,
+              e.recupero_default, e.nota_tecnica, e.link, e.gambe, e.archiviato,
               c.nome AS categoria_nome, c.dosaggio_cluster, c.dosaggio_rir,
               (SELECT COUNT(*) FROM seduta_esercizi se WHERE se.esercizio_id = e.id) AS usi,
               (e.immagine IS NOT NULL) AS ha_immagine
@@ -76,6 +82,13 @@ export function impostaCluster(id: number, attivo: boolean): void {
 
 export function impostaRir(id: number, attivo: boolean): void {
   getDb().prepare('UPDATE categorie SET dosaggio_rir = ? WHERE id = ?').run(attivo ? 1 : 0, id)
+}
+
+// Come si contano gli esercizi della categoria nella dose della fase (null =
+// fuori dal conto, o come la categoria che la contiene).
+export function impostaContaCome(id: number, tipo: TipoLavoro | null): void {
+  if (tipo != null && !tipoValido(tipo)) throw new Error('Tipo di lavoro non valido: riprova.')
+  getDb().prepare('UPDATE categorie SET conta_come = ? WHERE id = ?').run(tipo, id)
 }
 
 export function impostaPadre(id: number, padreId: number | null): void {
@@ -140,6 +153,7 @@ function salvaVarianti(esercizioId: number, varianti: VarianteInput[]): void {
 
 export function creaEsercizio(data: EsercizioInput): number {
   validaLink(data.link, 'Il link del video')
+  validaGambe(data.gambe)
   const { varianti, ...campi } = data
   const db = getDb()
   return db.transaction(() => {
@@ -149,13 +163,14 @@ export function creaEsercizio(data: EsercizioInput): number {
           `INSERT INTO esercizi (nome, categoria_id, serie_default, cluster_default,
                                  ripetizioni_default, rir_default, carico_default, unita_carico,
                                  recupero_cluster_default,
-                                 recupero_default, nota_tecnica, link)
+                                 recupero_default, nota_tecnica, link, gambe)
            VALUES (@nome, @categoria_id, @serie_default, @cluster_default,
                    @ripetizioni_default, @rir_default, @carico_default, @unita_carico,
                    @recupero_cluster_default,
-                   @recupero_default, @nota_tecnica, @link)`
+                   @recupero_default, @nota_tecnica, @link, @gambe)`
         )
-        .run({ ...campi, nome: campi.nome.trim(), link: campi.link?.trim() || null }).lastInsertRowid
+        .run({ ...campi, nome: campi.nome.trim(), link: campi.link?.trim() || null, gambe: campi.gambe ?? 'due' })
+        .lastInsertRowid
     )
     if (varianti) salvaVarianti(id, varianti)
     return id
@@ -164,6 +179,7 @@ export function creaEsercizio(data: EsercizioInput): number {
 
 export function aggiornaEsercizio(id: number, data: EsercizioInput): void {
   validaLink(data.link, 'Il link del video')
+  validaGambe(data.gambe)
   const { varianti, ...campi } = data
   const db = getDb()
   db.transaction(() => {
@@ -175,9 +191,9 @@ export function aggiornaEsercizio(id: number, data: EsercizioInput): void {
        unita_carico = @unita_carico,
        recupero_cluster_default = @recupero_cluster_default,
        recupero_default = @recupero_default,
-       nota_tecnica = @nota_tecnica, link = @link
+       nota_tecnica = @nota_tecnica, link = @link, gambe = COALESCE(@gambe, gambe)
        WHERE id = @id`
-    ).run({ ...campi, nome: campi.nome.trim(), link: campi.link?.trim() || null, id })
+    ).run({ ...campi, nome: campi.nome.trim(), link: campi.link?.trim() || null, gambe: campi.gambe ?? null, id })
     if (varianti) salvaVarianti(id, varianti)
   })()
 }

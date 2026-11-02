@@ -33,8 +33,8 @@ function scriviFigli(sedutaId: number | bigint, input: SedutaInput): void {
   const insEs = db.prepare(
     `INSERT INTO seduta_esercizi (seduta_id, esercizio_id, nome_libero, serie, cluster,
                                   ripetizioni, rir, carico, recupero_cluster, recupero, nota,
-                                  variante, ordine, seduta_sezione_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+                                  variante, monopodalico, ordine, seduta_sezione_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   )
   // Come sono andati gli esercizi delle progressioni: solo avanza e indietro,
   // "continua" e' non scrivere niente.
@@ -56,6 +56,7 @@ function scriviFigli(sedutaId: number | bigint, input: SedutaInput): void {
       e.recupero,
       e.nota,
       e.variante?.trim() || null,
+      e.monopodalico === 1 ? 1 : 0,
       i,
       e.sezioneIndex != null ? (sezioneIds[e.sezioneIndex] ?? null) : null
     )
@@ -132,7 +133,7 @@ export function leggiSeduta(id: number): SedutaDettaglio {
               e.unita_carico,
               (e.immagine IS NOT NULL) AS ha_immagine,
               se.serie, se.cluster, se.ripetizioni, se.rir, se.carico, se.recupero_cluster,
-              se.recupero, se.nota, se.variante, se.seduta_sezione_id
+              se.recupero, se.nota, se.variante, se.monopodalico, se.seduta_sezione_id
        FROM seduta_esercizi se
        LEFT JOIN esercizi e ON e.id = se.esercizio_id
        LEFT JOIN categorie c ON c.id = e.categoria_id
@@ -246,7 +247,7 @@ export function programmaSeduta(origineId: number, date: string[], ora: string |
   const esercizi = db
     .prepare(
       `SELECT esercizio_id, nome_libero, serie, cluster, ripetizioni, rir, carico,
-              recupero_cluster, recupero, nota, variante, seduta_sezione_id
+              recupero_cluster, recupero, nota, variante, monopodalico, seduta_sezione_id
        FROM seduta_esercizi WHERE seduta_id = ? ORDER BY ordine, id`
     )
     .all(origineId) as {
@@ -261,6 +262,7 @@ export function programmaSeduta(origineId: number, date: string[], ora: string |
     recupero: string | null
     nota: string | null
     variante: string | null
+    monopodalico: 0 | 1
     seduta_sezione_id: number | null
   }[]
 
@@ -305,6 +307,7 @@ export function programmaSeduta(origineId: number, date: string[], ora: string |
           recupero: e.recupero,
           nota: e.nota,
           variante: e.variante,
+          monopodalico: e.monopodalico,
           sezioneIndex:
             e.seduta_sezione_id == null
               ? null

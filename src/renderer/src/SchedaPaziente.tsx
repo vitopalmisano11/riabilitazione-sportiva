@@ -3,6 +3,7 @@ import { RotateCw } from 'lucide-react'
 import type { SchedaPaziente as Dati } from '../../shared/types'
 import { errMsg, formatData } from './lib'
 import { intensitaTesto, recuperoTesto, volumeTesto } from '../../shared/dosaggio'
+import { nomeConMonopodalico } from '../../shared/varianti'
 import BarraFinestra from './components/BarraFinestra'
 
 // Quello che vede il paziente mentre si allena: solo il suo programma. Ne
@@ -83,7 +84,7 @@ export default function SchedaPaziente({ sedutaId }: { sedutaId: number }): Reac
                 {sez.esercizi.map((e, j) => (
                   <tr key={j}>
                     <td className="col-esercizio">
-                      <span className="nome">{e.nome}</span>
+                      <span className="nome">{nomeConMonopodalico(e.nome, e.monopodalico)}</span>
                       {e.variante && <span className="variante">{e.variante}</span>}
                       {/* La nota sta sotto al nome, non in una riga sua: e'
                           quella l'unica colonna che puo' allungarsi. */}

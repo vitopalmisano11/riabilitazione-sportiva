@@ -7,6 +7,7 @@ import {
   bozzaVuota,
   campiDaBozza,
   categorieDellaSezione,
+  contaSeduta,
   daProporre,
   haQualcosa,
   esitiDaSalvare,
@@ -451,4 +452,29 @@ test("Progressioni: si suggeriscono solo nelle sezioni che propongono la categor
   assert.equal(sezioneAmmetteStep(99, mob, coperte), true)
   // un esercizio che non e' in libreria (archiviato) non si puo' escludere
   assert.equal(sezioneAmmetteStep(undefined, mob, coperte), true)
+})
+
+// Il segno monopodalico: si accende e si spegne dalla riga, Ctrl+Z lo annulla,
+// si salva con la seduta e fa contare doppio i contatti di pliometria.
+test('Monopodalico: il segno sulla riga, Ctrl+Z, il salvataggio e il conto della dose', () => {
+  const cmj = { ...esercizio(4, 'CMJ', 30, 'Pliometria'), gambe: 'scelta' } as EsercizioConCategoria
+  const plio = { ...categoria(30, 'Pliometria'), conta_come: 'plio_est' } as Categoria
+  let s = tutte([{ tipo: 'aggiungi', sez: 0, esercizio: cmj }])
+  assert.equal(s.sezioni[0].righe[0].monopodalico, 0, 'dalla libreria nasce a due gambe')
+  assert.deepEqual(contaSeduta(s.sezioni, [cmj], [plio]), { plio_est: 30 })
+  s = riduciSezioni(s, { tipo: 'monopodalico', sez: 0, riga: 0, valore: true })
+  assert.equal(s.sezioni[0].righe[0].monopodalico, 1)
+  assert.equal(s.storia.at(-1)!.cosa, 'CMJ a una gamba')
+  assert.deepEqual(contaSeduta(s.sezioni, [cmj], [plio]), { plio_est: 60 })
+  const campi = { data: '2026-11-02', ora: '', faseId: null, faseNome: null, focus: '', dolore: '', sforzo: '',
+    misure: {}, note: '', riferitoAndamento: null, riferito: '', tecnicaIds: [], trattamento: '', esiti: {} }
+  assert.equal(inputSeduta(1, campi, s.sezioni, []).esercizi[0].monopodalico, 1)
+  s = riduciSezioni(s, { tipo: 'annulla' })
+  assert.equal(s.sezioni[0].righe[0].monopodalico, 0)
+  // "Ricopia" rimette anche il segno dell'ultima volta, e la riga lo dice
+  const ultima = { esercizio_id: 4, data: '2026-10-30', serie: '2', cluster: null, ripetizioni: '15', rir: null,
+    carico: null, recupero_cluster: null, recupero: null, variante: null, monopodalico: 1 } as UltimaVolta
+  assert.ok(testoUltima(s.sezioni[0].righe[0], ultima).startsWith('monopodalico · 2 × 15'))
+  s = riduciSezioni(s, { tipo: 'ricopia', sez: 0, riga: 0, ultima })
+  assert.equal(s.sezioni[0].righe[0].monopodalico, 1)
 })
