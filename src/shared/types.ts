@@ -54,6 +54,9 @@ export interface Categoria {
 export interface Esercizio {
   id: number
   nome: string
+  // Un secondo nome (di solito in inglese) per ritrovare l'esercizio cercando.
+  // Non si scrive mai su sedute, schede o documenti.
+  nome_alternativo: string | null
   categoria_id: number
   serie_default: string | null
   // A cluster: quanti cluster per serie, e le ripetizioni sono per cluster.
@@ -99,6 +102,8 @@ export type EsercizioConCategoria = Esercizio & {
 
 export interface EsercizioInput {
   nome: string
+  // Se manca resta com'e'; null (o vuoto) lo toglie.
+  nome_alternativo?: string | null
   categoria_id: number
   serie_default: string | null
   cluster_default: string | null

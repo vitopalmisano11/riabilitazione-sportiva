@@ -37,6 +37,7 @@ import {
 interface FormState {
   id: number | null
   nome: string
+  nome_alternativo: string
   categoria_id: number | ''
   serie_default: string
   cluster_default: string
@@ -61,6 +62,7 @@ interface FormState {
 const FORM_VUOTO: FormState = {
   id: null,
   nome: '',
+  nome_alternativo: '',
   categoria_id: '',
   serie_default: '',
   cluster_default: '',
@@ -160,6 +162,7 @@ export default function EserciziPage(): React.JSX.Element {
     }
     const data: EsercizioInput = {
       nome: form.nome,
+      nome_alternativo: form.nome_alternativo.trim() || null,
       categoria_id: form.categoria_id,
       serie_default: form.serie_default.trim() || null,
       // Fuori da una categoria a cluster i due campi non si vedono nemmeno:
@@ -250,6 +253,7 @@ export default function EserciziPage(): React.JSX.Element {
       setForm({
         id: e.id,
         nome: e.nome,
+        nome_alternativo: e.nome_alternativo ?? '',
         categoria_id: e.categoria_id,
         serie_default: e.serie_default ?? '',
         cluster_default: e.cluster_default ?? '',
@@ -384,8 +388,12 @@ export default function EserciziPage(): React.JSX.Element {
                   {/* Nome e icone in due colonne: in linea, con un nome lungo che
                       va a capo, le icone finivano sotto la seconda riga. */}
                   <div className="cella-nome">
-                    <span className="nome-esercizio" title={e.nome}>
+                    <span
+                      className="nome-esercizio"
+                      title={e.nome_alternativo ? `${e.nome} (${e.nome_alternativo})` : e.nome}
+                    >
                       {e.nome}
+                      {e.nome_alternativo && <span className="hint"> · {e.nome_alternativo}</span>}
                     </span>
                     <span className="icone-nome">
                   {e.link && (
@@ -527,6 +535,13 @@ export default function EserciziPage(): React.JSX.Element {
                 onChange={(e) => setForm({ ...form, nome: e.target.value })}
               />
             </label>
+            <label>
+              Nome alternativo (opzionale)
+              <input
+                value={form.nome_alternativo}
+                placeholder="Per esempio il nome in inglese"
+                onChange={(e) => setForm({ ...form, nome_alternativo: e.target.value })}
+              />            </label>
             <label>
               Categoria *
               {/* Si scrive invece di scorrere: con trenta categorie la tendina

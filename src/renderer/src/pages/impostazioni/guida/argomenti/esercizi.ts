@@ -14,6 +14,9 @@ export const esercizi: ArgomentoGuida = {
     'cluster',
     'rir',
     'nuovo esercizio',
+    'nome alternativo',
+    'inglese',
+    'cercare',
     'valori di default'
   ],
   blocchi: [
@@ -32,6 +35,7 @@ export const esercizi: ArgomentoGuida = {
             'Scegli la categoria (la piastrella) e, se serve, il distretto. I distretti sono le sotto-categorie, per esempio Quadricipite. Puoi anche saltare questo passo: **Nuovo esercizio** c’è anche nella prima pagina, accanto a **Nuova categoria**, e la categoria la scegli poi nella finestra.',
             'Premi **Nuovo esercizio**.',
             'Scrivi il **Nome** e scegli la **Categoria**. Il distretto si sceglie nello stesso campo: l’elenco ha prima le categorie e poi i loro distretti.',
+            'Se vuoi, scrivi un **Nome alternativo** (di solito il nome in inglese): serve solo a ritrovare l’esercizio quando lo cerchi, in libreria, nelle sedute e nelle progressioni. Sulla scheda e nei documenti si legge sempre e solo il **Nome**.',
             'Nel campo **Gambe** scegli una delle tre voci: **Due**, **A scelta in seduta** (squat, CMJ, affondi…) oppure **Sempre una** (single leg hop…).',
             'Scrivi i valori di partenza: **Serie**, **Ripetizioni**, **Carico** (con la sua unità) e **Recupero**. **Cluster per serie** e **RIR** compaiono solo se la categoria li prevede.',
             'Premi **Salva**. Cliccare fuori dalla finestra salva lo stesso.'

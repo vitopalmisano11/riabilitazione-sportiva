@@ -7,7 +7,7 @@ import type {
   ProgressioneGruppo,
   StepProgressione
 } from '../../../shared/types'
-import { nomeConVariante } from '../../../shared/varianti'
+import { esercizioCorrisponde, nomeConVariante } from '../../../shared/varianti'
 import { errMsg } from '../lib'
 import { useRiordinoSalvato } from '../riordino'
 import { toastErrore } from './Toast'
@@ -330,7 +330,7 @@ function EditorProgressione({
   }
 
   const q = ricerca.trim().toLowerCase()
-  const trovati = libreria.filter((e) => (q === '' ? false : e.nome.toLowerCase().includes(q))).slice(0, 10)
+  const trovati = libreria.filter((e) => (q === '' ? false : esercizioCorrisponde(e, q))).slice(0, 10)
 
   return (
     <div className="editor-progressione">

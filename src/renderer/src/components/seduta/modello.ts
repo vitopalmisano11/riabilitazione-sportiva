@@ -19,7 +19,7 @@ import type {
   UltimaVolta
 } from '../../../../shared/types'
 import { caricoTesto, recuperoTesto, rirTesto, volumeTesto } from '../../../../shared/dosaggio'
-import { nomeConVariante } from '../../../../shared/varianti'
+import { esercizioCorrisponde, nomeConVariante } from '../../../../shared/varianti'
 import { contaRighe, type RigaConto } from '../../../../shared/dose'
 import { sposta } from '../../sposta'
 
@@ -371,7 +371,7 @@ export function daProporre(
       .filter(
         (e) =>
           !presenti.has(e.id) &&
-          (e.nome.toLowerCase().includes(ricerca) || nomeCategoria(e.categoria_id).toLowerCase().includes(ricerca))
+          (esercizioCorrisponde(e, ricerca) || nomeCategoria(e.categoria_id).toLowerCase().includes(ricerca))
       )
       .slice(0, 12)
   }

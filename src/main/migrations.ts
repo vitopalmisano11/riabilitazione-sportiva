@@ -1748,6 +1748,13 @@ export const MIGRATIONS: string[] = [
     massimo INTEGER,
     PRIMARY KEY (fase_id, chiave)
   );
+  `,
+
+  // 73 - il nome alternativo di un esercizio (di solito in inglese). Serve solo a
+  //      ritrovarlo cercando: non si copia sulle sedute e non entra in nessun
+  //      documento.
+  `
+  ALTER TABLE esercizi ADD COLUMN nome_alternativo TEXT;
   `
 ]
 

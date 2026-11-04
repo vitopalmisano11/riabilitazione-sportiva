@@ -9,6 +9,7 @@ import type {
 } from '../../../../shared/types'
 import type { Riordino } from '../../riordino'
 import { volumeTesto } from '../../../../shared/dosaggio'
+import { esercizioCorrisponde } from '../../../../shared/varianti'
 import { errMsg } from '../../lib'
 import { chiedi } from '../Conferma'
 import { toast, toastErrore } from '../Toast'
@@ -220,7 +221,11 @@ export default function SezioneSeduta({
           {/* L'esercizio "al volo": una variante scritta li' per li', che non
               e' in libreria e non ci finisce nemmeno lei. Si propone se quello
               che hai scritto non e' gia' il nome di un esercizio della libreria. */}
-          {testoRicerca !== '' && !libreria.some((e) => e.nome.toLowerCase() === testoRicerca.toLowerCase()) && (
+          {testoRicerca !== '' && !libreria.some(
+            (e) =>
+              e.nome.toLowerCase() === testoRicerca.toLowerCase() ||
+              (e.nome_alternativo ?? '').toLowerCase() === testoRicerca.toLowerCase()
+          ) && (
             <button
               className="btn-al-volo"
               onClick={() => {

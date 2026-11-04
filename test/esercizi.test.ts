@@ -21,6 +21,7 @@ import {
 } from '../src/main/esercizi'
 import { elencoCestino, ripristina } from '../src/main/cestino'
 import type { EsercizioInput } from '../src/shared/types'
+import { esercizioCorrisponde } from '../src/shared/varianti'
 
 // Un archivio cifrato tutto suo, in una cartella temporanea.
 archivioDiProva()
@@ -104,6 +105,25 @@ test('Un esercizio si crea, si legge in elenco, si modifica e si archivia', () =
   // un link non web non si accetta
   assert.throws(() => creaEsercizio(esercizio(cat, 'Cattivo', { link: 'javascript:alert(1)' })), /http/)
   assert.throws(() => aggiornaEsercizio(id, esercizio(cat, 'Cattivo', { link: 'file:///C:/x' })), /http/)
+})
+
+test('Il nome alternativo: si salva, si trova cercando, resta se non lo si passa e si toglie', () => {
+  const cat = creaCategoria('Esercizi nome alternativo')
+  const id = creaEsercizio(esercizio(cat, 'Stacco rumeno', { nome_alternativo: '  Romanian deadlift ' }))
+  type Riga = { id: number; nome: string; nome_alternativo: string | null }
+  const riga = (): Riga => (elencoEsercizi(false) as Riga[]).find((e) => e.id === id)!
+  assert.equal(riga().nome_alternativo, 'Romanian deadlift')
+  assert.equal(esercizioCorrisponde(riga(), 'romanian'), true)
+  assert.equal(esercizioCorrisponde(riga(), 'rumeno'), true)
+  assert.equal(esercizioCorrisponde(riga(), 'squat'), false)
+
+  // chi non lo manda (un chiamante che non lo conosce) non lo cancella
+  aggiornaEsercizio(id, esercizio(cat, 'Stacco rumeno', { serie_default: '4' }))
+  assert.equal(riga().nome_alternativo, 'Romanian deadlift')
+  // vuoto o null lo toglie
+  aggiornaEsercizio(id, esercizio(cat, 'Stacco rumeno', { nome_alternativo: '   ' }))
+  assert.equal(riga().nome_alternativo, null)
+  assert.equal(esercizioCorrisponde(riga(), 'romanian'), false)
 })
 
 test('Un esercizio usato in una seduta non si elimina; uno mai usato va nel cestino', () => {

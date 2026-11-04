@@ -64,6 +64,15 @@ supera con *Ulteriori informazioni → Esegui comunque*.
 Le versioni vere dell'app sono quelle di `package.json` e dei tag `vX.Y.Z`: le sezioni «giro di
 feedback» qui sopra sono precedenti e usavano una numerazione propria.
 
+### v0.5.18
+
+**Prima di tutto:** al primo accesso dopo l'aggiornamento il programma aggiunge una colonna al database
+(migrazione 73): non tocca i dati, ma non si può annullare, quindi prima fa da solo una copia dell'archivio.
+La 0.5.17 non è mai uscita: questa versione porta anche le sue novità (dose per fase, sedute a settimana, Guida).
+
+- Esercizi: nuovo campo «Nome alternativo» (di solito il nome in inglese). Serve solo a ritrovare l'esercizio
+  cercando, in libreria, in seduta e nelle progressioni: non compare mai nella scheda né nei documenti
+
 ### v0.5.17
 
 **Prima di tutto:** al primo accesso dopo l'aggiornamento il programma aggiunge delle tabelle al database

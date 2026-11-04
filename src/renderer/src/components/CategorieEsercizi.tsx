@@ -10,6 +10,7 @@ import { errMsg } from '../lib'
 import { useRiordinoSalvato } from '../riordino'
 import { daPrecarico, ricorda } from '../precarico'
 import { TIPI_LAVORO, type TipoLavoro } from '../../../shared/dose'
+import { esercizioCorrisponde } from '../../../shared/varianti'
 
 // La prima pagina della libreria: le categorie degli esercizi.
 //
@@ -114,7 +115,7 @@ export default function CategorieEsercizi({
 
   const q = ricerca.trim().toLowerCase()
   const dellaRicerca = (e: EsercizioConCategoria): boolean =>
-    q === '' || e.nome.toLowerCase().includes(q)
+    q === '' || esercizioCorrisponde(e, q)
   // Una categoria e i suoi distretti: gli esercizi stanno nell'uno o negli altri.
   const idDentro = (id: number): number[] => [id, ...figliDi(id).map((f) => f.id)]
   const trovatiEsercizi = q === '' ? [] : esercizi.filter(dellaRicerca)

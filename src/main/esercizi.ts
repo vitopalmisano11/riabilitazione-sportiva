@@ -44,7 +44,7 @@ export function elencoEsercizi(includiArchiviati: boolean): unknown[] {
   }
   const esercizi = db
     .prepare(
-      `SELECT e.id, e.nome, e.categoria_id, e.serie_default, e.cluster_default,
+      `SELECT e.id, e.nome, e.nome_alternativo, e.categoria_id, e.serie_default, e.cluster_default,
               e.ripetizioni_default, e.rir_default, e.carico_default, e.unita_carico,
               e.recupero_cluster_default,
               e.recupero_default, e.nota_tecnica, e.link, e.gambe, e.archiviato,
@@ -160,16 +160,22 @@ export function creaEsercizio(data: EsercizioInput): number {
     const id = Number(
       db
         .prepare(
-          `INSERT INTO esercizi (nome, categoria_id, serie_default, cluster_default,
+          `INSERT INTO esercizi (nome, nome_alternativo, categoria_id, serie_default, cluster_default,
                                  ripetizioni_default, rir_default, carico_default, unita_carico,
                                  recupero_cluster_default,
                                  recupero_default, nota_tecnica, link, gambe)
-           VALUES (@nome, @categoria_id, @serie_default, @cluster_default,
+           VALUES (@nome, @nome_alternativo, @categoria_id, @serie_default, @cluster_default,
                    @ripetizioni_default, @rir_default, @carico_default, @unita_carico,
                    @recupero_cluster_default,
                    @recupero_default, @nota_tecnica, @link, @gambe)`
         )
-        .run({ ...campi, nome: campi.nome.trim(), link: campi.link?.trim() || null, gambe: campi.gambe ?? 'due' })
+        .run({
+          ...campi,
+          nome: campi.nome.trim(),
+          nome_alternativo: campi.nome_alternativo?.trim() || null,
+          link: campi.link?.trim() || null,
+          gambe: campi.gambe ?? 'due'
+        })
         .lastInsertRowid
     )
     if (varianti) salvaVarianti(id, varianti)
@@ -184,7 +190,9 @@ export function aggiornaEsercizio(id: number, data: EsercizioInput): void {
   const db = getDb()
   db.transaction(() => {
     db.prepare(
-      `UPDATE esercizi SET nome = @nome, categoria_id = @categoria_id,
+      `UPDATE esercizi SET nome = @nome,
+       nome_alternativo = CASE WHEN @cambia_alternativo = 1 THEN @nome_alternativo ELSE nome_alternativo END,
+       categoria_id = @categoria_id,
        serie_default = @serie_default, cluster_default = @cluster_default,
        ripetizioni_default = @ripetizioni_default, rir_default = @rir_default,
        carico_default = @carico_default,
@@ -193,7 +201,15 @@ export function aggiornaEsercizio(id: number, data: EsercizioInput): void {
        recupero_default = @recupero_default,
        nota_tecnica = @nota_tecnica, link = @link, gambe = COALESCE(@gambe, gambe)
        WHERE id = @id`
-    ).run({ ...campi, nome: campi.nome.trim(), link: campi.link?.trim() || null, gambe: campi.gambe ?? null, id })
+    ).run({
+      ...campi,
+      nome: campi.nome.trim(),
+      nome_alternativo: campi.nome_alternativo?.trim() || null,
+      cambia_alternativo: campi.nome_alternativo === undefined ? 0 : 1,
+      link: campi.link?.trim() || null,
+      gambe: campi.gambe ?? null,
+      id
+    })
     if (varianti) salvaVarianti(id, varianti)
   })()
 }
