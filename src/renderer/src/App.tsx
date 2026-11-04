@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   CalendarDays,
   CalendarClock,
@@ -66,6 +66,12 @@ export default function App(): React.JSX.Element {
   const [sbloccata, setSbloccata] = useState(false)
   // Si apre sulla settimana: la prima domanda della giornata e' chi viene oggi.
   const [sezione, setSezione] = useState<Sezione>('settimana')
+  // Il pannello a destra scorre per conto suo e terrebbe la posizione della
+  // pagina di prima: ogni sezione parte dall'alto.
+  const contenutoRef = useRef<HTMLElement>(null)
+  useEffect(() => {
+    contenutoRef.current?.scrollTo({ top: 0 })
+  }, [sezione])
   // Il tema scelto: si applica mettendolo sull'elemento radice, e il foglio di
   // stile ridichiara i suoi colori. Arriva dal file delle impostazioni, cosi'
   // resta anche al riavvio, e lo conoscono anche i documenti stampati.
@@ -435,7 +441,7 @@ export default function App(): React.JSX.Element {
           </button>
         </div>
       </aside>
-      <main className="content" inert={bloccata}>
+      <main ref={contenutoRef} className="content" inert={bloccata}>
         {/* la chiave cambia con la sezione: la pagina nuova entra con la sua
             dissolvenza */}
         <div key={`${sezione}-${versioneDati}`} className="entrata-pagina">

@@ -176,7 +176,7 @@ export default function ObiettiviTerapeutici({
                   .map((o) => {
                     const dnd = contenitore(o.id)
                     return (
-                      <li key={o.id} {...dnd} {...presa(o.id)} className={dnd.className}>
+                      <li key={o.id} {...dnd} {...presa(o.id)} className={`${dnd.className ?? ''} riga-obiettivo`.trim()}>
                         <span className="obiettivo-testo">
                           <input
                             value={o.testo}

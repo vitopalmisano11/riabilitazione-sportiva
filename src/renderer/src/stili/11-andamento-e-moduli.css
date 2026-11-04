@@ -1100,3 +1100,20 @@
   padding: 5px 10px;
   font-size: 13px;
 }
+
+/* Un obiettivo e' una riga sola: testo che prende lo spazio, termine di una
+   larghezza fissa e il cestino a destra. Il menu e' largo come il suo
+   contenitore, e in una riga che va a capo finiva da solo sotto al testo,
+   col cestino ancora sotto. */
+.sedute-list li.riga-obiettivo {
+  flex-wrap: nowrap;
+}
+
+.sedute-list li.riga-obiettivo .menu-scelta-bottone {
+  width: 190px;
+  flex: none;
+}
+
+.sedute-list li.riga-obiettivo .obiettivo-testo input {
+  width: 100%;
+}

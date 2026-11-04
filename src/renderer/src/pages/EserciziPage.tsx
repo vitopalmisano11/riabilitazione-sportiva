@@ -6,7 +6,6 @@ import {
   ArrowDownWideNarrow,
   ChevronDown,
   ChevronUp,
-  HelpCircle,
   ImageIcon,
   Pencil,
   Plus,
@@ -126,13 +125,6 @@ export default function EserciziPage(): React.JSX.Element {
   // L'immagine (appena scelta da file, o gia' presente nell'esercizio) in
   // attesa di essere ritagliata: null quando la finestra di ritaglio e' chiusa.
   const [inRitaglio, setInRitaglio] = useState<string | null>(null)
-  // La nota tecnica e' lunga quanto serve: scritta nella tabella, allargava la
-  // riga e sfasava tutta la griglia. Sta dietro a un punto interrogativo e
-  // compare passandoci sopra, in un cartellino che galleggia sopra la pagina
-  // (posizione fissa, cosi' non lo taglia il bordo della tabella).
-  const [bolla, setBolla] = useState<{ testo: string; x: number; y: number; sopra: boolean } | null>(
-    null
-  )
 
   const load = async (archiviati = mostraArchiviati): Promise<void> => {
     const lista = await window.api.esercizi.list(archiviati)
@@ -382,7 +374,6 @@ export default function EserciziPage(): React.JSX.Element {
               </th>
               <th className="col-param">Carico</th>
               <th className="col-param">Recupero</th>
-              <th className="col-nota">Nota</th>
               <th className="col-azioni"></th>
             </tr>
           </thead>
@@ -439,26 +430,6 @@ export default function EserciziPage(): React.JSX.Element {
                 <td className="col-param" title={aCluster(dosaggioDi(e)) ? 'Tra i cluster / tra le serie' : undefined}>
                   {recuperoTesto(dosaggioDi(e)) ?? '—'}
                 </td>
-                <td className="col-nota">
-                  {e.nota_tecnica && (
-                    <span
-                      className="icona-esercizio nota-aiuto"
-                      onMouseEnter={(ev) => {
-                        const r = ev.currentTarget.getBoundingClientRect()
-                        const sopra = r.bottom > window.innerHeight - 180
-                        setBolla({
-                          testo: e.nota_tecnica!,
-                          x: r.right,
-                          y: sopra ? r.top - 6 : r.bottom + 6,
-                          sopra
-                        })
-                      }}
-                      onMouseLeave={() => setBolla(null)}
-                    >
-                      <HelpCircle size={16} />
-                    </span>
-                  )}
-                </td>
                 <td className="row-actions col-azioni">
                   <button title="Modifica" onClick={() => void apriModifica(e)}>
                     <Pencil size={16} />
@@ -481,7 +452,7 @@ export default function EserciziPage(): React.JSX.Element {
             ))}
             {lista.length === 0 && (
               <tr>
-                <td colSpan={mostraCategoria ? 8 : 7} className="empty">
+                <td colSpan={mostraCategoria ? 7 : 6} className="empty">
                   Nessun esercizio qui.
                 </td>
               </tr>
@@ -758,15 +729,6 @@ export default function EserciziPage(): React.JSX.Element {
               </button>
             </div>
         </Modale>
-      )}
-
-      {bolla && (
-        <div
-          className={`bolla-nota${bolla.sopra ? ' sopra' : ''}`}
-          style={{ left: bolla.x, top: bolla.y }}
-        >
-          {bolla.testo}
-        </div>
       )}
 
       {immagineAperta && (

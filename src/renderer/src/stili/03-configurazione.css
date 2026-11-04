@@ -552,18 +552,6 @@
   border-bottom: none;
 }
 
-/* La nota tecnica non sta piu' nella tabella: la colonna e' larga quanto
-   l'icona, cosi' il testo lungo non allarga piu' la riga. */
-.data-table th.col-nota,
-.data-table td.col-nota {
-  width: 46px;
-  text-align: center;
-  padding-left: 4px;
-  padding-right: 4px;
-  font-size: 12px;
-}
-
-.nota-aiuto,
 .icona-aiuto {
   display: inline-flex;
   cursor: help;
