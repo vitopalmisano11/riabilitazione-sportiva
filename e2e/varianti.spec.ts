@@ -119,7 +119,7 @@ test('varianti: dalla libreria alla progressione e alla seduta', async () => {
     await expect(suggeriti).toContainText(`Equilibrio monopodalico — ${CONTEGGIO}`)
     // nella sezione di mobilizzazione la progressione dell'equilibrio non si suggerisce
     await pagina.getByTitle('Aggiungi un esercizio a questa sezione').nth(1).click()
-    await expect(pagina.getByText('Scegli un esercizio da aggiungere a “Mobilizzazione”')).toBeVisible()
+    await expect(pagina.locator('.aggiungi-area')).toBeVisible()
     await expect(suggeriti).toHaveCount(0)
     await pagina.getByTitle('Aggiungi un esercizio a questa sezione').nth(0).click()
     await expect(suggeriti).toContainText(`Equilibrio monopodalico — ${CONTEGGIO}`)

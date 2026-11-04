@@ -144,7 +144,7 @@ export default function SegniPaziente({
                   <span className="hint">
                     {s.misure === 1
                       ? `il ${formatData(s.ultima_data)}`
-                      : `${s.misure} misure, l'ultima il ${formatData(s.ultima_data)}`}
+                      : `l'ultima il ${formatData(s.ultima_data)}`}
                   </span>
                 </span>
               )}

@@ -7,6 +7,16 @@ export function errMsg(e: unknown): string {
 }
 
 // 'aaaa-mm-gg' → 'gg/mm/aaaa'
+// La seduta da copiare, in un elenco a scelta: la data e di cosa era fatta
+// (fase e focus), non quanti esercizi aveva.
+export function descriviSeduta(s: {
+  data: string
+  fase_nome: string | null
+  focus: string | null
+}): string {
+  return `${formatData(s.data)} — ${s.fase_nome ?? 'Senza fase'}${s.focus ? ` · ${s.focus}` : ''}`
+}
+
 export function formatData(iso: string | null): string {
   if (!iso) return '—'
   const [y, m, d] = iso.split('-')

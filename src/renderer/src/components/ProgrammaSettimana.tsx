@@ -4,7 +4,7 @@ import type { SedutaRiepilogo } from '../../../shared/types'
 import { toast, toastErrore } from './Toast'
 import SceltaConRicerca from './SceltaConRicerca'
 import Modale from './Modale'
-import { errMsg, formatData, oggiIso } from '../lib'
+import { descriviSeduta, errMsg, formatData, oggiIso } from '../lib'
 
 // Programmare piu' sedute in una volta.
 //
@@ -75,7 +75,7 @@ export default function ProgrammaSettimana({
           <SceltaConRicerca
             voci={sedute.map((s) => ({
               id: s.id,
-              nome: `${formatData(s.data)} — ${s.num_esercizi} ${s.num_esercizi === 1 ? 'esercizio' : 'esercizi'}`
+              nome: descriviSeduta(s)
             }))}
             valore={origine}
             onCambia={(id) => setOrigine(id === '' ? 0 : id)}

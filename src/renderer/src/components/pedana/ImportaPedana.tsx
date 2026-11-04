@@ -160,20 +160,12 @@ export default function ImportaPedana({
     setScelte(copia)
   }
 
-  const dispositivo = [anteprima.dispositivo.tipo, anteprima.dispositivo.modello]
-    .filter(Boolean)
-    .join(' · ')
-
   // Invio e clic fuori non fanno niente: importare scrive nell'archivio, e un
   // clic distratto non deve bastare. Si importa col pulsante.
   return (
     <Modale className="modal-lg" onConferma={() => undefined}>
       <h3>Importa dalla pedana</h3>
-      <p className="hint">
-        {anteprima.nome_file}
-        {dispositivo && ` — ${dispositivo}`}
-        {anteprima.app && ` — ${anteprima.app}`}
-      </p>
+      <p className="hint">{anteprima.nome_file}</p>
 
       <div className="sotto-titolo">Di chi è</div>
       <p className="hint">
@@ -269,7 +261,6 @@ export default function ImportaPedana({
               <span className="seduta-meta">
                 {r.test_nome}
                 {r.lato && ` — ${r.lato === 'dx' ? 'destro' : 'sinistro'}`}
-                {` — ${r.num_valori} ${r.num_valori === 1 ? 'valore' : 'valori'}`}
               </span>
             </label>
             {giaImportate.has(r.id) && <span className="badge">già importato</span>}

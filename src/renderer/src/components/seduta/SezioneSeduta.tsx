@@ -198,7 +198,7 @@ export default function SezioneSeduta({
         <div className="aggiungi-area">
           <div className="testata-aggiungi">
             <span className="hint">
-              Scegli un esercizio da aggiungere a “{s.nome}”
+              Non trovi l&apos;esercizio?
               <Aiuto testo="Non trovi l'esercizio che ti serve? Scrivi il suo nome nella casella e aggiungilo con il pulsante che compare sotto: resta solo per questa seduta, senza salvarlo in libreria." />
             </span>
             <button title="Chiudi" onClick={() => onApri(null)}>

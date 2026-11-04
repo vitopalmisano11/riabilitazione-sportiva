@@ -123,8 +123,7 @@ export default function RigaDose({
           </label>
           {settimana.frequenza == null && (
             <p className="hint">
-              Scrivi quante sedute fa a settimana: la forza si conta sulla settimana e si divide sulle sedute che
-              restano.
+              Scrivi le sedute a settimana: serve a contare la forza.
             </p>
           )}
         </div>

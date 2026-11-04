@@ -86,16 +86,7 @@ export default function AnamnesiPaziente({
           .map(([n, v]) => `${n}: ${v!.trim()}`)
           .join(' · ')
       setRiassunti({
-        prossima: [
-          p?.motivo_consulto?.trim(),
-          p?.sintomi?.length
-            ? p.sintomi.length === 1
-              ? '1 sintomo'
-              : `${p.sintomi.length} sintomi`
-            : ''
-        ]
-          .filter(Boolean)
-          .join(' · '),
+        prossima: p?.motivo_consulto?.trim() ?? '',
         remota: parti([
           ['Patologie', r?.patologie],
           ['Traumi', r?.traumi],
@@ -208,9 +199,6 @@ export default function AnamnesiPaziente({
               <div className="seduta-info">
                 <span className="seduta-data">
                   {c.tipo === 'piede' ? 'Body chart piede' : 'Body chart'} · {formatData(c.data)}
-                </span>
-                <span className="seduta-meta">
-                  {c.num_segni === 1 ? '1 segno' : `${c.num_segni} segni`}
                 </span>
                 {c.note && <span className="seduta-obiettivi">{c.note}</span>}
               </div>

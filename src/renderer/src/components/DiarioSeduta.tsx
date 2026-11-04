@@ -173,7 +173,9 @@ export default function DiarioSeduta({
         po' piu' vicine fra loro che dal resto della seduta: sono la stessa
         cosa, riferito e trattamento, letta in due tempi. */}
     <div className="coppia-diario">
-    <details className="blocco-apribile blocco-riferisce">
+    <details
+      className={`blocco-apribile blocco-riferisce${andamento || riferito.trim() ? ' compilato' : ''}`}
+    >
       <summary>
         Cosa riferisce{andamento ? ` (${NOME_ANDAMENTO[andamento]})` : ''}
         <Aiuto testo="Come sta tornando, rispetto alla volta prima: un clic su meglio, uguale o peggio, e con le sue parole quello che racconta. Nel diario si legge seduta dopo seduta, e la volta dopo lo ritrovi in cima alla seduta nuova." />
@@ -202,22 +204,15 @@ export default function DiarioSeduta({
         </div>
       </div>
     </details>
-    <details className="blocco-apribile blocco-trattamento">
+    <details
+      className={`blocco-apribile blocco-trattamento${tecnicaIds.length > 0 || trattamento.trim() ? ' compilato' : ''}`}
+    >
       <summary>
         Trattamento eseguito{tecnicaIds.length > 0 ? ` (${tecnicaIds.length})` : ''}
         <Aiuto testo="Le tecniche che fai oggi: si spuntano con un clic. L'elenco è tuo: con Aggiungi ne scrivi una nuova, con Modifica elenco togli quelle che non usi più (le sedute vecchie continuano a mostrarle). Nella casella sotto i dettagli, per esempio la zona o i parametri." />
       </summary>
       <div className="contenuto-apribile contenuto-trattamento">
         <div className="riga-diario">
-        <div className="riga-modifica-elenco">
-          <button
-            type="button"
-            className="link-discreto"
-            onClick={() => setModificaElenco(!modificaElenco)}
-          >
-            {modificaElenco ? 'Fatto' : 'Modifica elenco'}
-          </button>
-        </div>
         <div className="scelte-multiple tecniche">
           {visibili.map((t) => {
             const dentro = tecnicaIds.includes(t.id)
@@ -272,6 +267,13 @@ export default function DiarioSeduta({
               </button>
             </span>
           )}
+          <button
+            type="button"
+            className="link-discreto modifica-elenco"
+            onClick={() => setModificaElenco(!modificaElenco)}
+          >
+            {modificaElenco ? 'Fatto' : 'Modifica elenco'}
+          </button>
         </div>
         <textarea
           rows={1}

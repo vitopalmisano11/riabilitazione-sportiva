@@ -87,8 +87,7 @@ export function SchedaCestino(): React.JSX.Element {
               <div className="seduta-info">
                 <span className="seduta-data">{v.etichetta}</span>
                 <span className="seduta-meta">
-                  {v.tipo} · eliminato il {quando(v.quando)} ·{' '}
-                  {v.righe === 1 ? '1 riga' : `${v.righe} righe`}
+                  {v.tipo} · eliminato il {quando(v.quando)}
                 </span>
               </div>
               <span className="row-actions">

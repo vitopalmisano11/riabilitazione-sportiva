@@ -90,9 +90,21 @@
   margin-bottom: 0;
 }
 
-.riga-modifica-elenco {
-  display: flex;
-  justify-content: flex-end;
+/* «Modifica elenco» chiude la riga delle tecniche, a destra. */
+.scelte-multiple.tecniche .modifica-elenco {
+  margin-left: auto;
+}
+
+/* Cosa riferisce e il trattamento, una volta scritto qualcosa: la barra prende
+   il colore del tema, cosi' si vede a colpo d'occhio cosa e' stato compilato
+   anche da chiuso. */
+.coppia-diario > .blocco-apribile.compilato {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.coppia-diario > .blocco-apribile.compilato > summary {
+  color: var(--accent);
 }
 
 /* Il titolo di un blocco: icona, nome e punto interrogativo. */
@@ -204,7 +216,7 @@
   border-color: var(--accent);
 }
 
-/* Testata della scelta: dice a quale sezione stai aggiungendo, e come chiudere. */
+/* Testata della scelta: l'aiuto per l'esercizio che manca, e come chiudere. */
 .testata-aggiungi {
   display: flex;
   align-items: center;

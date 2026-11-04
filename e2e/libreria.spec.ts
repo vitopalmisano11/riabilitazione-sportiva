@@ -47,9 +47,9 @@ test('libreria: schede delle categorie, esercizi dentro, ricerca da fuori', asyn
     await vaiA(pagina, 'Configurazione')
     await pagina.locator('.config-tabs-top').getByRole('button', { name: 'Libreria esercizi' }).click()
 
-    // si apre sulle schede, senza conteggi degli esercizi; niente elenco piatto
+    // si apre sulle schede, senza conteggi; niente elenco piatto
     const rinforzo = pagina.locator('.scelta-tile', { hasText: 'Rinforzo' })
-    await expect(rinforzo).toContainText('2 distretti')
+    await expect(rinforzo).not.toContainText('distrett')
     await expect(rinforzo).not.toContainText('esercizi')
     await expect(pagina.locator('.tabella-esercizi')).toHaveCount(0)
     await pagina.screenshot({ path: join(FOTO, '22-libreria-categorie.png'), fullPage: true })

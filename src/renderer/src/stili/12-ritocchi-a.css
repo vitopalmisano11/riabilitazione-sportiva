@@ -95,17 +95,6 @@
   min-width: 0;
 }
 
-/* Quanti distretti ci stanno dentro: un numero piccolo, non un'etichetta. */
-.conta-distretti {
-  min-width: 20px;
-  padding: 0 6px;
-  border-radius: 999px;
-  background: var(--pannello);
-  color: var(--text-dim);
-  font-size: 12px;
-  text-align: center;
-}
-
 .riga-nuovo-distretto {
   display: flex;
   gap: 6px;

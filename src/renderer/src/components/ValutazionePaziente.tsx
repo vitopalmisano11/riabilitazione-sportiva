@@ -114,9 +114,6 @@ export default function ValutazionePaziente({
             <li key={v.id}>
               <div className="seduta-info">
                 <span className="seduta-data">{formatData(v.data)}</span>
-                <span className="seduta-meta">
-                  {v.num_distretti === 1 ? '1 distretto' : `${v.num_distretti} distretti`}
-                </span>
                 {v.note && <span className="seduta-obiettivi">{v.note}</span>}
               </div>
               <span className="row-actions">

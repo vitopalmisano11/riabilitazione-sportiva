@@ -64,13 +64,12 @@ function intestazioneSettimana(lunedi: Date): string {
   return `${inizio} – ${domenica.getDate()} ${MESI[domenica.getMonth()]} ${domenica.getFullYear()}`
 }
 
-// Quello che si legge accanto al nome: la fase, e se la seduta e' ancora da
-// fare. Il numero degli esercizi non c'e': qui non serviva.
-const accanto = (s: SedutaSettimana, oggi: string): string =>
+// Quello che si legge accanto al nome: la fase, e se e' al campo. Se e' ancora
+// da fare lo dice il giorno, e il numero degli esercizi non serviva.
+const accanto = (s: SedutaSettimana): string =>
   maiuscola([
     s.fase_campo === 1 ? 'al campo' : null,
-    s.fase_nome,
-    s.data > oggi ? 'programmata' : null
+    s.fase_nome
   ]
     .filter(Boolean)
     .join(' · '))
@@ -358,7 +357,7 @@ Finisce nel cestino: puoi rimetterla a posto da Impostazioni entro un mese.`
                       </button>
                       {/* Il focus della seduta si legge nella scheda del
                           paziente, non qui: qui serve sapere chi viene. */}
-                      {accanto(s, oggi) && <span className="seduta-meta">{accanto(s, oggi)}</span>}
+                      {accanto(s) && <span className="seduta-meta">{accanto(s)}</span>}
                     </div>
                     {/* Il nome porta alla scheda, questi alla seduta: appena
                         preparata la si vuole mostrare o ritoccare, non cercarla

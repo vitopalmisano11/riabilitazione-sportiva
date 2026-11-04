@@ -271,7 +271,6 @@ export default function CategorieEsercizi({
 
           <div className="scelta-tiles">
             {piastrelle.map((m, idx) => {
-              const quanti = figliDi(m.id).length
               const dnd = q === '' ? contenitore(idx) : undefined
               return (
                 <div
@@ -285,11 +284,6 @@ export default function CategorieEsercizi({
                   <span className="scelta-tile-nome">{m.nome}</span>
                   <span className="riga-pillola">
                     {etichette(m)}
-                    {quanti > 0 && (
-                      <span className="conta-distretti">
-                        {quanti === 1 ? '1 distretto' : `${quanti} distretti`}
-                      </span>
-                    )}
                   </span>
                   <span className="item-actions" onClick={(e) => e.stopPropagation()}>
                     <button title="Modifica" onClick={() => apriModifica(m)}>

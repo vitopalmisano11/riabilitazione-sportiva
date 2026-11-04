@@ -4,7 +4,7 @@ import type { PazienteDettaglio, SedutaRiepilogo } from '../../../shared/types'
 import { toast, toastErrore } from './Toast'
 import SceltaConRicerca from './SceltaConRicerca'
 import Modale from './Modale'
-import { errMsg, formatData } from '../lib'
+import { descriviSeduta, errMsg, formatData } from '../lib'
 
 // Aggiungere una seduta a un giorno della settimana.
 //
@@ -161,7 +161,7 @@ export default function AggiungiAlGiorno({
                     <SceltaConRicerca
                       voci={sue.map((s) => ({
                         id: s.id,
-                        nome: `${formatData(s.data)} — ${s.num_esercizi} ${s.num_esercizi === 1 ? 'esercizio' : 'esercizi'}`
+                        nome: descriviSeduta(s)
                       }))}
                       valore={origine ?? ''}
                       onCambia={(id) => setOrigine(id === '' ? null : id)}

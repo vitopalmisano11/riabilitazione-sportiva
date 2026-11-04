@@ -86,7 +86,6 @@ export default function ReportPedana({
         ))}
       </div>
       <div className="modal-actions">
-        <span className="hint">{scelti.size > 0 ? `${scelti.size} spuntati` : ''}</span>
         <span className="spacer" />
         <button onClick={onChiudi}>Annulla</button>
         <button className="primary" disabled={scelti.size === 0} onClick={() => void apri()}>

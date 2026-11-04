@@ -56,7 +56,7 @@ export default function ProgressioniFaseTab({ faseId }: { faseId: number }): Rea
         />
         <span>
           {p.nome}
-          {dalGruppo && <span className="hint"> · dal gruppo</span>}
+          {dalGruppo && <span className="hint"> · già dentro al gruppo spuntato</span>}
           <span className="prog-fase-anteprima">
             {p.step.length === 0
               ? ' · nessuno step ancora'
@@ -97,10 +97,7 @@ export default function ProgressioniFaseTab({ faseId }: { faseId: number }): Rea
                         onChange={() => void salva({ ...scelte, gruppo_ids: alterna(scelte.gruppo_ids, g.id) })}
                       />
                       {g.nome}
-                      <span className="hint">
-                        {' '}
-                        · tutto il gruppo ({dentro.length})
-                      </span>
+                      <span className="hint"> · tutte le sue progressioni</span>
                     </label>
                   </li>
                   {dentro.map((p) => riga(p, intero))}
