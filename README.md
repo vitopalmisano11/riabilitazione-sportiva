@@ -64,6 +64,17 @@ supera con *Ulteriori informazioni → Esegui comunque*.
 Le versioni vere dell'app sono quelle di `package.json` e dei tag `vX.Y.Z`: le sezioni «giro di
 feedback» qui sopra sono precedenti e usavano una numerazione propria.
 
+### v0.5.19
+
+**Prima di tutto:** al primo accesso dopo l'aggiornamento il programma aggiunge una colonna al database
+(migrazione 74): non tocca i dati, ma non si può annullare, quindi prima fa da solo una copia dell'archivio.
+
+- Anamnesi prossima: nuova casella «Storia precedente» sotto il motivo del consulto (che ora è più bassa):
+  il racconto di com'è nato il problema e di cosa è successo prima. Compare nella cartella, nella relazione,
+  nella ricerca e nel CSV dell'anamnesi
+- Nuovo paziente: con Esc la finestra si chiude; se hai già scritto qualcosa chiede se salvare («Salva e
+  chiudi»), annullare la creazione o tornare indietro
+
 ### v0.5.18
 
 **Prima di tutto:** al primo accesso dopo l'aggiornamento il programma aggiunge una colonna al database

@@ -17,9 +17,17 @@ export interface Domanda {
   // etichetta del pulsante che conferma; rosso se l'azione distrugge qualcosa
   conferma?: string
   pericolo?: boolean
+  // Una terza via, per `scegli`: il pulsante rosso che butta via quello che si
+  // stava facendo (es. "Annulla creazione"). `no` e' l'etichetta di "torna
+  // indietro" (di norma "Annulla"); Esc e un clic sul fondo valgono "no".
+  scarta?: string
+  no?: string
 }
 
-type Apri = (d: Domanda, rispondi: (ok: boolean) => void) => void
+// "si" = il pulsante di conferma, "scarta" = la terza via, "no" = torna indietro.
+export type Risposta = 'si' | 'scarta' | 'no'
+
+type Apri = (d: Domanda, rispondi: (r: Risposta) => void) => void
 let apri: Apri | null = null
 
 // Se la domanda parla di cancellare qualcosa, il pulsante diventa rosso e si
@@ -35,11 +43,17 @@ export function chiedi(domanda: Domanda | string): Promise<boolean> {
   // Senza l'host montato (non dovrebbe succedere) si torna alla domanda di
   // sistema: meglio una finestra brutta che un'azione fatta senza chiedere.
   if (!apri) return Promise.resolve(window.confirm(d.testo))
-  return new Promise((risolvi) => apri?.(d, risolvi))
+  return new Promise((risolvi) => apri?.(d, (r) => risolvi(r === 'si')))
+}
+
+// Come `chiedi`, ma con tre risposte: confermare, scartare o tornare indietro.
+export function scegli(domanda: Domanda): Promise<Risposta> {
+  if (!apri) return Promise.resolve(window.confirm(domanda.testo) ? 'si' : 'no')
+  return new Promise((risolvi) => apri?.(domanda, risolvi))
 }
 
 export default function ConfermaHost(): React.JSX.Element | null {
-  const [stato, setStato] = useState<{ d: Domanda; rispondi: (ok: boolean) => void } | null>(null)
+  const [stato, setStato] = useState<{ d: Domanda; rispondi: (r: Risposta) => void } | null>(null)
 
   useEffect(() => {
     apri = (d, rispondi) => setStato({ d, rispondi })
@@ -58,7 +72,7 @@ export default function ConfermaHost(): React.JSX.Element | null {
       e.preventDefault()
       e.stopImmediatePropagation()
       setStato((corrente) => {
-        corrente?.rispondi(false)
+        corrente?.rispondi('no')
         return null
       })
     }
@@ -68,32 +82,37 @@ export default function ConfermaHost(): React.JSX.Element | null {
 
   // Un clic sul fondo e' "no", come Annulla.
   const sulFondo = useClicSulFondo(() => {
-    stato?.rispondi(false)
+    stato?.rispondi('no')
     setStato(null)
   })
 
   if (!stato) return null
 
-  const chiudi = (ok: boolean): void => {
-    stato.rispondi(ok)
+  const chiudi = (r: Risposta): void => {
+    stato.rispondi(r)
     setStato(null)
   }
 
   const { d } = stato
   return (
     <div className="modal-overlay" {...sulFondo}>
-      <div className="modal modal-sm modal-domanda" onClick={(e) => e.stopPropagation()}>
+      <div className={`modal modal-sm modal-domanda${d.scarta ? ' modal-domanda-tre' : ''}`} onClick={(e) => e.stopPropagation()}>
         <div className="testata-domanda">
           {d.pericolo && <AlertTriangle size={20} className="icona-pericolo" />}
           <h3>{d.titolo ?? 'Confermi?'}</h3>
         </div>
         <p className="modal-testo">{d.testo}</p>
         <div className="modal-actions">
-          <button onClick={() => chiudi(false)}>Annulla</button>
+          <button onClick={() => chiudi('no')}>{d.no ?? 'Annulla'}</button>
+          {d.scarta && (
+            <button className="danger" onClick={() => chiudi('scarta')}>
+              {d.scarta}
+            </button>
+          )}
           <button
             autoFocus
             className={d.pericolo ? 'danger' : 'primary'}
-            onClick={() => chiudi(true)}
+            onClick={() => chiudi('si')}
           >
             {d.conferma ?? 'Conferma'}
           </button>

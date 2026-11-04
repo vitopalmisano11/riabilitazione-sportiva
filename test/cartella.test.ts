@@ -469,3 +469,20 @@ test('Le relazioni mantengono gli a capo delle note', () => {
   assert.ok(generaRelazione(Number(pz)).includes('ginocchio<br>da due settimane'))
   assert.ok(generaRelazione(Number(pz), 'valutazione').includes('Prima riga<br>Seconda riga'))
 })
+
+// La storia precedente sta subito dopo il motivo del consulto, e senza non compare.
+test('La relazione scrive la storia precedente dopo il motivo', () => {
+  const c = getDb()
+  const pz = c.prepare("INSERT INTO pazienti (nome, cognome) VALUES ('S', 'Storia')").run().lastInsertRowid
+  c.prepare(
+    "INSERT INTO anamnesi_prossima (paziente_id, motivo_consulto, storia_precedente) VALUES (?, 'Dolore alla spalla', 'Lussazione nel 2022\ncon due mesi di tutore')"
+  ).run(pz)
+  const rel = relazioneAnamnesi(Number(pz))
+  assert.equal(rel.prossima[0].testo, 'Si rivolge per dolore alla spalla.')
+  assert.equal(rel.prossima[1].testo, 'Storia precedente: lussazione nel 2022\ncon due mesi di tutore.')
+  assert.ok(generaRelazione(Number(pz)).includes('Storia precedente'))
+
+  const senza = c.prepare("INSERT INTO pazienti (nome, cognome) VALUES ('N', 'Senzastoria')").run().lastInsertRowid
+  c.prepare("INSERT INTO anamnesi_prossima (paziente_id, motivo_consulto) VALUES (?, 'Dolore')").run(senza)
+  assert.ok(!generaRelazione(Number(senza)).includes('Storia precedente'))
+})

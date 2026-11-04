@@ -1755,6 +1755,13 @@ export const MIGRATIONS: string[] = [
   //      documento.
   `
   ALTER TABLE esercizi ADD COLUMN nome_alternativo TEXT;
+  `,
+
+  // 74 - la storia precedente dell'anamnesi prossima: cio' che e' successo prima
+  //      del motivo della visita e che lo spiega (episodi passati, cure gia'
+  //      fatte). Una casella ampia di testo, accanto al motivo del consulto.
+  `
+  ALTER TABLE anamnesi_prossima ADD COLUMN storia_precedente TEXT;
   `
 ]
 

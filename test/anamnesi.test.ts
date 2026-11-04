@@ -47,6 +47,7 @@ function sintomo(descrizione: string, extra: Partial<SintomoAnamnesi> = {}): Sin
 function anamnesi(extra: Partial<AnamnesiProssima> = {}): AnamnesiProssima {
   return {
     motivo_consulto: null,
+    storia_precedente: null,
     notturno_sn: null,
     dolore_notturno: null,
     sonno_sn: null,
@@ -150,6 +151,18 @@ test('Riscrivendo, i sintomi gia\' salvati tengono il loro id, e quelli tolti sp
   const vuota = leggiAnamnesi(pz)
   assert.deepEqual(vuota.sintomi, [])
   assert.equal(vuota.motivo_consulto, 'Solo motivo')
+})
+
+test('La storia precedente si salva accanto al motivo, e si toglie svuotandola', () => {
+  const pz = paziente('Storia anamnesi')
+  salvaAnamnesi(pz, anamnesi({ motivo_consulto: 'Dolore al ginocchio', storia_precedente: 'Distorsione due anni fa,\nfisioterapia per un mese' }))
+  const letta = leggiAnamnesi(pz)
+  assert.equal(letta.motivo_consulto, 'Dolore al ginocchio')
+  assert.equal(letta.storia_precedente, 'Distorsione due anni fa,\nfisioterapia per un mese')
+  salvaAnamnesi(pz, anamnesi({ motivo_consulto: 'Dolore al ginocchio' }))
+  assert.equal(leggiAnamnesi(pz).storia_precedente, null)
+  // chi non l'ha mai scritta la legge vuota
+  assert.equal(leggiAnamnesi(paziente('Senza storia')).storia_precedente, null)
 })
 
 test('Due pazienti non si mescolano', () => {

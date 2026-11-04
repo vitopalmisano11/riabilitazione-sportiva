@@ -139,6 +139,11 @@ details[open] > :not(summary) {
   width: 470px;
 }
 
+/* La domanda con tre pulsanti ha bisogno di piu' spazio per tenerli su una riga. */
+.modal.modal-domanda.modal-domanda-tre {
+  width: 600px;
+}
+
 /* La finestra del paziente: due colonne affiancate (dati anagrafici e quadro
    clinico) e una fascia larga sotto. Sotto i 900px torna in verticale. */
 .modal.modal-paziente {

@@ -57,6 +57,14 @@ test('Ricerca: anamnesi e il limite di risultati', () => {
   assert.equal(an[0].campo, 'Motivo della visita')
   assert.equal(an[0].pazienteId, pz)
 
+  // la storia precedente si trova come il motivo
+  const pz2 = ins("INSERT INTO pazienti (nome, cognome) VALUES ('Lia', 'Storia')")
+  ins("INSERT INTO anamnesi_prossima (paziente_id, storia_precedente) VALUES (?, 'Frattura di polso nel 2019')", pz2)
+  const storia = cercaInArchivio('frattura').filter((r) => r.tipo === 'anamnesi')
+  assert.equal(storia.length, 1)
+  assert.equal(storia[0].campo, 'Storia precedente')
+  assert.equal(storia[0].pazienteId, pz2)
+
   for (let i = 0; i < 40; i++) ins("INSERT INTO pazienti (nome, cognome) VALUES (?, 'Moltissimi')", `N${i}`)
   assert.equal(cercaInArchivio('moltissimi').length, 25, 'al massimo venticinque per tipo')
 })

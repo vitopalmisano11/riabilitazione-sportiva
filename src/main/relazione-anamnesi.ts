@@ -96,6 +96,8 @@ export function relazioneAnamnesi(pazienteId: number): RelazioneAnamnesi {
 
   const motivo = pezzo(a?.motivo_consulto)
   if (motivo) prossima.push({ testo: frase(`Si rivolge per ${motivo}`) })
+  const precedente = pezzo(a?.storia_precedente)
+  if (precedente) prossima.push({ testo: frase(`Storia precedente: ${precedente}`) })
 
   sintomi.forEach((s, i) => {
     const frasi: string[] = []

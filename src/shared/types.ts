@@ -953,6 +953,9 @@ export interface SintomoAnamnesi {
 
 export interface AnamnesiProssima {
   motivo_consulto: string | null
+  // Quello che e' successo prima e spiega il motivo della visita: la storia del
+  // problema, in racconto. Le altre patologie del paziente stanno nella remota.
+  storia_precedente: string | null
   // si'/no, con accanto la casella di testo per il dettaglio
   notturno_sn: 0 | 1 | null
   dolore_notturno: string | null

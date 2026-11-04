@@ -20,6 +20,7 @@ const ATTESA_SALVATAGGIO = 1500
 
 const VUOTO: Dati = {
   motivo_consulto: null,
+  storia_precedente: null,
   notturno_sn: null,
   dolore_notturno: null,
   sonno_sn: null,
@@ -171,16 +172,30 @@ export default function AnamnesiProssima({
 
         <label>
           Motivo del consulto, con le parole del paziente
-          {/* Piu' alta delle altre: qui si trascrive quello che dice il
-              paziente, e sono righe intere, non due parole. */}
+          {/* Poche righe: e' la frase con cui il paziente spiega perche' e'
+              qui. Il racconto lungo va nella storia precedente, qui sotto. */}
           <textarea
-            rows={8}
+            rows={3}
             className="testo-ampio"
-            style={{ ['--altezza-minima' as string]: '12em' }}
+            style={{ ['--altezza-minima' as string]: '5em' }}
             autoFocus
             placeholder="Che cosa la porta qui? — trascrivi come lo dice lui"
             value={dati.motivo_consulto ?? ''}
             onChange={campo('motivo_consulto')}
+          />
+        </label>
+
+        <label>
+          Storia precedente
+          {/* La casella grande: e' dove si scrive il racconto del problema,
+              quello che prima finiva tutto nel motivo del consulto. */}
+          <textarea
+            rows={8}
+            className="testo-ampio"
+            style={{ ['--altezza-minima' as string]: '12em' }}
+            placeholder="Com'è nato e cosa è successo prima: episodi passati, cure già fatte, come è cambiato nel tempo"
+            value={dati.storia_precedente ?? ''}
+            onChange={campo('storia_precedente')}
           />
         </label>
 

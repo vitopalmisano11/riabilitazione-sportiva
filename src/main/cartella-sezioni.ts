@@ -219,6 +219,7 @@ export function sezAnamnesi(pazienteId: number): Blocco[] {
 
   return [
     ...testo('Motivo del consulto', a?.motivo_consulto),
+    ...testo('Storia precedente', a?.storia_precedente),
     ...perSintomo,
     ...grafici,
     ...testo('Note sull’andamento nelle 24 ore', a?.note_giorno),

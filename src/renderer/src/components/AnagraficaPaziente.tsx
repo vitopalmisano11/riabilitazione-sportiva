@@ -8,7 +8,8 @@ import type {
   PazienteInput
 } from '../../../shared/types'
 import { toast, toastErrore } from './Toast'
-import { chiedi } from './Conferma'
+import { chiedi, scegli } from './Conferma'
+import { useScorciatoie } from '../scorciatoie'
 import SceltaConRicerca from './SceltaConRicerca'
 import Modale from './Modale'
 import { errMsg, daQuando, eta, formatData } from '../lib'
@@ -296,6 +297,33 @@ export function ModaleDatiPaziente({
   }
 
   const anni = eta(form.data_nascita)
+
+  // Esc chiude la finestra di un paziente nuovo. Se non c'e' scritto niente
+  // chiude e basta; se c'e' qualcosa chiede se salvarlo o annullare, e Esc
+  // (o un clic fuori dalla domanda) torna alla finestra senza perdere niente.
+  const qualcosaScritto =
+    (Object.keys(VUOTO) as (keyof typeof VUOTO)[]).some((k) => form[k].trim() !== '') ||
+    peso.trim() !== '' ||
+    altezza.trim() !== '' ||
+    gruppoId !== '' ||
+    patologiaId !== '' ||
+    faseId !== ''
+  const chiudiConEsc = async (): Promise<void> => {
+    if (!qualcosaScritto) {
+      onChiudi(false)
+      return
+    }
+    const risposta = await scegli({
+      titolo: 'Chiudere la finestra?',
+      testo: 'Hai già scritto dei dati del nuovo paziente. Vuoi salvarlo o annullare la creazione?',
+      conferma: 'Salva e chiudi',
+      scarta: 'Annulla creazione',
+      no: 'Torna indietro'
+    })
+    if (risposta === 'si') await salva()
+    else if (risposta === 'scarta') onChiudi(false)
+  }
+  useScorciatoie([{ tasto: 'Escape', azione: () => void chiudiConEsc(), inCasella: true, attiva: nuovo }])
 
   // Creando un paziente nuovo, se non ha ancora un nome un clic fuori (o
   // Invio) chiude e basta, come farebbe "Annulla": non ha senso salvare un

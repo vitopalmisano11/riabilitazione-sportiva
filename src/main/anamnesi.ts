@@ -42,6 +42,7 @@ export function leggiAnamnesi(pazienteId: number): AnamnesiProssima {
   const conPunti = sintomi.map((x) => ({ ...x, punti: puntiStmt.all(x.id) }))
   return {
     motivo_consulto: null,
+    storia_precedente: null,
     notturno_sn: null,
     dolore_notturno: null,
     sonno_sn: null,
@@ -64,14 +65,15 @@ export function salvaAnamnesi(pazienteId: number, dati: AnamnesiProssima): void 
   db.transaction(() => {
     db.prepare(
       `INSERT INTO anamnesi_prossima
-         (paziente_id, motivo_consulto, notturno_sn, dolore_notturno, sonno_sn, disturbi_sonno,
+         (paziente_id, motivo_consulto, storia_precedente, notturno_sn, dolore_notturno, sonno_sn, disturbi_sonno,
           tosse_starnuto, neuro_sn, neuro_tipi, sintomi_neurologici, relazione_sintomi, note,
           note_giorno, note_esordio)
-       VALUES (@paziente_id, @motivo_consulto, @notturno_sn, @dolore_notturno, @sonno_sn,
+       VALUES (@paziente_id, @motivo_consulto, @storia_precedente, @notturno_sn, @dolore_notturno, @sonno_sn,
                @disturbi_sonno, @tosse_starnuto, @neuro_sn, @neuro_tipi, @sintomi_neurologici,
                @relazione_sintomi, @note, @note_giorno, @note_esordio)
        ON CONFLICT(paziente_id) DO UPDATE SET
          motivo_consulto = excluded.motivo_consulto,
+         storia_precedente = excluded.storia_precedente,
          notturno_sn = excluded.notturno_sn,
          dolore_notturno = excluded.dolore_notturno,
          sonno_sn = excluded.sonno_sn,
@@ -87,6 +89,7 @@ export function salvaAnamnesi(pazienteId: number, dati: AnamnesiProssima): void 
     ).run({
       paziente_id: pazienteId,
       motivo_consulto: dati.motivo_consulto,
+      storia_precedente: dati.storia_precedente ?? null,
       notturno_sn: dati.notturno_sn ?? null,
       dolore_notturno: dati.dolore_notturno,
       sonno_sn: dati.sonno_sn ?? null,

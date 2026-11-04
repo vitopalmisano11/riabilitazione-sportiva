@@ -160,7 +160,7 @@ export function cercaInArchivio(domanda: string): RisultatoRicerca[] {
   // Anamnesi prossima: il motivo della visita e le note.
   const anamnesi = db
     .prepare(
-      `SELECT a.paziente_id, a.motivo_consulto, a.note, p.nome, p.cognome
+      `SELECT a.paziente_id, a.motivo_consulto, a.storia_precedente, a.note, p.nome, p.cognome
        FROM anamnesi_prossima a JOIN pazienti p ON p.id = a.paziente_id
        ORDER BY p.cognome, p.nome`
     )
@@ -169,6 +169,7 @@ export function cercaInArchivio(domanda: string): RisultatoRicerca[] {
     if (trovati.anamnesi.length >= MASSIMO_PER_TIPO) break
     const campi: Campo[] = [
       { etichetta: 'Motivo della visita', testo: a.motivo_consulto as string | null },
+      { etichetta: 'Storia precedente', testo: a.storia_precedente as string | null },
       { etichetta: 'Note di anamnesi', testo: a.note as string | null }
     ]
     for (const c of campi) {

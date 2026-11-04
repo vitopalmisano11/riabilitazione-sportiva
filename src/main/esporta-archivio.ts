@@ -111,7 +111,7 @@ export function esportaArchivio(cartella: string): string {
 
   scriviCsv(
     join(dest, 'anamnesi.csv'),
-    q(`SELECT p.cognome, p.nome, a.motivo_consulto, a.notturno_sn, a.dolore_notturno,
+    q(`SELECT p.cognome, p.nome, a.motivo_consulto, a.storia_precedente, a.notturno_sn, a.dolore_notturno,
               a.sonno_sn, a.disturbi_sonno,
               a.tosse_starnuto, a.neuro_sn, a.neuro_tipi, a.sintomi_neurologici,
               a.relazione_sintomi, a.note,
@@ -126,6 +126,7 @@ export function esportaArchivio(cartella: string): string {
       'cognome',
       'nome',
       'motivo_consulto',
+      'storia_precedente',
       'notturno_sn',
       'dolore_notturno',
       'sonno_sn',
