@@ -472,7 +472,9 @@ export default function EserciziPage(): React.JSX.Element {
   )
 
   return (
-    <div className="page">
+    // `step-flow` = la stessa colonna centrata delle categorie: titolo e linguette
+    // ci stanno sopra, allineati a sinistra con la ricerca e le piastrelle.
+    <div className="page step-flow">
       <header className="page-header">
         <h2>Libreria esercizi</h2>
       </header>

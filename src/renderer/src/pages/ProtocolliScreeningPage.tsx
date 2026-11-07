@@ -135,7 +135,8 @@ export default function ProtocolliScreeningPage({
   const sport = protocolli.map((p) => p.sport).filter((s, i, a) => a.indexOf(s) === i)
 
   return (
-    <div className="page">
+    // `step-flow`: la stessa colonna centrata delle altre pagine di configurazione.
+    <div className="page step-flow">
       <header className="page-header">
         <h2>Screening</h2>
       </header>

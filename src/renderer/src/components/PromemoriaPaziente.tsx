@@ -188,10 +188,6 @@ export default function PromemoriaPaziente({
         </div>
       )}
 
-      {aperti.length === 0 && !aggiungi && (
-        <p className="hint">Nessun promemoria in programma.</p>
-      )}
-
       <ul className="sedute-list elenco-promemoria">
         {aperti.map((p) => (
           <li key={p.id}>

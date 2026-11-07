@@ -99,6 +99,7 @@ import type {
   Tema,
 } from './temi'
 import type { DoseFase, DoseSettimana, TipoLavoro } from './dose'
+import type { CaricoPaziente } from './carico-settimane'
 
 export interface Canali {
   // apre un URL http/https nel browser predefinito
@@ -490,6 +491,8 @@ export interface Canali {
   'dose:impostaFase': (faseId: number, dosi: DoseFase[]) => void
   // Le altre sedute della settimana di quella data, gia' contate.
   'dose:settimana': (pazienteId: number, data: string, sedutaId: number | null) => DoseSettimana
+  // Il carico settimana per settimana confrontato con la dose (linguetta Percorso).
+  'dose:caricoPaziente': (pazienteId: number) => CaricoPaziente
   'obiettiviTerapeutici:list': (pazienteId: number) => ObiettivoTerapeutico[]
   // Quello che il paziente si aspetta, con parole sue: una casella sola.
   'obiettiviTerapeutici:aspettative': (pazienteId: number) => string | null
@@ -892,7 +895,8 @@ export const MAPPA_API = {
   dose: {
     fase: 'dose:fase',
     impostaFase: 'dose:impostaFase',
-    settimana: 'dose:settimana'
+    settimana: 'dose:settimana',
+    caricoPaziente: 'dose:caricoPaziente'
   },
   obiettiviTerapeutici: {
     list: 'obiettiviTerapeutici:list',

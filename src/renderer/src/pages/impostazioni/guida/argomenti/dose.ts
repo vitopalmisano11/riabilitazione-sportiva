@@ -15,7 +15,12 @@ export const dose: ArgomentoGuida = {
     'rtp',
     'preparazione atletica',
     'avviso',
-    'monopodalico'
+    'monopodalico',
+    'settimana',
+    'andamento',
+    'grafico',
+    'dolore',
+    'sforzo'
   ],
   blocchi: [
     {
@@ -68,6 +73,23 @@ export const dose: ArgomentoGuida = {
       titolo: 'Cosa vedi in seduta',
       elementi: [
         'Sopra l’elenco degli esercizi compare una riga compatta, per esempio «Pliometria est. 90 ✓ · Quadricipite 3 serie ✓». La spunta vuol dire dentro l’intervallo, il triangolo vuol dire **poco** o **troppo**. Cliccandola si apre il dettaglio, una riga per voce. La riga compare solo se la fase ha almeno un numero nella linguetta **Dose**.'
+      ]
+    },
+    {
+      titolo: 'Il carico settimana per settimana',
+      elementi: [
+        'In [[Pazienti > il paziente > Percorso]], sotto le progressioni, il riquadro **Carico settimana per settimana** mette in fila le settimane già fatte, dalla più recente. Ogni casella dice quanto è stato fatto e, dopo la barra, quanto voleva la dose della fase per quella settimana: «240 ✓ / 160–240».',
+        {
+          punti: [
+            '**Pliometria e potenza**: la dose per seduta × le sedute **fatte** quella settimana.',
+            '**Forza**: la dose per seduta × le **sedute a settimana** del paziente (senza quel numero, × le sedute fatte).',
+            'La **fase** della settimana è quella dell’ultima seduta. Le sedute al campo non contano nel carico, ma dolore e sforzo sì.',
+            'Nella settimana **in corso** non si segna mai «poco»: può ancora arrivare.',
+            'Le settimane senza sedute restano in tabella con «Nessuna seduta», così una pausa si vede.'
+          ]
+        },
+        'Sopra la tabella ci sono due grafici sulle stesse settimane: il carico della voce scelta in **Nel grafico**, con la fascia della dose dietro le barre, e sotto **dolore** e **sforzo** medi da 0 a 10. Passando il mouse su una settimana se ne leggono i numeri.',
+        'Se nelle ultime tre settimane il dolore medio è salito ogni settimana (di almeno un punto in tutto) mentre una voce del carico cresceva, in cima compare un **avviso**. Il riquadro non c’è per i pazienti senza dose nelle fasi né esercizi che si contano. Come il resto della dose, non entra in nessun documento.'
       ]
     },
     {

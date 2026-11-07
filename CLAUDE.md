@@ -66,7 +66,11 @@ Specifica originale e feedback dell'utente sono nei file `prompt-*.md` alla radi
   che restano; le sedute in una fase «al campo» non contano). Il calcolo è in `shared/dose.ts`
   («8-10» = 8, una ripetizione a tempo è un'isometria e non conta, a una gamba i contatti valgono
   doppio, i cluster si moltiplicano), le query in `main/dose.ts`; prove in `test/dose.test.ts` ed
-  `e2e/dose.spec.ts`.
+  `e2e/dose.spec.ts`. Nel Percorso del paziente `components/CaricoSettimane.tsx` mette in fila le
+  settimane fatte contro la dose (pliometria e potenza × sedute fatte, forza × sedute a settimana),
+  con due grafici (carico; dolore e sforzo, asse 0–10 a parte) e un avviso se il dolore sale tre
+  settimane con il carico: calcolo in `shared/carico-settimane.ts`, lettura `caricoPaziente` in
+  `main/dose.ts`, prove in `test/carico-settimane.test.ts` ed `e2e/carico.spec.ts`. Solo a video.
 - **Monopodalico**: l'esercizio in libreria ha `gambe` (`due` / `scelta` / `una`). Su quelli «a
   scelta» la riga della seduta ha il bottoncino «1 gamba»; acceso si salva sulla riga
   (`seduta_esercizi.monopodalico`, fotografato come la dose: si copia, si ricopia dall'ultima volta) e

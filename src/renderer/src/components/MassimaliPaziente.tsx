@@ -364,9 +364,7 @@ export default function MassimaliPaziente({
           </div>
         )}
 
-        {massimali.length === 0 ? (
-          <p className="hint">Nessun massimale scritto.</p>
-        ) : (
+        {massimali.length === 0 ? null : (
           <ul className="lista-massimali">
             {massimali.map((m) => (
               <li key={m.id}>

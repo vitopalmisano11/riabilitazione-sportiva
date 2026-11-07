@@ -11,6 +11,7 @@ import SegniPaziente from '../../components/SegniPaziente'
 import IndicazioniCasa from '../../components/IndicazioniCasa'
 import MassimaliPaziente from '../../components/MassimaliPaziente'
 import ProgressioniPaziente from '../../components/ProgressioniPaziente'
+import CaricoSettimane from '../../components/CaricoSettimane'
 import AnamnesiPaziente from '../../components/AnamnesiPaziente'
 import ValutazionePaziente from '../../components/ValutazionePaziente'
 import QuadroPaziente from '../../components/QuadroPaziente'
@@ -328,6 +329,9 @@ export function SchedaPaziente({
       <ObiettiviCard paziente={paziente} />
 
       <ProgressioniPaziente paziente={paziente} />
+
+      {/* Quanto ha fatto ogni settimana rispetto alla dose della fase: solo a video. */}
+      <CaricoSettimane paziente={paziente} />
 
       {/* Sta nel percorso perche' e' parte del programma: cosa deve fare a
           casa, ogni quanto, e come regolarsi. Finisce sul foglio che si porta

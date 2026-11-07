@@ -11,6 +11,7 @@ import {
   type DoseSettimana,
   type RigaConto
 } from '../shared/dose'
+import { caricoSettimane, type CaricoPaziente, type SedutaCarico } from '../shared/carico-settimane'
 
 export function leggiDoseFase(faseId: number): DoseFase[] {
   return getDb()
@@ -81,4 +82,57 @@ export function doseSettimana(pazienteId: number, data: string, sedutaId: number
     altreSedute: n,
     altre: contaRighe(righe, categoriePerConto())
   }
+}
+
+// Il carico settimana per settimana del paziente, per la linguetta Percorso:
+// tutte le sedute fino a oggi, con le righe gia' pronte per il conto. Il
+// calcolo sta in shared/carico-settimane.ts.
+export function caricoPaziente(pazienteId: number): CaricoPaziente {
+  const db = getDb()
+  const { oggi } = db.prepare(`SELECT date('now', 'localtime') AS oggi`).get() as { oggi: string }
+  const paziente = db.prepare('SELECT sedute_settimana FROM pazienti WHERE id = ?').get(pazienteId) as
+    | { sedute_settimana: number | null }
+    | undefined
+  const sedute = db
+    .prepare(
+      `SELECT s.id, s.data, s.fase_id, f.nome AS fase_nome, COALESCE(f.campo, 0) AS campo, s.dolore, s.sforzo
+       FROM sedute s LEFT JOIN fasi f ON f.id = s.fase_id
+       WHERE s.paziente_id = ? AND s.data <= ?
+       ORDER BY s.data, s.id`
+    )
+    .all(pazienteId, oggi) as (Omit<SedutaCarico, 'righe'> & { id: number })[]
+  const righe = db
+    .prepare(
+      `SELECT se.seduta_id, e.categoria_id, e.gambe, se.monopodalico, se.serie, se.cluster, se.ripetizioni
+       FROM seduta_esercizi se
+       JOIN esercizi e ON e.id = se.esercizio_id
+       JOIN sedute s ON s.id = se.seduta_id
+       WHERE s.paziente_id = ? AND s.data <= ?`
+    )
+    .all(pazienteId, oggi) as (RigaConto & { seduta_id: number })[]
+  const perSeduta = new Map<number, RigaConto[]>()
+  for (const { seduta_id, ...r } of righe) perSeduta.set(seduta_id, [...(perSeduta.get(seduta_id) ?? []), r])
+
+  const dosi: Record<number, DoseFase[]> = {}
+  for (const id of new Set(sedute.map((s) => s.fase_id).filter((x): x is number => x != null))) {
+    dosi[id] = leggiDoseFase(id)
+  }
+
+  const frequenza = paziente?.sedute_settimana ?? null
+  const calcolo = caricoSettimane({
+    sedute: sedute.map(({ id, ...s }) => ({ ...s, righe: perSeduta.get(id) ?? [] })),
+    dosi,
+    categorie: categoriePerConto(),
+    frequenza,
+    oggi
+  })
+
+  const nomi: Record<string, string> = {}
+  const nome = db.prepare('SELECT nome FROM categorie WHERE id = ?')
+  for (const k of calcolo.chiavi) {
+    if (!k.startsWith('forza:')) continue
+    const c = nome.get(Number(k.slice(6))) as { nome: string } | undefined
+    nomi[k] = c?.nome ?? 'Forza'
+  }
+  return { ...calcolo, nomi, frequenza }
 }

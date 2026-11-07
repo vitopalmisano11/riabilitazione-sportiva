@@ -41,3 +41,143 @@
   letter-spacing: 0.03em;
   color: var(--text-dim);
 }
+
+/* ---- Carico settimana per settimana (Percorso del paziente) ---- */
+
+/* Un avviso solo, e solo quando succede: ambra, come un dubbio, non un guasto. */
+.avviso-carico {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--attenzione);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+}
+
+.avviso-carico svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--attenzione);
+}
+
+.carico-grafici {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.carico-testata {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.carico-lettura {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.grafico-carico,
+.grafico-dolore-sforzo {
+  cursor: default;
+}
+
+.carico-barra {
+  fill: var(--accent);
+}
+
+/* la settimana di oggi non e' finita: la barra e' piu' chiara */
+.carico-barra.in-corso {
+  fill-opacity: 0.5;
+}
+
+.carico-fascia-dose {
+  fill: var(--accent-soft);
+  stroke: var(--border-forte);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.carico-soglia-dose {
+  stroke: var(--text-dim);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+}
+
+.carico-colonna-sopra {
+  fill: var(--pannello);
+}
+
+/* Dolore e sforzo si distinguono anche senza colore: cerchio pieno e linea
+   continua, quadrato e linea tratteggiata. */
+.carico-linea-dolore,
+.carico-linea-sforzo {
+  fill: none;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.carico-linea-dolore {
+  stroke: var(--text);
+}
+
+.carico-linea-sforzo {
+  stroke: var(--accent);
+  stroke-dasharray: 5 4;
+}
+
+.carico-punto-dolore {
+  fill: var(--text);
+  stroke: var(--surface);
+  stroke-width: 2;
+}
+
+.carico-punto-sforzo {
+  fill: var(--accent);
+  stroke: var(--surface);
+  stroke-width: 2;
+}
+
+.legenda-carico {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  font-size: 13px;
+}
+
+.legenda-carico > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Con tante categorie di forza la tabella si allarga: scorre lei, non la pagina. */
+.carico-tabella-scorre {
+  overflow-x: auto;
+}
+
+.tabella-carico td,
+.tabella-carico th {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.carico-settimana-nome {
+  font-weight: 600;
+  margin-right: 6px;
+}
+
+.carico-settimana-sedute {
+  display: block;
+  font-size: 12px;
+}
+
+.tabella-carico tr.settimana-vuota td {
+  color: var(--text-dim);
+}

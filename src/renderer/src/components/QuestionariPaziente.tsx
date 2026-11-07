@@ -105,9 +105,7 @@ export default function QuestionariPaziente({
           Nessun questionario configurato: creane uno in Configurazione,
           &ldquo;Questionari&rdquo;.
         </p>
-      ) : storico.length === 0 ? (
-        <p className="hint">Nessun questionario compilato.</p>
-      ) : (
+      ) : storico.length === 0 ? null : (
         <ul className="sedute-list">
           {storico.map((c) => (
             <li key={c.id}>

@@ -122,6 +122,20 @@
   width: 130px;
 }
 
+/* Nuova misurazione del grafico: etichette su una colonna di larghezza fissa,
+   così le caselle di data e dolore partono dallo stesso punto. */
+.misura-campi {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modal .misura-campi label.compila-data {
+  display: grid;
+  grid-template-columns: 170px auto;
+  justify-content: start;
+}
+
 .campo-errato {
   border-color: var(--danger);
 }.campo-nota-test {

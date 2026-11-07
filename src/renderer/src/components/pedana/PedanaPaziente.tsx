@@ -124,8 +124,6 @@ export default function PedanaPaziente({
         </span>
       </div>
 
-      {archivio && voci.length === 0 && <p className="hint">Nessun test con la pedana.</p>}
-
       {voci.length > 0 && (
         <ul className="sedute-list elenco-pedana">
           {voci.map((v) => {

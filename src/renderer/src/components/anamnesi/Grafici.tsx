@@ -191,16 +191,19 @@ export function Grafici({
               Sintomo {inArrivo.sintomo + 1} —{' '}
               {dati.sintomi[inArrivo.sintomo]?.descrizione || 'senza nome'}
             </p>
-            <div className="form-row-2">
+            {/* Le due righe sono in colonna e hanno lo stesso schema (etichetta a
+                sinistra, casella a destra), così le caselle stanno allineate. */}
+            <div className="misura-campi">
               <CampoData
                 etichetta="Data"
                 valore={inArrivo.data}
                 autoFocus
                 onCambia={(iso) => setInArrivo({ ...inArrivo, data: iso ?? inArrivo.data })}
               />
-              <label>
+              <label className="compila-data">
                 Intensità del dolore
                 <input
+                  className="campo-data"
                   type="number"
                   min={0}
                   max={10}

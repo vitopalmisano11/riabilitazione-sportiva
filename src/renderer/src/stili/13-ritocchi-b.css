@@ -505,7 +505,9 @@ textarea.cresce {
   max-width: 100%;
 }
 
-.ricerca-settimana input {
+/* `.toolbar` davanti: la regola generale delle barre (.toolbar input[type=search],
+   260px) vinceva e la casella finiva 20px prima del riquadro dei giorni. */
+.toolbar .ricerca-settimana input {
   width: 100%;
 }
 

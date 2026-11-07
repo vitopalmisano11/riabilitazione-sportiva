@@ -93,6 +93,7 @@ function ElencoDistretti({
 }): React.JSX.Element {
   const [nuovoAperto, setNuovoAperto] = useState(false)
   const [nome, setNome] = useState('')
+  const [ricerca, setRicerca] = useState('')
   const [edit, setEdit] = useState<{ id: number; nome: string } | null>(null)
 
   const run = async (fn: () => Promise<unknown>): Promise<void> => {
@@ -135,6 +136,9 @@ function ElencoDistretti({
     })
   }
 
+  const q = ricerca.trim().toLowerCase()
+  const filtrati = ordine.filter((d) => q === '' || d.nome.toLowerCase().includes(q))
+
   return (
     <section className="card step-card">
       <div className="step-head">
@@ -142,25 +146,36 @@ function ElencoDistretti({
           <span className="step-num">1</span>
           <h3>Scegli il distretto</h3>
         </div>
-        <button
-          className="primary btn-icona"
-          title="Aggiungi un distretto"
-          onClick={() => setNuovoAperto(true)}
-        >
-          <Plus size={18} />
-        </button>
+        <div className="ricerca-con-azione">
+          <input
+            type="search"
+            className="ricerca-compatta"
+            placeholder="Cerca distretto…"
+            value={ricerca}
+            onChange={(e) => setRicerca(e.target.value)}
+          />
+          <button
+            className="primary btn-icona"
+            title="Aggiungi un distretto"
+            onClick={() => setNuovoAperto(true)}
+          >
+            <Plus size={18} />
+          </button>
+        </div>
       </div>
 
       <div className="scelta-tiles">
-        {ordine.map((d, idx) => {
-          const dnd = contenitore(idx)
+        {filtrati.map((d, idx) => {
+          // Con la ricerca accesa l'ordine non si cambia: la posizione nell'elenco
+          // filtrato non e' quella vera.
+          const dnd = q === '' ? contenitore(idx) : undefined
           return (
             <div
               key={d.id}
               {...dnd}
-              {...presa(idx)}
-              className={['scelta-tile', dnd.className].filter(Boolean).join(' ')}
-              title="Apri · trascina per spostare"
+              {...(dnd ? presa(idx) : {})}
+              className={['scelta-tile', dnd?.className].filter(Boolean).join(' ')}
+              title={q === '' ? 'Apri · trascina per spostare' : 'Apri'}
               onClick={() => onApri(d.id)}
             >
               {edit && edit.id === d.id ? (
@@ -208,9 +223,9 @@ function ElencoDistretti({
           )
         })}
       </div>
-      {distretti.length === 0 && (
+      {filtrati.length === 0 && (
         <p className="hint">
-          Nessun distretto.
+          {distretti.length === 0 ? 'Nessun distretto.' : 'Nessun risultato per la ricerca.'}
         </p>
       )}
 

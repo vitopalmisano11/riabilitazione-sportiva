@@ -171,26 +171,35 @@ export default function AnamnesiPaziente({
         </div>
       </div>
 
-      <ul className="sedute-list">
-        <RigaRiassunto
-          nome="Anamnesi prossima"
-          testo={riassunti.prossima}
-          onApri={() => setProssima(true)}
-          onAnteprima={() => void anteprima('anamnesi')}
-        />
-        <RigaRiassunto
-          nome="Anamnesi remota"
-          testo={riassunti.remota}
-          onApri={() => setRemota(true)}
-          onAnteprima={() => void anteprima('remota')}
-        />
-        <RigaRiassunto
-          nome="Obiettivi terapeutici"
-          testo={riassunti.obiettivi}
-          onApri={() => setObiettivi(true)}
-          onAnteprima={() => void anteprima('obiettivi')}
-        />
-      </ul>
+      {/* Le schede vuote non compaiono: si aprono dai pulsanti in alto. */}
+      {(riassunti.prossima || riassunti.remota || riassunti.obiettivi) && (
+        <ul className="sedute-list">
+          {riassunti.prossima && (
+            <RigaRiassunto
+              nome="Anamnesi prossima"
+              testo={riassunti.prossima}
+              onApri={() => setProssima(true)}
+              onAnteprima={() => void anteprima('anamnesi')}
+            />
+          )}
+          {riassunti.remota && (
+            <RigaRiassunto
+              nome="Anamnesi remota"
+              testo={riassunti.remota}
+              onApri={() => setRemota(true)}
+              onAnteprima={() => void anteprima('remota')}
+            />
+          )}
+          {riassunti.obiettivi && (
+            <RigaRiassunto
+              nome="Obiettivi terapeutici"
+              testo={riassunti.obiettivi}
+              onApri={() => setObiettivi(true)}
+              onAnteprima={() => void anteprima('obiettivi')}
+            />
+          )}
+        </ul>
+      )}
 
       {charts.length > 0 && (
         <ul className="sedute-list">

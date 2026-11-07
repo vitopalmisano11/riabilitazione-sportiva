@@ -107,7 +107,7 @@ import {
   segniDellaSeduta
 } from './segni'
 import { eliminaBozza, leggiBozza, salvaBozza } from './bozze'
-import { doseSettimana, leggiDoseFase, salvaDoseFase } from './dose'
+import { caricoPaziente, doseSettimana, leggiDoseFase, salvaDoseFase } from './dose'
 import type { DoseFase, TipoLavoro } from '../shared/dose'
 import { cercaInArchivio } from './ricerca'
 import { aggiungiReferto, elencoReferti, eliminaReferto, leggiReferto, PESO_MASSIMO_REFERTO } from './referti'
@@ -1224,6 +1224,7 @@ export function registerIpc(): void {
     impostaProgressioniFase(faseId, dati)
   )
   handle('dose:fase', (faseId: number) => leggiDoseFase(faseId))
+  handle('dose:caricoPaziente', (pazienteId: number) => caricoPaziente(pazienteId))
   handle('dose:impostaFase', (faseId: number, dosi: DoseFase[]) => salvaDoseFase(faseId, dosi))
   handle('dose:settimana', (pazienteId: number, data: string, sedutaId: number | null) =>
     doseSettimana(pazienteId, data, sedutaId)

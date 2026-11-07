@@ -164,9 +164,7 @@ export default function ObiettiviTerapeutici({
           </button>
         </div>
 
-        {lista.length === 0 ? (
-          <p className="hint">Nessun obiettivo.</p>
-        ) : (
+        {lista.length === 0 ? null : (
           TERMINI.filter((t) => lista.some((o) => o.termine === t.valore)).map((t) => (
             <div key={t.valore} className="blocco-impostazione">
               <div className="sotto-titolo">{t.etichetta}</div>

@@ -106,9 +106,7 @@ export default function ValutazionePaziente({
           Nessun distretto configurato: creane uno in Configurazione, &ldquo;Distretti&rdquo;, con i
           suoi movimenti e test.
         </p>
-      ) : elenco.length === 0 ? (
-        <p className="hint">Nessuna valutazione obiettiva.</p>
-      ) : (
+      ) : elenco.length === 0 ? null : (
         <ul className="sedute-list">
           {elenco.map((v) => (
             <li key={v.id}>
