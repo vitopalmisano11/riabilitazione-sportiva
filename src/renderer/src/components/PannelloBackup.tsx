@@ -17,11 +17,12 @@ import { toast, toastErrore } from './Toast'
 import { chiedi } from './Conferma'
 import { errMsg, formatData } from '../lib'
 import { avvisoCopiaFuori } from '../../../shared/copie'
+import { daPrecarico, ricorda } from '../precarico'
 
 // Copie di sicurezza dell'archivio. Ogni copia contiene il database cifrato e
 // il file delle chiavi: servono entrambi, uno solo non riapre niente.
 export default function PannelloBackup(): React.JSX.Element {
-  const [info, setInfo] = useState<InfoBackup | null>(null)
+  const [info, setInfo] = useState<InfoBackup | null>(() => daPrecarico('backupInfo', null))
   const [menuCopia, setMenuCopia] = useState(false)
   // Le copie si fanno senza bloccare il programma: intanto il pulsante lo dice,
   // e non ne fa partire un'altra.
@@ -31,7 +32,7 @@ export default function PannelloBackup(): React.JSX.Element {
   const [esiti, setEsiti] = useState<Record<string, EsitoControllo | 'attesa'>>({})
 
   const carica = useCallback(
-    (): Promise<void> => window.api.backup.info().then(setInfo),
+    (): Promise<void> => window.api.backup.info().then(ricorda<InfoBackup>('backupInfo')).then(setInfo),
     []
   )
 
@@ -41,16 +42,18 @@ export default function PannelloBackup(): React.JSX.Element {
 
   // La domanda di recupero apre l'archivio come la password: se le copie stanno
   // online, chi le ottenesse potrebbe provare a indovinarne la risposta.
-  const [conDomanda, setConDomanda] = useState(false)
+  const [conDomanda, setConDomanda] = useState(() => daPrecarico<string | null>('domanda', null) != null)
   // Lo stesso per una password corta: online, la si prova all'infinito.
-  const [passwordDebole, setPasswordDebole] = useState(false)
+  const [passwordDebole, setPasswordDebole] = useState(() => daPrecarico('passwordDebole', false))
   useEffect(() => {
     window.api.auth
       .domanda()
+      .then(ricorda<string | null>('domanda'))
       .then((d) => setConDomanda(d != null))
       .catch(() => undefined)
     window.api.auth
       .passwordDebole()
+      .then(ricorda<boolean>('passwordDebole'))
       .then(setPasswordDebole)
       .catch(() => undefined)
   }, [])

@@ -6,6 +6,7 @@ import { FolderOpen, ShieldCheck } from 'lucide-react'
 import { toast, toastErrore } from '../../components/Toast'
 import { errMsg } from '../../lib'
 import { SchedaCestino } from './SchedaCestino'
+import { daPrecarico, ricorda } from '../../precarico'
 
 export function SchedaDati(): React.JSX.Element {
   const [esitoArchivio, setEsitoArchivio] = useState<EsitoArchivio | null>(null)
@@ -22,11 +23,13 @@ export function SchedaDati(): React.JSX.Element {
     }
   }
 
-  const [cartella, setCartella] = useState('')
-  const [cartellaExport, setCartellaExport] = useState('')
+  const iniziale = daPrecarico<{ cartella: string; cartellaExport: string } | null>('impostazioniInfo', null)
+  const [cartella, setCartella] = useState(iniziale?.cartella ?? '')
+  const [cartellaExport, setCartellaExport] = useState(iniziale?.cartellaExport ?? '')
 
   useEffect(() => {
     void window.api.impostazioni.info().then((i) => {
+      ricorda('impostazioniInfo')(i)
       setCartella(i.cartella)
       setCartellaExport(i.cartellaExport)
     })

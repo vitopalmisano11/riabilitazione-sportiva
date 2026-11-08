@@ -105,7 +105,7 @@ Specifica originale e feedback dell'utente sono nei file `prompt-*.md` alla radi
   `pages/impostazioni/` (una scheda per file), `components/anamnesi/` e `components/valutazione/`. Il
   file di prima (es. `PazientiPage.tsx`) resta il punto d'ingresso e tiene stato e caricamento.
 - La **Guida** (Impostazioni → Guida, `pages/impostazioni/SchedaGuida.tsx`) spiega a chi usa il programma le
-  funzioni che si usano di rado e si dimenticano: elenco a sinistra, campo di ricerca, testo a destra. I testi
+  funzioni che si usano di rado e si dimenticano: campo di ricerca e un elenco a righe come quello dei pazienti; un clic su un titolo apre il testo in una finestra (`Modale`). I testi
   sono dati, una voce per file in `pages/impostazioni/guida/argomenti/` (formato in `guida/modello.ts`,
   `**grassetto**` per i nomi di pulsanti e linguette; la ricerca è in `guida/ricerca.ts`), raccolti in
   `guida/contenuti.ts`. **Chi cambia una di queste funzioni (esercizi e varianti, progressioni, dose, patologie

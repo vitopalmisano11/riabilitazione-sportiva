@@ -1,12 +1,14 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
-import { Search, X } from 'lucide-react'
+import { Fragment, useMemo, useState } from 'react'
+import { ChevronRight, Search, X } from 'lucide-react'
 import type { ArgomentoGuida, ElementoGuida } from './guida/modello'
 import { ARGOMENTI } from './guida/contenuti'
 import { cercaArgomenti, evidenzia, paroleCercate, vociPercorso } from './guida/ricerca'
+import Modale from '../../components/Modale'
+import { useScorciatoie } from '../../scorciatoie'
 
-// La guida: per le funzioni che si usano di rado e si dimenticano. A sinistra
-// l'elenco degli argomenti e il campo per cercare, a destra la voce scelta.
-// I testi sono in guida/contenuti.ts.
+// La guida: per le funzioni che si usano di rado e si dimenticano. Un elenco di
+// argomenti (come quello dei pazienti) con il campo per cercare: un clic su un
+// titolo apre la finestra con la spiegazione. I testi sono in guida/contenuti.ts.
 
 // Le parole cercate colorate dentro un pezzo di testo.
 function Colorato({ testo, parole }: { testo: string; parole: string[] }): React.JSX.Element {
@@ -88,77 +90,69 @@ function Elemento({
 
 export function SchedaGuida(): React.JSX.Element {
   const [ricerca, setRicerca] = useState('')
-  const [scelto, setScelto] = useState(ARGOMENTI[0].id)
-  const testoRef = useRef<HTMLDivElement>(null)
-
-  // Scrivendo si apre la voce che risponde meglio; cancellando tutto resta
-  // aperta quella che si stava leggendo.
-  const cambiaRicerca = (testo: string): void => {
-    setRicerca(testo)
-    const migliore = cercaArgomenti(ARGOMENTI, testo)[0]
-    if (migliore && paroleCercate(testo).length > 0) setScelto(migliore.id)
-  }
+  const [apertoId, setApertoId] = useState<string | null>(null)
 
   const trovati = useMemo(() => cercaArgomenti(ARGOMENTI, ricerca), [ricerca])
   const parole = useMemo(() => paroleCercate(ricerca), [ricerca])
-  // Se la voce aperta non risponde piu' alla ricerca si apre la prima che risponde.
-  const aperta: ArgomentoGuida | undefined = trovati.find((a) => a.id === scelto) ?? trovati[0]
+  const aperto: ArgomentoGuida | undefined = ARGOMENTI.find((a) => a.id === apertoId)
 
-  // Cambiando voce il testo riparte dall'alto.
-  useEffect(() => {
-    testoRef.current?.scrollTo({ top: 0 })
-  }, [aperta?.id])
+  useScorciatoie([{ tasto: 'Escape', azione: () => setApertoId(null), attiva: aperto != null }])
 
   return (
     <section className="card guida">
-      <div className="guida-elenco">
-        <div className="guida-ricerca">
-          <Search size={15} />
-          <input
-            type="text"
-            value={ricerca}
-            placeholder="Cerca nella guida…"
-            aria-label="Cerca nella guida"
-            onChange={(e) => cambiaRicerca(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape' && ricerca !== '') {
-                e.stopPropagation()
-                cambiaRicerca('')
-              }
-            }}
-          />
-          {ricerca !== '' && (
-            <button className="guida-svuota" title="Cancella la ricerca" onClick={() => cambiaRicerca('')}>
-              <X size={14} />
-            </button>
-          )}
-        </div>
-        <p className="guida-legenda">
-          <Testo testo="Dove vedi [[A > B > C]] clicca in questo ordine." parole={[]} />
-        </p>
-        {trovati.length === 0 ? (
-          <p className="guida-nessuno">Nessun argomento parla di «{ricerca.trim()}».</p>
-        ) : (
-          <nav className="guida-voci" aria-label="Argomenti della guida">
-            {trovati.map((a) => (
-              <button
-                key={a.id}
-                className={a.id === aperta?.id ? 'guida-voce attiva' : 'guida-voce'}
-                onClick={() => setScelto(a.id)}
-              >
-                <span className="guida-voce-titolo">{a.titolo}</span>
-                <span className="guida-voce-breve">{a.breve}</span>
-              </button>
-            ))}
-          </nav>
+      <div className="guida-ricerca">
+        <Search size={15} />
+        <input
+          type="text"
+          value={ricerca}
+          placeholder="Cerca nella guida…"
+          aria-label="Cerca nella guida"
+          onChange={(e) => setRicerca(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape' && ricerca !== '') {
+              e.stopPropagation()
+              setRicerca('')
+            }
+          }}
+        />
+        {ricerca !== '' && (
+          <button className="guida-svuota" title="Cancella la ricerca" onClick={() => setRicerca('')}>
+            <X size={14} />
+          </button>
         )}
       </div>
+      <p className="guida-legenda">
+        <Testo testo="Clicca un argomento per leggerlo. Dove vedi [[A > B > C]] clicca in questo ordine." parole={[]} />
+      </p>
 
-      <div className="guida-testo" ref={testoRef}>
-        {aperta && (
-          <>
-            <h3>{aperta.titolo}</h3>
-            {aperta.blocchi.map((b) => (
+      {trovati.length === 0 ? (
+        <p className="guida-nessuno">Nessun argomento parla di «{ricerca.trim()}».</p>
+      ) : (
+        <nav className="guida-righe" aria-label="Argomenti della guida">
+          {trovati.map((a) => (
+            <button key={a.id} className="guida-riga" onClick={() => setApertoId(a.id)}>
+              <span className="guida-riga-titolo">{a.titolo}</span>
+              <span className="guida-riga-breve">{a.breve}</span>
+              <ChevronRight size={18} className="guida-riga-freccia" aria-hidden="true" />
+            </button>
+          ))}
+        </nav>
+      )}
+
+      {aperto && (
+        <Modale
+          className="modal-lg modal-guida"
+          overlayClassName="modal-overlay-contenuto"
+          onConferma={() => setApertoId(null)}
+        >
+          <div className="modal-testata">
+            <h3>{aperto.titolo}</h3>
+            <button className="primary" onClick={() => setApertoId(null)}>
+              Chiudi
+            </button>
+          </div>
+          <div className="guida-testo">
+            {aperto.blocchi.map((b) => (
               <div key={b.titolo} className="guida-blocco">
                 <div className="sotto-titolo">
                   <Testo testo={b.titolo} parole={parole} />
@@ -168,9 +162,9 @@ export function SchedaGuida(): React.JSX.Element {
                 ))}
               </div>
             ))}
-          </>
-        )}
-      </div>
+          </div>
+        </Modale>
+      )}
     </section>
   )
 }

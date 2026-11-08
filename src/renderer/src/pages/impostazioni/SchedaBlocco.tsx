@@ -3,6 +3,7 @@ import Aiuto from '../../components/Aiuto'
 import { Minus, Plus, RotateCcw } from 'lucide-react'
 import { toastErrore } from '../../components/Toast'
 import { errMsg } from '../../lib'
+import { daPrecarico, ricorda } from '../../precarico'
 
 // Blocco automatico: l'app torna alla password dopo un po' che non la tocchi.
 // Sta accanto al cambio password perche' e' la stessa domanda — chi puo' entrare
@@ -14,11 +15,16 @@ export function SchedaBlocco({
   ingrandimento: number
   onIngrandimento: (valore: number) => void
 }): React.JSX.Element {
-  const [attivo, setAttivo] = useState(false)
-  const [minuti, setMinuti] = useState(15)
+  const iniziale = daPrecarico<{ attivo: boolean; minuti: number }>('blocco', {
+    attivo: false,
+    minuti: 15
+  })
+  const [attivo, setAttivo] = useState(iniziale.attivo)
+  const [minuti, setMinuti] = useState(iniziale.minuti)
 
   useEffect(() => {
     void window.api.sicurezza.blocco().then((b) => {
+      ricorda('blocco')(b)
       setAttivo(b.attivo)
       setMinuti(b.minuti)
     })
@@ -27,6 +33,7 @@ export function SchedaBlocco({
   const salva = (nuovo: { attivo: boolean; minuti: number }): void => {
     setAttivo(nuovo.attivo)
     setMinuti(nuovo.minuti)
+    ricorda('blocco')(nuovo)
     window.api.sicurezza.setBlocco(nuovo).catch((e) => toastErrore(errMsg(e)))
   }
 

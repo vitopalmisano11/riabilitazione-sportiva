@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react'
 import Aiuto from '../../components/Aiuto'
 import { toast, toastErrore } from '../../components/Toast'
 import { errMsg } from '../../lib'
+import { daPrecarico, ricorda } from '../../precarico'
 
 // Come si rientra se si dimentica la password. La chiave di recupero c'e'
 // sempre, dal primo avvio. In piu' si puo' impostare una domanda: e' piu' comoda
 // da ricordare, ma meno sicura della chiave, quindi si aggiunge a lei e non la
 // sostituisce. Per impostarla o toglierla serve la password di adesso.
 export function SchedaRecupero(): React.JSX.Element {
-  const [domanda, setDomanda] = useState<string | null>(null)
+  const [domanda, setDomanda] = useState<string | null>(() => daPrecarico<string | null>('domanda', null))
   const [modo, setModo] = useState<'vedi' | 'imposta' | 'togli'>('vedi')
   const [testo, setTesto] = useState('')
   const [risposta, setRisposta] = useState('')
@@ -19,6 +20,7 @@ export function SchedaRecupero(): React.JSX.Element {
   const carica = (): void => {
     window.api.auth
       .domanda()
+      .then(ricorda<string | null>('domanda'))
       .then(setDomanda)
       .catch((e) => toastErrore(errMsg(e)))
   }

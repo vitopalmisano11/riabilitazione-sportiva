@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { Tema } from '../../../shared/temi'
 import type { Profilo } from '../../../shared/types'
+import { precaricaImpostazioni } from '../precarico'
 import { SchedaDati } from './impostazioni/SchedaDati'
 import { SchedaProfilo } from './impostazioni/SchedaProfilo'
 import { SchedaRecupero } from './impostazioni/SchedaRecupero'
@@ -59,6 +60,11 @@ export default function ImpostazioniPage({
 }): React.JSX.Element {
   // Aprendo Impostazioni si arriva sulla prima scheda, come in configurazione.
   const [scheda, setScheda] = useState<Scheda>('profilo')
+
+  // Entrando si rileggono i dati di «Dati e backup»: la scheda li trova gia' pronti.
+  useEffect(() => {
+    void precaricaImpostazioni()
+  }, [])
 
   useEffect(() => {
     if (tornaAllInizio === 0) return

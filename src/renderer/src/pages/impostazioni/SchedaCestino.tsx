@@ -5,16 +5,18 @@ import { toast, toastErrore } from '../../components/Toast'
 import { chiedi } from '../../components/Conferma'
 import { errMsg } from '../../lib'
 import { COSA_RESTA_NELLE_COPIE } from '../../testiCancellazione'
+import { daPrecarico, ricorda } from '../../precarico'
 
 // Quello che hai eliminato di recente, con il pulsante per rimetterlo dov'era.
 // Dopo un mese si svuota da solo: e' una rete per gli sbagli di ieri, non un
 // secondo archivio.
 export function SchedaCestino(): React.JSX.Element {
-  const [voci, setVoci] = useState<VoceCestino[]>([])
+  const [voci, setVoci] = useState<VoceCestino[]>(() => daPrecarico('cestino', []))
 
   const carica = (): void => {
     void window.api.cestino
       .list()
+      .then(ricorda<VoceCestino[]>('cestino'))
       .then(setVoci)
       .catch((e) => toastErrore(errMsg(e)))
   }

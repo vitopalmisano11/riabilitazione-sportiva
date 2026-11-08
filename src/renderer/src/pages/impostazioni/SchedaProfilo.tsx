@@ -6,6 +6,7 @@ import { useSalvataggio } from '../../salvataggio'
 import { IdCard } from 'lucide-react'
 import { toast, toastErrore } from '../../components/Toast'
 import { errMsg } from '../../lib'
+import { daPrecarico, ricorda } from '../../precarico'
 
 // Chi firma i fogli stampati: si compila una volta, e da quel momento ogni
 // documento esce con il tuo nome invece che anonimo.
@@ -43,7 +44,7 @@ const PROFILO_VUOTO: Profilo = {
 }
 
 export function SchedaProfilo(): React.JSX.Element {
-  const [profilo, setProfilo] = useState<Profilo>(PROFILO_VUOTO)
+  const [profilo, setProfilo] = useState<Profilo>(() => daPrecarico('profilo', PROFILO_VUOTO))
   const [salvato, setSalvato] = useState(true)
   // uscendo dalla scheda, o chiudendo il programma, si salva da solo
   const salvataggio = useSalvataggio(!salvato)
@@ -51,6 +52,7 @@ export function SchedaProfilo(): React.JSX.Element {
   useEffect(() => {
     void window.api.profilo
       .leggi()
+      .then(ricorda<Profilo>('profilo'))
       .then((p) => setProfilo(p))
       .catch((e) => toastErrore(errMsg(e)))
   }, [])
@@ -63,6 +65,7 @@ export function SchedaProfilo(): React.JSX.Element {
   const salva = async (): Promise<boolean> => {
     try {
       await window.api.profilo.salva(profilo)
+      ricorda<Profilo>('profilo')(profilo)
       setSalvato(true)
       toast('Profilo salvato.')
       return true

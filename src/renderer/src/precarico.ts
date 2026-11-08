@@ -21,6 +21,25 @@ export const ricorda =
     return valore
   }
 
+// Quello che si legge aprendo Impostazioni: il profilo, il blocco e la domanda di
+// recupero, e per «Dati e backup» le copie, le cartelle, il cestino e l'avviso
+// sulla password. Come sopra: la scheda parte da
+// quello che c'e' qui e lo rilegge in silenzio, senza il «Caricamento…».
+export async function precaricaImpostazioni(): Promise<void> {
+  const api = window.api
+  const leggi = <T,>(chiave: string, lettura: Promise<T>): Promise<unknown> =>
+    lettura.then(ricorda<T>(chiave)).catch(() => undefined)
+  await Promise.all([
+    leggi('backupInfo', api.backup.info()),
+    leggi('impostazioniInfo', api.impostazioni.info()),
+    leggi('cestino', api.cestino.list()),
+    leggi('profilo', api.profilo.leggi()),
+    leggi('blocco', api.sicurezza.blocco()),
+    leggi('domanda', api.auth.domanda()),
+    leggi('passwordDebole', api.auth.passwordDebole())
+  ])
+}
+
 export async function precaricaConfigurazione(): Promise<void> {
   const api = window.api
   const leggi = <T,>(chiave: string, lettura: Promise<T>): Promise<unknown> =>

@@ -33,7 +33,7 @@ import type { Tema } from '../../shared/temi'
 import type { StatoAggiornamento } from '../../shared/types'
 import { chiedi } from './components/Conferma'
 import LogoApp from './components/LogoApp'
-import { precaricaConfigurazione } from './precarico'
+import { precaricaConfigurazione, precaricaImpostazioni } from './precarico'
 
 type Sezione =
   | 'settimana'
@@ -131,7 +131,10 @@ export default function App(): React.JSX.Element {
   // Appena il programma e' sbloccato si leggono gli elenchi della configurazione,
   // cosi' la prima volta che si apre una linguetta le schede ci sono gia'.
   useEffect(() => {
-    if (sbloccata) void precaricaConfigurazione()
+    if (sbloccata) {
+      void precaricaConfigurazione()
+      void precaricaImpostazioni()
+    }
   }, [sbloccata])
 
   useEffect(() => {
