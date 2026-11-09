@@ -69,6 +69,20 @@ test('Il monopodalico si legge accanto al nome, solo dove e\' segnato', async ()
   assert.ok((await zip.file('word/document.xml')!.async('string')).includes('Squat monopodalico'))
 })
 
+// A due gambe sulla scheda non si scrive niente, nemmeno "bipodalico".
+test('A due gambe sulla scheda non si scrive niente', () => {
+  const [prima, ...altri] = seduteExport[0].sezioni[0].esercizi
+  const sedute = [
+    {
+      ...seduteExport[0],
+      sezioni: [{ nome: 'Forza', esercizi: [{ ...prima, nome: 'Squat', monopodalico: 0 as const }, ...altri] }]
+    }
+  ]
+  const html = generaHtml(pazExport, sedute)
+  assert.ok(html.includes('<span class="nome">Squat</span>'))
+  assert.ok(!html.includes('podalico'))
+})
+
 // La scheda illustrata, da consegnare a chi si allena da solo: foto, come si
 // esegue e il link al video, che nel PDF resta cliccabile.
 const conFoto = [

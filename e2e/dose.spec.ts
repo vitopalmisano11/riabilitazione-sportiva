@@ -1,7 +1,7 @@
 // La dose della fase e il monopodalico, gesto per gesto: la categoria si conta
 // come pliometria o forza, la fase prende i numeri degli appunti con un clic, il
 // paziente ha le sue sedute a settimana, e in seduta una riga sola dice se ci
-// siamo. Il bottoncino "1 gamba" c'e' solo sugli esercizi a scelta.
+// siamo. Il bottoncino Bipodalico/Monopodalico c'e' solo sugli esercizi a scelta.
 import { test, expect, type Page } from '@playwright/test'
 import { join } from 'node:path'
 import { avvia, creaArchivio, FOTO, vaiA } from './app'
@@ -123,8 +123,8 @@ test('dose: la categoria si conta, la fase prende i numeri, la seduta dice se ci
     await expect(riga(pagina, 'Single leg hop').locator('.btn-monopodalico')).toHaveCount(0)
     // single leg hop 3 × 10 a una gamba = 60, broad jump 2 × 15 = 30
     await expect(dose.locator('.voce-dose', { hasText: 'Pliometria' })).toHaveText(/90/)
-    await riga(pagina, 'Broad jump').getByRole('button', { name: '1 gamba' }).click()
-    await expect(riga(pagina, 'Broad jump').getByRole('button', { name: 'monopodalico' })).toBeVisible()
+    await riga(pagina, 'Broad jump').getByRole('button', { name: 'Bipodalico' }).click()
+    await expect(riga(pagina, 'Broad jump').getByRole('button', { name: 'Monopodalico' })).toBeVisible()
     await expect(dose.locator('.voce-dose', { hasText: 'Pliometria' })).toHaveText(/120/)
     await expect(dose.locator('.voce-dose', { hasText: 'Pliometria' })).toHaveClass(/ok/)
 
@@ -141,7 +141,7 @@ test('dose: la categoria si conta, la fase prende i numeri, la seduta dice se ci
     await apriPaziente(pagina)
     await pagina.getByRole('button', { name: 'Diario sedute' }).click()
     await pagina.getByTitle('Modifica la seduta').first().click()
-    await expect(riga(pagina, 'Broad jump').getByRole('button', { name: 'monopodalico' })).toBeVisible()
+    await expect(riga(pagina, 'Broad jump').getByRole('button', { name: 'Monopodalico' })).toBeVisible()
     await pagina.getByRole('button', { name: 'Annulla' }).first().click()
 
     expect(prova.errori, 'errori nella console').toEqual([])

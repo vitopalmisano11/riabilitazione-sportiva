@@ -449,8 +449,8 @@
   width: 64px;
 }
 
-/* Il segno "a una gamba": spento e' un bottoncino che quasi non si vede,
-   acceso ha i colori della variante scelta. */
+/* La modalita' in corso, "Bipodalico" o "Monopodalico": spenta (bipodalico) e'
+   un bottoncino che quasi non si vede, accesa ha i colori della variante scelta. */
 .btn-monopodalico {
   flex: none;
   padding: 3px 9px;

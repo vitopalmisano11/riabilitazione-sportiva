@@ -80,16 +80,17 @@ function RigaSeduta({
           )}
         </span>
         {/* Solo sugli esercizi che in libreria si fanno "a scelta" a una o due
-            gambe (o su una riga gia' segnata): spento e' un bottoncino grigio,
-            acceso si legge "monopodalico", come poi sulla scheda. */}
+            gambe (o su una riga gia' segnata): il testo e' la modalita' in
+            corso, "Bipodalico" (grigio) o "Monopodalico" (acceso); il clic passa
+            all'altra. Sulla scheda si scrive solo "monopodalico". */}
         {(gambe === 'scelta' || mono) && (
           <button
             className={`btn-monopodalico${mono ? ' acceso' : ''}`}
             aria-pressed={mono}
-            title={mono ? 'A una gamba: clic per tornare a due' : 'Fallo a una gamba (monopodalico)'}
+            title={mono ? 'Monopodalico: clic per passare a bipodalico' : 'Bipodalico: clic per passare a monopodalico'}
             onClick={() => invia({ tipo: 'monopodalico', sez, riga: indice, valore: !mono })}
           >
-            {mono ? 'monopodalico' : '1 gamba'}
+            {mono ? 'Monopodalico' : 'Bipodalico'}
           </button>
         )}
         {/* Il menu compare solo sugli esercizi che hanno delle varianti (o su una

@@ -62,7 +62,7 @@ export const esercizi: ArgomentoGuida = {
       elementi: [
         {
           punti: [
-            'Esercizio **A scelta**: nella sua riga c’è il bottoncino **1 gamba**. Acceso, sulla scheda il nome diventa per esempio «Squat monopodalico». Con **Sempre una** o **Due** il bottone non c’è.',
+            'Esercizio **A scelta**: nella sua riga c’è un bottoncino che mostra la modalità in corso, **Bipodalico** o **Monopodalico**: premilo per passare all’altra. Sulla scheda non si scrive niente finché è bipodalico; se passa a **Monopodalico** il nome diventa per esempio «Squat monopodalico». Con **Sempre una** o **Due** il bottone non c’è.',
             'Esercizio con varianti: nella riga c’è il menu **normale ▾**. Scegli una variante e sulla scheda si legge sotto il nome. **normale** vuol dire nessuna variante e sulla scheda non si scrive niente.',
             'Se un esercizio non ha varianti, il menu non compare.',
             'Vale per PDF, Word, finestra della scheda e CSV.'

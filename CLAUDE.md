@@ -72,10 +72,11 @@ Specifica originale e feedback dell'utente sono nei file `prompt-*.md` alla radi
   settimane con il carico: calcolo in `shared/carico-settimane.ts`, lettura `caricoPaziente` in
   `main/dose.ts`, prove in `test/carico-settimane.test.ts` ed `e2e/carico.spec.ts`. Solo a video.
 - **Monopodalico**: l'esercizio in libreria ha `gambe` (`due` / `scelta` / `una`). Su quelli «a
-  scelta» la riga della seduta ha il bottoncino «1 gamba»; acceso si salva sulla riga
+  scelta» la riga della seduta ha un bottoncino che mostra la modalità in corso («Bipodalico» / «Monopodalico»; il clic passa all'altra); «Monopodalico» si salva sulla riga
   (`seduta_esercizi.monopodalico`, fotografato come la dose: si copia, si ricopia dall'ultima volta) e
   sulla scheda si legge accanto al nome, «Squat monopodalico» (`nomeConMonopodalico` in
-  `shared/varianti.ts`). Gli esercizi «sempre una» non scrivono niente: lo dice già il nome.
+  `shared/varianti.ts`); a due gambe sulla scheda non si scrive niente (il «Bipodalico» è solo sul
+  bottone). Gli esercizi «sempre una» non scrivono niente: lo dice già il nome.
 - I test con la pedana di forza (file `*.pedana.json` della Balance Squat App, contratto in
   `docs/formato-pedana.md`, esempio vero in `docs/esempio.pedana.json`) hanno un archivio proprio, NON
   righe di screening: `main/pedana.ts` (anteprima con candidati paziente, importazione senza doppioni
