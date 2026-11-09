@@ -1,8 +1,9 @@
 import { memo } from 'react'
 import { CornerDownLeft, ImageIcon, Video, X } from 'lucide-react'
-import type { UltimaVolta, VarianteEsercizio } from '../../../../shared/types'
+import type { Massimale, UltimaVolta, VarianteEsercizio } from '../../../../shared/types'
 import type { Gambe } from '../../../../shared/dose'
 import type { PropsContenitore, PropsPresa } from '../../riordino'
+import { testoMassimale } from '../../../../shared/massimali'
 import { errMsg, formatData } from '../../lib'
 import { toast, toastErrore } from '../Toast'
 import { testoUltima, type AzioneSezioni, type CampoRiga, type RigaBuilder } from './modello'
@@ -20,6 +21,8 @@ interface Props {
   gambe: Gambe | null
   // cosa aveva fatto l'ultima volta, se c'e' da mostrarlo
   ultima: UltimaVolta | undefined
+  // i massimali segnati per questo esercizio, se ce ne sono
+  massimali: Massimale[] | undefined
   dnd: PropsContenitore
   presa: PropsPresa
   invia: (a: AzioneSezioni) => void
@@ -43,6 +46,7 @@ function RigaSeduta({
   varianti,
   gambe,
   ultima,
+  massimali,
   dnd,
   presa,
   invia,
@@ -191,6 +195,7 @@ function RigaSeduta({
         <div className="ultima-volta">
           <span className="ultima-quando">L&apos;ultima volta,{formatData(ultima.data)}:</span>
           <span className="ultima-dose">{testoUltima(r, ultima)}</span>
+          {ultima.nota?.trim() && <span className="ultima-nota">«{ultima.nota.trim()}»</span>}
           <button
             className="btn-piccolo"
             title="Rimetti questi numeri nella riga"
@@ -201,6 +206,18 @@ function RigaSeduta({
           >
             <CornerDownLeft size={14} /> Ricopia
           </button>
+        </div>
+      )}
+      {/* Il massimale, solo se e' segnato: "80%" si legge come peso senza
+          uscire dalla seduta. Per gli esercizi a una gamba, un lato per riga. */}
+      {massimali && massimali.length > 0 && (
+        <div className="ultima-volta massimale-seduta">
+          {massimali.map((m) => (
+            <span key={m.id}>
+              <span className="ultima-quando">massimale </span>
+              <span className="ultima-dose">{testoMassimale(m)}</span>
+            </span>
+          ))}
         </div>
       )}
     </li>
@@ -216,6 +233,7 @@ const uguali = (a: Props, b: Props): boolean =>
   a.varianti === b.varianti &&
   a.gambe === b.gambe &&
   a.ultima === b.ultima &&
+  a.massimali === b.massimali &&
   a.dnd.draggable === b.dnd.draggable &&
   a.dnd.className === b.dnd.className &&
   a.invia === b.invia &&

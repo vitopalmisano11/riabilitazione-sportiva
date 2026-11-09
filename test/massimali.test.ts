@@ -50,3 +50,12 @@ test('Massimale dalla velocita: serve una retta che scende, e gli avvisi dicono 
   assert.ok(sparsi)
   assert.ok(sparsi.avvisi.some((a) => a.includes('retta')) || sparsi.r2 >= 0.9)
 })
+
+test('Massimale sotto la riga della seduta: valore, lato e le tre percentuali', async () => {
+  const { testoMassimale } = await import('../src/shared/massimali')
+  assert.equal(testoMassimale({ valore: 100, unita: 'kg', lato: null }), '100 kg · 70% 70 · 80% 80 · 90% 90')
+  assert.equal(
+    testoMassimale({ valore: 82.5, unita: null, lato: 'dx' }),
+    'destro 82,5 kg · 70% 57,8 · 80% 66 · 90% 74,3'
+  )
+})

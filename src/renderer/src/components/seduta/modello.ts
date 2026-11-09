@@ -10,6 +10,7 @@ import type {
   EsercizioConCategoria,
   EsitoProgressione,
   EsitoSeduta,
+  Massimale,
   SedutaEsercizioDettaglio,
   SedutaInput,
   Segno,
@@ -435,6 +436,23 @@ export const mostraCluster = (r: { categoria_nome: string | null; cluster: strin
 // un numero c'e' gia'.
 export const mostraRir = (r: { categoria_nome: string | null; rir: string | null }, categorie: Categoria[]): boolean =>
   (r.rir ?? '') !== '' || categorie.some((c) => c.nome === r.categoria_nome && c.dosaggio_rir === 1)
+
+// L'ultimo massimale di ogni esercizio (e di ogni lato, per quelli a una
+// gamba), per leggerlo sotto alla riga mentre si prescrive il carico. Gli
+// esercizi senza un massimale segnato non compaiono: la riga non cambia. I
+// massimali arrivano dal piu' recente; i lati escono nell'ordine senza lato,
+// destro, sinistro.
+export function massimaliPerEsercizio(massimali: Massimale[]): Record<number, Massimale[]> {
+  const fuori: Record<number, Massimale[]> = {}
+  for (const m of massimali) {
+    if (m.esercizio_id == null || !(m.valore > 0)) continue
+    const lista = (fuori[m.esercizio_id] ??= [])
+    if (!lista.some((x) => x.lato === m.lato)) lista.push(m)
+  }
+  const ordine = (m: Massimale): number => (m.lato === 'dx' ? 1 : m.lato === 'sx' ? 2 : 0)
+  for (const lista of Object.values(fuori)) lista.sort((a, b) => ordine(a) - ordine(b))
+  return fuori
+}
 
 // Cosa aveva fatto l'ultima volta, gia' scritto come si legge.
 export const testoUltima = (r: SedutaEsercizioDettaglio, u: UltimaVolta): string =>

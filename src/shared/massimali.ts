@@ -81,3 +81,26 @@ export function stimaDaVelocita(punti: PuntoVelocita[], soglia: number): StimaVe
   }
   return { massimale: Math.round(massimale * 10) / 10, r2: Math.round(r2 * 1000) / 1000, avvisi }
 }
+
+// Le percentuali che si usano davvero per prescrivere la forza (le cinque
+// della scheda del paziente) e le tre piu' brevi che stanno sotto a ogni
+// esercizio mentre si compone la seduta.
+export const QUOTE_MASSIMALE = [70, 75, 80, 85, 90]
+export const QUOTE_IN_SEDUTA = [70, 80, 90]
+
+// Un numero come si legge: una cifra decimale al massimo, la virgola.
+export const numeroMassimale = (n: number): string => (Math.round(n * 10) / 10).toString().replace('.', ',')
+
+// Il massimale scritto per la seduta: "destro 100 kg · 70% 70 · 80% 80 · 90% 90".
+// Il lato compare solo dove c'e' (gli esercizi a una gamba).
+export function testoMassimale(
+  m: { valore: number; unita: string | null; lato: 'dx' | 'sx' | null },
+  quote: number[] = QUOTE_IN_SEDUTA
+): string {
+  const unita = m.unita ?? 'kg'
+  const lato = m.lato === 'dx' ? 'destro ' : m.lato === 'sx' ? 'sinistro ' : ''
+  return [
+    `${lato}${numeroMassimale(m.valore)} ${unita}`,
+    ...quote.map((q) => `${q}% ${numeroMassimale((m.valore * q) / 100)}`)
+  ].join(' · ')
+}

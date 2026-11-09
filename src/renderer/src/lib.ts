@@ -107,3 +107,14 @@ export const maiuscola = (testo: string): string =>
 export function etichettaPromemoria(tipo: 'questionario' | 'screening' | 'pedana'): string {
   return tipo === 'questionario' ? 'Questionario' : tipo === 'screening' ? 'Screening' : 'Test pedana'
 }
+
+// Una data aaaa-mm-gg spostata di qualche giorno (anche indietro), senza
+// passare da UTC.
+export function aggiungiGiorni(data: string, giorni: number): string {
+  const [a, m, g] = data.slice(0, 10).split('-').map(Number)
+  const d = new Date(a, m - 1, g + giorni)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+// Fra tante settimane da oggi: le scadenze che si propongono ai promemoria.
+export const fraSettimane = (n: number): string => aggiungiGiorni(oggiIso(), n * 7)

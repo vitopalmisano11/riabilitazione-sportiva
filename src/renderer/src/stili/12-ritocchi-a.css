@@ -760,6 +760,11 @@
   font-weight: 600;
 }
 
+.ultima-nota {
+  font-style: italic;
+  color: var(--text);
+}
+
 .ultima-volta .btn-piccolo {
   padding: 2px 8px;
   font-size: 13px;

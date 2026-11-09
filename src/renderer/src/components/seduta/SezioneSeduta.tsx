@@ -3,6 +3,7 @@ import { ImageIcon, Pencil, Plus, Video, X } from 'lucide-react'
 import type {
   Categoria,
   EsercizioConCategoria,
+  Massimale,
   StatoProgressione,
   UltimaVolta,
   VarianteEsercizio
@@ -39,6 +40,8 @@ interface Props {
   templateCats: Record<number, number[]>
   libreria: EsercizioConCategoria[]
   ultime: Record<number, UltimaVolta>
+  // l'ultimo massimale segnato di ogni esercizio
+  massimali: Record<number, Massimale[]>
   ricopiate: string[]
   // le progressioni della fase con lo step del paziente, e gli esercizi gia'
   // messi in seduta (in qualunque sezione)
@@ -67,6 +70,7 @@ export default function SezioneSeduta({
   templateCats,
   libreria,
   ultime,
+  massimali,
   ricopiate,
   progressioni,
   inSeduta,
@@ -165,7 +169,7 @@ export default function SezioneSeduta({
               id != null &&
               ultime[id] &&
               !ricopiate.includes(`${idxSez}:${id}`) &&
-              testoUltima(r, ultime[id]) !== ''
+              (testoUltima(r, ultime[id]) !== '' || (ultime[id].nota ?? '').trim() !== '')
                 ? ultime[id]
                 : undefined
             // Gli esercizi della stessa categoria restano vicini perche' e' li'
@@ -182,6 +186,7 @@ export default function SezioneSeduta({
                 varianti={libreria.find((x) => x.id === id)?.varianti ?? SENZA_VARIANTI}
                 gambe={libreria.find((x) => x.id === id)?.gambe ?? null}
                 ultima={ultima}
+                massimali={id != null ? massimali[id] : undefined}
                 dnd={riordinoRighe.contenitore(chiave)}
                 presa={riordinoRighe.presa(chiave)}
                 invia={invia}

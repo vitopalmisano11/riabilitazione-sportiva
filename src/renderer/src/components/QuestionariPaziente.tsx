@@ -11,6 +11,7 @@ import { chiedi } from './Conferma'
 import Modale from './Modale'
 import { errMsg, formatData } from '../lib'
 import CompilaQuestionario from './CompilaQuestionario'
+import RifarloFra from './RifarloFra'
 
 // Storico dei questionari compilati per il paziente, più la nuova compilazione.
 export default function QuestionariPaziente({
@@ -32,6 +33,8 @@ export default function QuestionariPaziente({
   // finestra finche' non se ne sceglie una
   const [scelta, setScelta] = useState(false)
   const [catScelta, setCatScelta] = useState<number | null>(null)
+  // dopo una compilazione nuova: rifarlo fra quanto?
+  const [rifare, setRifare] = useState<{ id: number; nome: string } | null>(null)
 
   const load = useCallback(async (): Promise<void> => {
     try {
@@ -245,9 +248,24 @@ export default function QuestionariPaziente({
           compilazione={aperto.modo === 'nuovo' ? null : aperto.compilazione}
           soloLettura={aperto.modo === 'vedi'}
           onChiudi={(compilazioneId) => {
+            const nuovo = aperto.modo === 'nuovo' ? aperto.questionarioId : null
             setAperto(null)
             if (compilazioneId != null) void load()
+            // solo per una compilazione nuova: correggerne una vecchia non apre un altro giro
+            if (compilazioneId != null && nuovo != null) {
+              setRifare({ id: nuovo, nome: disponibili.find((q) => q.id === nuovo)?.nome ?? 'questionario' })
+            }
           }}
+        />
+      )}
+
+      {rifare && (
+        <RifarloFra
+          pazienteId={paziente.id}
+          tipo="questionario"
+          riferimentoId={rifare.id}
+          nome={rifare.nome}
+          onChiudi={() => setRifare(null)}
         />
       )}
     </section>

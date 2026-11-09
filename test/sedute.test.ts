@@ -446,3 +446,13 @@ test('Il diario della seduta: cosa riferisce, trattamento, l\'ultima volta', () 
   assert.equal(nellaFascia('13:00', '15:00', alle(14)), true)
   assert.equal(nellaFascia('10:00', '10:00', alle(10)), false)
 })
+
+test("L'ultima volta porta anche la nota scritta sulla riga dell'esercizio", () => {
+  const { pz, input } = sedutaDiProva()
+  creaSeduta({
+    ...input,
+    esercizi: input.esercizi.map((e) => (e.esercizio_id != null ? { ...e, nota: 'compenso al terzo set' } : e))
+  })
+  const ultima = ultimaVoltaPerPaziente(pz, null, '2030-01-01').find((u) => u.esercizio_id != null)!
+  assert.equal(ultima.nota, 'compenso al terzo set')
+})

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Check, Plus, Trash2, X } from 'lucide-react'
 import type { EsercizioConCategoria, Massimale, PazienteDettaglio } from '../../../shared/types'
 import {
+  QUOTE_MASSIMALE,
   RIPETIZIONI_AFFIDABILI,
   SOGLIA_PREDEFINITA,
   SOGLIE_VELOCITA,
@@ -27,8 +28,7 @@ import { errMsg, formatData, oggiIso } from '../lib'
 // come prima, con i suggerimenti della libreria: se coincide con un esercizio
 // della libreria il massimale gli si lega da solo, senza un campo in piu'.
 
-// Le percentuali che si usano davvero per prescrivere la forza.
-const QUOTE = [70, 75, 80, 85, 90]
+const QUOTE = QUOTE_MASSIMALE
 
 const num = (v: string): number | null => {
   const t = v.trim().replace(',', '.')

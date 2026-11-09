@@ -449,6 +449,9 @@ export interface UltimaVolta {
   recupero: string | null
   variante: string | null
   monopodalico: 0 | 1
+  // La nota scritta sulla riga quella volta ("compenso al terzo set"): si legge
+  // sotto ai numeri, non si ricopia.
+  nota: string | null
 }
 
 export interface SedutaRiepilogo {

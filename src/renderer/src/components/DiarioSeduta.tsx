@@ -47,7 +47,9 @@ export function UltimaVoltaSeduta({
   const inBreve = [
     p.riferito_andamento ? NOME_ANDAMENTO[p.riferito_andamento] : null,
     p.tecniche.join(', ') || null,
-    p.dolore != null ? `dolore ${p.dolore}/10` : null
+    p.dolore != null ? `dolore ${p.dolore}/10` : null,
+    // la nota e' quella scritta apposta per ritrovarla: si legge anche a riga chiusa
+    p.note?.trim() ? `nota: ${p.note.trim().replace(/\s+/g, ' ')}` : null
   ]
     .filter(Boolean)
     .join(' · ')

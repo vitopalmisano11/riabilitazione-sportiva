@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type {
   SedutaPrecedente,
   Fase,
+  Massimale,
   Categoria,
   EsercizioConCategoria,
   Obiettivo,
@@ -17,6 +18,7 @@ import { chiedi } from './Conferma'
 import ImmagineEsercizio from './ImmagineEsercizio'
 import Modale from './Modale'
 import SpecchiettoProgressioni from './SpecchiettoProgressioni'
+import PromemoriaInVista from './PromemoriaInVista'
 import DiarioSeduta, { UltimaVoltaSeduta } from './DiarioSeduta'
 import { errMsg, oggiIso } from '../lib'
 import { useScorciatoie } from '../scorciatoie'
@@ -24,6 +26,7 @@ import { useSalvataggio } from '../salvataggio'
 import { useRiordino } from '../riordino'
 import {
   campiDaBozza,
+  massimaliPerEsercizio,
   categorieDellaSezione,
   contaSeduta,
   esitiDaSalvare,
@@ -69,6 +72,8 @@ interface Contesto {
   focusUsati: string[]
   // Cosa aveva fatto l'ultima volta, esercizio per esercizio.
   ultime: Record<number, UltimaVolta>
+  // L'ultimo massimale segnato di ogni esercizio, per leggerlo sotto alla riga.
+  massimali: Record<number, Massimale[]>
   // I segni di riferimento di questo paziente.
   segni: Segno[]
   obiettivi: Obiettivo[]
@@ -93,6 +98,7 @@ const CONTESTO_VUOTO: Contesto = {
   fasi: [],
   focusUsati: [],
   ultime: {},
+  massimali: {},
   segni: [],
   obiettivi: [],
   raggiunti: [],
@@ -162,14 +168,15 @@ export default function SedutaBuilder({
   useEffect(() => {
     void (async () => {
       try {
-        const [lib, cats, ragg, elencoFasi, usati, precedenti, elencoSegni] = await Promise.all([
+        const [lib, cats, ragg, elencoFasi, usati, precedenti, elencoSegni, elencoMassimali] = await Promise.all([
           window.api.esercizi.list(false),
           window.api.categorie.list(),
           window.api.pazienti.obiettiviRaggiunti(paziente.id),
           paziente.patologia_id == null ? Promise.resolve([] as Fase[]) : window.api.fasi.list(paziente.patologia_id),
           window.api.sedute.focusUsati(),
           window.api.sedute.ultimaVolta(paziente.id, sedutaId),
-          window.api.segni.list(paziente.id)
+          window.api.segni.list(paziente.id),
+          window.api.massimali.list(paziente.id)
         ])
         const ctx: Contesto = {
           ...CONTESTO_VUOTO,
@@ -179,7 +186,8 @@ export default function SedutaBuilder({
           fasi: elencoFasi,
           focusUsati: usati,
           ultime: Object.fromEntries(precedenti.map((u) => [u.esercizio_id, u])),
-          segni: elencoSegni
+          segni: elencoSegni,
+          massimali: massimaliPerEsercizio(elencoMassimali)
         }
 
         let fase = paziente.fase_corrente_id
@@ -558,6 +566,7 @@ export default function SedutaBuilder({
       {/* Prima la volta scorsa, poi com'e' oggi e cosa gli si fa: e' l'ordine
           della seduta vera. Gli esercizi vengono dopo. */}
       {precedente && <UltimaVoltaSeduta precedente={precedente} />}
+      <PromemoriaInVista pazienteId={paziente.id} giorno={campi.data} />
       <DiarioSeduta
         andamento={campi.riferitoAndamento}
         riferito={campi.riferito}
@@ -626,6 +635,7 @@ export default function SedutaBuilder({
           templateCats={contesto.templateCats}
           libreria={contesto.libreria}
           ultime={contesto.ultime}
+          massimali={contesto.massimali}
           ricopiate={ricopiate}
           progressioni={contesto.progressioni}
           inSeduta={inSeduta}

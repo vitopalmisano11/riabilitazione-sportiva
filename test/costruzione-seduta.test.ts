@@ -2,7 +2,7 @@
 // le sezioni con la loro storia per Ctrl+Z, cosa proporre, la bozza e quello che si salva.
 import { test } from 'vitest'
 import assert from 'node:assert/strict'
-import type { Categoria, EsercizioConCategoria, Segno, StatoProgressione, UltimaVolta } from '../src/shared/types'
+import type { Categoria, EsercizioConCategoria, Massimale, Segno, StatoProgressione, UltimaVolta } from '../src/shared/types'
 import {
   bozzaVuota,
   campiDaBozza,
@@ -13,6 +13,7 @@ import {
   esitiDaSalvare,
   inBozza,
   inputSeduta,
+  massimaliPerEsercizio,
   misuraNonNumerica,
   mostraCluster,
   riduciSezioni,
@@ -477,4 +478,22 @@ test('Monopodalico: il segno sulla riga, Ctrl+Z, il salvataggio e il conto della
   assert.ok(testoUltima(s.sezioni[0].righe[0], ultima).startsWith('monopodalico · 2 × 15'))
   s = riduciSezioni(s, { tipo: 'ricopia', sez: 0, riga: 0, ultima })
   assert.equal(s.sezioni[0].righe[0].monopodalico, 1)
+})
+
+
+test("Massimali in seduta: l'ultimo di ogni esercizio e di ogni lato, nessuno se non è segnato", () => {
+  const m = (id: number, esercizio_id: number | null, lato: 'dx' | 'sx' | null, valore: number, data: string) =>
+    ({ id, paziente_id: 1, esercizio: 'x', esercizio_id, lato, metodo: null, valore, unita: 'kg', data }) as Massimale
+  // dal piu' recente, come li da' il database
+  const per = massimaliPerEsercizio([
+    m(5, 7, 'sx', 70, '2026-11-01'),
+    m(4, 7, 'dx', 80, '2026-10-20'),
+    m(3, 7, 'dx', 60, '2026-09-01'),
+    m(2, 9, null, 120, '2026-10-01'),
+    m(1, null, null, 50, '2026-10-01')
+  ])
+  assert.deepEqual(Object.keys(per).sort(), ['7', '9'])
+  assert.deepEqual(per[7].map((x) => [x.lato, x.valore]), [['dx', 80], ['sx', 70]])
+  assert.equal(per[9].length, 1)
+  assert.equal(per[8], undefined)
 })
