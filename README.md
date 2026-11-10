@@ -74,6 +74,13 @@ feedback» qui sopra sono precedenti e usavano una numerazione propria.
   nella ricerca e nel CSV dell'anamnesi
 - Nuovo paziente: con Esc la finestra si chiude; se hai già scritto qualcosa chiede se salvare («Salva e
   chiudi»), annullare la creazione o tornare indietro
+- La seduta aperta dalla settimana compare già completa, senza elenco vuoto né «Caricamento…» che lampeggiano
+- La settimana: riprogrammi e agisci direttamente dalla riga; la scheda del paziente ha le sezioni sempre
+  caricate e il Quadro è a sezioni
+- Percorso: carico settimana per settimana contro la dose, con i grafici e l'avviso se il dolore sale
+- Seduta: la nota dell'ultima volta in vista, il massimale sotto la riga, i promemoria in cima; bottone
+  bipodalico/monopodalico con il nome della modalità
+- La Guida è un elenco con una finestra per argomento
 
 ### v0.5.18
 
