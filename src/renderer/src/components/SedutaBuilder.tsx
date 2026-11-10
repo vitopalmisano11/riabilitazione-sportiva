@@ -165,10 +165,33 @@ export default function SedutaBuilder({
       righe: sz.esercizi.map((r) => (r.esercizio_id == null ? { ...r, chiaveVolo: nuovaChiaveVolo() } : r))
     }))
 
+  // La dose e il conto della settimana, gia' letti all'apertura: gli effetti
+  // piu' sotto non li rileggono la prima volta (altrimenti comparivano a pagina
+  // gia' aperta, spostando tutto).
+  const precaricato = useRef({ dosi: false, settimana: false })
+
   useEffect(() => {
     void (async () => {
       try {
-        const [lib, cats, ragg, elencoFasi, usati, precedenti, elencoSegni, elencoMassimali] = await Promise.all([
+        const dataBase = dataIniziale ?? oggiIso()
+        // Tutto quello che si puo' chiedere senza sapere altro parte insieme, in
+        // un colpo solo: prima erano quattro giri uno dopo l'altro, e la pagina
+        // si vedeva riempirsi a pezzi.
+        const [
+          lib,
+          cats,
+          ragg,
+          elencoFasi,
+          usati,
+          precedenti,
+          elencoSegni,
+          elencoMassimali,
+          s,
+          gia,
+          copiata,
+          bozza,
+          precedenteNuova
+        ] = await Promise.all([
           window.api.esercizi.list(false),
           window.api.categorie.list(),
           window.api.pazienti.obiettiviRaggiunti(paziente.id),
@@ -176,7 +199,12 @@ export default function SedutaBuilder({
           window.api.sedute.focusUsati(),
           window.api.sedute.ultimaVolta(paziente.id, sedutaId),
           window.api.segni.list(paziente.id),
-          window.api.massimali.list(paziente.id)
+          window.api.massimali.list(paziente.id),
+          sedutaId != null ? window.api.sedute.get(sedutaId) : null,
+          sedutaId != null ? window.api.segni.dellaSeduta(sedutaId) : null,
+          sedutaId == null && duplicaDa != null ? window.api.sedute.get(duplicaDa) : null,
+          sedutaId == null ? window.api.bozze.leggi(paziente.id) : null,
+          sedutaId == null ? window.api.sedute.precedente(paziente.id, null, dataBase).catch(() => null) : null
         ])
         const ctx: Contesto = {
           ...CONTESTO_VUOTO,
@@ -194,16 +222,14 @@ export default function SedutaBuilder({
         let faseNome: string | null = paziente.fase_nome
         let iniziali: SezioneBuilder[] | null = null
         const letti: Partial<CampiSeduta> = {}
-        if (sedutaId != null) {
-          const s = await window.api.sedute.get(sedutaId)
-          const gia = await window.api.segni.dellaSeduta(sedutaId)
+        if (s) {
           Object.assign(letti, {
             data: s.data,
             ora: s.ora ?? '',
             focus: s.focus ?? '',
             dolore: s.dolore == null ? '' : String(s.dolore),
             sforzo: s.sforzo == null ? '' : String(s.sforzo),
-            misure: Object.fromEntries(gia.map((v) => [v.segno_id, String(v.valore)])),
+            misure: Object.fromEntries((gia ?? []).map((v) => [v.segno_id, String(v.valore)])),
             note: s.note ?? '',
             riferitoAndamento: s.riferito_andamento ?? null,
             riferito: s.riferito ?? '',
@@ -211,23 +237,17 @@ export default function SedutaBuilder({
             trattamento: s.trattamento ?? '',
             esiti: Object.fromEntries((s.progressioni ?? []).map((p) => [p.progressione_id, p.esito]))
           })
-          void window.api.sedute
-            .precedente(paziente.id, sedutaId, s.data)
-            .then(setPrecedente)
-            .catch(() => undefined)
           iniziali = assegnaChiavi(s.sezioni)
           fase = s.fase_id
           faseNome = s.fase_nome
-        } else if (duplicaDa != null) {
-          const s = await window.api.sedute.get(duplicaDa)
-          iniziali = assegnaChiavi(s.sezioni)
-          letti.focus = s.focus ?? ''
+        } else if (copiata) {
+          iniziali = assegnaChiavi(copiata.sezioni)
+          letti.focus = copiata.focus ?? ''
         }
 
         // Bozza rimasta da una volta in cui l'app si e' chiusa a meta': si
         // chiede prima di rimetterla, perche' potrebbe essere di giorni fa.
         if (sedutaId == null) {
-          const bozza = await window.api.bozze.leggi(paziente.id)
           if (bozza) {
             const quando = new Date(bozza.aggiornata_il)
             const etichetta = `${quando.toLocaleDateString('it-IT')} alle ${quando
@@ -249,26 +269,25 @@ export default function SedutaBuilder({
               await window.api.bozze.elimina(paziente.id)
             }
           }
-          void window.api.sedute
-            .precedente(paziente.id, null, dataIniziale ?? oggiIso())
-            .then(setPrecedente)
-            .catch(() => undefined)
         }
 
-        ctx.progressioniTutte = await window.api.progressioni.stato(
-          paziente.id,
-          fase,
-          finoAl(letti.data ?? dataIniziale ?? oggiIso()),
-          sedutaId,
-          true
-        )
-
-        if (fase != null) {
-          const [obs, template, progr] = await Promise.all([
-            window.api.obiettivi.list(fase),
-            window.api.sezioni.list(fase),
-            window.api.progressioni.stato(paziente.id, fase, finoAl(letti.data ?? dataIniziale ?? oggiIso()), sedutaId)
-          ])
+        // Ora che si sa la fase e il giorno, il secondo giro: ancora tutto
+        // insieme, compresa la dose, cosi' la pagina compare gia' completa.
+        const dataFinale = letti.data ?? dataBase
+        const alCampoIniziale = elencoFasi.find((f) => f.id === fase)?.campo === 1
+        const [tutte, obs, template, progr, precedenteLetta, dosiLette, settimanaLetta] = await Promise.all([
+          window.api.progressioni.stato(paziente.id, fase, finoAl(dataFinale), sedutaId, true),
+          fase != null ? window.api.obiettivi.list(fase) : null,
+          fase != null ? window.api.sezioni.list(fase) : null,
+          fase != null ? window.api.progressioni.stato(paziente.id, fase, finoAl(dataFinale), sedutaId) : null,
+          sedutaId != null ? window.api.sedute.precedente(paziente.id, sedutaId, dataFinale).catch(() => null) : null,
+          fase != null && !alCampoIniziale ? window.api.dose.fase(fase).catch(() => null) : null,
+          /^\d{4}-\d{2}-\d{2}$/.test(dataFinale)
+            ? window.api.dose.settimana(paziente.id, dataFinale, sedutaId).catch(() => null)
+            : null
+        ])
+        ctx.progressioniTutte = tutte
+        if (fase != null && obs && template && progr) {
           ctx.obiettivi = obs
           ctx.progressioni = progr
           ctx.templateCats = Object.fromEntries(template.map((t) => [t.id, t.categoria_ids]))
@@ -276,6 +295,10 @@ export default function SedutaBuilder({
           if (iniziali == null) iniziali = template.map((t) => ({ sezione_id: t.id, nome: t.nome, righe: [] }))
         }
 
+        precaricato.current = { dosi: dosiLette != null, settimana: settimanaLetta != null }
+        if (dosiLette) setDosi(dosiLette)
+        if (settimanaLetta) setSettimana(settimanaLetta)
+        setPrecedente(precedenteNuova ?? precedenteLetta)
         setContesto(ctx)
         cambia({ ...letti, faseId: fase, faseNome })
         invia({ tipo: 'imposta', sezioni: iniziali ?? [] })
@@ -344,10 +367,19 @@ export default function SedutaBuilder({
       setDosi([])
       return
     }
+    // la prima volta la dose e' gia' stata letta con il resto, all'apertura
+    if (precaricato.current.dosi) {
+      precaricato.current.dosi = false
+      return
+    }
     window.api.dose.fase(campi.faseId).then(setDosi, (e) => toastErrore(errMsg(e)))
   }, [pronto, campi.faseId, alCampo])
   useEffect(() => {
     if (!pronto || !/^\d{4}-\d{2}-\d{2}$/.test(campi.data)) return
+    if (precaricato.current.settimana) {
+      precaricato.current.settimana = false
+      return
+    }
     window.api.dose.settimana(paziente.id, campi.data, sedutaId).then(setSettimana, (e) => toastErrore(errMsg(e)))
   }, [pronto, paziente.id, campi.data, sedutaId])
   const contoDose = useMemo(
@@ -531,7 +563,9 @@ export default function SedutaBuilder({
   if (!pronto) {
     return (
       <div className="page">
-        <p className="hint">Caricamento…</p>
+        {/* compare solo se l'attesa si allunga: di solito la seduta arriva
+            prima, e non si deve vedere nessuna scritta lampeggiare */}
+        <p className="hint caricamento-ritardato">Caricamento…</p>
       </div>
     )
   }

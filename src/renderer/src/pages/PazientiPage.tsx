@@ -29,6 +29,33 @@ function quantoFa(data: string | null): string {
   return mesi < 12 ? `${mesi} mesi fa` : mesi < 24 ? 'più di un anno fa' : `${Math.floor(mesi / 12)} anni fa`
 }
 
+type RichiestaApertura = {
+  id: number
+  sedutaId?: number
+  duplicaDa?: number
+  nuova?: boolean
+  data?: string
+  seq: number
+}
+
+type StatoBuilder = {
+  sedutaId: number | null
+  duplicaDa?: number
+  dataIniziale?: string
+  // La seduta e' stata aperta da un'altra sezione: chiudendola si torna li'.
+  daFuori?: boolean
+} | null
+
+// Cosa aprire per una richiesta arrivata da un'altra sezione: una seduta nuova,
+// una copiata, una gia' salvata, o solo la scheda (null).
+function builderDaRichiesta(r: RichiestaApertura): StatoBuilder {
+  if (r.nuova) return { sedutaId: null, dataIniziale: r.data, daFuori: true }
+  if (r.duplicaDa != null) {
+    return { sedutaId: null, duplicaDa: r.duplicaDa, dataIniziale: r.data, daFuori: true }
+  }
+  return r.sedutaId == null ? null : { sedutaId: r.sedutaId, daFuori: true }
+}
+
 export default function PazientiPage({
   tornaAllElenco,
   apriPaziente,
@@ -40,14 +67,7 @@ export default function PazientiPage({
   // Scheda da aprire, richiesta da un'altra sezione (il follow-up, la
   // settimana). Con sedutaId si apre direttamente quella seduta.
   // Con duplicaDa si apre una seduta nuova copiata da quella, nel giorno data.
-  apriPaziente: {
-    id: number
-    sedutaId?: number
-    duplicaDa?: number
-    nuova?: boolean
-    data?: string
-    seq: number
-  } | null
+  apriPaziente: RichiestaApertura | null
   // Chiudendo una seduta aperta da un'altra sezione si torna da dove si e'
   // arrivati, non nella scheda del paziente: chi stava preparando la settimana
   // vuole tornare alla settimana.
@@ -56,7 +76,13 @@ export default function PazientiPage({
   onSedutaSalvata?: () => void
 }): React.JSX.Element {
   const [pazienti, setPazienti] = useState<PazienteDettaglio[]>([])
-  const [selId, setSelId] = useState<number | null>(null)
+  // L'elenco e' arrivato almeno una volta. Prima di allora e' vuoto per forza, e
+  // mostrarlo vorrebbe dire far lampeggiare "Ancora nessun paziente" (o l'elenco)
+  // prima di aprire la seduta chiesta dalla settimana.
+  const [elencoLetto, setElencoLetto] = useState(false)
+  // Con una richiesta di apertura la pagina nasce gia' sul paziente: se si
+  // aspettasse l'effect qui sotto, per un istante si vedrebbe l'elenco.
+  const [selId, setSelId] = useState<number | null>(apriPaziente?.id ?? null)
   const [ricerca, setRicerca] = useState('')
   // Filtri: nascosti finche' non servono, cosi' con pochi pazienti la barra
   // resta quella di prima.
@@ -74,15 +100,14 @@ export default function PazientiPage({
   // dalla seduta la scheda ripartirebbe sempre dal quadro invece di restare sul
   // diario da cui si era partiti.
   const [scheda, setScheda] = useState<SchedaAperta>('quadro')
-  const [builder, setBuilder] = useState<{
-    sedutaId: number | null
-    duplicaDa?: number
-    dataIniziale?: string
-    // La seduta e' stata aperta da un'altra sezione: chiudendola si torna li'.
-    daFuori?: boolean
-  } | null>(null)
+  const [builder, setBuilder] = useState<StatoBuilder>(
+    apriPaziente ? builderDaRichiesta(apriPaziente) : null
+  )
 
-  const load = async (): Promise<void> => setPazienti(await window.api.pazienti.list())
+  const load = async (): Promise<void> => {
+    setPazienti(await window.api.pazienti.list())
+    setElencoLetto(true)
+  }
 
   const scegliFilePedana = async (): Promise<void> => {
     try {
@@ -118,20 +143,7 @@ export default function PazientiPage({
   useEffect(() => {
     if (apriPaziente == null) return
     setScheda('quadro')
-    setBuilder(
-      apriPaziente.nuova
-        ? { sedutaId: null, dataIniziale: apriPaziente.data, daFuori: true }
-        : apriPaziente.duplicaDa != null
-        ? {
-            sedutaId: null,
-            duplicaDa: apriPaziente.duplicaDa,
-            dataIniziale: apriPaziente.data,
-            daFuori: true
-          }
-        : apriPaziente.sedutaId == null
-          ? null
-          : { sedutaId: apriPaziente.sedutaId, daFuori: true }
-    )
+    setBuilder(builderDaRichiesta(apriPaziente))
     setSelId(apriPaziente.id)
   }, [apriPaziente])
 
@@ -248,6 +260,10 @@ export default function PazientiPage({
       attiva: sel == null && builder == null
     }
   ])
+
+  // Si sta aprendo una seduta o una scheda e l'elenco non e' ancora arrivato:
+  // una pagina vuota (che entra con la sua dissolvenza) invece dell'elenco.
+  if (!elencoLetto && selId != null) return <div className="page" />
 
   if (builder && sel) {
     return (
