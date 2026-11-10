@@ -23,12 +23,15 @@ export const NOME_ANDAMENTO: Record<AndamentoRiferito, string> = {
 // La volta prima, in poche righe: si legge prima di chiedere "come va?".
 export function UltimaVoltaSeduta({
   precedente,
-  apertaSeCiSonoNote = false
+  apertaSeCiSonoNote = false,
+  comeSezione = false
 }: {
   precedente: SedutaPrecedente
   // Nel quadro del paziente e' la prima cosa che si legge: se c'e' scritto
   // qualcosa parte gia' aperta. Dentro la seduta resta la riga sola.
   apertaSeCiSonoNote?: boolean
+  // Nel quadro e' una sezione come le altre: titolo con la riga sotto e sempre aperta.
+  comeSezione?: boolean
 }): React.JSX.Element {
   const p = precedente
   const trattamento = [p.tecniche.join(', '), p.trattamento].filter(Boolean).join(' — ')
@@ -53,6 +56,60 @@ export function UltimaVoltaSeduta({
   ]
     .filter(Boolean)
     .join(' · ')
+  const corpo = (
+    <dl className="righe-ultima">
+        {(p.riferito_andamento || p.riferito) && (
+          <div>
+            {/* L'andamento sta accanto all'etichetta, non dentro al testo:
+                il testo scritto resta a destra e parte dal suo margine. */}
+            <dt className="dt-riferiva">
+              Riferiva
+              {p.riferito_andamento && (
+                <span className={`badge-andamento ${p.riferito_andamento}`}>
+                  {NOME_ANDAMENTO[p.riferito_andamento]}
+                </span>
+              )}
+            </dt>
+            <dd>{p.riferito}</dd>
+          </div>
+        )}
+        {trattamento && (
+          <div>
+            <dt>Trattamento</dt>
+            <dd>{trattamento}</dd>
+          </div>
+        )}
+        {numeri.length > 0 && (
+          <div>
+            <dt>Misure</dt>
+            <dd>{maiuscola(numeri.join(' · '))}</dd>
+          </div>
+        )}
+        {p.note && (
+          <div>
+            <dt>Note</dt>
+            <dd>{p.note}</dd>
+          </div>
+        )}
+      </dl>
+  )
+  if (comeSezione) {
+    return (
+      <section className="card">
+        <div className="card-header-row">
+          <h3>
+            <History size={18} className="icona-titolo" aria-hidden="true" />
+            L&apos;ultima volta — {formatData(p.data)}
+          </h3>
+        </div>
+        {vuota ? (
+          <p className="hint">In quella seduta non erano scritti né come stava né il trattamento.</p>
+        ) : (
+          corpo
+        )}
+      </section>
+    )
+  }
   return (
     <section className={aperta ? 'card ultima-seduta aperta' : 'card ultima-seduta'}>
       <button
@@ -69,41 +126,7 @@ export function UltimaVoltaSeduta({
       {!aperta ? null : vuota ? (
         <p className="hint">In quella seduta non erano scritti né come stava né il trattamento.</p>
       ) : (
-        <dl className="righe-ultima">
-          {(p.riferito_andamento || p.riferito) && (
-            <div>
-              {/* L'andamento sta accanto all'etichetta, non dentro al testo:
-                  il testo scritto resta a destra e parte dal suo margine. */}
-              <dt className="dt-riferiva">
-                Riferiva
-                {p.riferito_andamento && (
-                  <span className={`badge-andamento ${p.riferito_andamento}`}>
-                    {NOME_ANDAMENTO[p.riferito_andamento]}
-                  </span>
-                )}
-              </dt>
-              <dd>{p.riferito}</dd>
-            </div>
-          )}
-          {trattamento && (
-            <div>
-              <dt>Trattamento</dt>
-              <dd>{trattamento}</dd>
-            </div>
-          )}
-          {numeri.length > 0 && (
-            <div>
-              <dt>Misure</dt>
-              <dd>{maiuscola(numeri.join(' · '))}</dd>
-            </div>
-          )}
-          {p.note && (
-            <div>
-              <dt>Note</dt>
-              <dd>{p.note}</dd>
-            </div>
-          )}
-        </dl>
+        corpo
       )}
     </section>
   )

@@ -91,8 +91,8 @@ export default function SchedaPaziente({ sedutaId }: { sedutaId: number }): Reac
                       {e.nota && <span className="nota-es">{e.nota}</span>}
                     </td>
                     <td className="col-dose">{volumeTesto(e) ?? '—'}</td>
-                    <td className="col-dose">{intensitaTesto(e) ?? '—'}</td>
-                    <td className="col-dose">{recuperoTesto(e) ?? '—'}</td>
+                    <td className="col-dose col-testo col-carico">{intensitaTesto(e) ?? '—'}</td>
+                    <td className="col-dose col-testo col-recupero">{recuperoTesto(e) ?? '—'}</td>
                   </tr>
                 ))}
               </tbody>

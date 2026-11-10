@@ -182,7 +182,8 @@ import {
   eliminaSeduta,
   focusUsati,
   leggiSeduta,
-  programmaSeduta
+  programmaSeduta,
+  spostaSeduta
 } from './sedute'
 import {
   attendiCopie,
@@ -1042,6 +1043,7 @@ export function registerIpc(): void {
   handle('sedute:programma', (origineId: number, date: string[], ora?: string | null) =>
     programmaSeduta(origineId, date, ora ?? null)
   )
+  handle('sedute:sposta', (id: number, data: string) => spostaSeduta(id, data))
   handle('sedute:delete', (id: number) => eliminaSeduta(id))
   // Le sedute di tutti, in un intervallo di date: la schermata della settimana.
   handle('sedute:settimana', (dal: string, al: string) => seduteDellaSettimana(dal, al))

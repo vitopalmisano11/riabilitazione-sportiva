@@ -585,7 +585,8 @@
   margin-bottom: 0;
 }
 
-.scheda > .card {
+.scheda > .card,
+.scheda > .sezione-scheda > .card {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -596,7 +597,9 @@
 /* Dentro il riquadro il titolo sta in cima: lo stacco fra le sezioni ora lo da'
    il riquadro, non il margine del titolo. */
 .scheda > .card > h3:first-child,
-.scheda > .card > .card-header-row:first-child {
+.scheda > .card > .card-header-row:first-child,
+.scheda > .sezione-scheda > .card > h3:first-child,
+.scheda > .sezione-scheda > .card > .card-header-row:first-child {
   margin-top: 0;
 }
 
@@ -776,4 +779,10 @@
 .riga-copia .esito-copia svg {
   flex: none;
   margin-top: 2px;
+}
+
+/* Le sezioni della scheda paziente stanno tutte montate: il contenitore non conta
+   nel disegno, cosi' gli stili ".scheda > .card" valgono come prima. */
+.sezione-scheda:not([hidden]) {
+  display: contents;
 }

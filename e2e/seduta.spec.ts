@@ -41,7 +41,8 @@ test('seduta: si salva, si ritrova nel diario e con la ricerca', async () => {
     await scheda.close()
 
     // la scheda illustrata: HTML in un iframe senza script, sotto la CSP
-    await pagina.getByTitle('Scheda illustrata per il paziente (foto e spiegazioni)').click()
+    await pagina.getByLabel('Altre azioni sulla seduta').first().click()
+    await pagina.getByText('Scheda illustrata', { exact: true }).click()
     const anteprima = pagina.frameLocator('iframe.anteprima-frame')
     await expect(anteprima.locator('body')).toContainText('Seduta')
     await pagina.screenshot({ path: join(FOTO, '09-scheda-illustrata.png') })

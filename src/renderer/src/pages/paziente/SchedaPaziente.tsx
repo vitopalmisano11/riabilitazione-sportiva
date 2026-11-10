@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { AlertTriangle, CalendarPlus, Copy, Plus } from 'lucide-react'
 import type { Fase, Patologia, PazienteDettaglio, SedutaRiepilogo } from '../../../../shared/types'
 import ProgrammaSettimana from '../../components/ProgrammaSettimana'
@@ -59,6 +59,30 @@ export function SchedaPaziente({
   onApriSeduta: (id: number) => void
   onDuplicaSeduta: (id: number) => void
 }): React.JSX.Element {
+  // Quando il paziente cambia (una fase avanzata, un dato corretto) le sezioni
+  // nascoste si rimontano in silenzio, cosi' quando le si apre sono aggiornate;
+  // quella che si sta guardando non si tocca.
+  const [versioni, setVersioni] = useState<Record<SchedaAperta, number>>({
+    quadro: 0,
+    diario: 0,
+    clinica: 0,
+    pedana: 0,
+    percorso: 0
+  })
+  const schedaRef = useRef(scheda)
+  schedaRef.current = scheda
+  const primoGiro = useRef(true)
+  useEffect(() => {
+    if (primoGiro.current) {
+      primoGiro.current = false
+      return
+    }
+    setVersioni((v) => {
+      const n = { ...v }
+      for (const k of Object.keys(n) as SchedaAperta[]) if (k !== schedaRef.current) n[k]++
+      return n
+    })
+  }, [paziente])
   const [fasi, setFasi] = useState<Fase[]>([])
   // Serve solo a sapere se c'e' una seduta da riprendere e quale.
   const [ultimaSeduta, setUltimaSeduta] = useState<number | null>(null)
@@ -222,18 +246,24 @@ export function SchedaPaziente({
         />
       )}
 
-      {scheda === 'quadro' && <QuadroPaziente paziente={paziente} />}
+      {/* Le cinque sezioni restano tutte montate e si nasconde quella che non
+          serve: cosi' si caricano subito, appena si apre il paziente, e
+          cambiando linguetta non si vedono righe che arrivano una a una. */}
+      <div className="sezione-scheda" hidden={scheda !== 'quadro'}>
+        <QuadroPaziente key={`q${versioni.quadro}`} paziente={paziente} />
+      </div>
 
-      {scheda === 'diario' && (
+      <div className="sezione-scheda" hidden={scheda !== 'diario'}>
         <DiarioCard
+          key={`d${versioni.diario}`}
           paziente={paziente}
           onNuova={onNuovaSeduta}
           onApri={onApriSeduta}
           onDuplica={onDuplicaSeduta}
         />
-      )}
+      </div>
 
-      {scheda === 'clinica' && (
+      <div className="sezione-scheda" hidden={scheda !== 'clinica'} key={`c${versioni.clinica}`}>
         <>
           <AnamnesiPaziente paziente={paziente} />
 
@@ -248,11 +278,13 @@ export function SchedaPaziente({
               note della seduta. */}
           <SegniPaziente paziente={paziente} />
         </>
-      )}
+      </div>
 
-      {scheda === 'pedana' && <PedanaPaziente paziente={paziente} />}
+      <div className="sezione-scheda" hidden={scheda !== 'pedana'}>
+        <PedanaPaziente key={`p${versioni.pedana}`} paziente={paziente} />
+      </div>
 
-      {scheda === 'percorso' && (
+      <div className="sezione-scheda" hidden={scheda !== 'percorso'} key={`r${versioni.percorso}`}>
         <>
       <section className="card">
         <h3>Percorso riabilitativo</h3>
@@ -341,7 +373,7 @@ export function SchedaPaziente({
       {/* I massimali con cui si prescrive il carico della fase di forza. */}
       <MassimaliPaziente paziente={paziente} />
         </>
-      )}
+      </div>
     </div>
   )
 }

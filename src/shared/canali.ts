@@ -319,6 +319,8 @@ export interface Canali {
   'sedute:update': (id: number, data: SedutaInput) => void
   // Copia una seduta su piu' date: e' il programma della settimana.
   'sedute:programma': (origineId: number, date: string[], ora?: string | null) => number[]
+  // Sposta la seduta in un altro giorno, senza toccare il resto.
+  'sedute:sposta': (id: number, data: string) => void
   'sedute:delete': (id: number) => void
   // I due elenchi della sezione: chi e' in trattamento e chi ha finito.
   'followUp:list': () => { trattamento: PazienteDettaglio[]; concluso: PazienteDettaglio[] }
@@ -763,6 +765,7 @@ export const MAPPA_API = {
     create: 'sedute:create',
     update: 'sedute:update',
     programma: 'sedute:programma',
+    sposta: 'sedute:sposta',
     remove: 'sedute:delete'
   },
   followUp: {

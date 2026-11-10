@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ClipboardList, Copy, Download, FileText, Images, Pencil, Plus, Presentation, Trash2 } from 'lucide-react'
+import { ClipboardList, Plus } from 'lucide-react'
 import type { Fase, PazienteDettaglio, SedutaRiepilogo } from '../../../../shared/types'
 import { toast, toastErrore } from '../../components/Toast'
 import { chiedi } from '../../components/Conferma'
@@ -7,6 +7,7 @@ import Modale from '../../components/Modale'
 import { errMsg, formatData, oggiIso } from '../../lib'
 import StatoVuoto from '../../components/StatoVuoto'
 import { SchedaIllustrata } from './SchedaIllustrata'
+import SedutaAzioni from '../../components/SedutaAzioni'
 
 export function DiarioCard({
   paziente,
@@ -21,7 +22,6 @@ export function DiarioCard({
 }): React.JSX.Element {
   const [sedute, setSedute] = useState<SedutaRiepilogo[]>([])
   const [periodo, setPeriodo] = useState<{ dal: string; al: string } | null>(null)
-  const [menuScarica, setMenuScarica] = useState<number | null>(null)
   const [anteprima, setAnteprima] = useState<number | null>(null)
 
   // Prima che le sedute arrivino l'elenco e' vuoto per forza: senza questo
@@ -99,7 +99,7 @@ export function DiarioCard({
   // La riga di una seduta si disegna una volta sola: la usano l'elenco delle
   // svolte e quello delle programmate.
   const riga = (s: SedutaRiepilogo): React.JSX.Element => (
-          <li key={s.id}>
+          <li key={s.id} className="riga-seduta" title="Modifica la seduta" onClick={() => onApri(s.id)}>
             <div className="seduta-info">
               <span className="seduta-data">{formatData(s.data)}</span>
               {/* Fase e focus sulla stessa riga: il focus in evidenza, perche'
@@ -117,60 +117,14 @@ export function DiarioCard({
                 </span>
               )}
             </div>
-            <span className="row-actions">
-              <button
-                title="Mostra la scheda al paziente (si apre in una finestra a parte)"
-                onClick={() => void window.api.scheda.apri(s.id).catch((e) => toastErrore(errMsg(e)))}
-              >
-                <Presentation size={18} />
-              </button>
-              <button
-                title="Scheda illustrata per il paziente (foto e spiegazioni)"
-                onClick={() => setAnteprima(s.id)}
-              >
-                <Images size={18} />
-              </button>
-              <button title="Modifica la seduta" onClick={() => onApri(s.id)}>
-                <Pencil size={18} />
-              </button>
-              <button title="Nuova seduta partendo da questa" onClick={() => onDuplica(s.id)}>
-                <Copy size={18} />
-              </button>
-              <span className="menu-wrapper">
-                <button
-                  title="Scarica la seduta"
-                  onClick={() => setMenuScarica(menuScarica === s.id ? null : s.id)}
-                >
-                  <Download size={18} />
-                </button>
-                {menuScarica === s.id && (
-                  <>
-                    <div className="menu-chiudi" onClick={() => setMenuScarica(null)} />
-                    <div className="menu-tendina">
-                      <button
-                        onClick={() => {
-                          setMenuScarica(null)
-                          void esportaSingola(s.id, 'pdf')
-                        }}
-                      >
-                        <FileText size={18} /> Scarica PDF
-                      </button>
-                      <button
-                        onClick={() => {
-                          setMenuScarica(null)
-                          void esportaSingola(s.id, 'docx')
-                        }}
-                      >
-                        <FileText size={18} /> Scarica Word
-                      </button>
-                    </div>
-                  </>
-                )}
-              </span>
-              <button className="danger" title="Elimina" onClick={() => void elimina(s)}>
-                <Trash2 size={18} />
-              </button>
-            </span>
+            <SedutaAzioni
+              sedutaId={s.id}
+              titoloCopia="Nuova seduta partendo da questa"
+              onCopia={() => onDuplica(s.id)}
+              onElimina={() => void elimina(s)}
+              onIllustrata={() => setAnteprima(s.id)}
+              onScarica={(formato) => void esportaSingola(s.id, formato)}
+            />
           </li>
   )
 

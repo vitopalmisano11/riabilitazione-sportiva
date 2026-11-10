@@ -1004,3 +1004,8 @@ textarea.testo-ampio {
   font-size: 12px;
   color: var(--text-dim);
 }
+
+/* Riga di seduta cliccabile (diario e settimana) */
+.riga-seduta {
+  cursor: pointer;
+}

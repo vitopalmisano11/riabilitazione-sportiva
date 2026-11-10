@@ -473,6 +473,29 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Carico e recupero sono testi liberi e possono essere lunghi ("Spinta con le
+   mani o circa 10 kg, tieni circa 10"): vanno a capo dentro la loro colonna
+   invece di allargare la tabella oltre la finestra. Serie × rip. resta stretta. */
+.tabella-scheda .col-testo {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  font-variant-numeric: normal;
+}
+
+.tabella-scheda .col-carico {
+  width: 30%;
+  min-width: 110px;
+}
+
+.tabella-scheda .col-recupero {
+  width: 17%;
+  min-width: 90px;
+}
+
+.tabella-scheda .col-esercizio .nome {
+  overflow-wrap: anywhere;
+}
+
 .nota-seduta {
   font-size: 14px;
   white-space: pre-wrap;

@@ -3,16 +3,11 @@ import {
   CalendarDays,
   ChevronLeft,
   ChevronRight,
-  Copy,
-  Download,
-  FileText,
-  Images,
-  Pencil,
   UserRound,
-  Plus,
-  Presentation,
-  Trash2
+  Plus
 } from 'lucide-react'
+import SedutaAzioni from '../components/SedutaAzioni'
+import SceltaGiorno from '../components/SceltaGiorno'
 import AggiungiAlGiorno from '../components/AggiungiAlGiorno'
 import type { PazienteDettaglio, SedutaSettimana } from '../../../shared/types'
 import { toast, toastErrore } from '../components/Toast'
@@ -95,8 +90,8 @@ export default function SettimanaPage({
   const [giornoAperto, setGiornoAperto] = useState<string | null>(null)
   // La seduta che si sta copiando, mentre si sceglie il giorno.
   const [daCopiare, setDaCopiare] = useState<SedutaSettimana | null>(null)
-  // La seduta di cui e' aperto il menu "Scarica".
-  const [menuScarica, setMenuScarica] = useState<number | null>(null)
+  // La seduta che si sta spostando, mentre si sceglie il giorno.
+  const [daSpostare, setDaSpostare] = useState<SedutaSettimana | null>(null)
   // La seduta di cui e' aperta la scheda illustrata, con il suo "Scarica PDF".
   const [anteprima, setAnteprima] = useState<number | null>(null)
   const [altraData, setAltraData] = useState('')
@@ -345,95 +340,32 @@ Finisce nel cestino: puoi rimetterla a posto da Impostazioni entro un mese.`
             ) : (
               <ul className="sedute-list">
                 {g.sedute.map((s) => (
-                  <li key={s.id}>
-                    {/* L'orario dell'appuntamento, quando c'e': la settimana e'
-                        gia' ordinata per questo, qui si legge a colpo d'occhio. */}
+                  <li key={s.id} className="riga-seduta" title="Apri la seduta" onClick={() => onApriSeduta(s.paziente_id, s.id)}>
                     {s.ora && <span className="seduta-ora">{s.ora}</span>}
                     <div className="seduta-info">
-                      {/* Il nome apre la scheda: da qui si passa al paziente
-                          senza tornare all'elenco e cercarlo. */}
-                      <button className="briciola nome-nel-titolo" onClick={() => onApriPaziente(s.paziente_id)}>
-                        {s.paziente}
-                      </button>
-                      {/* Il focus della seduta si legge nella scheda del
-                          paziente, non qui: qui serve sapere chi viene. */}
-                      {accanto(s) && <span className="seduta-meta">{accanto(s)}</span>}
-                    </div>
-                    {/* Il nome porta alla scheda, questi alla seduta: appena
-                        preparata la si vuole mostrare o ritoccare, non cercarla
-                        nel diario del paziente. */}
-                    <span className="row-actions">
                       <button
-                        title="Mostra la scheda al paziente (si apre in una finestra a parte)"
-                        onClick={() =>
-                          void window.api.scheda.apri(s.id).catch((e) => toastErrore(errMsg(e)))
-                        }
-                      >
-                        <Presentation size={16} />
-                      </button>
-                      <button
-                        title="Scheda illustrata per il paziente (foto e spiegazioni)"
-                        onClick={() => setAnteprima(s.id)}
-                      >
-                        <Images size={16} />
-                      </button>
-                      <button
-                        title="Apri la seduta"
-                        onClick={() => onApriSeduta(s.paziente_id, s.id)}
-                      >
-                        <Pencil size={16} />
-                      </button>
-                      {/* Copiarla in un altro giorno, per ritoccarla: la seduta
-                          di lunedi' che il venerdi' si ripete con qualche
-                          cambiamento. */}
-                      <button
-                        title="Copia la seduta in un altro giorno"
-                        onClick={() => {
-                          setAltraData('')
-                          setDaCopiare(s)
+                        className="briciola nome-nel-titolo"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onApriPaziente(s.paziente_id)
                         }}
                       >
-                        <Copy size={16} />
+                        {s.paziente}
                       </button>
-                      <span className="menu-wrapper">
-                        <button
-                          title="Scarica la seduta"
-                          onClick={() => setMenuScarica(menuScarica === s.id ? null : s.id)}
-                        >
-                          <Download size={16} />
-                        </button>
-                        {menuScarica === s.id && (
-                          <>
-                            <div className="menu-chiudi" onClick={() => setMenuScarica(null)} />
-                            <div className="menu-tendina">
-                              <button
-                                onClick={() => {
-                                  setMenuScarica(null)
-                                  void scarica(s.id, 'pdf')
-                                }}
-                              >
-                                <FileText size={18} /> Scarica PDF
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setMenuScarica(null)
-                                  void scarica(s.id, 'docx')
-                                }}
-                              >
-                                <FileText size={18} /> Scarica Word
-                              </button>
-                            </div>
-                          </>
-                        )}
-                      </span>
-                      <button
-                        className="danger"
-                        title="Elimina la seduta"
-                        onClick={() => void elimina(s)}
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </span>
+                      {accanto(s) && <span className="seduta-meta">{accanto(s)}</span>}
+                    </div>
+                    <SedutaAzioni
+                      sedutaId={s.id}
+                      titoloCopia="Copia la seduta in un altro giorno"
+                      onCopia={() => {
+                        setAltraData('')
+                        setDaCopiare(s)
+                      }}
+                      onElimina={() => void elimina(s)}
+                      onIllustrata={() => setAnteprima(s.id)}
+                      onScarica={(formato) => void scarica(s.id, formato)}
+                      onSposta={() => setDaSpostare(s)}
+                    />
                   </li>
                 ))}
               </ul>
@@ -566,6 +498,29 @@ Finisce nel cestino: puoi rimetterla a posto da Impostazioni entro un mese.`
               <button onClick={() => setDaCopiare(null)}>Annulla</button>
             </div>
         </Modale>
+      )}
+
+      {daSpostare && (
+        <SceltaGiorno
+          titolo="In che giorno la sposti?"
+          testo={`La seduta di ${daSpostare.paziente} del ${formatData(daSpostare.data)}: resta com'è, cambia solo il giorno.`}
+          giorni={giorniScelta}
+          origine={daSpostare.data}
+          conferma="Sposta"
+          onAnnulla={() => setDaSpostare(null)}
+          onScegli={(data) => {
+            const s = daSpostare
+            setDaSpostare(null)
+            if (data === s.data) return
+            window.api.sedute
+              .sposta(s.id, data)
+              .then(() => {
+                toast(`Seduta spostata al ${formatData(data)}.`)
+                carica()
+              })
+              .catch((e) => toastErrore(errMsg(e)))
+          }}
+        />
       )}
 
       {giornoAperto && (

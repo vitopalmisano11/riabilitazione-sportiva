@@ -323,6 +323,20 @@ export function programmaSeduta(origineId: number, date: string[], ora: string |
   })()
 }
 
+// Spostare la seduta in un altro giorno (e, volendo, a un'altra ora): quello
+// che si era preparato per lunedi' e viene spostato a martedi'. Il resto non si
+// tocca; gli esiti delle progressioni si leggono per data, quindi seguono.
+export function spostaSeduta(id: number, data: string, ora?: string | null): void {
+  validaData(data, 'La data della seduta', { obbligatoria: true })
+  if (ora !== undefined) validaOra(ora, "L'orario della seduta")
+  const db = getDb()
+  const cambiata =
+    ora === undefined
+      ? db.prepare('UPDATE sedute SET data = ? WHERE id = ?').run(data, id).changes
+      : db.prepare('UPDATE sedute SET data = ?, ora = ? WHERE id = ?').run(data, ora, id).changes
+  if (cambiata === 0) throw new Error('Seduta non trovata: forse è stata eliminata.')
+}
+
 // Nel cestino, con il nome del paziente: si rimette a posto per un mese.
 export function eliminaSeduta(id: number): void {
   const s = getDb()
