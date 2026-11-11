@@ -415,3 +415,26 @@
   font-size: 11px;
   text-align: center;
 }
+
+/* spostare il paziente di uno step a mano, sotto alla scala */
+.sposta-step {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.sposta-step label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.sposta-step button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}

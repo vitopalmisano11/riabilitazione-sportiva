@@ -247,14 +247,25 @@ export function statoProgressioni(
       g.nome
     ])
   )
+  // Gli esiti delle sedute e gli spostamenti a mano, tutti nell'ordine dei
+  // giorni (a pari giorno prima la seduta, poi lo spostamento).
   const esitiSedute = db
     .prepare(
-      `SELECT sp.progressione_id, s.data, sp.esito
-       FROM seduta_progressioni sp JOIN sedute s ON s.id = sp.seduta_id
-       WHERE s.paziente_id = ? AND s.data <= ? AND s.id <> COALESCE(?, -1)
-       ORDER BY s.data, s.id`
+      `SELECT progressione_id, data, esito FROM (
+         SELECT sp.progressione_id, s.data, sp.esito, 0 AS fonte, s.id AS ord
+         FROM seduta_progressioni sp JOIN sedute s ON s.id = sp.seduta_id
+         WHERE s.paziente_id = ? AND s.data <= ? AND s.id <> COALESCE(?, -1)
+         UNION ALL
+         SELECT m.progressione_id, m.data, m.esito, 1 AS fonte, m.id AS ord
+         FROM progressione_manuale m
+         WHERE m.paziente_id = ? AND m.data <= ?
+       ) ORDER BY data, fonte, ord`
     )
-    .all(pazienteId, finoAl, escludi) as { progressione_id: number; data: string; esito: EsitoProgressione }[]
+    .all(pazienteId, finoAl, escludi, pazienteId, finoAl) as {
+    progressione_id: number
+    data: string
+    esito: EsitoProgressione
+  }[]
 
   const risultato: StatoProgressione[] = []
   for (const id of ids) {
@@ -283,3 +294,24 @@ export function statoProgressioni(
   }
   return risultato
 }
+
+// Sposta a mano il paziente di uno step, avanti o indietro, senza passare da una
+// seduta. Vale dal giorno indicato e, come l'esito di una seduta, si ricalcola
+// con tutto il resto: non c'e' uno step salvato da tenere allineato.
+export function muoviProgressione(
+  pazienteId: number,
+  progressioneId: number,
+  esito: EsitoProgressione,
+  data: string
+): void {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) throw new Error('Scegli una data valida.')
+  if (esito !== 'avanza' && esito !== 'indietro') throw new Error('Spostamento non valido.')
+  const p = statoProgressioni(pazienteId, null, data, null, true).find((x) => x.id === progressioneId)
+  if (!p) throw new Error('Progressione non trovata, o senza step.')
+  if (esito === 'avanza' && p.completata) throw new Error('La scala è già completata.')
+  if (esito === 'indietro' && p.posizione === 0) throw new Error('Il paziente è già al primo step.')
+  getDb()
+    .prepare('INSERT INTO progressione_manuale (paziente_id, progressione_id, esito, data) VALUES (?, ?, ?, ?)')
+    .run(pazienteId, progressioneId, esito, data)
+}
+

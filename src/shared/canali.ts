@@ -19,6 +19,7 @@ import type {
 } from './pedana'
 import type {
   DatiStep,
+  EsitoProgressione,
   Progressione,
   ProgressioneGruppo,
   ProgressioneInput,
@@ -488,6 +489,8 @@ export interface Canali {
     // tutte le progressioni, non solo quelle della fase
     tutte?: boolean
   ) => StatoProgressione[]
+  // Sposta a mano il paziente di uno step in una progressione, dal giorno indicato.
+  'progressioni:muovi': (pazienteId: number, progressioneId: number, esito: EsitoProgressione, data: string) => void
   // La dose della fase, per seduta: contatti di pliometria, serie di forza e potenza.
   'dose:fase': (faseId: number) => DoseFase[]
   'dose:impostaFase': (faseId: number, dosi: DoseFase[]) => void
@@ -893,7 +896,8 @@ export const MAPPA_API = {
     riordinaStep: 'progressioni:riordinaStep',
     fase: 'progressioni:fase',
     impostaFase: 'progressioni:impostaFase',
-    stato: 'progressioni:stato'
+    stato: 'progressioni:stato',
+    muovi: 'progressioni:muovi'
   },
   dose: {
     fase: 'dose:fase',

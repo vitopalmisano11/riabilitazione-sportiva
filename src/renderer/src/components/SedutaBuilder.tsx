@@ -13,7 +13,7 @@ import type {
   UltimaVolta
 } from '../../../shared/types'
 import { AlertTriangle, Dumbbell } from 'lucide-react'
-import { toastErrore } from './Toast'
+import { toastConAzione, toastErrore } from './Toast'
 import { chiedi } from './Conferma'
 import ImmagineEsercizio from './ImmagineEsercizio'
 import Modale from './Modale'
@@ -356,6 +356,31 @@ export default function SedutaBuilder({
     }
   }
 
+  // Il lucchetto nei suggerimenti: il paziente e' arrivato allo step dopo. Si
+  // sposta a mano (come in Percorso) e i suggerimenti si ricalcolano.
+  const spostaStep = async (progressioneId: number, esito: 'avanza' | 'indietro'): Promise<void> => {
+    const giorno = finoAl(campi.data)
+    await window.api.progressioni.muovi(paziente.id, progressioneId, esito, giorno)
+    const [tutte, progr] = await Promise.all([
+      window.api.progressioni.stato(paziente.id, campi.faseId, giorno, sedutaId, true),
+      campi.faseId != null
+        ? window.api.progressioni.stato(paziente.id, campi.faseId, giorno, sedutaId)
+        : Promise.resolve(null)
+    ])
+    setContesto((c) => ({ ...c, progressioniTutte: tutte, progressioni: progr ?? c.progressioni }))
+  }
+
+  const sbloccaStep = async (progressioneId: number, nome: string): Promise<void> => {
+    try {
+      await spostaStep(progressioneId, 'avanza')
+      toastConAzione(`Step sbloccato: «${nome}».`, 'Annulla', () => {
+        spostaStep(progressioneId, 'indietro').catch((e) => toastErrore(errMsg(e)))
+      })
+    } catch (e) {
+      toastErrore(errMsg(e))
+    }
+  }
+
   const totaleEsercizi = useMemo(() => contaEsercizi(sezioni), [sezioni])
 
   // La dose: quella della fase, quella delle altre sedute della settimana, e
@@ -675,6 +700,7 @@ export default function SedutaBuilder({
           inSeduta={inSeduta}
           categorieCoperte={categorieCoperte}
           onSpecchietto={() => setSpecchietto(true)}
+          onSblocca={(id, nome) => void sbloccaStep(id, nome)}
           aperta={sezioneAperta === idxSez}
           onApri={setSezioneAperta}
           riordinoSezioni={riordinoSezioni}

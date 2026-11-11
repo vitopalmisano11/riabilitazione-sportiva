@@ -11,6 +11,8 @@ interface Props {
   inSeduta: Set<number>
   onAggiungi: (e: EsercizioConCategoria, dose: DoseStep) => void
   onSpecchietto: () => void
+  // sblocca lo step successivo di una progressione (il paziente ci e' arrivato)
+  onSblocca: (progressioneId: number, nome: string) => void
 }
 
 // In cima alla ricerca di "+ Esercizio": per ogni progressione della fase lo
@@ -33,7 +35,8 @@ export default function SuggerimentiProgressioni({
   libreria,
   inSeduta,
   onAggiungi,
-  onSpecchietto
+  onSpecchietto,
+  onSblocca
 }: Props): React.JSX.Element | null {
   if (gruppi.length === 0) return null
 
@@ -58,24 +61,46 @@ export default function SuggerimentiProgressioni({
               const giaQui = inSeduta.has(s.esercizio_id)
               return (
                 <li key={s.id} className={indice === 0 ? undefined : 'successivo'}>
-                  <button
-                    className="btn-aggiungi-riga"
-                    title={
-                      e
-                        ? `Aggiungi ${nomeStep(s.esercizio_nome, s.variante, s.monopodalico)} (${p.nome})`
-                        : 'Esercizio archiviato: non si può aggiungere'
-                    }
-                    disabled={!e || giaQui}
-                    onClick={() => e && onAggiungi(e, s)}
-                  >
-                    {indice === 0 ? <Plus size={16} /> : <Lock size={14} />}
-                  </button>
+                  {indice === 0 ? (
+                    <button
+                      className="btn-aggiungi-riga"
+                      title={
+                        e
+                          ? `Aggiungi ${nomeStep(s.esercizio_nome, s.variante, s.monopodalico)} (${p.nome})`
+                          : 'Esercizio archiviato: non si può aggiungere'
+                      }
+                      disabled={!e || giaQui}
+                      onClick={() => e && onAggiungi(e, s)}
+                    >
+                      <Plus size={16} />
+                    </button>
+                  ) : (
+                    // il lucchetto sblocca lo step: il paziente ci e' arrivato
+                    <button
+                      className="btn-aggiungi-riga"
+                      title={`Sblocca questo step: il paziente passa a «${nomeStep(s.esercizio_nome, s.variante, s.monopodalico)}» in ${p.nome}`}
+                      onClick={() => onSblocca(p.id, nomeStep(s.esercizio_nome, s.variante, s.monopodalico))}
+                    >
+                      <Lock size={14} />
+                    </button>
+                  )}
                   <span className="item-nome">{nomeStep(s.esercizio_nome, s.variante, s.monopodalico)}</span>
                   <span className="default-hint">
                     {[doseTesto(s), indice === 0 ? (giaQui ? 'già in seduta' : '') : s.requisito]
                       .filter(Boolean)
                       .join(' · ')}
                   </span>
+                  {/* lo step ancora bloccato si puo' mettere in scheda lo stesso, senza sbloccarlo */}
+                  {indice !== 0 && (
+                    <button
+                      className="btn-aggiungi-riga"
+                      title="Aggiungilo in seduta senza sbloccarlo"
+                      disabled={!e || giaQui}
+                      onClick={() => e && onAggiungi(e, s)}
+                    >
+                      <Plus size={14} />
+                    </button>
+                  )}
                 </li>
               )
             })}

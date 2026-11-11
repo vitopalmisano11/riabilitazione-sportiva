@@ -124,7 +124,7 @@ test('varianti: dalla libreria alla progressione e alla seduta', async () => {
     await expect(suggeriti).toHaveCount(0)
     await pagina.getByTitle('Aggiungi un esercizio a questa sezione').nth(0).click()
     await expect(suggeriti).toContainText(`Equilibrio monopodalico — ${CONTEGGIO}`)
-    await suggeriti.locator('li.successivo').getByRole('button').click()
+    await suggeriti.locator('li.successivo').getByTitle('Aggiungilo in seduta senza sbloccarlo').click()
     await pagina.getByTitle('Aggiungi Plank').click()
 
     // il menu c'e' solo sull'esercizio che ha delle varianti

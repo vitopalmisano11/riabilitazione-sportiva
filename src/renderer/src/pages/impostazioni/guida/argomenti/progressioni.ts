@@ -76,7 +76,8 @@ export const progressioni: ArgomentoGuida = {
             'Oppure, dalla scheda del paziente: [[Percorso > Progressioni]].'
           ]
         },
-        'Si apre **Dove siamo nelle progressioni**: gli step già fatti, quello attuale e quelli ancora da sbloccare.'
+        'Si apre **Dove siamo nelle progressioni**: gli step già fatti, quello attuale e quelli ancora da sbloccare.',
+        'Dalla scheda del paziente, aprendo una progressione, **Avanti di uno step** e **Indietro di uno step** lo spostano a mano, dal giorno che scegli in **Dal giorno**: serve se è avanzato senza una seduta. Conta come l’esito di una seduta.'
       ]
     },
     {

@@ -1768,6 +1768,20 @@ export const MIGRATIONS: string[] = [
   //      una seduta): per gli esercizi che si fanno a scelta a due o a una gamba.
   `
   ALTER TABLE progressione_step ADD COLUMN monopodalico INTEGER NOT NULL DEFAULT 0;
+  `,
+
+  // 76 - lo step di un paziente si puo' anche spostare a mano, dalla scheda
+  //      (Percorso): una riga per ogni spostamento, con il giorno. Conta come
+  //      l'esito di una seduta, nell'ordine dei giorni.
+  `
+  CREATE TABLE progressione_manuale (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    paziente_id INTEGER NOT NULL REFERENCES pazienti(id) ON DELETE CASCADE,
+    progressione_id INTEGER NOT NULL REFERENCES progressioni(id) ON DELETE CASCADE,
+    esito TEXT NOT NULL CHECK (esito IN ('avanza', 'indietro')),
+    data TEXT NOT NULL
+  );
+  CREATE INDEX idx_progressione_manuale_paziente ON progressione_manuale(paziente_id, progressione_id);
   `
 ]
 

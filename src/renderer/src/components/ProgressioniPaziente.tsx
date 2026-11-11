@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import type { PazienteDettaglio, StatoProgressione } from '../../../shared/types'
 import { durataTra, errMsg, formatData, oggiIso } from '../lib'
-import { toastErrore } from './Toast'
+import { toast, toastErrore } from './Toast'
 import Aiuto from './Aiuto'
 import Modale from './Modale'
 import SpecchiettoProgressioni from './SpecchiettoProgressioni'
@@ -19,9 +20,12 @@ const stepAttuale = (p: StatoProgressione): number => (p.completata ? p.step.len
 export default function ProgressioniPaziente({ paziente }: { paziente: PazienteDettaglio }): React.JSX.Element | null {
   const [stati, setStati] = useState<StatoProgressione[]>([])
   const [apertaId, setApertaId] = useState<number | null>(null)
+  // lo spostamento a mano vale da questo giorno (di solito oggi)
+  const [dataMossa, setDataMossa] = useState(oggiIso())
+  const [ricarica, setRicarica] = useState(0)
 
   // Dipende dal paziente intero: dopo ogni seduta salvata l'oggetto cambia e lo
-  // step si ricalcola.
+  // step si ricalcola. Si ricalcola anche dopo uno spostamento a mano.
   useEffect(() => {
     let attuale = true
     window.api.progressioni
@@ -31,7 +35,18 @@ export default function ProgressioniPaziente({ paziente }: { paziente: PazienteD
     return () => {
       attuale = false
     }
-  }, [paziente])
+  }, [paziente, ricarica])
+
+  // Sposta il paziente di uno step senza passare da una seduta.
+  const muovi = (p: StatoProgressione, esito: 'avanza' | 'indietro'): void => {
+    window.api.progressioni
+      .muovi(paziente.id, p.id, esito, dataMossa)
+      .then(() => {
+        setRicarica((n) => n + 1)
+        toast(esito === 'avanza' ? `${p.nome}: avanzato di uno step.` : `${p.nome}: tornato indietro di uno step.`)
+      })
+      .catch((e) => toastErrore(errMsg(e)))
+  }
 
   if (stati.length === 0) return null
 
@@ -41,7 +56,7 @@ export default function ProgressioniPaziente({ paziente }: { paziente: PazienteD
     <section className="card">
       <h3>
         Progressioni
-        <Aiuto testo="A che step è il paziente in ogni progressione della sua fase (per esempio 2/5). Premi una casella per vedere tutti gli step: quelli fatti sono colorati, quello da lavorare adesso è evidenziato e gli altri sono da sbloccare. Si aggiorna con l'esito che segni in fondo a ogni seduta. Serve solo a programmare: non compare nella cartella né nei referti." />
+        <Aiuto testo="A che step è il paziente in ogni progressione della sua fase (per esempio 2/5). Premi una casella per vedere tutti gli step: quelli fatti sono colorati, quello da lavorare adesso è evidenziato e gli altri sono da sbloccare. Si aggiorna con l'esito che segni in fondo a ogni seduta; aprendo una casella puoi anche spostare il paziente di uno step a mano. Serve solo a programmare: non compare nella cartella né nei referti." />
       </h3>
       <div className="scelta-tiles">
         {stati.map((p) => (
@@ -79,6 +94,20 @@ export default function ProgressioniPaziente({ paziente }: { paziente: PazienteD
       {aperta && (
         <Modale onConferma={() => setApertaId(null)}>
           <SpecchiettoProgressioni stati={[aperta]} />
+          {/* Per spostare il paziente senza una seduta: la scala si ricalcola
+              come con l'esito segnato in seduta. */}
+          <div className="sposta-step">
+            <label title="Da quale giorno vale lo spostamento">
+              Dal giorno
+              <input type="date" value={dataMossa} onChange={(e) => setDataMossa(e.target.value || oggiIso())} />
+            </label>
+            <button disabled={aperta.posizione === 0} onClick={() => muovi(aperta, 'indietro')}>
+              <ChevronLeft size={16} /> Indietro di uno step
+            </button>
+            <button disabled={aperta.completata} onClick={() => muovi(aperta, 'avanza')}>
+              Avanti di uno step <ChevronRight size={16} />
+            </button>
+          </div>
           <div className="modal-actions">
             <button className="primary" onClick={() => setApertaId(null)}>
               Chiudi

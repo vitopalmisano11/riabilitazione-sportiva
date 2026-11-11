@@ -14,6 +14,7 @@ import {
   eliminaProgressione,
   gruppiProgressioni,
   impostaProgressioniFase,
+  muoviProgressione,
   progressioniDellaFase,
   sostituisciStep,
   statoProgressioni,
@@ -413,3 +414,23 @@ test("Una variante dell'esercizio puo' essere uno step, e la scala la segue anch
   aggiornaEsercizio(slb, datiEsercizio(cat, 'Equilibrio monopodalico', [{ id: conteggio.id, nome: 'con conteggio' }]))
   assert.deepEqual(variantiDi(slb).map((v) => v.nome), ['con conteggio'])
 })
+
+test('Spostare a mano il paziente: conta come un esito, in ordine di giorni, e non esce dalla scala', () => {
+  const { paz, fase, prog } = scenario()
+  const posizione = (finoAl = '2099-12-31') => stato(paz, fase, finoAl).find((p) => p.id === prog)!.posizione
+  assert.throws(() => muoviProgressione(paz, prog, 'indietro', '2026-10-01'), /primo step/)
+  muoviProgressione(paz, prog, 'avanza', '2026-10-01')
+  assert.equal(posizione(), 1)
+  // prima di quel giorno non c'era ancora
+  assert.equal(posizione('2026-09-30'), 0)
+  // insieme a una seduta: vale l'ordine dei giorni
+  seduta(paz, fase, '2026-10-05', [{ progressione_id: prog, esito: 'avanza' }])
+  muoviProgressione(paz, prog, 'indietro', '2026-10-10')
+  assert.equal(posizione(), 1)
+  muoviProgressione(paz, prog, 'avanza', '2026-10-11')
+  muoviProgressione(paz, prog, 'avanza', '2026-10-12')
+  assert.equal(stato(paz, fase).find((p) => p.id === prog)!.completata, true)
+  assert.throws(() => muoviProgressione(paz, prog, 'avanza', '2026-10-13'), /già completata/)
+  assert.throws(() => muoviProgressione(paz, prog, 'avanza', 'ieri'), /data valida/)
+})
+

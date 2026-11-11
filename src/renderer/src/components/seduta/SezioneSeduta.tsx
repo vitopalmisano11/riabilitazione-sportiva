@@ -51,6 +51,7 @@ interface Props {
   // le categorie proposte da almeno una sezione della seduta
   categorieCoperte: Set<number>
   onSpecchietto: () => void
+  onSblocca: (progressioneId: number, nome: string) => void
   // la ricerca degli esercizi e' aperta in questa sezione (una per volta)
   aperta: boolean
   onApri: (indice: number | null) => void
@@ -77,6 +78,7 @@ export default function SezioneSeduta({
   inSeduta,
   categorieCoperte,
   onSpecchietto,
+  onSblocca,
   aperta,
   onApri,
   riordinoSezioni,
@@ -253,6 +255,7 @@ export default function SezioneSeduta({
             inSeduta={inSeduta}
             onAggiungi={(e, dose) => invia({ tipo: 'aggiungi', sez: idxSez, esercizio: e, dose })}
             onSpecchietto={onSpecchietto}
+            onSblocca={onSblocca}
           />
           <ElencoProposte
             esercizi={daProporre(s, ricerca, templateCats, categorie, libreria).filter((e) => !giaSuggeriti.has(e.id))}

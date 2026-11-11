@@ -262,6 +262,7 @@ import {
   riordinaProgressioni,
   riordinaStep,
   statoProgressioni,
+  muoviProgressione,
   togliStep
 } from './progressioni'
 import { leggiTest, salvaTest } from './test-valutazione'
@@ -304,6 +305,7 @@ import type {
   StatoPaziente,
   ProgressioneGruppo,
   DatiStep,
+  EsitoProgressione,
   ProgressioneInput,
   ProgressioniFase,
   TermineObiettivo,
@@ -1240,6 +1242,9 @@ export function registerIpc(): void {
       escludiSedutaId: number | null,
       tutte?: boolean
     ) => statoProgressioni(pazienteId, faseId, finoAl, escludiSedutaId, tutte === true)
+  )
+  handle('progressioni:muovi', (pazienteId: number, progressioneId: number, esito: EsitoProgressione, data: string) =>
+    muoviProgressione(pazienteId, progressioneId, esito, data)
   )
   handle('obiettiviTerapeutici:aspettative', (pazienteId: number) => leggiAspettative(pazienteId))
   handle('obiettiviTerapeutici:salvaAspettative', (pazienteId: number, testo: string | null) =>
