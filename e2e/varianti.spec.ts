@@ -106,9 +106,10 @@ test('varianti: dalla libreria alla progressione e alla seduta', async () => {
     await pagina.locator('.elenco-prog li', { hasText: 'Equilibrio' }).click()
     const passi = pagina.locator('.step-editor li')
     await expect(passi).toHaveCount(2)
-    await passi.nth(1).locator('select').selectOption({ label: CONTEGGIO })
+    await passi.nth(1).locator('.step-variante .menu-scelta-bottone').click()
+    await pagina.locator('.menu-scelta-popup').getByRole('button', { name: CONTEGGIO }).click()
     await expect(passi.nth(1)).toContainText(`Equilibrio monopodalico — ${CONTEGGIO}`)
-    await expect(passi.nth(0).locator('select')).toHaveValue('')
+    await expect(passi.nth(0).locator('.step-variante .menu-scelta-bottone')).toHaveText(/^normale$/i)
     await pagina.locator('.step-editor').screenshot({ path: join(FOTO, '31-varianti-progressione.png') })
 
     // ---- in seduta: lo step con la variante entra con la variante
@@ -127,17 +128,21 @@ test('varianti: dalla libreria alla progressione e alla seduta', async () => {
     await pagina.getByTitle('Aggiungi Plank').click()
 
     // il menu c'e' solo sull'esercizio che ha delle varianti
-    const menu = riga(pagina, 'Equilibrio monopodalico').getByLabel('Variante di Equilibrio monopodalico')
-    await expect(menu).toHaveValue(CONTEGGIO)
-    await expect(riga(pagina, 'Plank').locator('select')).toHaveCount(0)
+    const menu = riga(pagina, 'Equilibrio monopodalico').locator('.select-variante .menu-scelta-bottone')
+    await expect(menu).toHaveText(new RegExp(`^${CONTEGGIO}$`, 'i'))
+    await expect(riga(pagina, 'Plank').locator('.select-variante')).toHaveCount(0)
     await pagina.screenshot({ path: join(FOTO, '32-varianti-seduta.png'), fullPage: true })
 
     // si cambia dal menu, e "normale" vuol dire nessuna variante
-    await menu.selectOption({ label: 'con luci reattive' })
-    await expect(menu).toHaveValue('con luci reattive')
-    await menu.selectOption({ label: 'normale' })
-    await expect(menu).toHaveValue('')
-    await menu.selectOption({ label: 'con luci reattive' })
+    const scegli = async (voce: string): Promise<void> => {
+      await menu.click()
+      await pagina.locator('.menu-scelta-popup').getByRole('button', { name: voce }).click()
+    }
+    await scegli('con luci reattive')
+    await expect(menu).toHaveText(/^con luci reattive$/i)
+    await scegli('normale')
+    await expect(menu).toHaveText(/^normale$/i)
+    await scegli('con luci reattive')
     await pagina.getByRole('button', { name: /Salva seduta \(2 esercizi\)/ }).click()
 
     // riaperta, la variante c'e'
@@ -145,8 +150,8 @@ test('varianti: dalla libreria alla progressione e alla seduta', async () => {
     await pagina.getByRole('button', { name: 'Diario sedute' }).click()
     await pagina.getByTitle('Modifica la seduta').first().click()
     await expect(
-      riga(pagina, 'Equilibrio monopodalico').getByLabel('Variante di Equilibrio monopodalico')
-    ).toHaveValue('con luci reattive')
+      riga(pagina, 'Equilibrio monopodalico').locator('.select-variante .menu-scelta-bottone')
+    ).toHaveText(/^con luci reattive$/i)
     await pagina.getByRole('button', { name: 'Annulla' }).first().click()
 
     expect(prova.errori, 'errori nella console').toEqual([])

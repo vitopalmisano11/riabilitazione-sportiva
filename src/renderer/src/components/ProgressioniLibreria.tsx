@@ -7,6 +7,7 @@ import type {
   ProgressioneGruppo,
   StepProgressione
 } from '../../../shared/types'
+import Tendina from './Tendina'
 import { esercizioCorrisponde, nomeStep } from '../../../shared/varianti'
 import { errMsg } from '../lib'
 import { useRiordinoSalvato } from '../riordino'
@@ -534,7 +535,7 @@ function CampiStep({
       {predefiniti?.gambe === 'scelta' && (
         <label className="step-variante" title="Se a questo step l'esercizio si fa a due gambe o a una">
           Gambe
-          <select
+          <Tendina
             value={dati.monopodalico}
             onChange={(e) => {
               const m = Number(e.target.value)
@@ -544,13 +545,13 @@ function CampiStep({
           >
             <option value={0}>bipodalico</option>
             <option value={1}>monopodalico</option>
-          </select>
+          </Tendina>
         </label>
       )}
       {varianti.length > 0 && (
         <label className="step-variante" title="Quale variante dell'esercizio si fa a questo step">
           Variante
-          <select
+          <Tendina
             value={dati.variante_id ?? ''}
             onChange={(e) => {
               const id = e.target.value === '' ? null : Number(e.target.value)
@@ -564,7 +565,7 @@ function CampiStep({
                 {v.nome}
               </option>
             ))}
-          </select>
+          </Tendina>
         </label>
       )}
       <input

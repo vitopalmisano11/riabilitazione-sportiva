@@ -10,6 +10,7 @@ import { errMsg } from '../lib'
 import { useRiordinoSalvato } from '../riordino'
 import { daPrecarico, ricorda } from '../precarico'
 import { TIPI_LAVORO, type TipoLavoro } from '../../../shared/dose'
+import Tendina from './Tendina'
 import { esercizioCorrisponde } from '../../../shared/varianti'
 
 // La prima pagina della libreria: le categorie degli esercizi.
@@ -508,7 +509,7 @@ export default function CategorieEsercizi({
                 Nel conto della dose
                 <Aiuto testo="Come si contano gli esercizi di questa categoria nella dose della fase: la pliometria in contatti per seduta (un esercizio a una gamba vale doppio), la forza in serie per settimana, una voce per ogni distretto (quadricipite, hamstring), la potenza con carico in serie per seduta. I numeri della dose si scrivono in Patologie e fasi, linguetta «Dose». Isometrie, core e accessori restano fuori." />
               </span>
-              <select
+              <Tendina
                 value={form.contaCome ?? ''}
                 onChange={(e) => setForm({ ...form, contaCome: (e.target.value || null) as TipoLavoro | null })}
               >
@@ -522,7 +523,7 @@ export default function CategorieEsercizi({
                     {t.nome} ({t.unita})
                   </option>
                 ))}
-              </select>
+              </Tendina>
             </label>
 
             <div className="modal-actions">

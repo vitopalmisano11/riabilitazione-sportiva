@@ -205,9 +205,12 @@
   color: var(--text-dim);
 }
 
-.step-editor .step-variante select {
+.step-editor .step-variante .tendina {
   flex: 0 1 280px;
   min-width: 0;
+}
+
+.step-editor .step-variante .menu-scelta-bottone {
   padding: 6px 10px;
   font-size: 14px;
 }

@@ -6,7 +6,8 @@ import type { PropsContenitore, PropsPresa } from '../../riordino'
 import { testoMassimale } from '../../../../shared/massimali'
 import { errMsg, formatData } from '../../lib'
 import { toast, toastErrore } from '../Toast'
-import { stessaDoseDellUltima, testoUltima,type AzioneSezioni, type CampoRiga, type RigaBuilder } from './modello'
+import Tendina from '../Tendina'
+import { stessaDoseDellUltima, testoUltima, type AzioneSezioni, type CampoRiga, type RigaBuilder } from './modello'
 
 interface Props {
   riga: RigaBuilder
@@ -102,10 +103,9 @@ function RigaSeduta({
             per tutti gli altri la riga e' quella di sempre. Sceglie "normale"
             e non si scrive niente sulla scheda. */}
         {(varianti.length > 0 || r.variante) && (
-          <select
+          <Tendina
             className={`select-variante${r.variante ? ' con-variante' : ''}`}
-            title="Variante dell'esercizio"
-            aria-label={`Variante di ${r.nome}`}
+            title={`Variante di ${r.nome}`}
             value={r.variante ?? ''}
             onChange={cambia('variante')}
           >
@@ -118,7 +118,7 @@ function RigaSeduta({
             {r.variante && !varianti.some((v) => v.nome === r.variante) && (
               <option value={r.variante}>{r.variante}</option>
             )}
-          </select>
+          </Tendina>
         )}
       </div>
       {/* Parametri e nota sulla stessa riga del nome: le etichette sono nei

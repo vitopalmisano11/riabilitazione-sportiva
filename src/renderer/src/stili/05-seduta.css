@@ -367,12 +367,16 @@
 .select-variante {
   flex: none;
   max-width: 220px;
+}
+
+.select-variante .menu-scelta-bottone {
   padding: 4px 8px;
   font-size: 13px;
   color: var(--text-dim);
 }
 
-.select-variante.con-variante {
+.select-variante.con-variante .menu-scelta-bottone,
+.select-variante.con-variante .menu-scelta-bottone:hover:not(:disabled) {
   color: var(--accent);
   border-color: var(--accent);
   background: var(--accent-soft);

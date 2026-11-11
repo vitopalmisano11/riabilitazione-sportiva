@@ -87,7 +87,8 @@ test('dose: la categoria si conta, la fase prende i numeri, la seduta dice se ci
     const piastrella = pagina.locator('.scelta-tile', { hasText: 'Pliometria' })
     await piastrella.hover()
     await piastrella.getByTitle('Modifica').click()
-    await pagina.locator('.modal').getByLabel(/Nel conto della dose/).selectOption('plio_est')
+    await pagina.locator('.modal label', { hasText: 'Nel conto della dose' }).locator('.menu-scelta-bottone').click()
+    await pagina.locator('.menu-scelta-popup').getByRole('button', { name: /Pliometria estensiva/ }).click()
     await pagina.locator('.modal').screenshot({ path: join(FOTO, '40-dose-categoria.png') })
     await pagina.locator('.modal').getByRole('button', { name: 'Salva' }).click()
     await expect(pagina.locator('.scelta-tile', { hasText: 'Pliometria' }).locator('.badge')).toHaveText(

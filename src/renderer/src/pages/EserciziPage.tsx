@@ -24,6 +24,7 @@ import Modale from '../components/Modale'
 import { errMsg } from '../lib'
 import { daPrecarico, ricorda } from '../precarico'
 import type { Dosaggio } from '../../../shared/dosaggio'
+import Tendina from '../components/Tendina'
 import type { Gambe } from '../../../shared/dose'
 import {
   aCluster,
@@ -557,14 +558,14 @@ export default function EserciziPage(): React.JSX.Element {
             </label>
             <label>
               Gambe
-              <select
+              <Tendina
                 value={form.gambe}
                 onChange={(e) => setForm({ ...form, gambe: e.target.value as Gambe })}
               >
                 <option value="due">Due</option>
                 <option value="scelta">A scelta in seduta (squat, CMJ, affondi…)</option>
                 <option value="una">Sempre una (single leg hop…)</option>
-              </select>
+              </Tendina>
             </label>
             <p className="modal-testo">
               Valori di default, proposti quando aggiungi l&apos;esercizio a una seduta:
