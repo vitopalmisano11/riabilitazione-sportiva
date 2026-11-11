@@ -1762,6 +1762,12 @@ export const MIGRATIONS: string[] = [
   //      fatte). Una casella ampia di testo, accanto al motivo del consulto.
   `
   ALTER TABLE anamnesi_prossima ADD COLUMN storia_precedente TEXT;
+  `,
+
+  // 75 - lo step di una progressione puo' essere monopodalico (come la riga di
+  //      una seduta): per gli esercizi che si fanno a scelta a due o a una gamba.
+  `
+  ALTER TABLE progressione_step ADD COLUMN monopodalico INTEGER NOT NULL DEFAULT 0;
   `
 ]
 

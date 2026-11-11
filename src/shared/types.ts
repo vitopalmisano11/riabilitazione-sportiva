@@ -1389,10 +1389,15 @@ export interface StepProgressione {
   // conteggio): il rimando alla libreria e il suo nome di adesso. Null = l'esercizio normale.
   variante_id: number | null
   variante: string | null
+  // 1 = a una gamba (solo per gli esercizi «a scelta»); 0 = come l'esercizio normale.
+  monopodalico: number
 }
 
-// Quello che si scrive su uno step dall'editor: il requisito, la dose e la variante.
-export type DatiStep = Pick<StepProgressione, 'requisito' | 'serie' | 'ripetizioni' | 'recupero' | 'variante_id'>
+// Quello che si scrive su uno step dall'editor: il requisito, la dose, la variante e le gambe.
+export type DatiStep = Pick<
+  StepProgressione,
+  'requisito' | 'serie' | 'ripetizioni' | 'recupero' | 'variante_id' | 'monopodalico'
+>
 
 export interface Progressione {
   id: number

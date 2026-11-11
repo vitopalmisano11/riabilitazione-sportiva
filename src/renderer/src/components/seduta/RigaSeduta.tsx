@@ -6,7 +6,7 @@ import type { PropsContenitore, PropsPresa } from '../../riordino'
 import { testoMassimale } from '../../../../shared/massimali'
 import { errMsg, formatData } from '../../lib'
 import { toast, toastErrore } from '../Toast'
-import { testoUltima, type AzioneSezioni, type CampoRiga, type RigaBuilder } from './modello'
+import { stessaDoseDellUltima, testoUltima,type AzioneSezioni, type CampoRiga, type RigaBuilder } from './modello'
 
 interface Props {
   riga: RigaBuilder
@@ -194,18 +194,22 @@ function RigaSeduta({
       {ultima && (
         <div className="ultima-volta">
           <span className="ultima-quando">L&apos;ultima volta,{formatData(ultima.data)}:</span>
-          <span className="ultima-dose">{testoUltima(r, ultima)}</span>
+          {!stessaDoseDellUltima(r, ultima) && (
+            <span className="ultima-dose">{testoUltima(r, ultima)}</span>
+          )}
           {ultima.nota?.trim() && <span className="ultima-nota">«{ultima.nota.trim()}»</span>}
-          <button
-            className="btn-piccolo"
-            title="Rimetti questi numeri nella riga"
-            onClick={() => {
-              invia({ tipo: 'ricopia', sez, riga: indice, ultima })
-              onRicopiata(`${sez}:${r.esercizio_id}`)
-            }}
-          >
-            <CornerDownLeft size={14} /> Ricopia
-          </button>
+          {!stessaDoseDellUltima(r, ultima) && (
+            <button
+              className="btn-piccolo"
+              title="Rimetti questi numeri nella riga"
+              onClick={() => {
+                invia({ tipo: 'ricopia', sez, riga: indice, ultima })
+                onRicopiata(`${sez}:${r.esercizio_id}`)
+              }}
+            >
+              <CornerDownLeft size={14} /> Ricopia
+            </button>
+          )}
         </div>
       )}
       {/* Il massimale, solo se e' segnato: "80%" si legge come peso senza

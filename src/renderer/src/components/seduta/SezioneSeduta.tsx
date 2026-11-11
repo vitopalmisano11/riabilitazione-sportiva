@@ -24,6 +24,7 @@ import {
   mostraRir,
   sezioneAmmetteStep,
   suggerimentiProgressioni,
+  stessaDoseDellUltima,
   testoUltima,
   type AzioneSezioni,
   type SezioneBuilder
@@ -169,7 +170,9 @@ export default function SezioneSeduta({
               id != null &&
               ultime[id] &&
               !ricopiate.includes(`${idxSez}:${id}`) &&
-              (testoUltima(r, ultime[id]) !== '' || (ultime[id].nota ?? '').trim() !== '')
+              // dose uguale: resta solo la nota, se c'e'
+              ((!stessaDoseDellUltima(r, ultime[id]) && testoUltima(r, ultime[id]) !== '') ||
+                (ultime[id].nota ?? '').trim() !== '')
                 ? ultime[id]
                 : undefined
             // Gli esercizi della stessa categoria restano vicini perche' e' li'

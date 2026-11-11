@@ -7,7 +7,7 @@ import type {
   ProgressioneGruppo,
   StepProgressione
 } from '../../../shared/types'
-import { esercizioCorrisponde, nomeConVariante } from '../../../shared/varianti'
+import { esercizioCorrisponde, nomeStep } from '../../../shared/varianti'
 import { errMsg } from '../lib'
 import { useRiordinoSalvato } from '../riordino'
 import { toastErrore } from './Toast'
@@ -385,7 +385,7 @@ function EditorProgressione({
             <li key={s.id} {...dnd} {...presa(idx)} className={dnd.className}>
               <span className="step-numero">{idx + 1}</span>
               <span className="item-nome">
-                {nomeConVariante(s.esercizio_nome, s.variante)}
+                {nomeStep(s.esercizio_nome, s.variante, s.monopodalico)}
                 {s.archiviato === 1 && <em className="hint"> (archiviato)</em>}
               </span>
               <CampiStep
@@ -493,17 +493,20 @@ function CampiStep({
     serie: step.serie ?? '',
     ripetizioni: step.ripetizioni ?? '',
     recupero: step.recupero ?? '',
-    variante_id: step.variante_id
+    variante_id: step.variante_id,
+    monopodalico: step.monopodalico
   })
-  const salva = (variante_id: number | null = dati.variante_id): void => {
+  const salva = (variante_id: number | null = dati.variante_id, monopodalico: number = dati.monopodalico): void => {
     const pulito: DatiStep = {
       requisito: dati.requisito?.trim() || null,
       serie: dati.serie?.trim() || null,
       ripetizioni: dati.ripetizioni?.trim() || null,
       recupero: dati.recupero?.trim() || null,
-      variante_id
+      variante_id,
+      monopodalico
     }
     const cambiato =
+      pulito.monopodalico !== step.monopodalico ||
       pulito.requisito !== step.requisito ||
       pulito.serie !== step.serie ||
       pulito.ripetizioni !== step.ripetizioni ||
@@ -528,6 +531,22 @@ function CampiStep({
       {/* Solo se l'esercizio ha delle varianti in libreria: lo step puo' essere
           l'esercizio normale o una sua variante (l'equilibrio, poi con il
           conteggio, poi con le luci). */}
+      {predefiniti?.gambe === 'scelta' && (
+        <label className="step-variante" title="Se a questo step l'esercizio si fa a due gambe o a una">
+          Gambe
+          <select
+            value={dati.monopodalico}
+            onChange={(e) => {
+              const m = Number(e.target.value)
+              setDati({ ...dati, monopodalico: m })
+              salva(dati.variante_id, m)
+            }}
+          >
+            <option value={0}>bipodalico</option>
+            <option value={1}>monopodalico</option>
+          </select>
+        </label>
+      )}
       {varianti.length > 0 && (
         <label className="step-variante" title="Quale variante dell'esercizio si fa a questo step">
           Variante
@@ -536,7 +555,7 @@ function CampiStep({
             onChange={(e) => {
               const id = e.target.value === '' ? null : Number(e.target.value)
               setDati({ ...dati, variante_id: id })
-              salva(id)
+              salva(id, dati.monopodalico)
             }}
           >
             <option value="">normale</option>

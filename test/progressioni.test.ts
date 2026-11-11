@@ -309,13 +309,14 @@ test("Lo stesso esercizio puo' essere piu' step della stessa scala, ognuno con l
     [[null, null, null], [null, null, null], [null, null, null]]
   )
 
-  aggiornaStep(step[0], { requisito: null, serie: '5', ripetizioni: "1' corsa", recupero: "5' cammino", variante_id: null })
+  aggiornaStep(step[0], { requisito: null, serie: '5', ripetizioni: "1' corsa", recupero: "5' cammino", variante_id: null, monopodalico: 0 })
   aggiornaStep(step[1], {
     requisito: 'dolore al massimo 2/10',
     serie: ' 5 ',
     ripetizioni: "2' corsa",
     recupero: '   ',
-    variante_id: null
+    variante_id: null,
+    monopodalico: 0
   })
   const dopo = leggi()
   assert.deepEqual([dopo[0].serie, dopo[0].ripetizioni, dopo[0].recupero], ['5', "1' corsa", "5' cammino"])
@@ -333,7 +334,7 @@ test("Lo stesso esercizio puo' essere piu' step della stessa scala, ognuno con l
   assert.equal(r.step[1].ripetizioni, "2' corsa")
 
   // cambiare la dose di uno step non sposta nessuno
-  aggiornaStep(step[2], { requisito: null, serie: '5', ripetizioni: "3' corsa", recupero: "3' cammino", variante_id: null })
+  aggiornaStep(step[2], { requisito: null, serie: '5', ripetizioni: "3' corsa", recupero: "3' cammino", variante_id: null, monopodalico: 0 })
   assert.equal(stato(paz, fase).find((p) => p.id === prog)!.posizione, 1)
   assert.deepEqual(leggi().map((s) => s.id), step)
 })
@@ -363,7 +364,8 @@ test("Una variante dell'esercizio puo' essere uno step, e la scala la segue anch
     serie: null,
     ripetizioni: null,
     recupero: null,
-    variante_id
+    variante_id,
+    monopodalico: 0
   })
   aggiornaStep(step[1], dati(conteggio.id))
   aggiornaStep(step[2], dati(luci.id))
@@ -398,6 +400,13 @@ test("Una variante dell'esercizio puo' essere uno step, e la scala la segue anch
   // cambiando l'esercizio dello step la variante non lo segue: era dell'altro
   sostituisciStep(step[1], altro)
   assert.deepEqual([leggi()[1].esercizio_id, leggi()[1].variante_id], [altro, null])
+
+  // bipodalico o monopodalico e' dello step e non segue l'esercizio che cambia
+  aggiornaStep(step[1], { ...dati(null), monopodalico: 1 })
+  assert.equal(leggi()[1].monopodalico, 1)
+  assert.equal(leggi()[0].monopodalico, 0)
+  sostituisciStep(step[1], slb)
+  assert.equal(leggi()[1].monopodalico, 0)
 
   // tolto lo step, la variante si puo' togliere dall'esercizio
   togliStep(step[2])

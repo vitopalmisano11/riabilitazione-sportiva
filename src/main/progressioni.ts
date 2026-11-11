@@ -34,7 +34,7 @@ export function elencoProgressioni(): Progressione[] {
     .prepare(
       `SELECT s.id, s.progressione_id, s.esercizio_id, e.nome AS esercizio_nome,
               e.archiviato, s.requisito, s.serie, s.ripetizioni, s.recupero,
-              s.variante_id, v.nome AS variante
+              s.variante_id, v.nome AS variante, s.monopodalico
        FROM progressione_step s
        JOIN esercizi e ON e.id = s.esercizio_id
        LEFT JOIN esercizio_varianti v ON v.id = s.variante_id
@@ -114,13 +114,14 @@ export function aggiornaStep(id: number, dati: DatiStep): void {
     throw new Error('Quella variante non è di questo esercizio: riprova.')
   }
   db.prepare(
-    'UPDATE progressione_step SET requisito = ?, serie = ?, ripetizioni = ?, recupero = ?, variante_id = ? WHERE id = ?'
+    'UPDATE progressione_step SET requisito = ?, serie = ?, ripetizioni = ?, recupero = ?, variante_id = ?, monopodalico = ? WHERE id = ?'
   ).run(
     vuotoNull(dati.requisito),
     vuotoNull(dati.serie),
     vuotoNull(dati.ripetizioni),
     vuotoNull(dati.recupero),
     dati.variante_id,
+    dati.monopodalico === 1 ? 1 : 0,
     id
   )
 }
@@ -131,7 +132,7 @@ export function aggiornaStep(id: number, dati: DatiStep): void {
 // si sposta. La variante resta indietro: era dell'esercizio di prima.
 export function sostituisciStep(id: number, esercizioId: number): void {
   const { changes } = getDb()
-    .prepare('UPDATE progressione_step SET esercizio_id = ?, variante_id = NULL WHERE id = ?')
+    .prepare('UPDATE progressione_step SET esercizio_id = ?, variante_id = NULL, monopodalico = 0 WHERE id = ?')
     .run(esercizioId, id)
   if (changes === 0) throw new Error('Step non trovato.')
 }

@@ -1,6 +1,6 @@
 import { ArrowDown, ArrowUp, Info } from 'lucide-react'
 import type { EsitoProgressione, StatoProgressione } from '../../../../shared/types'
-import { nomeConVariante } from '../../../../shared/varianti'
+import { nomeStep } from '../../../../shared/varianti'
 
 interface Props {
   // le progressioni che hanno un esercizio in questa seduta
@@ -25,7 +25,7 @@ const SCELTE: { chiave: Scelta; etichetta: string; Icona: typeof ArrowUp | null 
 function destinazione(p: StatoProgressione, scelta: Scelta): string {
   const n = p.step.length
   const descrivi = (indice: number): string =>
-    `step ${indice + 1} di ${n} · ${nomeConVariante(p.step[indice].esercizio_nome, p.step[indice].variante)}`
+    `step ${indice + 1} di ${n} · ${nomeStep(p.step[indice].esercizio_nome, p.step[indice].variante, p.step[indice].monopodalico)}`
   if (scelta === 'avanza') {
     return p.posizione + 1 >= n ? 'scala completata' : `si passa allo ${descrivi(p.posizione + 1)}`
   }

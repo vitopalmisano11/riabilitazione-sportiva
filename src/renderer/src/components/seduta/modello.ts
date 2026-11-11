@@ -20,7 +20,7 @@ import type {
   UltimaVolta
 } from '../../../../shared/types'
 import { caricoTesto, recuperoTesto, rirTesto, volumeTesto } from '../../../../shared/dosaggio'
-import { esercizioCorrisponde, nomeConVariante } from '../../../../shared/varianti'
+import { esercizioCorrisponde, nomeStep } from '../../../../shared/varianti'
 import { contaRighe, type RigaConto } from '../../../../shared/dose'
 import { sposta } from '../../sposta'
 
@@ -122,7 +122,9 @@ const MASSIMO_STORIA = 50
 // La dose scritta sullo step di una progressione: dove c'e', vale al posto di
 // quella dell'esercizio (una casella vuota lascia quella dell'esercizio). La
 // variante dello step, se ne ha una, entra nella riga insieme alla dose.
-export type DoseStep = Pick<StepProgressione, 'serie' | 'ripetizioni' | 'recupero' | 'variante'>
+export type DoseStep = Pick<StepProgressione, 'serie' | 'ripetizioni' | 'recupero' | 'variante'> & {
+  monopodalico?: number
+}
 
 export function rigaDaLibreria(e: EsercizioConCategoria, dose?: DoseStep): RigaBuilder {
   return {
@@ -140,7 +142,7 @@ export function rigaDaLibreria(e: EsercizioConCategoria, dose?: DoseStep): RigaB
     recupero: dose?.recupero ?? e.recupero_default,
     nota: null,
     variante: dose?.variante ?? null,
-    monopodalico: 0,
+    monopodalico: dose?.monopodalico === 1 && e.gambe === 'scelta' ? 1 : 0,
     link: e.link,
     ha_immagine: e.ha_immagine
   }
@@ -418,7 +420,7 @@ export function suggerimentiProgressioni(
       .slice(base, base + 2)
       .map((step, i) => ({ step, indice: i }))
       .filter((r) => ammesso(r.step.esercizio_id))
-      .filter((r) => q === '' || nomeConVariante(r.step.esercizio_nome, r.step.variante).toLowerCase().includes(q))
+      .filter((r) => q === '' || nomeStep(r.step.esercizio_nome, r.step.variante, r.step.monopodalico).toLowerCase().includes(q))
     if (righe.length > 0) gruppi.push({ progressione: p, base, righe })
   }
   return gruppi
@@ -466,6 +468,24 @@ export const testoUltima = (r: SedutaEsercizioDettaglio, u: UltimaVolta): string
   ]
     .filter(Boolean)
     .join(' · ')
+
+// La riga ha gia' gli stessi numeri dell'ultima volta (quelli che "Ricopia"
+// rimetterebbe): in quel caso l'ultima volta non serve piu' a guidare la dose.
+export function stessaDoseDellUltima(r: SedutaEsercizioDettaglio, u: UltimaVolta): boolean {
+  const n = <T,>(v: T | null | undefined): T | string => v ?? ''
+  const t = (v: string | null | undefined): string => (v ?? '').trim()
+  return (
+    n(r.serie) === n(u.serie) &&
+    n(r.cluster) === n(u.cluster) &&
+    t(r.ripetizioni) === t(u.ripetizioni) &&
+    n(r.rir) === n(u.rir) &&
+    n(r.carico) === n(u.carico) &&
+    n(r.recupero_cluster) === n(u.recupero_cluster) &&
+    n(r.recupero) === n(u.recupero) &&
+    t(r.variante) === t(u.variante) &&
+    (r.monopodalico ?? 0) === (u.monopodalico ?? 0)
+  )
+}
 
 // ---- la dose ----
 

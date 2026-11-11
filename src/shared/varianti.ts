@@ -23,6 +23,15 @@ export function esercizioCorrisponde(
   )
 }
 
+// Il nome di uno step di progressione: "Squat monopodalico — con conteggio".
+export function nomeStep(
+  nome: string,
+  variante: string | null | undefined,
+  monopodalico: number | null | undefined
+): string {
+  return nomeConVariante(nomeConMonopodalico(nome, monopodalico), variante)
+}
+
 // "Squat monopodalico": il segno messo in seduta si legge accanto al nome.
 // A due gambe (il caso normale) non si scrive niente, e nemmeno per un
 // esercizio che e' sempre a una gamba, dove il nome lo dice gia'.

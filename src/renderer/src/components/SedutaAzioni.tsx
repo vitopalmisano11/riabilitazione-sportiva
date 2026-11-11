@@ -5,8 +5,8 @@ import { toastErrore } from './Toast'
 
 // Le azioni sulla riga di una seduta, uguali nel diario del paziente e nella
 // settimana. Il clic sulla riga apre la seduta; qui restano solo le due cose
-// che si fanno di continuo (copiarla, eliminarla) e un menu con il resto: le
-// schede da far vedere al paziente, lo scarico in PDF o Word e, dove ha senso,
+// che si fanno di continuo (la scheda normale, quella illustrata, eliminarla)
+// e un menu con il resto: la copia, lo scarico in PDF o Word e, dove ha senso,
 // lo spostamento in un altro giorno.
 export default function SedutaAzioni({
   sedutaId,
@@ -36,18 +36,18 @@ export default function SedutaAzioni({
   return (
     // il clic qui non deve arrivare alla riga, che aprirebbe la seduta
     <span className="row-actions" onClick={(e) => e.stopPropagation()}>
-      <button title={titoloCopia} onClick={onCopia}>
-        <Copy size={18} />
-      </button>
       <button
         title="Mostra la scheda al paziente (si apre in una finestra a parte)"
         onClick={() => void window.api.scheda.apri(sedutaId).catch((e) => toastErrore(errMsg(e)))}
       >
         <Presentation size={18} />
       </button>
+      <button title="Scheda illustrata per il paziente (foto e spiegazioni)" onClick={onIllustrata}>
+        <Images size={18} />
+      </button>
       <span className="menu-wrapper">
         <button
-          title="Altro: scheda illustrata, scarica, riprogramma"
+          title="Altro: copia, scarica, riprogramma"
           aria-label="Altre azioni sulla seduta"
           onClick={() => setAperto(!aperto)}
         >
@@ -57,11 +57,8 @@ export default function SedutaAzioni({
           <>
             <div className="menu-chiudi" onClick={() => setAperto(false)} />
             <div className="menu-tendina">
-              <button
-                title="Scheda illustrata per il paziente (foto e spiegazioni)"
-                onClick={chiudi(onIllustrata)}
-              >
-                <Images size={18} /> Scheda illustrata
+              <button title={titoloCopia} onClick={chiudi(onCopia)}>
+                <Copy size={18} /> Copia
               </button>
               <button onClick={chiudi(() => onScarica('pdf'))}>
                 <FileText size={18} /> Scarica PDF

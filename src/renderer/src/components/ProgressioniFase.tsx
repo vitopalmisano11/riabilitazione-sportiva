@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { Progressione, ProgressioneGruppo, ProgressioniFase } from '../../../shared/types'
-import { nomeConVariante } from '../../../shared/varianti'
+import { nomeStep } from '../../../shared/varianti'
 import { errMsg } from '../lib'
 import { toastErrore } from './Toast'
 import Aiuto from './Aiuto'
@@ -60,7 +60,7 @@ export default function ProgressioniFaseTab({ faseId }: { faseId: number }): Rea
           <span className="prog-fase-anteprima">
             {p.step.length === 0
               ? ' · nessuno step ancora'
-              : ` · ${p.step.map((s) => nomeConVariante(s.esercizio_nome, s.variante)).join(' → ')}`}
+              : ` · ${p.step.map((s) => nomeStep(s.esercizio_nome, s.variante, s.monopodalico)).join(' → ')}`}
           </span>
         </span>
       </label>

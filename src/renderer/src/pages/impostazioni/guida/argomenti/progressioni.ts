@@ -34,7 +34,7 @@ export const progressioni: ArgomentoGuida = {
             'Clicca la progressione appena creata: a destra compare **Step della progressione**. Scrivi i **Criteri per passare allo step dopo**.',
             'Premi **+ Step**, cerca l’esercizio nella libreria e premi **+** accanto al suo nome.',
             'Ripeti per ogni step, **dal più facile al più difficile**. Per cambiare l’ordine trascina gli step. Lo stesso esercizio può comparire in più step.',
-            'Su ogni step, se serve: scegli la **Variante**, scrivi il **requisito per arrivarci**, e **Serie**, **Ripetizioni**, **Recupero** dello step. Se li lasci vuoti valgono quelli dell’esercizio.'
+            'Su ogni step, se serve: scegli le **Gambe** (bipodalico o monopodalico, solo per gli esercizi che si fanno a scelta) e la **Variante**, scrivi il **requisito per arrivarci**, e **Serie**, **Ripetizioni**, **Recupero** dello step. Se li lasci vuoti valgono quelli dell’esercizio.'
           ]
         }
       ]

@@ -1,7 +1,7 @@
 import { Check, Lock } from 'lucide-react'
 import type { StatoProgressione } from '../../../shared/types'
 import { doseTesto } from '../../../shared/dosaggio'
-import { nomeConVariante } from '../../../shared/varianti'
+import { nomeStep } from '../../../shared/varianti'
 import { durataTra, formatData } from '../lib'
 
 // Dove e' arrivato il paziente nelle progressioni: ogni progressione e' una
@@ -48,7 +48,7 @@ export default function SpecchiettoProgressioni({
                       )}
                     </span>
                     <span className="step-nome">
-                      {nomeConVariante(s.esercizio_nome, s.variante)}
+                      {nomeStep(s.esercizio_nome, s.variante, s.monopodalico)}
                       {s.archiviato === 1 && <em> (archiviato)</em>}
                       {/* la dose, se lo step ne ha una sua (es. il ritorno alla corsa) */}
                       {doseTesto(s) && <span className="hint"> · {doseTesto(s)}</span>}

@@ -18,6 +18,7 @@ import {
   mostraCluster,
   riduciSezioni,
   sezioneAmmetteStep,
+  stessaDoseDellUltima,
   suggerimentiProgressioni,
   testoUltima,
   type AzioneSezioni,
@@ -141,6 +142,26 @@ test('Ricopiare l\'ultima volta rimette tutti i numeri, la nota no', () => {
   s = riduciSezioni(s, { tipo: 'ricopia', sez: 0, riga: 0, ultima })
   const r = s.sezioni[0].righe[0]
   assert.deepEqual([r.serie, r.ripetizioni, r.rir, r.carico, r.recupero, r.nota], ['4', '8', '2', '30', '90"', 'lento'])
+})
+
+test("L'ultima volta si mostra solo se la dose della riga e' diversa", () => {
+  const ultima = {
+    esercizio_id: 1,
+    data: '2026-09-01',
+    serie: '4',
+    cluster: null,
+    ripetizioni: '8',
+    rir: null,
+    carico: '30',
+    recupero_cluster: null,
+    recupero: null
+  } as UltimaVolta
+  let s = tutte([{ tipo: 'aggiungi', sez: 0, esercizio: squat }])
+  assert.equal(stessaDoseDellUltima(s.sezioni[0].righe[0], ultima), false)
+  s = riduciSezioni(s, { tipo: 'ricopia', sez: 0, riga: 0, ultima })
+  assert.equal(stessaDoseDellUltima(s.sezioni[0].righe[0], ultima), true)
+  s = riduciSezioni(s, { tipo: 'valore', sez: 0, riga: 0, campo: 'carico', valore: '32' })
+  assert.equal(stessaDoseDellUltima(s.sezioni[0].righe[0], ultima), false)
 })
 
 test('Proposte: le categorie della sezione con le loro sottocategorie; cercando, nome o categoria', () => {

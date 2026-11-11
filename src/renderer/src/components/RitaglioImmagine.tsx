@@ -7,6 +7,7 @@ import Modale from './Modale'
 // la porzione visibile su un canvas a risoluzione fissa.
 const CORNICE = 320 // misura della cornice a schermo, in pixel CSS
 const ESPORTA = 640 // lato del quadrato esportato
+const ZOOM_MAX = 4
 
 interface Props {
   src: string
@@ -31,6 +32,8 @@ export default function RitaglioImmagine({
   // scalaBase = lo zoom minimo che copre la cornice senza lasciare bordi.
   const [scalaBase, setScalaBase] = useState(1)
   const [zoom, setZoom] = useState(1)
+  // Si puo' anche rimpicciolire fino a vedere la foto intera: 1 = riempie la cornice.
+  const [zoomMin, setZoomMin] = useState(1)
   // Spostamento dell'immagine rispetto al centro della cornice, in pixel a schermo.
   const [offset, setOffset] = useState({ x: 0, y: 0 })
   const trascinamento = useRef<{ x: number; y: number; offset: { x: number; y: number } } | null>(
@@ -56,12 +59,15 @@ export default function RitaglioImmagine({
     if (!img) return
     const base = Math.max(CORNICE / img.naturalWidth, CORNICE / img.naturalHeight)
     setScalaBase(base)
+    // lo zoom che fa stare l'immagine intera nella cornice (con i bordi vuoti)
+    setZoomMin(Math.min(CORNICE / img.naturalWidth, CORNICE / img.naturalHeight) / base)
     setZoom(1)
     setOffset({ x: 0, y: 0 })
     setPronta(true)
   }
 
-  const cambiaZoom = (nuovoZoom: number): void => {
+  const cambiaZoom = (valore: number): void => {
+    const nuovoZoom = Math.min(ZOOM_MAX, Math.max(zoomMin, valore))
     setZoom(nuovoZoom)
     const nuovaScala = scalaBase * nuovoZoom
     const nmx = Math.max(0, (naturale.w * nuovaScala - CORNICE) / 2)
@@ -90,18 +96,24 @@ export default function RitaglioImmagine({
     if (!img || !pronta) return
     // Punto dell'immagine sorgente che cade al centro della cornice, e lato
     // (in pixel sorgente) del quadrato inquadrato: vedi calcolo in cima al file.
-    const lato = CORNICE / scala
-    const cx = naturale.w / 2 - offset.x / scala
-    const cy = naturale.h / 2 - offset.y / scala
-    const sx = Math.min(Math.max(0, cx - lato / 2), naturale.w - lato)
-    const sy = Math.min(Math.max(0, cy - lato / 2), naturale.h - lato)
-
+    // Si disegna l'immagine com'e' nella cornice, in scala: se e' rimpicciolita
+    // restano i bordi bianchi che si vedono a schermo.
+    const k = ESPORTA / CORNICE
     const canvas = document.createElement('canvas')
     canvas.width = ESPORTA
     canvas.height = ESPORTA
     const ctx = canvas.getContext('2d')
     if (!ctx) return
-    ctx.drawImage(img, sx, sy, lato, lato, 0, 0, ESPORTA, ESPORTA)
+    ctx.fillStyle = '#fff'
+    ctx.fillRect(0, 0, ESPORTA, ESPORTA)
+    ctx.imageSmoothingQuality = 'high'
+    ctx.drawImage(
+      img,
+      (CORNICE / 2 + offset.x - largo / 2) * k,
+      (CORNICE / 2 + offset.y - alto / 2) * k,
+      largo * k,
+      alto * k
+    )
     onConferma(canvas.toDataURL('image/jpeg', 0.85))
   }
 
@@ -118,10 +130,14 @@ export default function RitaglioImmagine({
   return (
     <Modale onConferma={annullaECascata}>
         <h3>Ritaglia la foto</h3>
-        <p className="modal-testo">Trascina la foto per inquadrarla, e usa il cursore per lo zoom.</p>
+        <p className="modal-testo">
+          Trascina la foto per inquadrarla e usa il cursore (o la rotellina) per lo zoom. Se è troppo
+          grande, rimpicciolisci fino a vederla intera: ai lati resta il bianco.
+        </p>
         <div
           className="ritaglio-cornice"
-          style={{ width: CORNICE, height: CORNICE }}
+          style={{ width: CORNICE, height: CORNICE, background: '#fff' }}
+          onWheel={(e) => cambiaZoom(zoom * (e.deltaY > 0 ? 0.93 : 1 / 0.93))}
           onPointerDown={alPuntatoreGiu}
           onPointerMove={alPuntatoreMuovi}
           onPointerUp={alPuntatoreSu}
@@ -145,14 +161,22 @@ export default function RitaglioImmagine({
           Zoom
           <input
             type="range"
-            min={1}
-            max={3}
+            min={zoomMin}
+            max={ZOOM_MAX}
             step={0.01}
             value={zoom}
             disabled={!pronta}
             onChange={(e) => cambiaZoom(Number(e.target.value))}
           />
         </label>
+        <div className="modal-actions" style={{ justifyContent: 'flex-start' }}>
+          <button disabled={!pronta || zoomMin >= 1} onClick={() => cambiaZoom(zoomMin)}>
+            Foto intera
+          </button>
+          <button disabled={!pronta} onClick={() => cambiaZoom(1)}>
+            Riempi il quadrato
+          </button>
+        </div>
         <div className="modal-actions">
           <button onClick={onAnnulla}>Annulla</button>
           <button className="primary" disabled={!pronta} onClick={conferma}>
